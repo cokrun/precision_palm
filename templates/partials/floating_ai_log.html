@@ -1,12 +1,12 @@
 <!-- templates/partials/floating_ai_log.html -->
 <script src="/static/js/global_ai_triggers.js"></script>
 
-<!-- Floating AI Live Telemetry Widget (Posisi tepat di atas floating terminal) -->
-<div id="floatingAiWidget" class="fixed bottom-16 sm:bottom-[66px] right-4 sm:right-5 z-40 flex flex-col items-end gap-2 font-mono">
-    <button type="button" onclick="toggleFloatingAiModal()" class="px-3.5 py-2 h-[38px] rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-mono font-bold text-xs shadow-2xl shadow-emerald-950/60 transition-transform transform hover:scale-105 flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer border border-emerald-400/40" title="AI Live Logs & Telemetry Stream">
-        <span class="w-2 h-2 rounded-full bg-emerald-300 animate-ping"></span>
-        <span class="text-sm">⚡</span>
-        <span class="hidden md:inline ai-log-label">AI Live Logs</span>
+<!-- Floating AI Live Telemetry Widget (Default: 'Ai', Hover: 'Ai Live Logs') -->
+<div id="floatingAiWidget" class="fixed bottom-4 sm:bottom-5 right-4 sm:right-5 z-40 flex items-center font-mono">
+    <button type="button" onclick="toggleFloatingAiModal()" class="pp-ai-live-btn group" title="Ai Live Logs &amp; Telemetry Stream">
+        <span class="pp-ai-pulse-dot"></span>
+        <span class="pp-ai-short-text">Ai</span>
+        <span class="pp-ai-expand-text">Live Logs</span>
     </button>
 </div>
 

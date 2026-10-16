@@ -384,15 +384,15 @@
                   <span>Foreman / Mandor Lapangan</span>
                   <span class="text-[9px] px-1 rounded bg-amber-900/60 text-amber-300 font-normal">Mandor</span>
                 </div>
-                <div class="text-[10.5px] text-slate-400 mt-0.5">PWA Offline, Retikel HUD AI, Speech Chirp.</div>
+                <div class="text-[10.5px] text-slate-400 mt-0.5">Fokus Tahap 4, M &amp; 5 (In-Silico Core, PWA Mobile, Surveillance).</div>
               </div>
             </div>
           </div>
           <div class="mt-2 pt-1.5 border-t border-amber-900/40 flex items-center justify-between text-[10px]">
-            <span class="text-amber-400/80 font-mono">Fokus: Step 4 &amp; 5</span>
+            <span class="text-amber-400/80 font-mono">Fokus: Step 4, M, 5</span>
             <div class="flex items-center gap-1">
-              <button type="button" onclick="event.stopPropagation(); selectPersonaRole('foreman', '/timelines')" class="px-1.5 py-0.5 rounded bg-amber-600/30 hover:bg-amber-600 text-amber-200 hover:text-white font-semibold transition">/timelines</button>
-              <button type="button" onclick="event.stopPropagation(); selectPersonaRole('foreman', '/mobile')" class="px-1.5 py-0.5 rounded bg-amber-600/30 hover:bg-amber-600 text-amber-200 hover:text-white font-semibold transition">PWA Mobile →</button>
+              <button type="button" onclick="event.stopPropagation(); selectPersonaRole('foreman', '/mobile')" class="px-1.5 py-0.5 rounded bg-amber-600/30 hover:bg-amber-600 text-amber-200 hover:text-white font-semibold transition">PWA Mobile (M) →</button>
+              <button type="button" onclick="event.stopPropagation(); selectPersonaRole('foreman', '/timelines')" class="px-1.5 py-0.5 rounded bg-amber-600/30 hover:bg-amber-600 text-amber-200 hover:text-white font-semibold transition">/timelines (5)</button>
             </div>
           </div>
         </div>
@@ -430,7 +430,7 @@
   <!-- Track Line Garis Penghubung Vertikal -->
   <div class="pp-stepper-track" aria-hidden="true"></div>
 
-  <!-- 2. Daftar 7 Langkah Alur Kerja Sesuai Gambar -->
+  <!-- 2. Daftar Langkah Alur Kerja -->
   <ul class="pp-stepper-list" id="ppStepperList" role="list">
     
     <!-- Step 1: Add Application -->
@@ -465,6 +465,14 @@
       </a>
     </li>
 
+    <!-- Step M: PWA Mobile (Foreman) -->
+    <li role="listitem">
+      <a href="/mobile" class="pp-step-item" data-step="M" data-step-owner="foreman" data-paths='["/mobile"]' title="Stage M: Foreman Mobile PWA (/mobile)">
+        <span class="pp-step-label" data-i18n="stepper_nav_step_mobile">PWA Mobile</span>
+        <span class="pp-step-circle" style="background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%); font-weight: 800; border-color: #38bdf8;">M</span>
+      </a>
+    </li>
+
     <!-- Step 5: Surveillance -->
     <li role="listitem">
       <a href="/timelines" class="pp-step-item" data-step="5" data-step-owner="eksekutif foreman" data-paths='["/timelines"]' title="Stage 5: Surveillance (/timelines)">
@@ -489,8 +497,8 @@
       </a>
     </li>
 
-    <!-- Step G: Guide & Walkthrough -->
-    <li role="listitem">
+    <!-- Step G: Guide & Walkthrough (Paling Bawah) -->
+    <li role="listitem" class="mt-1 pt-1 border-t border-slate-700/50">
       <a href="/guide" class="pp-step-item" data-step="G" data-step-owner="perusahaan foreman eksekutif" data-paths='["/guide"]' title="Interactive Process Guide (/guide)">
         <span class="pp-step-label" data-i18n="stepper_nav_guide">Guide</span>
         <span class="pp-step-circle" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); font-weight: 800; border-color: #38bdf8;">G</span>
@@ -565,6 +573,8 @@
       const activeStepNum = matchedStep ? matchedStep.getAttribute('data-step') : '';
       if (activeStepNum === 'G') {
         miniTooltip.textContent = isId ? 'Panduan Interaktif • Buka Menu' : 'Interactive Guide • Open Menu';
+      } else if (activeStepNum === 'M') {
+        miniTooltip.textContent = isId ? 'PWA Mobile Mandor • Buka Menu' : 'Foreman Mobile PWA • Open Menu';
       } else if (activeStepNum) {
         miniTooltip.textContent = isId ? `Tahap ${activeStepNum} • Buka Menu Alur` : `Stage ${activeStepNum} • Open Workflow Menu`;
       } else {

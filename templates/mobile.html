@@ -1491,5 +1491,11 @@
         window.closeLogsModal = closeLogsModal;
         window.clearAllLogs = clearAllLogs;
     </script>
+
+    <!-- Floating Back Button on Mobile PWA -->
+    <a href="/timelines" id="floatingMobileBackBtn" class="fixed bottom-5 left-4 sm:left-6 z-50 px-3.5 py-2 rounded-full bg-slate-900/95 dark:bg-slate-950/95 text-emerald-400 border border-emerald-500/50 shadow-2xl backdrop-blur-md flex items-center gap-1.5 hover:scale-105 active:scale-95 transition-all text-xs font-mono font-bold cursor-pointer group select-none" title="Kembali ke Timelines / Workflow" onclick="if(document.referrer && document.referrer.includes(window.location.host)){event.preventDefault(); window.history.back();}">
+        <span class="text-sm transition-transform group-hover:-translate-x-1 font-sans">←</span>
+        <span>Back</span>
+    </a>
 </body>
 </html>

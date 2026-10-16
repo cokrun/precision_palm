@@ -48,11 +48,7 @@
     </div>
 </div>
 
-<!-- Floating Action Trigger Pill Button (Launcher in Bottom-Right Corner) -->
-<button type="button" id="floatingTerminalBtn" onclick="if(typeof toggleTerminalWindow==='function'){toggleTerminalWindow();}else if(window.toggleTerminalWindow){window.toggleTerminalWindow();}" class="fixed bottom-4 right-4 sm:right-5 z-40 px-3.5 py-2 h-[38px] rounded-xl sm:rounded-2xl bg-slate-900 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-slate-700 hover:border-emerald-500 shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2 group font-mono text-xs font-bold" title="Toggle AI Execution Terminal (Alt + T / Ctrl + `)" data-i18n-title="term_launcher_title">
-    <span class="text-sm group-hover:scale-110 transition-transform">⚡</span>
-    <span class="hidden md:inline terminal-text-label" data-i18n="term_launcher_label">AI Terminal</span>
-</button>
+<!-- Floating Action Trigger Pill Button removed per user specification -->
 
 <script>
     if (typeof window.clearTerminalLogs !== 'function') {
