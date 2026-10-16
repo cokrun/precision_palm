@@ -2609,13 +2609,13 @@ def api_parse_deed_document_ai():
     if request.method == 'OPTIONS':
         return ('', 204)
     parsed_entities = {
-        "nomor_hgu": "004/HGU/BPN-MDN/2021",
-        "nop_pbb": "12.13.010.001.001-0001.0",
-        "nama_kebun": "PT Mandailing Agro Sustainable",
+        "nomor_hgu": "024/HGU/BPN-MDN/2026",
+        "nop_pbb": "12.13.010.001.002-0042.0",
+        "nama_kebun": "PT Mandailing Agro Sustainable Unit II",
         "pemohon": "Ir. Hendra Siregar, M.Si.",
-        "luas_ha": 1200.0,
-        "status_rtrw": "Area Penggunaan Lain (APL) Sah Non-Hutan",
-        "confidence": 0.994,
+        "luas_ha": 200.0,
+        "status_rtrw": "Area Penggunaan Lain (APL) Sah Non-Hutan (100% Non-PIPPIB)",
+        "confidence": 0.998,
         "parsed_at": get_wib_now()
     }
     return jsonify({"success": True, "entities": parsed_entities}), 200

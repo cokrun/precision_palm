@@ -83,10 +83,7 @@
             </span>
         </div>
         <div class="flex items-center gap-2">
-            <!-- Tombol Pintasan AI Live Logs di Navigasi -->
-            <a href="/ai-logs" target="_blank" class="px-3.5 py-1.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-600/60 text-xs font-bold font-mono transition flex items-center gap-1.5 cursor-pointer shadow-xs">
-                <span>⚡</span> <span>AI Live Logs</span>
-            </a>
+
             <a href="/pendaftaran" class="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold font-mono transition flex items-center gap-1.5 border border-slate-300 dark:border-slate-700 cursor-pointer">
                 <span>📋</span> <span data-i18n="perm_view_dossiers">View Applications Directory</span> <span>&rarr;</span>
             </a>
@@ -132,7 +129,7 @@
                     <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="perm_lbl_contact">
                         Official Contact (Email • Phone / WhatsApp) *
                     </label>
-                    <input type="text" id="inp_kontak" required placeholder="legal@mandailingagro.co.id • +62 812-3456-7890" data-i18n-placeholder="perm_ph_contact" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                    <input type="text" id="inp_kontak"  placeholder="legal@mandailingagro.co.id • +62 812-3456-7890" data-i18n-placeholder="perm_ph_contact" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none">
                 </div>
             </div>
         </div>
@@ -146,9 +143,13 @@
                     </span>
                     <span class="text-[10px] text-slate-400 font-mono" data-i18n="perm_sec2_sub">Intelligent HGU Title Deed Metadata Extraction via Google Cloud Document AI</span>
                 </div>
-                <!-- Tombol Demo 1-Klik Uji Document AI -->
-                <button type="button" onclick="simulateDocumentAiDeedParse()" class="px-2.5 py-1 rounded-xl bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-700 text-[10px] font-mono font-bold transition flex items-center gap-1.5 self-start sm:self-auto cursor-pointer" title="Simulate automated HGU title deed parsing via Document AI">
-                    <span>⚡</span> <span data-i18n="perm_btn_demo_docai">Demo DocAI Test (Sample Deed)</span>
+                <!-- Tombol Demo 1-Klik Uji Document AI (Besar & Sangat Jelas Terlihat) -->
+                <button type="button" id="btnDemoDocAiTest" onclick="simulateDocumentAiDeedParse()" class="px-5 py-2.5 sm:px-6 sm:py-3 rounded-2xl bg-gradient-to-r from-cyan-600 via-sky-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-xl shadow-cyan-600/30 border-2 border-cyan-300/60 text-xs sm:text-sm font-bold tracking-wide transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2.5 self-start sm:self-auto cursor-pointer ring-4 ring-cyan-500/25 group" title="Simulate automated 200 Ha HGU title deed parsing via Document AI with non-overlapping parcel">
+                    <span class="text-base sm:text-lg group-hover:scale-125 transition-transform animate-pulse">⚡</span>
+                    <div class="text-left">
+                        <span class="block font-bold leading-tight" data-i18n="perm_btn_demo_docai">Demo DocAI Test (Sample Deed)</span>
+                        <span class="block text-[10px] text-cyan-100 font-normal font-mono opacity-90">Auto-Extract 200 Ha Deed &amp; Non-Overlap Polygon</span>
+                    </div>
                 </button>
             </div>
 
@@ -405,8 +406,8 @@
                     <button type="button" onclick="document.getElementById('inp_upload_geojson').click()" class="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-xs transition flex items-center gap-1 cursor-pointer" title="Impor batas poligon dari berkas GeoJSON">
                         <span>📂</span> <span data-i18n="perm_btn_upload_geojson">Upload GeoJSON</span>
                     </button>
-                    <button type="button" onclick="loadSampleHguPolygon(true)" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xs cursor-pointer" data-i18n="perm_btn_load_poly">
-                        📐 Load Sample HGU (500 Ha)
+                    <button type="button" onclick="loadRandom200HaSafePolygon(true)" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer ring-1 ring-emerald-400/40" title="Generate random 200 Ha parcel strictly on APL non-forest without overlaps">
+                        <span>🎲</span> <span data-i18n="perm_btn_load_poly">Random 200 Ha APL (Zero-Overlap)</span>
                     </button>
                     <button type="button" onclick="clearDossierPolygon()" class="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-rose-100 hover:text-rose-700 font-bold text-xs cursor-pointer" data-i18n="perm_btn_clear_poly">
                         🗑️ Clear Polygon
@@ -421,7 +422,7 @@
                         <span data-i18n="perm_lbl_area">Certified Plantation Area (Hectares) *</span>
                         <span id="lblAreaAutoNotice" class="text-[9px] text-emerald-600 font-normal">Auto-Calculated</span>
                     </label>
-                    <input type="number" id="inp_luas_ha" required step="0.1" value="500.00" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                    <input type="number" id="inp_luas_ha" required step="0.1" value="200.00" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white focus:ring-1 focus:ring-emerald-500 focus:outline-none">
                 </div>
                 <div class="col-span-2">
                     <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="perm_lbl_age">
@@ -459,11 +460,52 @@
                     Proposed Initial Companion Intercrop Commodity:
                 </label>
                 <select id="inp_komoditas_sela" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-1 focus:ring-emerald-500 focus:outline-none">
-                    <option value="Red Ginger (Zingiber officinale)">Red Ginger (Zingiber officinale var. rubrum) &bull; High Value Rhizome</option>
-                    <option value="Curcuma / Temulawak (Curcuma zanthorrhiza)">Curcuma / Javanese Ginger (Curcuma zanthorrhiza) &bull; Shade Tolerant</option>
-                    <option value="Cardamom (Amomum compactum)">Java Cardamom (Amomum compactum) &bull; Dense Moist Understory Spice</option>
-                    <option value="Porang (Amorphophallus muelleri)">Porang / Konjac (Amorphophallus muelleri) &bull; Dense Mature Canopy Tuber</option>
-                    <option value="Soybean (Glycine max)">Tropical Soybean (Glycine max) &bull; Natural Nitrogen Fixation (TBM)</option>
+                    <optgroup label="🌿 High-Value Medicinal &amp; Spices Rhizomes (Biofarmaka &amp; Rempah)" class="font-bold text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800">
+                        <option value="Red Ginger (Zingiber officinale var. rubrum)" selected>Red Ginger (Zingiber officinale var. rubrum) • High-Value Biofarmaka Rhizome</option>
+                        <option value="Javanese Turmeric / Temulawak (Curcuma zanthorrhiza)">Javanese Turmeric / Temulawak (Curcuma zanthorrhiza) • High Curcuminoid &amp; Shade Tolerant</option>
+                        <option value="Turmeric (Curcuma longa)">Turmeric (Curcuma longa) • Export Spice Rhizome</option>
+                        <option value="Aromatic Ginger / Kencur (Kaempferia galanga)">Aromatic Ginger / Kencur (Kaempferia galanga) • Low Understory Ground Cover</option>
+                        <option value="Java Cardamom (Amomum compactum)">Java Cardamom (Amomum compactum) • Dense Humid Understory Spice</option>
+                        <option value="Galangal / Lengkuas (Alpinia galanga)">Galangal / Lengkuas (Alpinia galanga) • High-Density Culinary Rhizome</option>
+                        <option value="Citronella Grass / Serai Wangi (Cymbopogon nardus)">Citronella Grass / Serai Wangi (Cymbopogon nardus) • Pest-Repellent Essential Oil</option>
+                        <option value="Lemongrass / Serai Dapur (Cymbopogon citratus)">Lemongrass / Serai Dapur (Cymbopogon citratus) • Alley Corridor Silt-Pit Border</option>
+                        <option value="Patchouli / Nilam Aceh (Pogostemon cablin)">Patchouli / Nilam Aceh (Pogostemon cablin) • Premium Export Essential Oil</option>
+                        <option value="Vanilla Orchid (Vanilla planifolia)">Vanilla Orchid (Vanilla planifolia) • High-Value Canopy Climber Pod</option>
+                    </optgroup>
+                    <optgroup label="🥔 Shade-Tolerant Tubers &amp; Roots (Umbi-Umbian Rendah Naungan)" class="font-bold text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800">
+                        <option value="Konjac Tuber / Porang (Amorphophallus muelleri)">Konjac Tuber / Porang (Amorphophallus muelleri) • Dense Mature Canopy Glucomannan</option>
+                        <option value="Sweet Potato (Ipomoea batatas)">Sweet Potato / Ubi Jalar (Ipomoea batatas) • Rapid Ground Cover &amp; Food Security</option>
+                        <option value="Cassava (Manihot esculenta)">Cassava / Singkong Varietas Unggul (Manihot esculenta) • TBM Phase Starch Producer</option>
+                        <option value="Taro Pratama / Talas (Colocasia esculenta)">Taro Pratama / Talas Bogorian (Colocasia esculenta) • Moist Buffer Zone Tuber</option>
+                        <option value="Arrowroot / Garut (Maranta arundinacea)">Arrowroot / Umbi Garut (Maranta arundinacea) • Low-GI Functional Starch</option>
+                    </optgroup>
+                    <optgroup label="🌱 Legumes &amp; Natural Nitrogen Fixation (Kacang-Kacangan Penyubur NPK)" class="font-bold text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800">
+                        <option value="Shade Soybean (Glycine max / Dena-1)">Shade Soybean (Glycine max / Dena-1) • Biological N-Fixation (Saves Urea)</option>
+                        <option value="Groundnut / Kacang Tanah (Arachis hypogaea)">Groundnut / Kacang Tanah (Arachis hypogaea) • High Oleic Soil Cover Legume</option>
+                        <option value="Mung Bean / Kacang Hijau (Vigna radiata)">Mung Bean / Kacang Hijau (Vigna radiata) • Short-Rotation (60-Day) Cash Crop</option>
+                        <option value="Edamame (Glycine max L. Merrill)">Edamame (Glycine max L. Merrill) • Export Market Vegetable Soybean</option>
+                        <option value="Mucuna Bracteata (LCC)">Mucuna Bracteata (LCC) • Elite Legume Weed Barrier &amp; Organic Biomass</option>
+                    </optgroup>
+                    <optgroup label="🌽 Food Cereals &amp; Grains (Serealia Pangan TBM)" class="font-bold text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800">
+                        <option value="Field Corn (Zea mays)">Hybrid Field Corn (Zea mays) • Full-Sun Immature Palm (TBM) Grain</option>
+                        <option value="Sweet Sorghum (Sorghum bicolor)">Sweet Sorghum (Sorghum bicolor) • Drought-Tolerant Cereal &amp; Biomass</option>
+                        <option value="Upland Gogo Rice (Oryza sativa)">Upland Gogo Rice (Oryza sativa) • Inter-Row Local Food Sovereignty</option>
+                    </optgroup>
+                    <optgroup label="🌶️ Horticulture &amp; Vegetables (Hortikultura &amp; Sayuran Komersial)" class="font-bold text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800">
+                        <option value="Red Chili (Capsicum annuum)">Red Chili / Cabai Merah Keriting (Capsicum annuum) • High Liquidity Cash Crop</option>
+                        <option value="Bird's Eye Chili (Capsicum frutescens)">Bird's Eye Chili / Cabai Rawit (Capsicum frutescens) • Continuous Harvest</option>
+                        <option value="Bush Black Pepper (Piper nigrum L.)">Bush Black Pepper / Lada Perdu (Piper nigrum L.) • Non-Climbing Shrub Pepper</option>
+                        <option value="Tomato (Solanum lycopersicum)">Tomato (Solanum lycopersicum) • High-Yield Alley Corridor Vegetable</option>
+                        <option value="Eggplant (Solanum melongena)">Eggplant / Terong Ungu (Solanum melongena) • Resilient Understory Vegetable</option>
+                        <option value="Pineapple (Ananas comosus)">Pineapple / Nanas Madu (Ananas comosus) • Acid Peat &amp; Mineral Soil Tolerant</option>
+                        <option value="Cavendish Banana (Musa acuminata)">Cavendish Banana (Musa acuminata) • Alley Border Microclimate Tier</option>
+                    </optgroup>
+                    <optgroup label="☕ Perennial Agroforestry &amp; Pasture (Tanaman Menahun Naungan &amp; Pakan)" class="font-bold text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800">
+                        <option value="Shade Robusta Coffee (Coffea canephora)">Shade Robusta Coffee (Coffea canephora) • Multi-Tier Canopy Perennial</option>
+                        <option value="Fine Flavor Cocoa (Theobroma cacao)">Fine Flavor Cocoa (Theobroma cacao) • Dual-Canopy Microclimate Tree</option>
+                        <option value="Indigofera Zollingeriana">Indigofera Zollingeriana • High-Protein Livestock Forage Legume</option>
+                        <option value="Odot Dwarf Elephant Grass (Pennisetum purpureum cv. Mott)">Odot Dwarf Elephant Grass (Pennisetum purpureum cv. Mott) • High Tonnage Fodder</option>
+                    </optgroup>
                 </select>
                 <p class="text-[10px] text-slate-400 mt-1 font-mono" data-i18n="perm_note_intercrop">
                     Note: In Stage 2B (Simulator), the AI Engine will present 2–3 optimal crop alternatives before definitive planting permit is locked.
@@ -668,15 +710,18 @@
         } catch (_) {}
 
         if (!parsedResult) {
-            await new Promise(r => setTimeout(r, 700));
+            await new Promise(r => setTimeout(r, 600));
+            const randomHguNum = String(Math.floor(Math.random() * 80) + 12).padStart(3, '0') + "/HGU/BPN-MDN/2026";
+            const randomNop = `12.13.010.001.002-${String(Math.floor(Math.random() * 8999) + 1000)}.0`;
+            const randomUnit = Math.floor(Math.random() * 5) + 2;
             parsedResult = {
-                nomor_hgu: "004/HGU/BPN-MDN/2021",
-                nop_pbb: "12.13.010.001.001-0001.0",
-                nama_kebun: "PT Mandailing Agro Sustainable",
+                nomor_hgu: randomHguNum,
+                nop_pbb: randomNop,
+                nama_kebun: `PT Mandailing Agro Sustainable Unit ${randomUnit}`,
                 pemohon: "Ir. Hendra Siregar, M.Si.",
-                luas_ha: 1200.0,
-                status_rtrw: "Area Penggunaan Lain (APL) Sah Non-Hutan",
-                confidence: 0.994,
+                luas_ha: 200.0,
+                status_rtrw: "Area Penggunaan Lain (APL) Sah Non-Hutan (100% Non-PIPPIB)",
+                confidence: 0.998,
                 processor_version: "projects/precision-palm/locations/us/processors/hgu-parser-v2.5"
             };
         }
@@ -703,7 +748,7 @@
         }
 
         autoFillFormFromDocumentAi();
-        showNotificationToast(isId ? "Document AI berhasil mengekstrak data sertifikat!" : "Document AI successfully extracted certificate data!", "🤖");
+        showNotificationToast(isId ? "Document AI berhasil mengekstrak data sertifikat 200 Ha!" : "Document AI successfully extracted 200 Ha certificate data!", "🤖");
     }
 
     function autoFillFormFromDocumentAi() {
@@ -716,14 +761,19 @@
         const inpPemohon = document.getElementById('inp_pemohon');
         const inpLuas = document.getElementById('inp_luas_ha');
 
-        if (inpHgu && (!inpHgu.value || inpHgu.value.includes('e.g.'))) inpHgu.value = data.nomor_hgu;
-        if (inpNop && (!inpNop.value || inpNop.value.includes('e.g.'))) inpNop.value = data.nop_pbb;
-        if (inpNama && (!inpNama.value || inpNama.value.includes('e.g.'))) inpNama.value = data.nama_kebun;
-        if (inpPemohon && (!inpPemohon.value || inpPemohon.value.includes('e.g.'))) inpPemohon.value = data.pemohon;
+        if (inpHgu) inpHgu.value = data.nomor_hgu;
+        if (inpNop) inpNop.value = data.nop_pbb;
+        if (inpNama) inpNama.value = data.nama_kebun;
+        if (inpPemohon) inpPemohon.value = data.pemohon;
         if (inpLuas) inpLuas.value = parseFloat(data.luas_ha).toFixed(2);
 
+        // Otomatis bentuk poligon 200 Ha acak tanpa tumpang tindih di peta
+        if (typeof loadRandom200HaSafePolygon === 'function') {
+            loadRandom200HaSafePolygon(true);
+        }
+
         const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
-        showNotificationToast(isId ? "Form otomatis terisi dari hasil Document AI!" : "Form automatically filled from Document AI!", "⚡");
+        showNotificationToast(isId ? "Form otomatis terisi & Poligon 200 Ha APL dimuat!" : "Form auto-filled & 200 Ha APL polygon loaded!", "⚡");
     }
 
     let selectedSupportingPhotos = [];
@@ -1578,26 +1628,82 @@
         updateMapBadge(isId ? "Poligon dibersihkan. Klik peta untuk menggambar ulang." : "Polygon cleared. Click map to redraw.");
     }
 
-    function loadSampleHguPolygon(shouldFit = true) {
+    // Candidate Safe APL Zones in Mandailing Natal (Guaranteed > 3.5km from other concessions, > 30km from PIPPIB)
+    const CANDIDATE_SAFE_APL_ZONES = [
+        { name: "APL Siabu Lembah", lat: 0.8920, lng: 99.6150 },
+        { name: "APL Panyabungan Timur", lat: 0.8650, lng: 99.6050 },
+        { name: "APL Bukit Malintang Utara", lat: 0.8750, lng: 99.5150 },
+        { name: "APL Naga Juang", lat: 0.8250, lng: 99.4750 },
+        { name: "APL Panyabungan Barat", lat: 0.8520, lng: 99.4850 },
+        { name: "APL Lembah Sorik Marapi Datar", lat: 0.7250, lng: 99.5450 },
+        { name: "APL Panyabungan Selatan", lat: 0.7950, lng: 99.5850 },
+        { name: "APL Batang Gadis Hilir", lat: 0.7820, lng: 99.4550 },
+        { name: "APL Siabu Barat", lat: 0.9150, lng: 99.5450 }
+    ];
+
+    let lastChosenSafeZoneIdx = -1;
+
+    function loadRandom200HaSafePolygon(shouldFit = true) {
+        // Otomatis aktifkan boundary polygon mode pada peta
+        if (typeof setMapMode === 'function') {
+            setMapMode('polygon');
+        }
+
         clearDossierPolygon();
 
-        const cLat = parseFloat(document.getElementById('inp_centroid_lat')?.value || 0.824100);
-        const cLng = parseFloat(document.getElementById('inp_centroid_lng')?.value || 99.561200);
+        // Pilih zona APL acak yang berbeda dari pilihan sebelumnya
+        let zoneIdx = Math.floor(Math.random() * CANDIDATE_SAFE_APL_ZONES.length);
+        if (zoneIdx === lastChosenSafeZoneIdx && CANDIDATE_SAFE_APL_ZONES.length > 1) {
+            zoneIdx = (zoneIdx + 1) % CANDIDATE_SAFE_APL_ZONES.length;
+        }
+        lastChosenSafeZoneIdx = zoneIdx;
 
-        const dLat = 0.0101;
-        const dLng = 0.0101;
+        const targetZone = CANDIDATE_SAFE_APL_ZONES[zoneIdx];
 
-        const samplePoints = [
-            L.latLng(cLat - dLat, cLng - dLng),
-            L.latLng(cLat + dLat, cLng - dLng),
-            L.latLng(cLat + dLat, cLng + dLng),
-            L.latLng(cLat - dLat, cLng + dLng)
+        // Jitter acak halus agar posisi poligon selalu bervariasi setiap kali diacak
+        const jitterLat = (Math.random() - 0.5) * 0.0030;
+        const jitterLng = (Math.random() - 0.5) * 0.0030;
+        const cLat = parseFloat((targetZone.lat + jitterLat).toFixed(6));
+        const cLng = parseFloat((targetZone.lng + jitterLng).toFixed(6));
+
+        // Dimensi dasar geodetik untuk 200 Ha (1.414 km x 1.414 km) dengan variasi aspek rasio alami kebun
+        const aspect = 0.94 + (Math.random() * 0.22);
+        let dLat = 0.006395 * Math.sqrt(aspect);
+        let dLng = 0.006353 / Math.sqrt(aspect);
+
+        // Sedikit variasi bentuk segi-4 atau trapesium alami kontur perkebunan
+        const skew1 = (Math.random() - 0.5) * 0.0006;
+        const skew2 = (Math.random() - 0.5) * 0.0006;
+
+        let samplePoints = [
+            L.latLng(cLat - dLat, cLng - dLng + skew1),
+            L.latLng(cLat + dLat, cLng - dLng - skew1),
+            L.latLng(cLat + dLat, cLng + dLng + skew2),
+            L.latLng(cLat - dLat, cLng + dLng - skew2)
         ];
+
+        // Kalibrasi presisi agar calculateGeodesicAreaHa menghasilkan persis 200.00 Ha
+        const initialArea = calculateGeodesicAreaHa(samplePoints);
+        if (initialArea > 0) {
+            const scaleFactor = Math.sqrt(200.0 / initialArea);
+            samplePoints = samplePoints.map(p => {
+                const offLat = (p.lat - cLat) * scaleFactor;
+                const offLng = (p.lng - cLng) * scaleFactor;
+                return L.latLng(parseFloat((cLat + offLat).toFixed(6)), parseFloat((cLng + offLng).toFixed(6)));
+            });
+        }
+
+        // Verifikasi zero-overlap terhadap seluruh konsesi terdaftar eksisting
+        const overlapCheck = checkZeroOverlapWithExistingEstates(samplePoints);
+        if (overlapCheck.isOverlap) {
+            console.warn("[Safe Polygon Generator] Overlap detected with", overlapCheck.collidingEstate, "retrying alternative zone...");
+            return loadRandom200HaSafePolygon(shouldFit);
+        }
 
         samplePoints.forEach(p => {
             polygonVertices.push(p);
             const marker = L.circleMarker(p, {
-                radius: 4.5,
+                radius: 5,
                 color: '#059669',
                 fillColor: '#34d399',
                 fillOpacity: 0.95,
@@ -1608,9 +1714,25 @@
 
         redrawPolygonLayer();
 
+        // Pastikan input luas terisi tepat 200.00 Ha
+        const areaInp = document.getElementById('inp_luas_ha');
+        if (areaInp) areaInp.value = "200.00";
+
         if (shouldFit && polygonLayer && mapInstance) {
-            mapInstance.fitBounds(polygonLayer.getBounds(), { padding: [25, 25] });
+            mapInstance.fitBounds(polygonLayer.getBounds(), { padding: [35, 35] });
         }
+
+        const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+        const msg = isId 
+            ? `Poligon 200.00 Ha Berhasil Dibuat di ${targetZone.name} (100% Bebas Hutan & Nol Tumpang Tindih!)`
+            : `200.00 Ha Parcel Created at ${targetZone.name} (100% Non-Forest APL & Zero-Overlap OK!)`;
+        showNotificationToast(msg, "🎲");
+
+        return samplePoints;
+    }
+
+    function loadSampleHguPolygon(shouldFit = true) {
+        return loadRandom200HaSafePolygon(shouldFit);
     }
 
     function calculateGeodesicAreaHa(latLngs) {
@@ -1978,6 +2100,7 @@
     window.setMoratoriumOpacity = setMoratoriumOpacity;
     window.toggleMapFullscreen = toggleMapFullscreen;
     window.clearDossierPolygon = clearDossierPolygon;
+    window.loadRandom200HaSafePolygon = loadRandom200HaSafePolygon;
     window.loadSampleHguPolygon = loadSampleHguPolygon;
     window.handleDeedFileSelect = handleDeedFileSelect;
     window.handlePhotoFileSelect = handlePhotoFileSelect;
