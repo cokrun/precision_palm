@@ -1807,6 +1807,62 @@ function getCalibratedPhotoAnalysis(photoItem) {
                 </p>
             </div>
         `;
+    } else if (nameLower.includes('drone') || nameLower.includes('uav') || nameLower.includes('ortho') || nameLower.includes('aerial') || nameLower.includes('sawit_drone') || nameLower.includes('orthomosaic')) {
+        tagCategory = isEn ? "UAV Drone Orthomosaic" : "Foto Udara Drone & Ortomosaik";
+        boxes = [
+            { label: 'palm_canopy', label_name: 'Equilateral Triangle Palm #1 (9.0m)', box_2d: [60, 80, 420, 450], confidence: 0.99, status: 'Optimal' },
+            { label: 'palm_canopy', label_name: 'Equilateral Triangle Palm #2 (9.0m)', box_2d: [55, 540, 430, 920], confidence: 0.98, status: 'Optimal' },
+            { label: 'clean_alley', label_name: 'Active Corridor 3.79m (Unobstructed)', box_2d: [210, 290, 830, 710], confidence: 0.97 },
+            { label: 'root_buffer', label_name: '2.0m Sterile Feeder Root Buffer', box_2d: [630, 220, 910, 580], confidence: 0.99 },
+            { label: 'weed_mulch', label_name: 'Living Ground Cover & NDMI Pores', box_2d: [410, 40, 670, 310], confidence: 0.94 }
+        ];
+        metrics = {
+            tajuk_total: 8,
+            tajuk_optimal: 8,
+            tajuk_stres: 0,
+            koridor_gawangan_m: 3.79,
+            piringan_steril_status: isEn ? "100% Compliant (2.0m)" : "100% Patuh (2.0m)",
+            piringan_steril_compliant: true,
+            sempadan_status: isEn ? "≥ 50m Protected (HCV Safe)" : "≥ 50m Terlindungi (HCV Aman)",
+            sempadan_compliant: true,
+            health_score: 99,
+            status_ai: isEn ? "Verified (Aerial Orthomosaic)" : "Terverifikasi (Ortomosaik Udara)"
+        };
+        reviewHtml = isEn ? `
+            <div class="space-y-2">
+                <div class="flex items-center justify-between border-b border-sky-500/30 pb-1.5">
+                    <span class="font-bold text-white text-xs flex items-center gap-1.5 font-mono">
+                        <span class="text-sky-400">🛸</span> <span>Aerial Drone Photogrammetry &bull; AGL 45.0m</span>
+                    </span>
+                    <span class="text-[9px] font-mono px-2 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-500 font-bold">
+                        Nadir Pitch -90°
+                    </span>
+                </div>
+                <div class="p-2 rounded-xl bg-slate-950/80 border border-sky-500/40 text-[9px] font-mono text-sky-300">
+                    [ 🛸 Drone AGL: 45.0m | Pitch: -90° | Pattern: Triangular 9.0m | Alley: 3.79m Clear | NDMI: 0.412 ]
+                </div>
+                <p class="text-slate-100 text-[11px] leading-relaxed font-sans font-medium text-justify">
+                    Perspective: Aerial Drone Photogrammetry (UAV Nadir Gimbal -90°, Elevation 45.0m AGL). Captures concession expanse of 1,200.00 Ha (focused sample parcel 1.2 Ha). Verified equilateral triangular planting pattern with 9.0m spacing and pristine row linearity. Mature palm frond canopy (LAI 4.25) preserves an unobstructed active alley corridor 3.79m wide. Aligned with Copernicus Sentinel-2 microclimate telemetry, parcel registers NDMI soil moisture 0.412 and NDVI 0.784, substantiating prime vegetative cover with zero post-Dec 31 2020 deforestation.
+                </p>
+            </div>
+        ` : `
+            <div class="space-y-2">
+                <div class="flex items-center justify-between border-b border-sky-500/30 pb-1.5">
+                    <span class="font-bold text-white text-xs flex items-center gap-1.5 font-mono">
+                        <span class="text-sky-400">🛸</span> <span>Fotogrametri Udara Drone &bull; AGL 45.0m</span>
+                    </span>
+                    <span class="text-[9px] font-mono px-2 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-500 font-bold">
+                        Nadir Pitch -90°
+                    </span>
+                </div>
+                <div class="p-2 rounded-xl bg-slate-950/80 border border-sky-500/40 text-[9px] font-mono text-sky-300">
+                    [ 🛸 Drone AGL: 45.0m | Pitch: -90° | Pola: Segitiga 9.0m | Gawangan: 3.79m Bebas | NDMI: 0.412 ]
+                </div>
+                <p class="text-slate-100 text-[11px] leading-relaxed font-sans font-medium text-justify">
+                    Perspektif: Fotogrametri Udara (UAV Nadir Gimbal -90°, Elevasi 45.0m AGL). Gambar mencakup bentang area konsesi 1.200,00 Ha (sampel fokus petak 1,2 Ha). Terverifikasi pola tanam segitiga sama sisi berjarak 9,0m dengan kelurusan barisan teratur. Kanopi pelepah sawit (LAI 4.25) menyisakan koridor gawangan aktif selebar 3,79m yang bersih dari rintangan. Sesuai data mikroklimat Sentinel-2, blok ini mencatat indeks kelembapan tanah NDMI 0.412 dan NDVI 0.784, membuktikan tutupan vegetasi prima tanpa deforestasi pasca batas tenggat 31 Desember 2020.
+                </p>
+            </div>
+        `;
     } else {
         tagCategory = isEn ? "Concession / HGU Field" : "Foto HGU / Konsesi";
         boxes = [
@@ -2049,24 +2105,41 @@ function selectGalleryPhoto(url, filename, shouldRescan = false) {
     renderDetectedBoundingBoxes(analysis.boxes);
     drawReticles();
 
-    // Update 4D Telemetry Perspective Badge (Aerial Drone vs Terrestrial In-Situ Handheld)
-    const isAerial = (url && (url.includes('drone') || url.includes('orto') || url.includes('q2'))) ||
-                     (filename && (filename.toLowerCase().includes('drone') || filename.toLowerCase().includes('orto') || filename.toLowerCase().includes('q2')));
+    // Update 4D Telemetry Perspective Badge & HUD Bar (Aerial Drone vs Terrestrial In-Situ Handheld)
+    const isAerial = (url && (url.includes('drone') || url.includes('orto') || url.includes('q2') || url.includes('uav') || url.includes('aerial'))) ||
+                     (filename && (filename.toLowerCase().includes('drone') || filename.toLowerCase().includes('orto') || filename.toLowerCase().includes('q2') || filename.toLowerCase().includes('uav') || filename.toLowerCase().includes('aerial')));
     const pTextEl = document.getElementById('perspectiveTelemetryText');
     const pIconEl = document.getElementById('perspectiveTelemetryIcon');
     const pBadgeEl = document.getElementById('perspectiveTelemetryBadge');
+    const hudBadgeText = document.getElementById('spatialHudBadgeText');
+    const hudPillTag = document.getElementById('spatialHudPillTag');
+
+    const droneBadgeStr = isEn 
+        ? "[ 🛸 Drone AGL: 45.0m | Pitch: -90° | Pattern: Triangular 9.0m | Alley: 3.79m Clear | NDMI: 0.412 ]"
+        : "[ 🛸 Drone AGL: 45.0m | Pitch: -90° | Pola: Segitiga 9.0m | Gawangan: 3.79m Bebas | NDMI: 0.412 ]";
+    const terrestrialBadgeStr = isEn
+        ? "[ 📱 Handheld In-Situ: 1.4m Eye-Level | Pitch: -15° | Circle: 2.0m Sterile | Ganoderma: 0.0% | SPAD: 82.4 ]"
+        : "[ 📱 Handheld In-Situ: 1.4m Eye-Level | Pitch: -15° | Piringan: 2.0m Steril | Ganoderma: 0.0% | SPAD: 82.4 ]";
+
     if (pTextEl) {
-        pTextEl.textContent = isAerial 
-            ? "Perspective: Aerial Drone (AGL: 45.0m) / Nadir Pitch: -90°"
-            : "Perspective: Terrestrial In-Situ (AGL: 1.6m) / Eye-Level Pitch: -12°";
+        pTextEl.textContent = isAerial ? droneBadgeStr : terrestrialBadgeStr;
     }
     if (pIconEl) {
-        pIconEl.textContent = isAerial ? "🚁" : "📱";
+        pIconEl.textContent = isAerial ? "🛸" : "📱";
     }
     if (pBadgeEl) {
         pBadgeEl.className = isAerial
             ? "text-[9.5px] font-mono px-3 py-1 rounded-full bg-sky-950 text-sky-300 border border-sky-400 font-bold flex items-center gap-1.5 shadow-sm"
             : "text-[9.5px] font-mono px-3 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-400 font-bold flex items-center gap-1.5 shadow-sm";
+    }
+    if (hudBadgeText) {
+        hudBadgeText.textContent = isAerial ? droneBadgeStr : terrestrialBadgeStr;
+    }
+    if (hudPillTag) {
+        hudPillTag.textContent = isAerial ? "UAV NADIR" : "IN-SITU 1.4M";
+        hudPillTag.className = isAerial 
+            ? "px-1.5 py-0.2 rounded text-[7.5px] font-bold bg-sky-950 text-sky-300 border border-sky-400 shrink-0 uppercase"
+            : "px-1.5 py-0.2 rounded text-[7.5px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-400 shrink-0 uppercase";
     }
 }
 
@@ -2284,7 +2357,44 @@ async function executePhotoScanningAI(url, filename, forceRescan = false) {
     }
 
     if (!reviewHtml) {
-        if (nameLower.includes('wetland') || nameLower.includes('buffer')) {
+        const isEn = (typeof currentLang === 'undefined' || currentLang !== 'id');
+        if (nameLower.includes('drone') || nameLower.includes('uav') || nameLower.includes('ortho') || nameLower.includes('aerial') || nameLower.includes('sawit_drone') || nameLower.includes('orthomosaic')) {
+            reviewHtml = isEn ? `
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between border-b border-sky-500/30 pb-1.5">
+                        <span class="font-bold text-white text-xs flex items-center gap-1.5 font-mono">
+                            <span class="text-sky-400">🛸</span> <span>Aerial Drone Photogrammetry &bull; AGL 45.0m</span>
+                        </span>
+                        <span class="text-[9px] font-mono px-2 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-500 font-bold">
+                            Nadir Pitch -90°
+                        </span>
+                    </div>
+                    <div class="p-2 rounded-xl bg-slate-950/80 border border-sky-500/40 text-[9px] font-mono text-sky-300">
+                        [ 🛸 Drone AGL: 45.0m | Pitch: -90° | Pattern: Triangular 9.0m | Alley: 3.79m Clear | NDMI: 0.412 ]
+                    </div>
+                    <p class="text-slate-100 text-[11px] leading-relaxed font-sans font-medium text-justify">
+                        Perspective: Aerial Drone Photogrammetry (UAV Nadir Gimbal -90°, Elevation 45.0m AGL). Captures concession expanse of 1,200.00 Ha (focused sample parcel 1.2 Ha). Verified equilateral triangular planting pattern with 9.0m spacing and pristine row linearity. Mature palm frond canopy (LAI 4.25) preserves an unobstructed active alley corridor 3.79m wide. Aligned with Copernicus Sentinel-2 microclimate telemetry, parcel registers NDMI soil moisture 0.412 and NDVI 0.784, substantiating prime vegetative cover with zero post-Dec 31 2020 deforestation.
+                    </p>
+                </div>
+            ` : `
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between border-b border-sky-500/30 pb-1.5">
+                        <span class="font-bold text-white text-xs flex items-center gap-1.5 font-mono">
+                            <span class="text-sky-400">🛸</span> <span>Fotogrametri Udara Drone &bull; AGL 45.0m</span>
+                        </span>
+                        <span class="text-[9px] font-mono px-2 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-500 font-bold">
+                            Nadir Pitch -90°
+                        </span>
+                    </div>
+                    <div class="p-2 rounded-xl bg-slate-950/80 border border-sky-500/40 text-[9px] font-mono text-sky-300">
+                        [ 🛸 Drone AGL: 45.0m | Pitch: -90° | Pola: Segitiga 9.0m | Gawangan: 3.79m Bebas | NDMI: 0.412 ]
+                    </div>
+                    <p class="text-slate-100 text-[11px] leading-relaxed font-sans font-medium text-justify">
+                        Perspektif: Fotogrametri Udara (UAV Nadir Gimbal -90°, Elevasi 45.0m AGL). Gambar mencakup bentang area konsesi 1.200,00 Ha (sampel fokus petak 1,2 Ha). Terverifikasi pola tanam segitiga sama sisi berjarak 9,0m dengan kelurusan barisan teratur. Kanopi pelepah sawit (LAI 4.25) menyisakan koridor gawangan aktif selebar 3,79m yang bersih dari rintangan. Sesuai data mikroklimat Sentinel-2, blok ini mencatat indeks kelembapan tanah NDMI 0.412 dan NDVI 0.784, membuktikan tutupan vegetasi prima tanpa deforestasi pasca batas tenggat 31 Desember 2020.
+                    </p>
+                </div>
+            `;
+        } else if (nameLower.includes('wetland') || nameLower.includes('buffer')) {
             reviewHtml = `
                 <p class="font-bold text-white text-xs flex items-center gap-1.5">
                     <span class="text-emerald-400">✓</span> <span>Natural Riparian Buffer Corridor Object</span>

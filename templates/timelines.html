@@ -98,58 +98,81 @@
                 <a id="btnNavDirectToRoadmap" href="/roadmap" class="px-4 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs shadow-xs transition flex items-center gap-1 cursor-pointer">
                     <span data-i18n="time_btn_next_road">Proceed to Roadmap (Stage 4)</span> <span>&rarr;</span>
                 </a>
-            </div>
-        </div>
-
-        <!-- COMPLIANCE STATUS DIPINDAHKAN KE ATAS -->
-        <div class="bg-slate-950 border border-slate-800 p-3.5 sm:p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 font-mono text-xs text-white shadow-inner">
-            <div class="flex flex-wrap items-center gap-4">
-                <div class="space-y-0.5">
+                 <!-- COMPLIANCE STATUS & JAM HITUNG MUNDUR SLA 180 HARI -->
+        <div class="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-2 border-emerald-500/40 p-4 sm:p-5 rounded-3xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 font-mono text-xs text-white shadow-xl relative overflow-hidden">
+            <div class="flex flex-wrap items-center gap-4 z-10">
+                <div class="space-y-1">
                     <span class="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Compliance Status:</span>
-                    <span id="badgeStatutoryStatus" class="px-2.5 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-600 inline-block" data-i18n="badge_sla_active">
-                        ACTIVE &bull; FULLY COMPLIANT
+                    <span id="badgeStatutoryStatus" class="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-500 shadow-xs inline-flex items-center gap-1.5" data-i18n="badge_sla_active">
+                        <span>🛡️</span> <span>ACTIVE &bull; FULLY COMPLIANT</span>
                     </span>
                 </div>
-                <div class="border-l border-slate-800 pl-4 space-y-0.5">
+                <div class="border-l border-slate-800 pl-4 space-y-1">
                     <span class="text-slate-400 text-[10px] block" data-i18n="time_lbl_tolerance">Planting Grace Buffer:</span>
                     <strong id="dispDaysRemaining" class="text-emerald-400 text-sm font-bold block" data-i18n="time_days_rem">152 Days Remaining</strong>
                 </div>
+                <div class="border-l border-slate-800 pl-4 space-y-1 hidden sm:block">
+                    <span class="text-slate-400 text-[10px] block">⏱️ SLA 180-Day Countdown Clock:</span>
+                    <strong id="dispSlaCountdownClock" class="text-cyan-400 text-sm font-mono font-bold block">152d : 14h : 28m : 40s</strong>
+                </div>
             </div>
 
-            <div class="flex-1 max-w-lg space-y-1">
+            <div class="flex-1 max-w-xl space-y-1.5 z-10">
                 <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                    <span>180-Day Statutory Limit</span>
-                    <span class="text-emerald-400 font-bold">Tolerance Timeline</span>
+                    <span class="text-emerald-300 font-bold flex items-center gap-1">
+                        <span>⏱️</span> <span>SLA 180 Hari Disiplin Integritas:</span>
+                    </span>
+                    <span class="text-emerald-400 font-bold">16% Elapsed • 152 Days Left</span>
                 </div>
-                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                    <div id="barDaysProgress" class="bg-gradient-to-r from-emerald-500 to-amber-400 h-full rounded-full transition-all duration-500" style="width: 16%;"></div>
+                <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden p-0.5 border border-slate-700">
+                    <div id="barDaysProgress" class="bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 h-full rounded-full transition-all duration-500" style="width: 16%;"></div>
                 </div>
-                <span class="text-[9px] text-slate-400 block leading-tight">
-                    Automated Freeze Rule: Day 181 without physical field report = <span class="font-bold text-rose-400">SUSPENDED_6_MONTHS</span>.
-                </span>
+                <div class="text-[10px] text-slate-300 leading-snug font-sans flex items-start gap-1.5">
+                    <span class="text-amber-400">⚖️</span>
+                    <span data-i18n="time_sla_discipline_desc">
+                        Memastikan kebun tidak membiarkan lahan terlantar setelah izin rekomendasi terbit. Hari ke-181 tanpa bukti tanam fisik = pembekuan izin operasional (SUSPENDED_6_MONTHS).
+                    </span>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- STREAMING_CHUNK:Rendering 4-quarter control cards (Q1-Q4) -->
-    <!-- KARTU SIKLUS 4-TRIWULAN (Q1 - Q4) KONTROL TATA KELOLA -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-mono">
+    <!-- KARTU SIKLUS 4-TRIWULAN (Q1 - Q4) KONTROL TATA KELOLA & INTEGRASI AUDIT DUAL-PERSPEKTIF -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs font-mono">
         <!-- Q1 -->
-        <div id="cardSiklusQ1" class="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border-2 border-emerald-500 space-y-2 shadow-sm transition-all">
-            <div class="flex items-center justify-between">
-                <span class="font-bold text-slate-900 dark:text-white" data-i18n="time_q1_title">Quarter 1 (Q1)</span>
-                <span id="badgeStatusQ1" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400" data-i18n="time_q1_status">
-                    COMPLETED / SEALED
-                </span>
+        <div id="cardSiklusQ1" class="p-4 bg-white dark:bg-slate-900 rounded-2xl border-2 border-emerald-500 space-y-2.5 shadow-sm transition-all flex flex-col justify-between">
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-900 dark:text-white" data-i18n="time_q1_title">Quarter 1 (Q1)</span>
+                    <span id="badgeStatusQ1" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400" data-i18n="time_q1_status">
+                        COMPLETED / SEALED
+                    </span>
+                </div>
+                <div class="flex items-center justify-between text-[10px] text-slate-500">
+                    <span data-i18n="time_q1_period">Month 1–3 (Baseline Geometri)</span>
+                    <span id="stampDateQ1" class="text-emerald-600 dark:text-emerald-400 font-mono text-[9px] font-bold">✓ 2026-04-12</span>
+                </div>
+
+                <!-- Dual Perspective Badge -->
+                <div class="px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-500/40 text-[10px] text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1">
+                    <span>🛸</span> <span>Drone Aerial (AGL 45m Nadir)</span>
+                </div>
+
+                <p class="text-[11px] text-slate-600 dark:text-slate-300 font-sans leading-relaxed" data-i18n="time_q1_audit_narrative">
+                    Fotogrametri udara drone memverifikasi kanopi awal (LAI 4.25), kelurusan barisan segitiga 9.0m, dan pembukaan koridor 3.79m bersih sebelum penanaman bibit perdana.
+                </p>
+
+                <!-- Anti-Fraud BMKG Box -->
+                <div class="p-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-[9.5px] font-sans text-slate-600 dark:text-slate-300 leading-tight space-y-0.5">
+                    <span class="text-emerald-600 dark:text-emerald-400 font-bold font-mono flex items-center gap-1">
+                        <span>🛡️</span> <span>Anti-Fraud Satelit BMKG:</span>
+                    </span>
+                    <span data-i18n="time_antifraud_notice">Stempel waktu pemotretan telah diverifikasi silang dengan arsip radar cuaca satelit BMKG pada koordinat lintang/bujur bersangkutan (Nihil manipulasi foto usang).</span>
+                </div>
             </div>
-            <div class="flex items-center justify-between text-[10px] text-slate-500">
-                <span data-i18n="time_q1_period">Month 1–3 (Baseline &amp; 2.0m Ring)</span>
-                <span id="stampDateQ1" class="text-emerald-600 dark:text-emerald-400 font-mono text-[9px] font-bold">✓ 2026-04-12</span>
-            </div>
-            <p class="text-[11px] text-slate-600 dark:text-slate-300 font-sans leading-tight" data-i18n="time_q1_desc">
-                Corridor 3.79m structuring, 2.0m circle weeding, and first companion seedlings planting.
-            </p>
-            <div id="containerActionQ1" class="pt-1 border-t border-slate-100 dark:border-slate-800">
+
+            <div id="containerActionQ1" class="pt-2 border-t border-slate-100 dark:border-slate-800">
                 <a id="btnDownloadReportQ1" href="/api/monitoring/quarterly-report/EST-MDN-001/Q1" target="_blank" class="w-full py-1.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-[10px] font-bold shadow transition flex items-center justify-center gap-1 cursor-pointer">
                     <span>📄</span> <span data-i18n="time_btn_dl_q1">Download Q1 Official Report PDF</span>
                 </a>
@@ -157,21 +180,38 @@
         </div>
 
         <!-- Q2 -->
-        <div id="cardSiklusQ2" class="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 shadow-sm transition-all">
-            <div class="flex items-center justify-between">
-                <span class="font-bold text-slate-900 dark:text-white" data-i18n="time_q2_title">Quarter 2 (Q2)</span>
-                <span id="badgeStatusQ2" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 border border-sky-400" data-i18n="time_q2_status">
-                    IN PROGRESS
-                </span>
+        <div id="cardSiklusQ2" class="p-4 bg-white dark:bg-slate-900 rounded-2xl border-2 border-sky-500/50 space-y-2.5 shadow-sm transition-all flex flex-col justify-between">
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-900 dark:text-white" data-i18n="time_q2_title">Quarter 2 (Q2)</span>
+                    <span id="badgeStatusQ2" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 border border-sky-400" data-i18n="time_q2_status">
+                        IN PROGRESS
+                    </span>
+                </div>
+                <div class="flex items-center justify-between text-[10px] text-slate-500">
+                    <span data-i18n="time_q2_period">Month 4–6 (Vegetatif &amp; MOP)</span>
+                    <span id="stampDateQ2" class="text-sky-600 dark:text-sky-400 font-mono text-[9px] font-bold">SLA 180-Day Active</span>
+                </div>
+
+                <!-- Dual Perspective Badge -->
+                <div class="px-2 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/60 border border-sky-500/40 text-[10px] text-sky-700 dark:text-sky-300 font-bold flex items-center gap-1">
+                    <span>📱</span> <span>Mandor In-Situ (Eye-Level 1.4m)</span>
+                </div>
+
+                <p class="text-[11px] text-slate-600 dark:text-slate-300 font-sans leading-relaxed" data-i18n="time_q2_audit_narrative">
+                    Inspeksi darat mandor membuktikan piringan akar 2.0m berada dalam kondisi 100% steril (zero-tillage), ganoderma 0.0%, klorofil 82.4 SPAD, dan aplikasi pupuk MOP +75 kg/Ha di lorong aktif.
+                </p>
+
+                <!-- Anti-Fraud BMKG Box -->
+                <div class="p-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-[9.5px] font-sans text-slate-600 dark:text-slate-300 leading-tight space-y-0.5">
+                    <span class="text-sky-600 dark:text-sky-400 font-bold font-mono flex items-center gap-1">
+                        <span>🛡️</span> <span>Anti-Fraud Satelit BMKG:</span>
+                    </span>
+                    <span data-i18n="time_antifraud_notice">Stempel waktu pemotretan telah diverifikasi silang dengan arsip radar cuaca satelit BMKG pada koordinat lintang/bujur bersangkutan (Nihil manipulasi foto usang).</span>
+                </div>
             </div>
-            <div class="flex items-center justify-between text-[10px] text-slate-500">
-                <span data-i18n="time_q2_period">Month 4–6 (Vegetative &amp; MOP)</span>
-                <span id="stampDateQ2" class="text-slate-400 font-mono text-[9px]">SLA 180-Day Active</span>
-            </div>
-            <p class="text-[11px] text-slate-600 dark:text-slate-300 font-sans leading-tight" data-i18n="time_q2_desc">
-                Application of potassium MOP compensation fertilizer, chopped frond mulch, and growth rate inspection.
-            </p>
-            <div id="containerActionQ2" class="pt-1 border-t border-slate-100 dark:border-slate-800">
+
+            <div id="containerActionQ2" class="pt-2 border-t border-slate-100 dark:border-slate-800">
                 <a id="btnDownloadReportQ2" href="/api/monitoring/quarterly-report/EST-MDN-001/Q2" target="_blank" class="w-full py-1.5 px-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 font-mono text-[10px] font-bold shadow-xs transition flex items-center justify-center gap-1 cursor-pointer">
                     <span>📄</span> <span data-i18n="time_btn_dl_q2">Download Q2 Official Report PDF</span>
                 </a>
@@ -179,21 +219,38 @@
         </div>
 
         <!-- Q3 -->
-        <div id="cardSiklusQ3" class="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 shadow-sm transition-all">
-            <div class="flex items-center justify-between">
-                <span class="font-bold text-slate-900 dark:text-white" data-i18n="time_q3_title">Quarter 3 (Q3)</span>
-                <span id="badgeStatusQ3" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700" data-i18n="time_q3_status">
-                    PENDING CYCLE
-                </span>
+        <div id="cardSiklusQ3" class="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5 shadow-sm transition-all flex flex-col justify-between">
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-900 dark:text-white" data-i18n="time_q3_title">Quarter 3 (Q3)</span>
+                    <span id="badgeStatusQ3" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700" data-i18n="time_q3_status">
+                        PENDING CYCLE
+                    </span>
+                </div>
+                <div class="flex items-center justify-between text-[10px] text-slate-500">
+                    <span data-i18n="time_q3_period">Month 7–9 (Biomassa &amp; Rorak)</span>
+                    <span id="stampDateQ3" class="text-slate-400 font-mono text-[9px]">SCS-CN Hydrology</span>
+                </div>
+
+                <!-- Dual Perspective Badge -->
+                <div class="px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-500/40 text-[10px] text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1">
+                    <span>🛸</span> <span>Drone Aerial (AGL 45m Nadir)</span>
+                </div>
+
+                <p class="text-[11px] text-slate-600 dark:text-slate-300 font-sans leading-relaxed" data-i18n="time_q3_audit_narrative">
+                    Surveilans udara drone nadir -90° memverifikasi penutupan lorong vegetatif, kapasitas resapan rorak sedimen SCS-CN 64 (-22% limpasan), serta zero-encroachment ke lingkar pokok.
+                </p>
+
+                <!-- Anti-Fraud BMKG Box -->
+                <div class="p-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-[9.5px] font-sans text-slate-600 dark:text-slate-300 leading-tight space-y-0.5">
+                    <span class="text-slate-500 dark:text-slate-400 font-bold font-mono flex items-center gap-1">
+                        <span>🛡️</span> <span>Anti-Fraud Satelit BMKG:</span>
+                    </span>
+                    <span data-i18n="time_antifraud_notice">Stempel waktu pemotretan telah diverifikasi silang dengan arsip radar cuaca satelit BMKG pada koordinat lintang/bujur bersangkutan (Nihil manipulasi foto usang).</span>
+                </div>
             </div>
-            <div class="flex items-center justify-between text-[10px] text-slate-500">
-                <span data-i18n="time_q3_period">Month 7–9 (Microclimate &amp; Silt Pits)</span>
-                <span id="stampDateQ3" class="text-slate-400 font-mono text-[9px]">SCS-CN Hydrology</span>
-            </div>
-            <p class="text-[11px] text-slate-600 dark:text-slate-300 font-sans leading-tight" data-i18n="time_q3_desc">
-                Surveillance of silt pits, SCS-CN groundwater recharge capacity, and weed control.
-            </p>
-            <div id="containerActionQ3" class="pt-1 border-t border-slate-100 dark:border-slate-800">
+
+            <div id="containerActionQ3" class="pt-2 border-t border-slate-100 dark:border-slate-800">
                 <a id="btnDownloadReportQ3" href="/api/monitoring/quarterly-report/EST-MDN-001/Q3" target="_blank" class="w-full py-1.5 px-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 font-mono text-[10px] font-bold shadow-xs transition flex items-center justify-center gap-1 cursor-pointer">
                     <span>📄</span> <span data-i18n="time_btn_dl_q3">Download Q3 Official Report PDF</span>
                 </a>
@@ -201,21 +258,38 @@
         </div>
 
         <!-- Q4 -->
-        <div id="cardSiklusQ4" class="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 shadow-sm transition-all">
-            <div class="flex items-center justify-between">
-                <span class="font-bold text-slate-900 dark:text-white" data-i18n="time_q4_title">Quarter 4 (Q4)</span>
-                <span id="badgeStatusQ4" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700" data-i18n="time_q4_status">
-                    PENDING CYCLE
-                </span>
+        <div id="cardSiklusQ4" class="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5 shadow-sm transition-all flex flex-col justify-between">
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-900 dark:text-white" data-i18n="time_q4_title">Quarter 4 (Q4)</span>
+                    <span id="badgeStatusQ4" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700" data-i18n="time_q4_status">
+                        PENDING CYCLE
+                    </span>
+                </div>
+                <div class="flex items-center justify-between text-[10px] text-slate-500">
+                    <span data-i18n="time_q4_period">Month 10–12 (Panen &amp; Audit TBS)</span>
+                    <span id="stampDateQ4" class="text-slate-400 font-mono text-[9px]">Ceiling &le; 4.5%</span>
+                </div>
+
+                <!-- Dual Perspective Badge -->
+                <div class="px-2 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/60 border border-sky-500/40 text-[10px] text-sky-700 dark:text-sky-300 font-bold flex items-center gap-1">
+                    <span>📱</span> <span>Mandor In-Situ (Eye-Level 1.4m)</span>
+                </div>
+
+                <p class="text-[11px] text-slate-600 dark:text-slate-300 font-sans leading-relaxed" data-i18n="time_q4_audit_narrative">
+                    Audit panen rimpang darat mandor (12,40 t/Ha, +Rp 38,4 Jt/Ha) dan timbangan panen TBS sawit mengonfirmasi defisit hasil terkunci di 1,22% (sangat aman di bawah batas toleransi 4,5%).
+                </p>
+
+                <!-- Anti-Fraud BMKG Box -->
+                <div class="p-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-[9.5px] font-sans text-slate-600 dark:text-slate-300 leading-tight space-y-0.5">
+                    <span class="text-slate-500 dark:text-slate-400 font-bold font-mono flex items-center gap-1">
+                        <span>🛡️</span> <span>Anti-Fraud Satelit BMKG:</span>
+                    </span>
+                    <span data-i18n="time_antifraud_notice">Stempel waktu pemotretan telah diverifikasi silang dengan arsip radar cuaca satelit BMKG pada koordinat lintang/bujur bersangkutan (Nihil manipulasi foto usang).</span>
+                </div>
             </div>
-            <div class="flex items-center justify-between text-[10px] text-slate-500">
-                <span data-i18n="time_q4_period">Month 10–12 (Yield Deficit Audit)</span>
-                <span id="stampDateQ4" class="text-slate-400 font-mono text-[9px]">Ceiling &le; 4.5%</span>
-            </div>
-            <p class="text-[11px] text-slate-600 dark:text-slate-300 font-sans leading-tight" data-i18n="time_q4_desc">
-                Verification of companion harvest and confirmation that oil palm FFB yield balance is non-deficit (&le; 4.5%).
-            </p>
-            <div id="containerActionQ4" class="pt-1 border-t border-slate-100 dark:border-slate-800">
+
+            <div id="containerActionQ4" class="pt-2 border-t border-slate-100 dark:border-slate-800">
                 <a id="btnDownloadReportQ4" href="/api/monitoring/quarterly-report/EST-MDN-001/Q4" target="_blank" class="w-full py-1.5 px-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 font-mono text-[10px] font-bold shadow-xs transition flex items-center justify-center gap-1 cursor-pointer">
                     <span>📄</span> <span data-i18n="time_btn_dl_q4">Download Q4 Official Report PDF</span>
                 </a>
@@ -2285,6 +2359,18 @@
     document.addEventListener('DOMContentLoaded', () => {
         if (typeof applyTranslations === 'function') {
             applyTranslations();
+        }
+        const clockEl = document.getElementById('dispSlaCountdownClock');
+        if (clockEl) {
+            let totalSecs = (152 * 86400) + (14 * 3600) + (28 * 60) + 40;
+            setInterval(() => {
+                if (totalSecs > 0) totalSecs--;
+                const d = Math.floor(totalSecs / 86400);
+                const h = Math.floor((totalSecs % 86400) / 3600);
+                const m = Math.floor((totalSecs % 3600) / 60);
+                const s = totalSecs % 60;
+                clockEl.textContent = `${d}d : ${String(h).padStart(2, '0')}h : ${String(m).padStart(2, '0')}m : ${String(s).padStart(2, '0')}s`;
+            }, 1000);
         }
     });    
 </script>

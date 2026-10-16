@@ -478,14 +478,24 @@ function importTelemetryFromAiScanner() {
     const resPlsComp = document.getElementById('res_pls_comp');
     if (resPlsComp) resPlsComp.innerText = "31.25%";
     const resPar = document.getElementById('res_par');
-    if (resPar) resPar.innerText = "266 µmol/m²/s (35.8%)";
+    if (resPar) resPar.innerText = "644.4 µmol/m²/s (35.8%)";
+
+    // Highlight & focus the Bio-Ecological Rationale Card
+    const bioCard = document.getElementById('bioEcologicalRationaleCard');
+    if (bioCard) {
+        bioCard.classList.add('ring-4', 'ring-emerald-400', 'ring-offset-2', 'ring-offset-slate-900');
+        bioCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => {
+            bioCard.classList.remove('ring-4', 'ring-emerald-400', 'ring-offset-2', 'ring-offset-slate-900');
+        }, 2500);
+    }
 
     // 7. Toast feedback
     const isEn = (typeof currentLang === 'undefined' || currentLang !== 'id');
     if (typeof showNotificationToast === 'function') {
         showNotificationToast(
-            isEn ? "✓ 4D Telemetry Ingested: Age 7.5 Yrs (LAI 4.25), PAR 35.8%, LER 1.48x, PLS 31.25%, MOP +75kg/Ha" 
-                 : "✓ Telemetri 4D Terimpor: Umur 7.5 Thn (LAI 4.25), PAR 35.8%, LER 1.48x, PLS 31.25%, MOP +75kg/Ha",
+            isEn ? "✓ 4D Telemetry Ingested: Age 7.5 Yrs (LAI 4.25), PAR 35.8% (644.4 µmol), LER 1.48x (+48%), MOP +75kg/Ha" 
+                 : "✓ Telemetri 4D Terimpor: Umur 7.5 Thn (LAI 4.25), PAR 35.8% (644.4 µmol), LER 1.48x (+48%), MOP +75kg/Ha",
             "⚡"
         );
     }

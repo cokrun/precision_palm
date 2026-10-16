@@ -784,6 +784,17 @@
                         </div>
                         <div id="droneBBoxesOverlay" class="absolute inset-0 pointer-events-none z-20"></div>
 
+                        <!-- AI Telemetry HUD Bar (Drone Aerial Orthomosaic 45m & Sentinel-2 Telemetry) -->
+                        <div id="spatialDroneTelemetryHud" class="absolute top-2.5 left-2.5 right-36 bg-slate-950/90 backdrop-blur-md border border-sky-500/70 rounded-xl px-2.5 py-1 text-[9px] font-mono text-sky-200 z-30 flex items-center justify-between gap-1.5 shadow-lg">
+                            <div class="flex items-center gap-1.5 truncate">
+                                <span class="text-xs">🛸</span>
+                                <span id="spatialHudBadgeText" class="font-bold tracking-tight text-sky-300 truncate">
+                                    [ 🛸 Drone AGL: 45.0m | Pitch: -90° | Pattern: Triangular 9.0m | Alley: 3.79m Clear | NDMI: 0.412 ]
+                                </span>
+                            </div>
+                            <span id="spatialHudPillTag" class="px-1.5 py-0.2 rounded text-[7.5px] font-bold bg-sky-950 text-sky-300 border border-sky-400 shrink-0 uppercase">UAV NADIR</span>
+                        </div>
+
                         <div
                             class="absolute bottom-3 left-3 bg-slate-950/85 backdrop-blur-md border border-slate-700 px-2.5 py-1 rounded-lg text-[10px] font-mono text-slate-200 flex items-center gap-1.5 shadow z-30">
                             <span>📸</span> <span id="verifPhotoLabel">field_wetland_buffer.jpg</span>
