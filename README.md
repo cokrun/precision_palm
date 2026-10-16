@@ -348,7 +348,7 @@ gcloud run deploy precision-palm `
 
 | Standard / Body | Legal Instrument | Clause Fulfilled by Precision Palm | Statutory Deliverable Output |
 | :--- | :--- | :--- | :--- |
-| **ISPO** | Perpres 44/2020 & Permentan 38/2020 | **P1:** Legal land tenure vetting (HGU/e-STDB).<br>**P2 (GAP):** 2.0m sterile circle zero-tillage.<br>**P3:** HCV riparian and water boundary conservation. | GAP Compliance Certificate & 2.0m Weed Circle Inspection Log |
+| **ISPO** | Perpres 44/2020 & Permentan No. 33 Tahun 2025 | **P1:** Legal land tenure vetting (HGU/e-STDB).<br>**P2 (GAP):** 2.0m sterile circle zero-tillage.<br>**P3:** HCV riparian and water boundary conservation. | GAP Compliance Certificate & 2.0m Weed Circle Inspection Log |
 | **EUDR** | Regulation (EU) 2023/1115 | **Article 9:** 6-decimal WGS84 closed polygons.<br>**Article 3:** Zero deforestation proof post-Dec 31, 2020 cut-off via Hansen GFC. | European Commission TRACES-NT DDS JSON Payload & OGC GeoJSON |
 | **PIPPIB** | MoEF Moratorium Decree 2024 | 100% boundary clearance outside state primary conservation forests with $\ge 50\text{m}$ buffer. | Statutory Moratorium Clearance Certificate (100% Non-Forest APL) |
 | **Verra VCS** | Methodology VM0007 | Avoided deforestation accounting ($450.0\text{ tCO}_2\text{e/Ha}$) via Land Sparing (PLS). | Verified Voluntary Carbon Asset Dossier with SHA-256 Digest |

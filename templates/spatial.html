@@ -813,26 +813,41 @@
                         </div>
                     </div>
 
-                    <!-- Indikator Deteksi Objek Reticle -->
-                    <div
-                        class="p-2.5 rounded-2xl bg-slate-950/90 border border-slate-800 text-[10px] font-mono text-slate-300 flex flex-wrap items-center justify-between gap-1.5">
-                        <span
-                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-950 border border-emerald-500/60 text-emerald-300 font-bold">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> [Optimal Palm Crown]
-                        </span>
-                        <span
-                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-sky-950 border border-sky-500/60 text-sky-300 font-bold">
-                            <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span> [Alley Corridor 3.79m]
-                        </span>
-                        <span
-                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-rose-950 border border-rose-500/60 text-rose-300 font-bold">
-                            <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> [Sterile Circle 2.0m]
-                        </span>
-                        <span
-                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-950 border border-cyan-500/60 text-cyan-300 font-bold">
-                            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> [Living Weed Mulch]
-                        </span>
-                        <span id="aiDetectionIoUBadge" class="text-emerald-400 font-bold">IoU: 0.94 • Conf: 96%</span>
+                    <!-- Filter Layer Bar & Indikator Deteksi Objek Reticle -->
+                    <div class="p-2.5 rounded-2xl bg-slate-950/90 border border-slate-800 text-[10px] font-mono text-slate-300 space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-1.5 border-b border-slate-800 pb-1.5">
+                            <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                                <span>🛸</span> <span data-i18n="spatial_filter_layers">Filter Layer Deteksi Objek Fisik (Real HUD):</span>
+                            </span>
+                            <span id="lblSpatialStandPop" class="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500 font-bold text-[9px]">
+                                Populasi Terhitung: 138 Pokok/Ha (Sesuai Standar Segitiga 9.0m)
+                            </span>
+                        </div>
+                        <div class="flex flex-wrap items-center justify-between gap-1.5">
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <button type="button" onclick="toggleSpatialLayer('palm_canopy')" id="btnSpatialLayerPalm"
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-950 border border-emerald-500 text-emerald-300 font-bold cursor-pointer transition shadow-xs">
+                                    <span>🌴</span> <span id="lblSpatialCountPalm">Pokok Sawit (15)</span>
+                                </button>
+                                <button type="button" onclick="toggleSpatialLayer('infrastructure')" id="btnSpatialLayerInfra"
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-sky-950 border border-sky-500 text-sky-300 font-bold cursor-pointer transition shadow-xs">
+                                    <span>🚜</span> <span id="lblSpatialCountInfra">Jalan &amp; Parit (2)</span>
+                                </button>
+                                <button type="button" onclick="toggleSpatialLayer('root_circle')" id="btnSpatialLayerRoot"
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-rose-950 border border-rose-500 text-rose-300 font-bold cursor-pointer transition shadow-xs">
+                                    <span>⭕</span> <span id="lblSpatialCountRoot">Piringan Tanah</span>
+                                </button>
+                                <button type="button" onclick="toggleSpatialLayer('floor_mulch')" id="btnSpatialLayerMulch"
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-teal-950 border border-teal-500 text-teal-300 font-bold cursor-pointer transition shadow-xs">
+                                    <span>🍂</span> <span id="lblSpatialCountMulch">Mulsa &amp; Lorong</span>
+                                </button>
+                                <button type="button" onclick="toggleSpatialLayer('empty_gap')" id="btnSpatialLayerGap"
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-950 border border-amber-500 text-amber-300 font-bold cursor-pointer transition shadow-xs">
+                                    <span>🌾</span> <span id="lblSpatialCountGap">Celah Kosong (1)</span>
+                                </button>
+                            </div>
+                            <span id="aiDetectionIoUBadge" class="text-emerald-400 font-bold ml-auto text-[9px]">IoU: 0.95 • Conf: 98%</span>
+                        </div>
                     </div>
                 </div>
             </div>

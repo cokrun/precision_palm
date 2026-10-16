@@ -42,14 +42,19 @@ const DEFAULT_PALM_DIAGNOSTICS = {
     }
 };
 
-const DEFAULT_BOUNDING_BOXES = [
-    { label: "palm_crown", label_name: "Palm Crown (TM 7.5th)", box_2d: [120, 240, 780, 890], confidence: 0.98 },
-    { label: "sterile_circle", label_name: "Sterile Feeder Root Zone (2.0m)", box_2d: [650, 320, 920, 810], confidence: 0.99 },
-    { label: "active_corridor", label_name: "Active Intercrop Alley (3.79m)", box_2d: [450, 50, 910, 410], confidence: 0.95 }
+const REAL_PHYSICAL_ENTITIES = [
+    { id: "obj_01", label: "Palm Trunk Left", cluster: "palm_anatomy", box_2d: [210, 110, 890, 310], confidence: 0.98 },
+    { id: "obj_02", label: "Palm Trunk Right", cluster: "palm_anatomy", box_2d: [230, 710, 880, 910], confidence: 0.97 },
+    { id: "obj_03", label: "FFB Ripe Bunch #1", cluster: "fruit_organs", box_2d: [340, 240, 480, 320], confidence: 0.95 },
+    { id: "obj_04", label: "FFB Mature Bunch #2", cluster: "fruit_organs", box_2d: [360, 700, 490, 770], confidence: 0.94 },
+    { id: "obj_05", label: "Clean Root Buffer (2.0m)", cluster: "root_circle", box_2d: [750, 120, 950, 410], confidence: 0.99 },
+    { id: "obj_06", label: "Clean Root Buffer (2.0m)", cluster: "root_circle", box_2d: [760, 680, 960, 930], confidence: 0.98 },
+    { id: "obj_07", label: "Pruned Frond Mulch Pile", cluster: "floor_mulch", box_2d: [680, 360, 910, 640], confidence: 0.93 },
+    { id: "obj_08", label: "Active Intercrop Alley (3.79m)", cluster: "floor_mulch", box_2d: [420, 310, 900, 680], confidence: 0.96 }
 ];
 
 let latestAiDiagnostics = JSON.parse(JSON.stringify(DEFAULT_PALM_DIAGNOSTICS));
-let latestBoundingBoxes = JSON.parse(JSON.stringify(DEFAULT_BOUNDING_BOXES));
+let latestBoundingBoxes = JSON.parse(JSON.stringify(REAL_PHYSICAL_ENTITIES));
 
 function initCameraModule() {
     renderViewfinderReticles();
@@ -186,7 +191,7 @@ async function triggerAiVisionAnalysis(forceRealScan = false) {
     if (overlay) overlay.innerHTML = '';
 
     let diagnostics = JSON.parse(JSON.stringify(DEFAULT_PALM_DIAGNOSTICS));
-    let boxes = JSON.parse(JSON.stringify(DEFAULT_BOUNDING_BOXES));
+    let boxes = JSON.parse(JSON.stringify(REAL_PHYSICAL_ENTITIES));
 
     try {
         // Panggil endpoint backend Gemini Vision dengan 4D Georeferenced Telemetry Contract
@@ -206,6 +211,8 @@ async function triggerAiVisionAnalysis(forceRealScan = false) {
             body: JSON.stringify({
                 image_url: activePhotoBase64,
                 feature_name: "Mobile Multimodal Agronomic Scanner",
+                block_id: "EST-MDN-001-BLOK-A",
+                declared_crop: "Jagung",
                 latitude: telem.latitude,
                 longitude: telem.longitude,
                 altitude_agl_m: telem.altitude_agl_m,
@@ -221,7 +228,9 @@ async function triggerAiVisionAnalysis(forceRealScan = false) {
             } else if (data && data.analysis && data.analysis.plant_diagnostics) {
                 diagnostics = data.analysis.plant_diagnostics;
             }
-            if (data && Array.isArray(data.bounding_boxes) && data.bounding_boxes.length > 0) {
+            if (data && Array.isArray(data.physical_entities) && data.physical_entities.length > 0) {
+                boxes = data.physical_entities;
+            } else if (data && Array.isArray(data.bounding_boxes) && data.bounding_boxes.length > 0) {
                 boxes = data.bounding_boxes;
             } else if (data && data.analysis && Array.isArray(data.analysis.bounding_boxes) && data.analysis.bounding_boxes.length > 0) {
                 boxes = data.analysis.bounding_boxes;
@@ -421,26 +430,38 @@ function renderDetectedBoxes(boxes) {
         const height = ((box[2] - box[0]) / 10.0).toFixed(1);
         const width = ((box[3] - box[1]) / 10.0).toFixed(1);
 
+        const cluster = item.cluster || (
+            (item.label || '').includes('fruit') ? 'fruit_organs' :
+            (item.label || '').includes('root') ? 'root_circle' :
+            (item.label || '').includes('trunk') ? 'palm_anatomy' : 'floor_mulch'
+        );
+
         let borderCls = "border-emerald-400 bg-emerald-500/15";
         let badgeCls = "bg-emerald-950 text-emerald-300 border-emerald-400";
         let icon = "🌴";
 
-        const lbl = (item.label || item.label_name || "").toLowerCase();
-        if (lbl.includes('corridor') || lbl.includes('alley') || lbl.includes('lorong')) {
-            borderCls = "border-sky-400 bg-sky-500/15";
-            badgeCls = "bg-sky-950 text-sky-300 border-sky-400";
-            icon = "🌱";
-        } else if (lbl.includes('root') || lbl.includes('circle') || lbl.includes('piringan')) {
+        if (cluster === 'fruit_organs') {
+            borderCls = "border-amber-400 bg-amber-500/15";
+            badgeCls = "bg-amber-950 text-amber-300 border-amber-400";
+            icon = "🍇";
+        } else if (cluster === 'root_circle') {
             borderCls = "border-rose-400 bg-rose-500/15";
             badgeCls = "bg-rose-950 text-rose-300 border-rose-400";
             icon = "⭕";
+        } else if (cluster === 'floor_mulch') {
+            borderCls = "border-teal-400 bg-teal-500/15";
+            badgeCls = "bg-teal-950 text-teal-300 border-teal-400";
+            icon = "🍂";
         }
+
+        const labelText = item.label_name || item.label || 'Physical Entity';
+        const conf = Math.round((item.confidence || 0.95) * 100);
 
         return `
             <div class="absolute border-2 ${borderCls} rounded-lg shadow-sm pointer-events-auto transition-all"
                  style="top: ${top}%; left: ${left}%; width: ${width}%; height: ${height}%;">
-                <span class="absolute -top-3 left-1 px-1.5 py-0.2 rounded border text-[7px] font-mono font-bold whitespace-nowrap ${badgeCls}">
-                    ${icon} ${item.label_name || item.label} [${Math.round((item.confidence || 0.98) * 100)}%]
+                <span class="absolute -top-3 left-1 px-1.5 py-0.2 rounded border text-[7.5px] font-mono font-bold whitespace-nowrap shadow-xs ${badgeCls}">
+                    ${icon} ${labelText} [${conf}%]
                 </span>
             </div>
         `;

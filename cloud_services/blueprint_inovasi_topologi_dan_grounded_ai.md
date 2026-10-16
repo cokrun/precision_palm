@@ -88,7 +88,7 @@ Ide Anda memungkinkan LLM menjawab pertanyaan auditor dengan mencantumkan sitasi
 │                   VERTEX AI SEARCH & CONVERSATION (DATASTORE)                 │
 │ Mengindeks dokumen repositori kebun:                                         │
 │ • PP No. 23/2021 (Penyelenggaraan Kehutanan)                                 │
-│ • Permentan No. 38/2020 (Baku Teknis Perkebunan Kelapa Sawit / ISPO)          │
+│ • Permentan No. 33 Tahun 2025 (Baku Teknis ISPO Baru 2025)          │
 │ • Modul Agronomi PPKS Medan (Manajemen Perakaran & Ganoderma)                │
 │ • Dokumen Sertifikat HGU No. 004/HGU/BPN-MDN/2021                            │
 └──────────────────────────────────────┬───────────────────────────────────────┘
@@ -104,7 +104,7 @@ Ide Anda memungkinkan LLM menjawab pertanyaan auditor dengan mencantumkan sitasi
 │  mencegah luka mekanis cangkul yang memicu infeksi jamur Ganoderma [2].      │
 │                                                                              │
 │  Sumber Sitasi Terverifikasi:                                                │
-│  [1] Pedoman Baku Teknis GAP ISPO (Permentan 38/2020, Lampiran II, Hal. 14)  │
+│  [1] Pedoman Baku Teknis GAP ISPO (Permentan No. 33 Tahun 2025, Lampiran II)  │
 │  [2] Standar Proteksi Tanaman PPKS Medan (SOP-AGR-04, Bagian 3.2)"           │
 └──────────────────────────────────────────────────────────────────────────────┘
 

@@ -293,6 +293,30 @@ def init_db(db_path: Optional[str] = None) -> None:
             );
         """)
 
+        # 7. Autonomous Agent Memory RAG Store (Episodic Experience Loop)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS agent_experience (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                block_id TEXT NOT NULL,
+                session_id TEXT NOT NULL,
+                perspective_mode TEXT CHECK(perspective_mode IN ('AERIAL_DRONE', 'TERRESTRIAL_IN_SITU')),
+                altitude_agl_m REAL DEFAULT 1.45,
+                camera_pitch_deg REAL DEFAULT -12.0,
+                coordinates_wgs84 TEXT NOT NULL,
+                timestamp_iso TEXT NOT NULL,
+                declared_crop TEXT,
+                observed_taxon TEXT,
+                discrepancy_score REAL DEFAULT 0.0,
+                detected_entities_json TEXT NOT NULL,
+                diagnostic_matrix_json TEXT NOT NULL,
+                learned_context_summary TEXT NOT NULL,
+                sha256_hash TEXT NOT NULL,
+                sync_bigquery INTEGER NOT NULL DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_agent_exp_block ON agent_experience(block_id, created_at DESC);")
+
         # Verify and add dynamic columns for canopy_uploads
         cursor.execute("PRAGMA table_info(canopy_uploads);")
         existing_canopy_cols = [row[1] for row in cursor.fetchall()]
@@ -1567,6 +1591,115 @@ def get_certificate_validation_record(identifier: Union[str, int], db_path: Opti
         "lifecycle": lifecycle,
         "monitoring_logs": logs
     }
+
+
+# =========================================================================
+# AUTONOMOUS AGENT EPISODIC MEMORY RAG STORE
+# =========================================================================
+def save_agent_experience(data: dict) -> int:
+    """Saves autonomous agent episodic experience to SQLite WAL."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    block_id = data.get('block_id', 'EST-MDN-001-BLOK-A')
+    session_id = data.get('session_id') or f"SESS-{int(datetime.now(timezone.utc).timestamp())}"
+    
+    alt_val = float(data.get('altitude_agl_m', 1.45))
+    pitch_val = float(data.get('camera_pitch_deg', -12.4))
+    perspective_mode = data.get('perspective_mode') or ('AERIAL_DRONE' if alt_val > 15.0 else 'TERRESTRIAL_IN_SITU')
+    
+    coords = data.get('coordinates_wgs84', {"lat": 0.824102, "lng": 99.561214})
+    coords_json = json.dumps(coords) if isinstance(coords, dict) else str(coords)
+    
+    ts_iso = data.get('timestamp_iso') or datetime.now(timezone.utc).isoformat()
+    declared_crop = data.get('declared_crop', 'Jahe Merah (Zingiber officinale)')
+    observed_taxon = data.get('observed_taxon', 'Zingiber officinale var. rubrum')
+    discrepancy_score = float(data.get('discrepancy_score', 0.0))
+    
+    entities = data.get('physical_entities', data.get('detected_entities', []))
+    entities_json = json.dumps(entities) if not isinstance(entities, str) else entities
+    
+    matrix = data.get('diagnostic_matrix_44', data.get('diagnostic_matrix', {}))
+    matrix_json = json.dumps(matrix) if not isinstance(matrix, str) else matrix
+    
+    learned_summary = data.get('agent_experience_summary', data.get('learned_context_summary', ''))
+    
+    hash_seed = f"{block_id}|{session_id}|{ts_iso}|{discrepancy_score}|{learned_summary}"
+    sha256_hash = hashlib.sha256(hash_seed.encode('utf-8')).hexdigest().upper()
+    
+    cursor.execute("""
+        INSERT INTO agent_experience (
+            block_id, session_id, perspective_mode, altitude_agl_m, camera_pitch_deg,
+            coordinates_wgs84, timestamp_iso, declared_crop, observed_taxon,
+            discrepancy_score, detected_entities_json, diagnostic_matrix_json,
+            learned_context_summary, sha256_hash, sync_bigquery
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0);
+    """, (
+        block_id, session_id, perspective_mode, alt_val, pitch_val,
+        coords_json, ts_iso, declared_crop, observed_taxon,
+        discrepancy_score, entities_json, matrix_json,
+        learned_summary, sha256_hash
+    ))
+    new_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return new_id
+
+
+def retrieve_block_memory(block_id: str, limit: int = 3) -> list:
+    """Mengambil riwayat pengalaman audit sebelumnya untuk konteks RAG agen."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT declared_crop, observed_taxon, discrepancy_score, 
+               learned_context_summary, timestamp_iso, diagnostic_matrix_json,
+               detected_entities_json, perspective_mode, altitude_agl_m, sha256_hash
+        FROM agent_experience 
+        WHERE block_id = ? 
+        ORDER BY created_at DESC LIMIT ?;
+    """, (block_id, limit))
+    rows = cursor.fetchall()
+    conn.close()
+    
+    results = []
+    for r in rows:
+        item = dict(r)
+        if isinstance(item.get('diagnostic_matrix_json'), str):
+            try:
+                item['diagnostic_matrix'] = json.loads(item['diagnostic_matrix_json'])
+            except Exception:
+                item['diagnostic_matrix'] = {}
+        if isinstance(item.get('detected_entities_json'), str):
+            try:
+                item['detected_entities'] = json.loads(item['detected_entities_json'])
+            except Exception:
+                item['detected_entities'] = []
+        results.append(item)
+    return results
+
+
+def get_latest_agent_experience(block_id: Optional[str] = None) -> Optional[dict]:
+    """Mengambil memori pengalaman agen paling mutakhir."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    if block_id:
+        cursor.execute("SELECT * FROM agent_experience WHERE block_id = ? ORDER BY created_at DESC LIMIT 1;", (block_id,))
+    else:
+        cursor.execute("SELECT * FROM agent_experience ORDER BY created_at DESC LIMIT 1;")
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        return None
+    item = dict(row)
+    try:
+        item['detected_entities'] = json.loads(item.get('detected_entities_json', '[]'))
+    except Exception:
+        item['detected_entities'] = []
+    try:
+        item['diagnostic_matrix_44'] = json.loads(item.get('diagnostic_matrix_json', '{}'))
+    except Exception:
+        item['diagnostic_matrix_44'] = {}
+    return item
+
 
 if __name__ == '__main__':
     print("=================================================================")

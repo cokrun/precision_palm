@@ -508,6 +508,63 @@
                     <span id="badgeDetectionStats" class="text-emerald-400 font-bold">IoU: 0.95 • Conf: 97%</span>
                 </div>
 
+                <!-- PERIKSA FORENSIK DISCREPANCY & KEPATUHAN PERMENTAN NO. 33 TAHUN 2025 (ISPO BARU) -->
+                <div id="forensicDiscrepancyCard" class="p-4 rounded-2xl bg-amber-950/60 border border-amber-500/70 space-y-2.5 text-xs font-mono text-white shadow-md">
+                    <div class="flex items-center justify-between border-b border-amber-500/30 pb-1.5">
+                        <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                            <span>⚠️</span> <span data-i18n="time_discrepancy_title">PEMERIKSAAN FORENSIK DISCREPANCY (AGENT AUTONOMOUS GATE)</span>
+                        </span>
+                        <span id="badgeDiscrepancyScore" class="text-[9.5px] font-bold px-2 py-0.5 rounded bg-amber-900 text-amber-200 border border-amber-600">
+                            DISCREPANCY: 0.85 (&gt; 0.80 TRIGGERED)
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-amber-100 leading-relaxed font-sans">
+                        <strong>Deteksi Ketidaksesuaian Komoditas:</strong> Berkas pendaftaran awal mendaftar <em>Jagung (Zea mays)</em>, namun sensor kamera &amp; drone AI mengonfirmasi herba rimpang <em>Jahe Merah (Zingiber officinale var. rubrum)</em>. Sistem otonom menerbitkan peringatan amandemen izin budidaya dan secara otomatis mengalihkan kompensasi hara pupuk ke Kalium (<strong>+75.0 kg MOP/Ha</strong>) tanpa intervensi manual.
+                    </p>
+                </div>
+
+                <!-- BADGE KEPATUHAN PERMENTAN NO. 33 TAHUN 2025 (ISPO BARU) -->
+                <div class="p-3.5 rounded-2xl bg-slate-950/90 border border-emerald-500/50 space-y-2 text-xs font-mono text-slate-200 shadow-md">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                        <span class="text-[11px] font-bold text-emerald-400 flex items-center gap-1.5">
+                            <span>🏛️</span> <span>KEPATUHAN STATUTER PERMENTAN NO. 33 TAHUN 2025 (ISPO BARU)</span>
+                        </span>
+                        <span class="text-[8.5px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500 font-bold uppercase">
+                            STATUTORY TIER-1
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-[10px]">
+                        <div class="p-2 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2">
+                            <span class="text-base">📅</span>
+                            <div>
+                                <span class="text-slate-400 block text-[8.5px]">Siklus ISPO 2025:</span>
+                                <strong class="text-emerald-300">Valid 5 Tahun (Penilikan Tahunan)</strong>
+                            </div>
+                        </div>
+                        <div class="p-2 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2">
+                            <span class="text-base">⚖️</span>
+                            <div>
+                                <span class="text-slate-400 block text-[8.5px]">Mass Balance Tier-1:</span>
+                                <strong class="text-emerald-300">&ge; 30% Serapan TBS Tersertifikasi</strong>
+                            </div>
+                        </div>
+                        <div class="p-2 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2">
+                            <span class="text-base">🤝</span>
+                            <div>
+                                <span class="text-slate-400 block text-[8.5px]">Audit Sosial &amp; HAM:</span>
+                                <strong class="text-emerald-300">Nol Pekerja Anak &bull; Hak Buruh 100%</strong>
+                            </div>
+                        </div>
+                        <div class="p-2 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2">
+                            <span class="text-base">📜</span>
+                            <div>
+                                <span class="text-slate-400 block text-[8.5px]">Legalitas Lahan:</span>
+                                <strong class="text-emerald-300">e-STDB Swadaya Terintegrasi</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Kartu Hasil Telaah Audit Mesin (Machine Ground Truth) -->
                 <div class="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/50 space-y-2 text-xs font-sans">
                     <div class="flex items-center justify-between border-b border-emerald-800/60 pb-1.5 font-mono">

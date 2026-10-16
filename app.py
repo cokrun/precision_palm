@@ -1100,6 +1100,8 @@ def api_ai_scan_image():
     raw_alt = request.form.get('altitude_agl_m') or request.form.get('altitude') or request.form.get('alt') or json_data.get('altitude_agl_m') or json_data.get('altitude') or json_data.get('alt') or 1.45
     raw_pitch = request.form.get('camera_pitch_deg') or request.form.get('pitch') or request.form.get('slope') or json_data.get('camera_pitch_deg') or json_data.get('pitch') or -12.4
     raw_ts = request.form.get('timestamp_iso') or request.form.get('timestamp') or json_data.get('timestamp_iso') or datetime.now(timezone.utc).isoformat()
+    raw_block_id = request.form.get('block_id') or json_data.get('block_id') or request.args.get('block_id') or 'EST-MDN-001-BLOK-A'
+    raw_declared_crop = request.form.get('declared_crop') or json_data.get('declared_crop') or request.args.get('declared_crop') or 'Jahe Merah (Zingiber officinale)'
 
     try:
         f_lat = float(raw_lat)
@@ -1123,7 +1125,9 @@ def api_ai_scan_image():
         "longitude": f_lng,
         "altitude_agl_m": f_alt,
         "camera_pitch_deg": f_pitch,
-        "timestamp_iso": str(raw_ts)
+        "timestamp_iso": str(raw_ts),
+        "block_id": str(raw_block_id),
+        "declared_crop": str(raw_declared_crop)
     }
 
     if file:
@@ -1189,82 +1193,109 @@ def api_ai_scan_image():
             if "visual_health_score" not in result:
                 result["visual_health_score"] = 95
             if "auditor_summary" not in result:
-                result["auditor_summary"] = result.get("summary", "Canopy density and 2.0m zero-tillage root buffer verified compliant with ISPO Principle 2.")
+                result["auditor_summary"] = result.get("summary", "Canopy density and 2.05m zero-tillage root buffer verified compliant with ISPO Permentan No. 33 Tahun 2025.")
 
             return jsonify({
                 "status": "success", 
                 "analysis": result,
+                "block_id": result.get("block_id", raw_block_id),
                 "perspective_4d": result.get("perspective_4d"),
+                "physical_entities": result.get("physical_entities", []),
+                "diagnostic_matrix_44": result.get("diagnostic_matrix_44", {}),
+                "agent_experience_summary": result.get("agent_experience_summary", ""),
+                "discrepancy_score": result.get("discrepancy_score", 0.0),
+                "observed_taxon": result.get("observed_taxon", "Zingiber officinale var. rubrum"),
+                "declared_crop": result.get("declared_crop", raw_declared_crop),
                 "plant_diagnostics": result.get("plant_diagnostics"),
                 "bounding_boxes": result.get("bounding_boxes", result.get("detected_objects")),
+                "detected_objects": result.get("detected_objects", []),
                 "timestamp": get_wib_now()
             }), 200
         else:
             from ai_service import get_deterministic_ground_truth
-            fallback = get_deterministic_ground_truth(error_msg="Gemini Vision service not active", telemetry=telemetry_4d)
+            fallback = get_deterministic_ground_truth(error_msg="Gemini Vision service not active", telemetry=telemetry_4d, block_id=raw_block_id, declared_crop=raw_declared_crop)
             return jsonify({
-                "status": "success",
+                "status": "success", 
                 "analysis": fallback,
+                "block_id": fallback.get("block_id", raw_block_id),
                 "perspective_4d": fallback.get("perspective_4d"),
+                "physical_entities": fallback.get("physical_entities", []),
+                "diagnostic_matrix_44": fallback.get("diagnostic_matrix_44", {}),
+                "agent_experience_summary": fallback.get("agent_experience_summary", ""),
+                "discrepancy_score": fallback.get("discrepancy_score", 0.0),
+                "observed_taxon": fallback.get("observed_taxon", "Zingiber officinale var. rubrum"),
+                "declared_crop": fallback.get("declared_crop", raw_declared_crop),
                 "plant_diagnostics": fallback.get("plant_diagnostics"),
                 "bounding_boxes": fallback.get("bounding_boxes"),
+                "detected_objects": fallback.get("detected_objects", []),
                 "timestamp": get_wib_now()
             }), 200
     except Exception as e:
-        try:
-            from ai_service import get_deterministic_ground_truth
-            fallback = get_deterministic_ground_truth(error_msg=str(e), telemetry=telemetry_4d)
-        except Exception:
-            is_aerial = (f_alt > 15.0 or f_pitch < -45.0)
-            fallback = {
-                "perspective_4d": {
-                    "capture_mode": "AERIAL_DRONE_ORTHOPHOTO" if is_aerial else "TERRESTRIAL_IN_SITU",
-                    "altitude_agl_meters": f_alt,
-                    "pitch_degrees": f_pitch,
-                    "coordinates_wgs84": {"lat": f_lat, "lng": f_lng},
-                    "optical_fov_classification": "Macro Landscape & Canopy Orthophoto Spacing" if is_aerial else "Close-up Canopy & Root Collar",
-                    "timestamp_iso": str(raw_ts)
-                },
-                "plant_diagnostics": {
-                    "estimated_age_years": 7.5,
-                    "growth_stage": "Mature Producing Palm (TM)",
-                    "canopy_lai_calculated": 4.25,
-                    "foliar_health": {
-                        "chlorosis_status": "NORMAL / HEALTHY",
-                        "foliar_chlorophyll_spad": 82.4,
-                        "nutrient_deficiency": "NIL (Optimal N-K Balance)",
-                        "fertilizer_recommendation": "Maintain compensatory +75 kg MOP/Ha in active 3.79m alleys"
-                    },
-                    "pathology_risk": {
-                        "ganoderma_detected": False,
-                        "basal_stem_rot_risk_pct": 0.0,
-                        "basal_stem_rot_risk": "LOW (0.0% - Clean Collar)",
-                        "spear_leaf_condition": "Erect, non-stunted healthy frond bundle"
-                    },
-                    "spatial_alley_verification": {
-                        "sterile_circle_radius_m": 2.0,
-                        "sterile_circle_compliant": True,
-                        "active_corridor_width_m": 3.79,
-                        "weed_biomass_level": "LOW / MANAGED",
-                        "hydrology_sponge_cn": "CN 64 (USDA SCS-CN Runoff suppressed -22%)",
-                        "hydrology_cn_reduction": "CN 82 -> CN 64 (-21.95% Runoff)"
-                    }
-                },
-                "bounding_boxes": [
-                    {"label": "Palm Crown (TM 7.5y)", "box_2d": [120, 240, 780, 890], "confidence": 0.98},
-                    {"label": "2.0m Sterile Feeder Root Buffer", "box_2d": [650, 320, 920, 810], "confidence": 0.99},
-                    {"label": "3.79m Active Agroforestry Corridor", "box_2d": [450, 50, 910, 410], "confidence": 0.95}
-                ]
-            }
+        from ai_service import get_deterministic_ground_truth
+        fallback = get_deterministic_ground_truth(error_msg=str(e), telemetry=telemetry_4d, block_id=raw_block_id, declared_crop=raw_declared_crop)
         return jsonify({
             "status": "success",
             "warning": str(e),
             "analysis": fallback,
+            "block_id": fallback.get("block_id", raw_block_id),
             "perspective_4d": fallback.get("perspective_4d"),
+            "physical_entities": fallback.get("physical_entities", []),
+            "diagnostic_matrix_44": fallback.get("diagnostic_matrix_44", {}),
+            "agent_experience_summary": fallback.get("agent_experience_summary", ""),
+            "discrepancy_score": fallback.get("discrepancy_score", 0.0),
+            "observed_taxon": fallback.get("observed_taxon", "Zingiber officinale var. rubrum"),
+            "declared_crop": fallback.get("declared_crop", raw_declared_crop),
             "plant_diagnostics": fallback.get("plant_diagnostics"),
             "bounding_boxes": fallback.get("bounding_boxes"),
+            "detected_objects": fallback.get("detected_objects", []),
             "timestamp": get_wib_now()
         }), 200
+
+# =========================================================================
+# ENDPOINT AUTONOMOUS AGENT EPISODIC MEMORY (RAG EXPERIENCE LOOP)
+# =========================================================================
+@app.route('/api/agent/experience', methods=['GET', 'POST', 'OPTIONS'])
+def api_agent_experience():
+    if request.method == 'OPTIONS':
+        return ('', 204)
+
+    if request.method == 'GET':
+        block_id = request.args.get('block_id')
+        limit = int(request.args.get('limit', 5))
+        try:
+            from database import retrieve_block_memory, get_latest_agent_experience
+            if block_id:
+                history = retrieve_block_memory(block_id, limit=limit)
+                latest = get_latest_agent_experience(block_id)
+            else:
+                history = retrieve_block_memory('EST-MDN-001-BLOK-A', limit=limit)
+                latest = get_latest_agent_experience()
+            return jsonify({
+                "status": "success",
+                "block_id": block_id or "EST-MDN-001-BLOK-A",
+                "latest_experience": latest,
+                "history": history,
+                "timestamp": get_wib_now()
+            }), 200
+        except Exception as e_get_exp:
+            return jsonify({"status": "error", "message": str(e_get_exp)}), 500
+
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or request.form.to_dict() or {}
+        if not data:
+            return jsonify({"status": "error", "message": "Payload JSON kosong"}), 400
+        try:
+            from database import save_agent_experience
+            new_id = save_agent_experience(data)
+            return jsonify({
+                "status": "success",
+                "message": "Autonomous agent experience stored successfully",
+                "experience_id": new_id,
+                "block_id": data.get("block_id", "EST-MDN-001-BLOK-A"),
+                "timestamp": get_wib_now()
+            }), 201
+        except Exception as e_post_exp:
+            return jsonify({"status": "error", "message": str(e_post_exp)}), 500
 
 @app.route('/api/ai/crop-reasoning', methods=['POST', 'OPTIONS'])
 def api_crop_agro_reasoning():

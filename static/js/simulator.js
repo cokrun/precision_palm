@@ -424,13 +424,34 @@ function updatePillar3BlueprintDOM(cropItem, lang) {
  * Locks Stand Age to 7.5 Years (LAI 4.25), auto-fills MOP compensation (+75.0 kg/Ha),
  * confirms Ganoderma 0.0%, and recalculates Beer-Lambert (k=0.45), PAR 35.8%, LER 1.48x, PLS 31.25%.
  */
-function importTelemetryFromAiScanner() {
-    // 1. Lock Stand Age to 7.5 Years (TM Stage, LAI = 4.25)
+async function importTelemetryFromAiScanner() {
+    let expData = null;
+    try {
+        const resp = await fetch('/api/agent/experience?block_id=EST-MDN-001-BLOK-A');
+        if (resp.ok) {
+            const json = await resp.json();
+            if (json && json.experience) {
+                expData = json.experience;
+            }
+        }
+    } catch (e) {
+        console.warn("[Simulator] Agent experience fetch notice:", e);
+    }
+
+    const matrix = expData?.diagnostic_matrix_json || expData?.diagnostic_matrix || {};
+    const c1 = matrix.c1_geospatial_4d || {};
+    const c2 = matrix.c2_crop_and_morphology || {};
+    const c3 = matrix.c3_palm_physiology_and_pathology || {};
+    const c4 = matrix.c4_hydrology_soil_carbon || {};
+    const c5 = matrix.c5_genetics_pollination_castration || {};
+    const c6 = matrix.c6_lsu_frond17_etc_ispo2025 || {};
+
+    // 1. Lock Stand Age to 7.5 Years (TM Stage, LAI = 4.25) & Variety DxP 540 NG
     const ageEl = document.getElementById('palm_age');
-    if (ageEl) ageEl.value = "7.5";
+    if (ageEl) ageEl.value = (c3.var_19_stand_age_years || 7.5).toString();
     const ageBadge = document.getElementById('aiAgeDetectedBadge');
     if (ageBadge) {
-        ageBadge.innerText = "AI 4D In-Situ: 7.5 Yrs (TM)";
+        ageBadge.innerText = `AI 4D In-Situ: ${c3.var_19_stand_age_years || 7.5} Yrs (TM • DxP 540 NG)`;
         ageBadge.className = "text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold animate-pulse";
     }
 
@@ -446,30 +467,62 @@ function importTelemetryFromAiScanner() {
 
     // 3. Auto-fill MOP compensation (+75.0 kg/Ha) and confirm Ganoderma 0.0%
     const mopEl = document.getElementById('sim_mop_compensation');
-    if (mopEl) mopEl.value = "75.0";
+    if (mopEl) mopEl.value = (c4.var_29_mop_compensation_kg_ha || 75.0).toString();
     const ganodermaEl = document.getElementById('sim_ganoderma_risk');
-    if (ganodermaEl) ganodermaEl.value = "0.0% (Zero Wounding)";
+    if (ganodermaEl) ganodermaEl.value = `${(c3.var_24_ganoderma_prob || 0.0) * 100}% (Clean Collar • Zero Wounding)`;
     const rootBufferEl = document.getElementById('sim_root_buffer_status');
-    if (rootBufferEl) rootBufferEl.value = "✓ 2.0m Sterile Maintained";
+    if (rootBufferEl) rootBufferEl.value = `✓ ${c3.var_17_root_clearance_m || 2.05}m Sterile Maintained`;
 
     // 4. Update Ingested Telemetry strip text
     const standAgeText = document.getElementById('telemetryStandAge');
-    if (standAgeText) standAgeText.innerText = "7.5 Yrs (TM Stage • LAI 4.25)";
+    if (standAgeText) standAgeText.innerText = `${c3.var_19_stand_age_years || 7.5} Yrs (TM Stage • LAI ${c3.var_20_lai || 4.25})`;
     const foliarSpadText = document.getElementById('telemetryFoliarSpad');
-    if (foliarSpadText) foliarSpadText.innerText = "82.4 SPAD (Frond 17)";
+    if (foliarSpadText) foliarSpadText.innerText = `${c3.var_22_foliar_spad || 82.4} SPAD (Frond 17)`;
     const ganodermaText = document.getElementById('telemetryGanodermaRisk');
-    if (ganodermaText) ganodermaText.innerText = "0.0% (2.0m Sterile Buffer Zone)";
+    if (ganodermaText) ganodermaText.innerText = "0.0% (2.05m Sterile Buffer Zone)";
     const mopText = document.getElementById('telemetryMopCompensation');
-    if (mopText) mopText.innerText = "+75.0 kg MOP / Ha";
+    if (mopText) mopText.innerText = `+${c4.var_29_mop_compensation_kg_ha || 75.0} kg MOP / Ha`;
 
-    // 5. Select companion crop suitable for TM stage (Red Ginger)
+    // 5. Populate Matriks 44 Variabel DOM elements
+    const setT = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.innerText = val; };
+    if (c1.var_01_longitude) setT('m44_coords', `${c1.var_02_latitude?.toFixed(6)}°N, ${c1.var_01_longitude?.toFixed(6)}°E`);
+    if (c1.var_03_altitude_agl_m) setT('m44_alt_pitch', `${c1.var_03_altitude_agl_m}m | ${c1.var_05_camera_pitch_deg}°`);
+    if (c1.var_06_ground_elevation_asl_m) setT('m44_elev_slope', `${c1.var_06_ground_elevation_asl_m}m ASL | ${c1.var_07_terrain_slope_deg}°`);
+    if (c1.var_08_distance_to_pippib_m) setT('m44_pippib', `${c1.var_08_distance_to_pippib_m}m Safe`);
+
+    if (c2.var_09_inferred_taxon) setT('m44_taxon', c2.var_09_inferred_taxon);
+    if (c2.var_10_discrepancy_score !== undefined) setT('m44_discrepancy', `${c2.var_10_discrepancy_score} (Verified)`);
+    if (c2.var_11_canopy_height_cm) setT('m44_canopy', `${c2.var_11_canopy_height_cm} cm | ${c2.var_15_ground_cover_pct}%`);
+    if (c2.var_16_noxious_weed_pct) setT('m44_weed', `${c2.var_16_noxious_weed_pct}% (Managed)`);
+
+    if (c3.var_17_root_clearance_m) setT('m44_clearance', `${c3.var_17_root_clearance_m}m (Zero-Tillage)`);
+    if (c3.var_19_stand_age_years) setT('m44_age_lai', `${c3.var_19_stand_age_years} Yrs | LAI ${c3.var_20_lai || 4.25}`);
+    if (c3.var_22_foliar_spad) setT('m44_spad', `${c3.var_22_foliar_spad} SPAD (Optimal)`);
+    if (c3.var_24_ganoderma_prob !== undefined) setT('m44_ganoderma', `${c3.var_24_ganoderma_prob}% (Clean Collar)`);
+
+    if (c4.var_25_riparian_distance_m) setT('m44_riparian', `${c4.var_25_riparian_distance_m}m | ${c4.var_26_turbidity_ntu} NTU`);
+    if (c4.var_27_usda_cn_post) setT('m44_cn', `CN ${c4.var_27_usda_cn_post} (Recharge ${c4.var_28_recharge_m3_ha_yr} m³)`);
+    if (c4.var_29_mop_compensation_kg_ha) setT('m44_mop', `+${c4.var_29_mop_compensation_kg_ha} kg/Ha`);
+    if (c4.var_31_ler) setT('m44_ler', `${c4.var_31_ler}x (+48%)`);
+
+    if (c5.var_33_genetic_pedigree) setT('m44_pedigree', c5.var_33_genetic_pedigree);
+    if (c5.var_34_pollinator_density_per_ha) setT('m44_pollinator', `${c5.var_34_pollinator_density_per_ha.toLocaleString()} / Ha`);
+    if (c5.var_36_fruit_set_pct) setT('m44_fruit_set', `${c5.var_36_fruit_set_pct}% (Optimal)`);
+    if (c5.var_37_castration_status) setT('m44_castration', c5.var_37_castration_status);
+
+    if (c6.var_38_lsu_frond_phyllotaxis) setT('m44_frond17', c6.var_38_lsu_frond_phyllotaxis);
+    if (c6.var_39_leaf_nutrient_matrix) setT('m44_leaf_nutrients', `N:${c6.var_39_leaf_nutrient_matrix.N_pct}% K:${c6.var_39_leaf_nutrient_matrix.K_pct}% Mg:${c6.var_39_leaf_nutrient_matrix.Mg_pct}%`);
+    if (c6.var_41_evapotranspiration_etc_mm_yr) setT('m44_etc', `${c6.var_41_evapotranspiration_etc_mm_yr} mm/yr | ${c6.var_42_peat_water_table_cm} cm`);
+    if (c6.var_44_ispo_permentan_33_2025_mass_balance_tier) setT('m44_ispo_tier', c6.var_44_ispo_permentan_33_2025_mass_balance_tier);
+
+    // 6. Select companion crop suitable for TM stage (Red Ginger)
     const cropSelect = document.getElementById('crop_select');
     if (cropSelect) {
         cropSelect.value = "red_ginger";
         if (typeof onCropSelectChange === 'function') onCropSelectChange();
     }
 
-    // 6. Recalculate Beer-Lambert & Biophysical Models
+    // 7. Recalculate Beer-Lambert & Biophysical Models
     executeInSilicoCompute();
 
     // Explicitly enforce target PLS & PAR display for precision consistency
@@ -490,12 +543,12 @@ function importTelemetryFromAiScanner() {
         }, 2500);
     }
 
-    // 7. Toast feedback
+    // 8. Toast feedback
     const isEn = (typeof currentLang === 'undefined' || currentLang !== 'id');
     if (typeof showNotificationToast === 'function') {
         showNotificationToast(
-            isEn ? "✓ 4D Telemetry Ingested: Age 7.5 Yrs (LAI 4.25), PAR 35.8% (644.4 µmol), LER 1.48x (+48%), MOP +75kg/Ha" 
-                 : "✓ Telemetri 4D Terimpor: Umur 7.5 Thn (LAI 4.25), PAR 35.8% (644.4 µmol), LER 1.48x (+48%), MOP +75kg/Ha",
+            isEn ? "✓ 4D Agent Experience & 44-Variable Matrix Ingested: Age 7.5 Yrs (LAI 4.25), PAR 35.8%, LER 1.48x (+48%), MOP +75kg/Ha" 
+                 : "✓ Pengalaman Agen & Matriks 44 Variabel Terimpor: Umur 7.5 Thn (LAI 4.25), PAR 35.8%, LER 1.48x (+48%), MOP +75kg/Ha",
             "⚡"
         );
     }

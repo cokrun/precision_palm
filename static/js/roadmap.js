@@ -1010,7 +1010,7 @@ function downloadEudrTracesJson() {
                 }
             },
             "good_agricultural_practices_audit": {
-                "standard": "ISPO Principle 2 & MoA Regulation 38/2020",
+                "standard": "ISPO Principle 2 & Permentan No. 33 Tahun 2025",
                 "sterile_circle_radius_meters": 2.0,
                 "zero_tillage_status": "CONFIRMED_INTACT",
                 "root_zone_disturbance": "ZERO",
@@ -2060,8 +2060,8 @@ function getStatutoryFallbackResponse(query, estateCode, lang) {
     if (qLower.includes('2.0m') || qLower.includes('ganoderma') || qLower.includes('root buffer') || qLower.includes('piringan')) {
         return {
             answer: isId
-                ? "Berdasarkan pedoman teknis Praktik Pertanian yang Baik (GAP ISPO) Permentan No. 38/2020 dan SOP PPKS Medan SOP-AGR-04, piringan pohon sawit di kebun " + estateCode + " wajib dipertahankan steril minimum radius 2.0 meter tanpa olah tanah (zero-tillage). Hal ini esensial untuk memutus jalur spora dan miselium patogen busuk pangkal batang (Ganoderma boninense) serta melindungi perakaran lateral penyerap hara."
-                : "Under Good Agricultural Practices (GAP ISPO) pursuant to MoA Regulation No. 38/2020 and PPKS Medan SOP-AGR-04, an uncultivated 2.0m root radius around each palm trunk is strictly enforced at " + estateCode + ". Zero-tillage protocols in this buffer ring prevent mycelial propagation of basal stem rot (Ganoderma boninense) while preserving critical feeding roots.",
+                ? "Berdasarkan pedoman teknis Praktik Pertanian yang Baik (GAP ISPO) Permentan No. 33 Tahun 2025 (ISPO Baru) dan SOP PPKS Medan SOP-AGR-04, piringan pohon sawit di kebun " + estateCode + " wajib dipertahankan steril minimum radius 2.0 meter tanpa olah tanah (zero-tillage). Hal ini esensial untuk memutus jalur spora dan miselium patogen busuk pangkal batang (Ganoderma boninense) serta melindungi perakaran lateral penyerap hara."
+                : "Under Good Agricultural Practices (GAP ISPO) pursuant to MoA Regulation (Permentan) No. 33/2025 and PPKS Medan SOP-AGR-04, an uncultivated 2.0m root radius around each palm trunk is strictly enforced at " + estateCode + ". Zero-tillage protocols in this buffer ring prevent mycelial propagation of basal stem rot (Ganoderma boninense) while preserving critical feeding roots.",
             citations: [
                 {
                     ref: "[1]",
@@ -2072,7 +2072,7 @@ function getStatutoryFallbackResponse(query, estateCode, lang) {
                 {
                     ref: "[2]",
                     doc_title: "Pedoman Teknis Praktik Pertanian yang Baik (GAP ISPO)",
-                    legal_basis: "Permentan No. 38/2020, Lampiran II, Halaman 14",
+                    legal_basis: "Permentan No. 33 Tahun 2025, Lampiran Standar Baku GAP ISPO",
                     exact_quote: "Praktik budidaya kelapa sawit berkelanjutan mensyaratkan preservasi zona perakaran pokok dari gangguan mekanis."
                 },
                 {

@@ -35,7 +35,7 @@ def test_real_gemini_inference():
     
     query = (
         "Bagaimana verifikasi batas sempadan hutan lindung 50m berdasarkan PP 23/2021, "
-        "larangan olah tanah piringan sawit radius 2.0m menurut Permentan 38/2020 GAP ISPO, "
+        "larangan olah tanah piringan sawit radius 2.0m menurut Permentan No. 33 Tahun 2025 GAP ISPO, "
         "dan tanggal patokan bebas deforestasi 31 Desember 2020 sesuai Regulasi EUDR 2023/1115?"
     )
     payload = {
@@ -101,12 +101,12 @@ def test_dual_write_persistence():
     verdict = (
         "Dewan Asesor mengesahkan kelulusan 100% Kepatuhan Statuter Kebun EST-MDN-001. "
         "Sempadan penyangga >= 50m hutan lindung terpenuhi (PP 23/2021 [1]), "
-        "piringan steril 2.0m dan zero-tillage sawit terawat sempurna (Permentan 38/2020 [2]), "
+        "piringan steril 2.0m dan zero-tillage sawit terawat sempurna (Permentan No. 33 Tahun 2025 [2]), "
         "dan nol deforestasi pasca cut-off 31 Desember 2020 terverifikasi satelit (EUDR 2023/1115 [3])."
     )
     citations = [
         {"ref": "[1]", "doc_title": "PP No. 23/2021", "legal_basis": "Pasal 38 Ayat 2"},
-        {"ref": "[2]", "doc_title": "Permentan No. 38/2020", "legal_basis": "GAP ISPO Prinsip 2"},
+        {"ref": "[2]", "doc_title": "Permentan No. 33 Tahun 2025", "legal_basis": "GAP ISPO Prinsip 2"},
         {"ref": "[3]", "doc_title": "Regulasi EUDR (EU) 2023/1115", "legal_basis": "Pasal 9 Due Diligence"}
     ]
 
