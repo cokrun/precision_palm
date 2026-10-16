@@ -407,13 +407,17 @@
                   <span>Executive &amp; Statutory Assessor</span>
                   <span class="text-[9px] px-1 rounded bg-purple-900/60 text-purple-300 font-normal">Assessor</span>
                 </div>
-                <div class="text-[10.5px] text-slate-400 mt-0.5">Compliance Roadmap, KMS SHA-256, DAG Topology.</div>
+                <div class="text-[10.5px] text-slate-400 mt-0.5">Spatial Audit, In-Silico Simulator, Compliance Roadmap &amp; DAG Topology.</div>
               </div>
             </div>
           </div>
-          <div class="mt-2 pt-1.5 border-t border-purple-900/40 flex items-center justify-between text-[10px]">
-            <span class="text-purple-400/80 font-mono">Focus: Step 5, 6, 7</span>
-            <button type="button" onclick="event.stopPropagation(); selectPersonaRole('eksekutif', '/roadmap')" class="px-2 py-0.5 rounded bg-purple-600/30 hover:bg-purple-600 text-purple-200 hover:text-white font-semibold transition">Open /roadmap →</button>
+          <div class="mt-2 pt-1.5 border-t border-purple-900/40 flex flex-wrap items-center justify-between gap-1 text-[10px]">
+            <span class="text-purple-400/80 font-mono">Focus: Step 3, 4, 5, 6, 7</span>
+            <div class="flex items-center gap-1">
+              <button type="button" onclick="event.stopPropagation(); selectPersonaRole('eksekutif', '/spatial')" class="px-1.5 py-0.5 rounded bg-purple-600/30 hover:bg-purple-600 text-purple-200 hover:text-white font-semibold transition" title="Open Spatial Audit (Step 3)">/spatial (3)</button>
+              <button type="button" onclick="event.stopPropagation(); selectPersonaRole('eksekutif', '/simulator')" class="px-1.5 py-0.5 rounded bg-purple-600/30 hover:bg-purple-600 text-purple-200 hover:text-white font-semibold transition" title="Open In-Silico Simulator (Step 4)">/simulator (4)</button>
+              <button type="button" onclick="event.stopPropagation(); selectPersonaRole('eksekutif', '/roadmap')" class="px-1.5 py-0.5 rounded bg-purple-600/30 hover:bg-purple-600 text-purple-200 hover:text-white font-semibold transition" title="Open Compliance Roadmap (Step 6)">/roadmap (6) →</button>
+            </div>
           </div>
         </div>
       </div>
@@ -451,7 +455,7 @@
 
     <!-- Step 3: Spatial Audit -->
     <li role="listitem">
-      <a href="/spatial" class="pp-step-item" data-step="3" data-step-owner="perusahaan" data-paths='["/spatial"]' title="Stage 3: Spatial Audit (/spatial)">
+      <a href="/spatial" class="pp-step-item" data-step="3" data-step-owner="perusahaan eksekutif" data-paths='["/spatial"]' title="Stage 3: Spatial Audit (/spatial)">
         <span class="pp-step-label" data-i18n="stepper_nav_step3">Spatial Audit</span>
         <span class="pp-step-circle">3</span>
       </a>
@@ -459,7 +463,7 @@
 
     <!-- Step 4: In Silico Engine -->
     <li role="listitem">
-      <a href="/proses" class="pp-step-item" data-step="4" data-step-owner="foreman" data-paths='["/proses", "/simulator"]' title="Stage 4: In Silico Engine (/proses, /simulator)">
+      <a href="/proses" class="pp-step-item" data-step="4" data-step-owner="foreman eksekutif" data-paths='["/proses", "/simulator"]' title="Stage 4: In Silico Engine (/proses, /simulator)">
         <span class="pp-step-label" data-i18n="stepper_nav_step4">In Silico Engine</span>
         <span class="pp-step-circle">4</span>
       </a>
