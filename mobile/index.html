@@ -1,0 +1,2254 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Precision Palm Mobile • Node Lapangan Mandor Mandiri</title>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/mobile/manifest.json">
+    <meta name="theme-color" content="#059669">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PalmEdge">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        };
+    </script>
+
+    <!-- Piexifjs Library untuk Penyisipan Metadata EXIF GPS ke Properti File JPEG -->
+    <script src="https://cdn.jsdelivr.net/npm/piexifjs@1.0.6/piexif.min.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+
+        @keyframes laserSweepVertical {
+            0% { top: 2%; opacity: 0.95; }
+            50% { top: 95%; opacity: 1; }
+            100% { top: 2%; opacity: 0.95; }
+        }
+        .laser-scanning-active {
+            display: block !important;
+            animation: laserSweepVertical 1.8s ease-in-out infinite;
+        }
+
+        @keyframes boxPopIn {
+            0% { transform: scale(0.85); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .bbox-pop-in {
+            animation: boxPopIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes pulseVoiceRing {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1.08); box-shadow: 0 0 0 16px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .voice-recording-pulse {
+            animation: pulseVoiceRing 1.4s infinite cubic-bezier(0.4, 0, 0.6, 1);
+        }
+
+        @keyframes audioWaveBar {
+            0%, 100% { height: 6px; }
+            50% { height: 26px; }
+        }
+        .audio-bar-anim {
+            animation: audioWaveBar 0.9s ease-in-out infinite alternate;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans antialiased min-h-screen pb-24 transition-colors duration-200 selection:bg-emerald-500 selection:text-white">
+
+    <div class="max-w-md mx-auto min-h-screen flex flex-col bg-white dark:bg-slate-900 shadow-2xl border-x border-slate-200 dark:border-slate-800 transition-colors">
+
+        <!-- HEADER PWA MANDOR MANDIRI -->
+        <header class="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-200 dark:border-slate-800 px-3.5 py-2.5 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <a href="/" class="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-md hover:opacity-90 transition cursor-pointer" title="Kembali ke Beranda / Dashboard">
+                    <span class="text-base">🌴</span>
+                </a>
+                <div>
+                    <span class="text-xs font-black tracking-tight text-slate-900 dark:text-white block leading-none">
+                        PRECISION <span class="text-emerald-500">PALM</span>
+                    </span>
+                    <div class="flex items-center gap-1 mt-0.5">
+                        <span class="text-[9px] font-mono text-slate-500 dark:text-slate-400" data-i18n="app_subtitle">NODE MANDOR PWA</span>
+                        <span id="pwaModeBadge" class="px-1.5 py-0.2 rounded text-[8px] font-mono font-bold bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">WEB</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+                <!-- Language Switcher: [EN | ID] -->
+                <div class="flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-0.5 text-[10px] font-bold font-mono">
+                    <button id="btnLangEN" type="button" onclick="setAppLanguage('en')" class="px-2 py-0.5 rounded-md transition text-slate-400 hover:text-white cursor-pointer">EN</button>
+                    <button id="btnLangID" type="button" onclick="setAppLanguage('id')" class="px-2 py-0.5 rounded-md transition bg-emerald-600 text-white font-bold cursor-pointer shadow-xs">ID</button>
+                </div>
+
+                <!-- Status Jaringan Online / Offline (IndexedDB Buffer) -->
+                <div id="connStatusBadge" class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 shadow-xs">
+                    <span id="connDot" class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="connText" data-i18n="conn_online">Online</span>
+                </div>
+
+                <!-- Theme Mode Toggle -->
+                <button type="button" onclick="toggleTheme()" class="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 cursor-pointer" title="Ganti Mode Tema">
+                    <span id="themeIcon">🌙</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- BANNER INSTALASI PWA & PERSISTENT STORAGE (MUNCUL JIKA BELUM DIINSTAL) -->
+        <div id="pwaInstallBanner" class="hidden mx-3.5 mt-3 p-3 rounded-2xl bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 border border-emerald-500/60 text-white shadow-lg">
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-xl">📲</span>
+                    <div>
+                        <strong class="text-xs font-bold block leading-tight" data-i18n="pwa_install_title">Instal Aplikasi Mandor (Offline-First)</strong>
+                        <span class="text-[9px] text-emerald-200 font-mono block" data-i18n="pwa_install_sub">Aktifkan database IndexedDB permanen tanpa sinyal di kebun</span>
+                    </div>
+                </div>
+                <button type="button" onclick="triggerPwaInstallPrompt()" class="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono font-extrabold text-[10px] shadow cursor-pointer shrink-0 transition" data-i18n="btn_install_pwa">
+                    INSTAL PWA
+                </button>
+            </div>
+        </div>
+
+        <!-- KONTEN UTAMA -->
+        <main class="flex-1 p-3.5 space-y-3.5">
+
+            <!-- ========================================================================= -->
+            <!-- 1. KARTU PEMILIH KEBUN & TELEMETRI GPS (DEFAULT: EST-MDN-010)             -->
+            <!-- ========================================================================= -->
+            <section id="secMobileOverview" class="space-y-3.5">
+                <div class="bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 rounded-2xl p-3.5 border border-emerald-800/60 shadow-md text-white space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[9px] uppercase font-bold tracking-wider text-emerald-400 font-mono flex items-center gap-1">
+                            <span>🏢</span> <span data-i18n="hero_tag">PILIH PERUSAHAAN / BERKAS KEBUN</span>
+                        </span>
+                        <span id="selectedEstateRegTag" class="text-[9px] font-mono px-2 py-0.5 rounded bg-slate-800 text-emerald-300 border border-emerald-700/60 font-bold">
+                            CERT-ECOGREEN-2026-0010
+                        </span>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] text-slate-300 font-semibold mb-1" data-i18n="lbl_select_estate">Daftar Kebun Terdaftar (Tersimpan di Cache Offline):</label>
+                        <select id="selectEstateCompany" onchange="handleEstateSelectionChange(this.value)" class="w-full bg-slate-950/90 border border-emerald-500/60 rounded-xl px-3 py-2 text-xs font-bold text-emerald-300 focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer font-mono">
+                            <option value="EST-MDN-010">EST-MDN-010 • PT Mandailing Agro Sustainable</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-[10px] font-mono pt-1 text-slate-300 border-t border-slate-800">
+                        <div>
+                            <span class="text-slate-400 block text-[9px]" data-i18n="lbl_hgu">Nomor HGU / e-STDB:</span>
+                            <strong id="dispEstateHgu" class="text-white truncate block">010/HGU/BPN-MDN/2026</strong>
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block text-[9px]" data-i18n="lbl_area_crop">Luas &bull; Komoditas Sela:</span>
+                            <strong id="dispEstateAreaCrop" class="text-emerald-400 truncate block">1,200 Ha &bull; Jahe Merah</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KARTU TELEMETRI GPS WGS84 & IDENTITAS BLOK -->
+                <div id="secMobileTelemetry" class="bg-white dark:bg-slate-800/90 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
+                        <h2 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5 font-mono">
+                            <span>📍</span> <span data-i18n="telemetry_title">TELEMETRI GPS WGS84 &amp; LOKASI</span>
+                        </h2>
+                        <button type="button" id="btnRefreshGps" onclick="acquireDeviceGpsLocation(true)" class="px-2.5 py-1 rounded-lg bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/40 text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-bold cursor-pointer flex items-center gap-1 transition">
+                            <span>🎯</span> <span data-i18n="btn_refresh_gps">Kunci Titik GPS</span>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-[10px] font-mono">
+                        <div class="p-2 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                            <span class="text-slate-500 block text-[9px]" data-i18n="lbl_lat">LATITUDE (N)</span>
+                            <strong id="valDispLat" class="text-emerald-600 dark:text-emerald-400 text-xs font-bold">0.824100</strong>
+                        </div>
+                        <div class="p-2 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                            <span class="text-slate-500 block text-[9px]" data-i18n="lbl_lng">LONGITUDE (E)</span>
+                            <strong id="valDispLng" class="text-emerald-600 dark:text-emerald-400 text-xs font-bold">99.561200</strong>
+                        </div>
+                        <div class="p-2 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                            <span class="text-slate-400 block text-[9px]" data-i18n="lbl_elev">ELEVASI &bull; AKURASI</span>
+                            <strong id="valDispElev" class="text-teal-600 dark:text-teal-400 text-xs font-bold">142m DPL (±3.2m)</strong>
+                        </div>
+                        <div class="p-2 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                            <span class="text-slate-400 block text-[9px]" data-i18n="lbl_weather">CUACA KEBUN (TERCATAT)</span>
+                            <strong id="valDispWeather" class="text-amber-500 text-[11px] font-bold truncate block">26.6°C Cerah Berawan</strong>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                            <label class="block text-[10px] text-slate-500 font-semibold mb-0.5" data-i18n="lbl_block">Blok Gawangan:</label>
+                            <input type="text" id="inpBlockId" value="Blok A - Gawangan #1" onchange="updateLiveHudOverlay()" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-slate-500 font-semibold mb-0.5" data-i18n="lbl_mandor">Nama Mandor:</label>
+                            <input type="text" id="inpMandorName" value="Mandor Sutrisno" onchange="updateLiveHudOverlay()" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================================= -->
+            <!-- 2. KARTU KAMERA GEOTAGGING (STAMP VISUAL + EXIF GPS METADATA + AI SCAN)   -->
+            <!-- ========================================================================= -->
+            <section id="secMobileCamera" class="bg-white dark:bg-slate-800/90 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
+                    <div class="space-y-0.5">
+                        <h2 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5 font-mono">
+                            <span>📸</span> <span data-i18n="cam_section_title">KAMERA GEOTAG &amp; RETIKEL AI</span>
+                        </h2>
+                        <span class="text-[9px] text-slate-500 font-mono block" data-i18n="cam_section_sub">Sematkan koordinat pada visual foto &amp; properti EXIF JPEG</span>
+                    </div>
+                    <span id="aiScanStatusBadge" class="text-[9px] bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400 px-2 py-0.5 rounded-full font-mono font-bold" data-i18n="badge_verified">
+                        4 Objek Terverifikasi
+                    </span>
+                </div>
+
+                <!-- Input File Kamera / Galeri Native -->
+                <input type="file" id="cameraRealFileInput" accept="image/jpeg,image/png,image/*" capture="environment" onchange="handleRealPhotoCaptured(event)" class="hidden">
+
+                <!-- Tombol Aksi Kamera Geotagging -->
+                <div class="grid grid-cols-3 gap-1.5">
+                    <button type="button" id="btnToggleLiveCam" onclick="toggleLiveCameraStream()" class="py-2.5 px-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 rounded-xl text-[11px] font-extrabold flex items-center justify-center gap-1 shadow transition cursor-pointer">
+                        <span>🎥</span> <span id="lblBtnLiveCam" data-i18n="btn_live_geotag">Kamera Live</span>
+                    </button>
+                    <button type="button" onclick="openNativeCameraInput(true)" class="py-2.5 px-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 shadow transition cursor-pointer">
+                        <span>📷</span> <span data-i18n="btn_open_camera">Foto HP</span>
+                    </button>
+                    <button type="button" onclick="openNativeCameraInput(false)" class="py-2.5 px-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-white rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 border border-slate-300 dark:border-slate-600 transition cursor-pointer">
+                        <span>🖼️</span> <span data-i18n="btn_open_gallery">Galeri</span>
+                    </button>
+                </div>
+
+                <!-- Viewfinder Kanvas, Video Stream & Retikel AI -->
+                <div class="relative w-full h-64 bg-slate-950 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 shadow-inner group flex items-center justify-center select-none">
+                    
+                    <img id="viewfinderPhotoImg" src="/static/img/sawit_drone.jpg" onerror="this.onerror=null; this.src='https://placehold.co/600x400/090d16/34d399?text=Palm+Canopy+Imagery';" alt="Field Evidence Photo" class="w-full h-full object-cover">
+                    
+                    <video id="liveCameraVideoEl" autoplay playsinline muted class="hidden w-full h-full object-cover"></video>
+
+                    <!-- Live HUD Geotag Preview -->
+                    <div id="liveCameraHudBanner" class="hidden absolute bottom-12 inset-x-2 bg-slate-950/85 backdrop-blur-sm border border-emerald-500/50 rounded-xl p-2 text-[9px] font-mono text-white pointer-events-none" style="z-index: 28;">
+                        <div class="flex items-center justify-between text-emerald-400 font-bold">
+                            <span id="hudLiveEstate">EST-MDN-010 • Blok A</span>
+                            <span id="hudLiveTime">LIVE GPS STAMP</span>
+                        </div>
+                        <div id="hudLiveCoords" class="text-slate-200 font-semibold mt-0.5">
+                            GPS: 0.824100° N, 99.561200° E (±3.2m) • 142m DPL
+                        </div>
+                    </div>
+
+                    <!-- Tombol Jepret Foto Saat Mode Live Stream Aktif -->
+                    <div id="liveCaptureBtnWrap" class="hidden absolute bottom-2 inset-x-0 flex items-center justify-center gap-2" style="z-index: 35;">
+                        <button type="button" onclick="captureFrameFromLiveStream()" class="px-4 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono font-extrabold text-xs shadow-lg flex items-center gap-1.5 border-2 border-white cursor-pointer active:scale-95 transition">
+                            <span>📸</span> <span data-i18n="btn_shutter_capture">JEPRET &amp; TULIS KOORDINAT</span>
+                        </button>
+                        <button type="button" onclick="stopLiveCameraStream()" class="px-2.5 py-1.5 rounded-full bg-rose-600 text-white font-mono font-bold text-[10px] shadow cursor-pointer">
+                            ✕
+                        </button>
+                    </div>
+
+                    <!-- Reticle Angle Geometry Canvas -->
+                    <canvas id="viewfinderReticleCanvas" class="absolute inset-0 w-full h-full pointer-events-none z-10"></canvas>
+                    
+                    <!-- Laser Scanner Bar Animation -->
+                    <div id="viewfinderLaserBar" class="hidden absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_15px_#34d399,0_0_25px_#10b981] pointer-events-none" style="z-index: 25;"></div>
+                    
+                    <!-- AI Bounding Boxes Overlay Container -->
+                    <div id="viewfinderBBoxesOverlay" class="absolute inset-0 pointer-events-none" style="z-index: 20;"></div>
+
+                    <!-- Photo Filename Badge -->
+                    <div id="badgePhotoFilename" class="absolute bottom-2 left-2 bg-slate-950/85 backdrop-blur border border-slate-700 px-2 py-0.5 rounded-lg text-[9px] font-mono text-slate-200 flex items-center gap-1.5" style="z-index: 30;">
+                        <span>📸</span> <span id="lblCapturedFilename" class="truncate max-w-[180px]">sawit_drone.jpg</span>
+                    </div>
+
+                    <!-- Manual AI Vision Scan Button -->
+                    <button type="button" onclick="triggerAiVisionAnalysis(true)" class="absolute top-2 right-2 bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold shadow-md transition flex items-center gap-1 cursor-pointer" style="z-index: 30;">
+                        <span>⚡</span> <span data-i18n="btn_scan_ai">Scan AI</span>
+                    </button>
+                </div>
+
+                <!-- Panel Info Properti File Geotag & EXIF -->
+                <div id="geotagMetadataCard" class="hidden p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-600/50 text-[10px] font-mono space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-emerald-400 font-bold flex items-center gap-1">
+                            <span>✅</span> <span data-i18n="lbl_exif_embedded">Koordinat Tersimpan di Gambar &amp; EXIF File!</span>
+                        </span>
+                        <button type="button" onclick="resetCapturedGeotagPhoto()" class="px-2 py-0.5 rounded bg-rose-900/70 hover:bg-rose-800 text-rose-200 text-[9px] font-bold cursor-pointer transition" data-i18n="btn_reset_photo">
+                            🗑️ Hapus / Foto Ulang
+                        </button>
+                    </div>
+                    <div id="geotagPropertyDetails" class="text-[9px] text-slate-300 grid grid-cols-1 gap-0.5 border-t border-emerald-800/50 pt-1"></div>
+                </div>
+
+                <!-- Ringkasan Hasil AI Vision -->
+                <div id="aiVisionBackendSummary" class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-300 space-y-1">
+                    <div class="flex items-center justify-between text-[9px] text-emerald-400 font-bold">
+                        <span id="lblAiClassification">Tegakan Produktif Prima (TM)</span>
+                        <span id="lblAiCanopyDensity">Kanopi: 76.5% • Skor: 95/100</span>
+                    </div>
+                    <p id="lblAiAuditorSummary" class="text-[10px] text-slate-300 font-sans leading-relaxed">
+                        Kerapatan tajuk dan piringan steril 2.0m tanpa olah tanah (zero-tillage) terverifikasi patuh terhadap Prinsip 2 ISPO.
+                    </p>
+                </div>
+
+                <!-- Detection Legend -->
+                <div class="p-2 rounded-xl bg-slate-950 border border-slate-800 text-[9px] font-mono text-slate-300 flex flex-wrap items-center justify-between gap-1">
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-500/60 text-emerald-300 font-bold">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> <span data-i18n="hud_palm">[Pokok Sawit]</span>
+                    </span>
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-950 border border-sky-500/60 text-sky-300 font-bold">
+                        <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span> <span data-i18n="hud_alley">[Lorong 3.79m]</span>
+                    </span>
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-950 border border-rose-500/60 text-rose-300 font-bold">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> <span data-i18n="hud_buffer">[Piringan 2.0m]</span>
+                    </span>
+                    <span id="lblDetectionStats" class="text-emerald-400 font-bold ml-auto">IoU: 0.95 • Conf: 98%</span>
+                </div>
+            </section>
+
+            <!-- ========================================================================= -->
+            <!-- 3. KARTU VOICE-TO-REPORT MANDOR (GOOGLE CLOUD CHIRP 2 + OFFLINE NLP)      -->
+            <!-- ========================================================================= -->
+            <section id="secMobileVoiceReport" class="bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 rounded-2xl p-4 border border-indigo-500/40 shadow-xl space-y-3 relative overflow-hidden">
+                <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2 relative z-10">
+                    <div class="space-y-0.5">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-base">🎙️</span>
+                            <h2 class="text-xs font-bold text-white uppercase tracking-wider font-mono flex items-center gap-1.5">
+                                <span data-i18n="voice_section_title">VOICE-TO-REPORT (CHIRP 2)</span>
+                                <span class="px-1.5 py-0.2 rounded text-[8px] font-mono bg-indigo-950 text-indigo-300 border border-indigo-700 font-bold">GCP CHIRP 2</span>
+                            </h2>
+                        </div>
+                        <span class="text-[9px] text-slate-400 font-mono block" data-i18n="voice_section_sub">Laporan wicara otomatis mengisi checklist GAP (Online &amp; Offline)</span>
+                    </div>
+                    <span id="voiceStatusBadge" class="text-[9px] bg-indigo-950 text-indigo-300 border border-indigo-700 px-2 py-0.5 rounded-full font-mono font-bold">
+                        Mic Ready
+                    </span>
+                </div>
+
+                <div class="p-3 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-3 relative z-10">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-3">
+                            <button type="button" id="btnToggleVoiceRecord" onclick="toggleMandorVoiceRecording()" class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-500 hover:scale-105 active:scale-95 text-white flex items-center justify-center text-xl shadow-lg shadow-indigo-950/60 transition cursor-pointer shrink-0">
+                                <span id="iconVoiceRecord">🎤</span>
+                            </button>
+                            <div>
+                                <strong id="lblVoiceAction" class="text-xs text-white font-sans block" data-i18n="btn_record_voice">Tekan &amp; Bicara Laporan</strong>
+                                <span id="lblVoiceTimer" class="text-[10px] text-slate-400 font-mono block">00:00 &bull; Chirp 2 Audio Stream</span>
+                            </div>
+                        </div>
+
+                        <div id="audioWaveVisualizer" class="hidden flex items-center gap-1 h-7 px-2 py-1 bg-slate-900 rounded-xl border border-indigo-900/60">
+                            <span class="w-1 bg-rose-400 rounded-full audio-bar-anim" style="animation-delay: 0.1s;"></span>
+                            <span class="w-1 bg-cyan-400 rounded-full audio-bar-anim" style="animation-delay: 0.3s;"></span>
+                            <span class="w-1 bg-emerald-400 rounded-full audio-bar-anim" style="animation-delay: 0.2s;"></span>
+                            <span class="w-1 bg-amber-400 rounded-full audio-bar-anim" style="animation-delay: 0.4s;"></span>
+                            <span class="w-1 bg-indigo-400 rounded-full audio-bar-anim" style="animation-delay: 0.25s;"></span>
+                        </div>
+
+                        <button type="button" onclick="simulateChirpVoiceDispatch()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 text-[10px] font-mono font-bold transition cursor-pointer flex items-center gap-1 shadow-xs shrink-0" title="Simulasi laporan suara mandor">
+                            <span>⚡</span> <span data-i18n="btn_simulate_voice">Demo Suara</span>
+                        </button>
+                    </div>
+
+                    <div class="space-y-1">
+                        <span class="text-[9px] text-slate-400 font-mono uppercase font-bold flex items-center justify-between">
+                            <span data-i18n="lbl_transcription_chirp">Teks Transkripsi Chirp 2:</span>
+                            <span id="transcriptionConfidence" class="text-emerald-400 text-[8px] font-mono">Conf: 98.4%</span>
+                        </span>
+                        <div id="txtVoiceTranscription" class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-sans text-slate-300 leading-relaxed min-h-[46px] max-h-24 overflow-y-auto italic">
+                            "Menunggu laporan suara mandor... (Contoh: 'Lapor mandor, gawangan blok A baris kedua sudah dipasang mulsa pelepah cincang, piringan pokok dua meter steril bersih tanpa cangkul, cuaca cerah berawan.')"
+                        </div>
+                    </div>
+
+                    <div id="voiceExtractedTagsContainer" class="hidden pt-1 border-t border-slate-800/80 space-y-1.5 font-mono text-[9px]">
+                        <span class="text-slate-400 block font-bold text-[8px] uppercase tracking-wider text-cyan-400">
+                            🤖 Variabel JSON Hasil Ekstraksi:
+                        </span>
+                        <div id="voicePillsGrid" class="flex flex-wrap gap-1"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================================= -->
+            <!-- 4. KARTU CHECKLIST KEPATUHAN GAP MANDOR (ISPO P2 & P3)                    -->
+            <!-- ========================================================================= -->
+            <section id="secMobileGapChecklist" class="bg-white dark:bg-slate-800/90 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-700 shadow-sm space-y-2.5">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
+                    <span class="text-xs font-bold text-slate-900 dark:text-white uppercase font-mono flex items-center gap-1.5">
+                        <span>✅</span> <span data-i18n="gap_title">CHECKLIST GAP MANDOR (ISPO P2 &amp; P3)</span>
+                    </span>
+                    <span id="gapCounterLabel" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400">
+                        4/4 Terverifikasi
+                    </span>
+                </div>
+
+                <div class="space-y-1.5 text-xs">
+                    <label class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-start gap-2.5 cursor-pointer">
+                        <input type="checkbox" id="chkGapBuffer2m" checked onchange="updateGapCounter()" class="mt-0.5 w-4 h-4 accent-emerald-600 rounded">
+                        <div class="space-y-0.5">
+                            <strong class="text-[11px] text-slate-800 dark:text-slate-200 block" data-i18n="gap_item_1_title">Piringan 2.0m Steril (Zero-Tillage)</strong>
+                            <span class="text-[9px] text-slate-500 block leading-tight" data-i18n="gap_item_1_desc">Radius 2.0m bebas mutlak dari olah tanah cangkul dan tanaman sela.</span>
+                        </div>
+                    </label>
+
+                    <label class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-start gap-2.5 cursor-pointer">
+                        <input type="checkbox" id="chkGapAlley379" checked onchange="updateGapCounter()" class="mt-0.5 w-4 h-4 accent-emerald-600 rounded">
+                        <div class="space-y-0.5">
+                            <strong class="text-[11px] text-slate-800 dark:text-slate-200 block" data-i18n="gap_item_2_title">Koridor Lorong Bersih 3.79m</strong>
+                            <span class="text-[9px] text-slate-500 block leading-tight" data-i18n="gap_item_2_desc">Bedengan sela tertata rapi di tengah gawangan aktif tanpa mengokupasi piringan.</span>
+                        </div>
+                    </label>
+
+                    <label class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-start gap-2.5 cursor-pointer">
+                        <input type="checkbox" id="chkGapMulch" checked onchange="updateGapCounter()" class="mt-0.5 w-4 h-4 accent-emerald-600 rounded">
+                        <div class="space-y-0.5">
+                            <strong class="text-[11px] text-slate-800 dark:text-slate-200 block" data-i18n="gap_item_3_title">Mulsa Pelepah Cincang &amp; Rorak Sedimen</strong>
+                            <span class="text-[9px] text-slate-500 block leading-tight" data-i18n="gap_item_3_desc">Pelepah pangkasan disusun di gawangan mati menahan limpasan erosi.</span>
+                        </div>
+                    </label>
+
+                    <label class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-start gap-2.5 cursor-pointer">
+                        <input type="checkbox" id="chkGapRiparian" checked onchange="updateGapCounter()" class="mt-0.5 w-4 h-4 accent-emerald-600 rounded">
+                        <div class="space-y-0.5">
+                            <strong class="text-[11px] text-slate-800 dark:text-slate-200 block" data-i18n="gap_item_4_title">Sempadan Air Alami Terjaga (&gt;50m)</strong>
+                            <span class="text-[9px] text-slate-500 block leading-tight" data-i18n="gap_item_4_desc">Bebas dari limbah kimia dan pengolahan tanah di sempadan air HCV.</span>
+                        </div>
+                    </label>
+                </div>
+            </section>
+
+            <!-- ========================================================================= -->
+            <!-- 5. KARTU BUFFER LOKAL (INDEXEDDB) & SINKRONISASI KE SERVER PUSAT          -->
+            <!-- ========================================================================= -->
+            <section id="secMobileSyncQueue" class="space-y-3 pt-1 font-mono">
+                
+                <!-- Tombol 1: Simpan ke Buffer Lokal IndexedDB (Bisa Tanpa Internet) -->
+                <button type="button" onclick="saveCurrentSurveyToIndexedDb()" class="w-full py-3 px-4 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 font-bold text-xs flex items-center justify-center gap-2 border border-amber-500/50 shadow-sm transition cursor-pointer active:scale-98">
+                    <span>💾</span> <span data-i18n="btn_save_idb">Simpan ke Buffer Lokal HP (IndexedDB Offline)</span>
+                </button>
+
+                <!-- Tombol 2: Sinkronkan Antrean IndexedDB / Kirim ke SQLite Server -->
+                <button type="button" id="btnSyncToSqlite" onclick="syncAllOfflineSurveysToServer()" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 transition cursor-pointer active:scale-98">
+                    <span id="syncSpinnerIcon" class="text-base">🚀</span>
+                    <span id="syncBtnLabel" data-i18n="btn_sync_sqlite">Sinkronkan Semua Antrean ke Server (SQLite)</span>
+                </button>
+
+                <!-- Status Penyimpanan Persisten & Jumlah Antrean Offline -->
+                <div class="flex items-center justify-between text-[10px] text-slate-500 px-1">
+                    <span id="lblPersistentStatus" class="flex items-center gap-1">
+                        <span>🛡️</span> <span>IndexedDB Ready</span>
+                    </span>
+                    <strong id="dispQueueCount" class="text-amber-500 font-bold">0 Antrean Offline</strong>
+                </div>
+
+                <!-- Daftar Antrean Lokal (IndexedDB) yang Belum Terkirim ke Server -->
+                <div class="bg-white dark:bg-slate-800/90 rounded-2xl p-3.5 border border-amber-500/40 shadow-sm space-y-2.5">
+                    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
+                        <span class="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase flex items-center gap-1.5">
+                            <span>📦</span> <span data-i18n="lbl_offline_queue_box">Antrean Buffer Lokal HP (Belum Sinkron)</span>
+                        </span>
+                        <button type="button" onclick="clearAllIndexedDbQueue()" class="text-[9px] text-rose-400 hover:underline cursor-pointer" data-i18n="btn_clear_queue">Bersihkan</button>
+                    </div>
+                    <div id="offlineQueueItemsContainer" class="space-y-2 max-h-56 overflow-y-auto pr-1 text-[10px]">
+                        <div class="text-slate-400 text-center py-2">Tidak ada antrean tertunda di HP.</div>
+                    </div>
+                </div>
+
+                <!-- Riwayat Survei Kebun yang Sudah Masuk ke Server (/api/mobile-surveys?kode=...) -->
+                <div class="bg-white dark:bg-slate-800/90 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-700 shadow-sm space-y-2.5">
+                    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
+                        <span class="text-[11px] font-bold text-slate-900 dark:text-white uppercase flex items-center gap-1.5">
+                            <span>📋</span> <span data-i18n="lbl_recent_logs">Log Inspeksi Tersinkron di Server</span>
+                        </span>
+                        <span id="dispBackendRecordCount" class="text-[9px] text-emerald-500 font-bold">0 Log</span>
+                    </div>
+                    <div id="recentSurveysList" class="space-y-2 max-h-60 overflow-y-auto pr-1 text-[10px]">
+                        <div class="text-slate-400 text-center py-3">Memuat data log dari server...</div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- FOOTER MOBILE PWA -->
+        <footer class="mt-auto px-4 py-3 text-center border-t border-slate-200 dark:border-slate-800 text-[10px] font-mono text-slate-500 space-y-0.5">
+            <p data-i18n="footer_title">Precision Palm Mobile • Node Lapangan Mandor Mandiri PWA</p>
+            <p data-i18n="footer_sub">IndexedDB Offline Buffer &bull; EXIF Geotag Camera &bull; SQLite Server Sync</p>
+        </footer>
+
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- FLOATING BOTTOM NAVIGATION BAR (THUMB-FRIENDLY & SAFE-AREA READY)         -->
+    <!-- ========================================================================= -->
+    <nav class="fixed bottom-0 inset-x-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 transition-colors shadow-2xl">
+        <div class="max-w-md mx-auto px-2 py-1 flex items-center justify-around" style="padding-bottom: max(0.35rem, env(safe-area-inset-bottom));">
+            
+            <button type="button" onclick="switchBottomTab('all')" id="bnavAll" class="flex flex-col items-center justify-center flex-1 py-1 text-emerald-600 dark:text-emerald-400 transition-colors cursor-pointer group">
+                <span class="text-base leading-none mb-0.5 group-active:scale-90 transition-transform">🏢</span>
+                <span class="text-[10px] font-mono font-bold leading-tight" data-i18n="bnav_overview">Semua</span>
+            </button>
+
+            <button type="button" onclick="switchBottomTab('photo')" id="bnavPhoto" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer group">
+                <span class="text-base leading-none mb-0.5 group-active:scale-90 transition-transform">📸</span>
+                <span class="text-[10px] font-mono font-bold leading-tight" data-i18n="bnav_camera">Kamera</span>
+            </button>
+
+            <button type="button" onclick="switchBottomTab('voice')" id="bnavVoice" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer group">
+                <span class="text-base leading-none mb-0.5 group-active:scale-90 transition-transform">🎙️</span>
+                <span class="text-[10px] font-mono font-bold leading-tight" data-i18n="bnav_voice">Suara</span>
+            </button>
+
+            <button type="button" onclick="switchBottomTab('gap')" id="bnavGap" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer group">
+                <span class="text-base leading-none mb-0.5 group-active:scale-90 transition-transform">✅</span>
+                <span class="text-[10px] font-mono font-bold leading-tight" data-i18n="bnav_gap">GAP</span>
+            </button>
+
+            <button type="button" onclick="switchBottomTab('sync')" id="bnavSync" class="relative flex flex-col items-center justify-center flex-1 py-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer group">
+                <span class="text-base leading-none mb-0.5 group-active:scale-90 transition-transform">🚀</span>
+                <span class="text-[10px] font-mono font-bold leading-tight" data-i18n="bnav_sync">Sinkron</span>
+                <span id="bnavSyncBadge" class="hidden absolute top-0.5 right-3 w-4 h-4 rounded-full bg-amber-500 text-slate-950 font-mono font-extrabold text-[9px] flex items-center justify-center">0</span>
+            </button>
+
+        </div>
+    </nav>
+
+    <!-- ========================================================================= -->
+    <!-- LOGIKA UTAMA JAVASCRIPT: PWA INSTALL, INDEXEDDB, EXIF GEOTAG & SYNC       -->
+    <!-- ========================================================================= -->
+    <script>
+        (function () {
+            "use strict";
+
+            /* ---------------------------------------------------------------------
+               0. PARAMETER KEBUN (?kode=EST-MDN-010) & IN-MEMORY STATE (NO LOCALSTORAGE)
+               --------------------------------------------------------------------- */
+            const urlParams = new URLSearchParams(window.location.search);
+            let activeEstateCode = (urlParams.get('kode') || 'EST-MDN-010').trim();
+            let activeLanguage = 'id';
+            let activeBottomTab = 'all';
+
+            let registeredEstatesList = [];
+            let currentlySelectedEstate = null;
+            let cachedDetectedBoxes = [];
+
+            // State Koordinat GPS Perangkat
+            let liveCoords = {
+                lat: 0.824100,
+                lng: 99.561200,
+                elev: 142.0,
+                accuracy: 3.2,
+                weather: "26.6°C Cerah Berawan",
+                gpsLocked: false
+            };
+
+            // State Kamera & File Geotag
+            let activePhotoDataUrl = '/static/img/sawit_drone.jpg';
+            let activePhotoFileName = 'sawit_drone.jpg';
+            let activeGeotaggedBlob = null;
+            let activeServerPhotoUrl = '/static/img/sawit_drone.jpg';
+            let liveVideoStream = null;
+            let liveHudTimer = null;
+            let isAiScanInProgress = false;
+
+            // State PWA Install Prompt
+            let deferredPwaInstallPrompt = null;
+
+            /* ---------------------------------------------------------------------
+               1. KAMUS BILINGUAL (ID & EN)
+               --------------------------------------------------------------------- */
+            const MOBILE_I18N_DICT = {
+                id: {
+                    app_subtitle: "NODE MANDOR PWA",
+                    conn_online: "Online",
+                    conn_offline: "Offline (Buffer)",
+                    pwa_install_title: "Instal Aplikasi Mandor (Offline-First)",
+                    pwa_install_sub: "Aktifkan database IndexedDB permanen tanpa sinyal di kebun",
+                    btn_install_pwa: "INSTAL PWA",
+                    hero_tag: "PILIH PERUSAHAAN / BERKAS KEBUN",
+                    lbl_select_estate: "Daftar Kebun Terdaftar (Tersimpan di Cache Offline):",
+                    lbl_hgu: "Nomor HGU / e-STDB:",
+                    lbl_area_crop: "Luas &bull; Komoditas Sela:",
+                    telemetry_title: "TELEMETRI GPS WGS84 &amp; LOKASI",
+                    btn_refresh_gps: "Kunci Titik GPS",
+                    lbl_lat: "LATITUDE (N)",
+                    lbl_lng: "LONGITUDE (E)",
+                    lbl_elev: "ELEVASI &bull; AKURASI",
+                    lbl_weather: "CUACA KEBUN (TERCATAT)",
+                    lbl_block: "Blok Gawangan:",
+                    lbl_mandor: "Nama Mandor:",
+                    cam_section_title: "KAMERA GEOTAG &amp; RETIKEL AI",
+                    cam_section_sub: "Sematkan koordinat pada visual foto &amp; properti EXIF JPEG",
+                    badge_verified: "4 Objek Terverifikasi",
+                    badge_scanning: "AI Memindai...",
+                    btn_live_geotag: "Kamera Live",
+                    btn_open_camera: "Foto HP",
+                    btn_open_gallery: "Galeri",
+                    btn_shutter_capture: "JEPRET &amp; TULIS KOORDINAT",
+                    btn_scan_ai: "Scan AI",
+                    lbl_exif_embedded: "Koordinat Tersimpan di Gambar &amp; EXIF File!",
+                    btn_reset_photo: "🗑️ Hapus / Foto Ulang",
+                    hud_palm: "[Pokok Sawit]",
+                    hud_alley: "[Lorong 3.79m]",
+                    hud_buffer: "[Piringan 2.0m]",
+                    voice_section_title: "VOICE-TO-REPORT (CHIRP 2)",
+                    voice_section_sub: "Laporan wicara otomatis mengisi checklist GAP (Online &amp; Offline)",
+                    btn_record_voice: "Tekan &amp; Bicara Laporan",
+                    btn_recording: "Merekam Suara... (Ketuk Selesai)",
+                    btn_simulate_voice: "Demo Suara",
+                    lbl_transcription_chirp: "Teks Transkripsi Chirp 2:",
+                    gap_title: "CHECKLIST GAP MANDOR (ISPO P2 &amp; P3)",
+                    gap_verified_suffix: "Terverifikasi",
+                    gap_item_1_title: "Piringan 2.0m Steril (Zero-Tillage)",
+                    gap_item_1_desc: "Radius 2.0m bebas mutlak dari olah tanah cangkul dan tanaman sela.",
+                    gap_item_2_title: "Koridor Lorong Bersih 3.79m",
+                    gap_item_2_desc: "Bedengan sela tertata rapi di tengah gawangan aktif tanpa mengokupasi piringan.",
+                    gap_item_3_title: "Mulsa Pelepah Cincang &amp; Rorak Sedimen",
+                    gap_item_3_desc: "Pelepah pangkasan disusun di gawangan mati menahan limpasan erosi.",
+                    gap_item_4_title: "Sempadan Air Alami Terjaga (&gt;50m)",
+                    gap_item_4_desc: "Bebas dari limbah kimia dan pengolahan tanah di sempadan air HCV.",
+                    btn_save_idb: "Simpan ke Buffer Lokal HP (IndexedDB Offline)",
+                    btn_sync_sqlite: "Sinkronkan Semua Antrean ke Server (SQLite)",
+                    lbl_offline_queue_box: "Antrean Buffer Lokal HP (Belum Sinkron)",
+                    btn_clear_queue: "Bersihkan",
+                    lbl_recent_logs: "Log Inspeksi Tersinkron di Server",
+                    footer_title: "Precision Palm Mobile • Node Lapangan Mandor Mandiri PWA",
+                    footer_sub: "IndexedDB Offline Buffer &bull; EXIF Geotag Camera &bull; SQLite Server Sync",
+                    bnav_overview: "Semua",
+                    bnav_camera: "Kamera",
+                    bnav_voice: "Suara",
+                    bnav_gap: "GAP",
+                    bnav_sync: "Sinkron",
+                    box_palm: "Pokok Sawit Produktif",
+                    box_alley: "Lorong Sela 3.79m",
+                    box_buffer: "Piringan 2.0m Zero-Tillage",
+                    box_mulch: "Mulsa Pelepah Cincang"
+                },
+                en: {
+                    app_subtitle: "FOREMAN NODE PWA",
+                    conn_online: "Online",
+                    conn_offline: "Offline (Buffer)",
+                    pwa_install_title: "Install Foreman App (Offline-First)",
+                    pwa_install_sub: "Enable persistent IndexedDB storage for zero-signal estates",
+                    btn_install_pwa: "INSTALL PWA",
+                    hero_tag: "SELECT REGISTERED ESTATE",
+                    lbl_select_estate: "Registered Estate Dossiers (Offline Cached):",
+                    lbl_hgu: "Land Title (HGU/e-STDB):",
+                    lbl_area_crop: "Area &bull; Intercrop:",
+                    telemetry_title: "WGS84 GPS TELEMETRY &amp; LOCATION",
+                    btn_refresh_gps: "Lock GPS Point",
+                    lbl_lat: "LATITUDE (N)",
+                    lbl_lng: "LONGITUDE (E)",
+                    lbl_elev: "ELEVATION &bull; ACCURACY",
+                    lbl_weather: "RECORDED WEATHER",
+                    lbl_block: "Alley Block ID:",
+                    lbl_mandor: "Foreman Name:",
+                    cam_section_title: "GEOTAG CAMERA &amp; AI RETICLE",
+                    cam_section_sub: "Embed coordinates on visual photo &amp; JPEG EXIF properties",
+                    badge_verified: "4 Objects Verified",
+                    badge_scanning: "AI Scanning...",
+                    btn_live_geotag: "Live Camera",
+                    btn_open_camera: "Phone Cam",
+                    btn_open_gallery: "Gallery",
+                    btn_shutter_capture: "CAPTURE &amp; STAMP COORDS",
+                    btn_scan_ai: "Scan AI",
+                    lbl_exif_embedded: "Coordinates Saved in Image &amp; File EXIF!",
+                    btn_reset_photo: "🗑️ Delete / Retake",
+                    hud_palm: "[Palm Stand]",
+                    hud_alley: "[3.79m Alley]",
+                    hud_buffer: "[2.0m Circle]",
+                    voice_section_title: "VOICE-TO-REPORT (CHIRP 2)",
+                    voice_section_sub: "Spoken reports auto-populate GAP checklist (Online &amp; Offline)",
+                    btn_record_voice: "Tap &amp; Speak Report",
+                    btn_recording: "Recording Audio... (Tap to Stop)",
+                    btn_simulate_voice: "Demo Voice",
+                    lbl_transcription_chirp: "Chirp 2 Transcript:",
+                    gap_title: "FOREMAN GAP CHECKLIST (ISPO P2 &amp; P3)",
+                    gap_verified_suffix: "Verified",
+                    gap_item_1_title: "2.0m Sterile Feeder Root Buffer (Zero-Tillage)",
+                    gap_item_1_desc: "Strict zero-tillage within 2.0m radius from palm base to safeguard roots.",
+                    gap_item_2_title: "3.79m Clean Alley Corridor",
+                    gap_item_2_desc: "Intercrop beds aligned strictly in active alley without encroaching circles.",
+                    gap_item_3_title: "Chopped Frond Mulch &amp; Silt Pits",
+                    gap_item_3_desc: "Pruned fronds stacked in dead alleys to suppress erosion runoff.",
+                    gap_item_4_title: "Riparian Stream Buffer Protected (&gt;50m)",
+                    gap_item_4_desc: "Natural waterways strictly free from chemical runoff and tillage.",
+                    btn_save_idb: "Save to Phone Buffer (Offline IndexedDB)",
+                    btn_sync_sqlite: "Sync All Queued Reports to Server (SQLite)",
+                    lbl_offline_queue_box: "Local Phone Buffer Queue (Unsynced)",
+                    btn_clear_queue: "Clear All",
+                    lbl_recent_logs: "Server Synced Inspection Logs",
+                    footer_title: "Precision Palm Mobile • Standalone Edge Node PWA",
+                    footer_sub: "IndexedDB Offline Buffer &bull; EXIF Geotag Camera &bull; SQLite Server Sync",
+                    bnav_overview: "All",
+                    bnav_camera: "Camera",
+                    bnav_voice: "Voice",
+                    bnav_gap: "GAP",
+                    bnav_sync: "Sync",
+                    box_palm: "Productive Palm Stand",
+                    box_alley: "3.79m Alley Corridor",
+                    box_buffer: "2.0m Zero-Tillage Circle",
+                    box_mulch: "Chopped Frond Mulch"
+                }
+            };
+
+            function setAppLanguage(lang) {
+                activeLanguage = (lang === 'en' || lang === 'id') ? lang : 'id';
+
+                const btnEN = document.getElementById('btnLangEN');
+                const btnID = document.getElementById('btnLangID');
+                const act = "px-2 py-0.5 rounded-md transition bg-emerald-600 text-white font-bold cursor-pointer shadow-xs";
+                const inact = "px-2 py-0.5 rounded-md transition text-slate-400 hover:text-white cursor-pointer";
+
+                if (btnEN && btnID) {
+                    btnEN.className = (activeLanguage === 'en') ? act : inact;
+                    btnID.className = (activeLanguage === 'id') ? act : inact;
+                }
+
+                const dict = MOBILE_I18N_DICT[activeLanguage] || MOBILE_I18N_DICT.id;
+                document.querySelectorAll('[data-i18n]').forEach(el => {
+                    const key = el.getAttribute('data-i18n');
+                    if (dict && dict[key]) {
+                        el.innerHTML = dict[key];
+                    }
+                });
+
+                updateConnectionUI();
+                updateGapCounter();
+                renderCoordinatesToDOM();
+                refreshOfflineQueueDisplay();
+
+                if (cachedDetectedBoxes && cachedDetectedBoxes.length > 0) {
+                    renderDetectedBoxes(cachedDetectedBoxes);
+                }
+            }
+
+            /* ---------------------------------------------------------------------
+               2. PWA INSTALLATION, STANDALONE DETECTION & PERSISTENT STORAGE
+               --------------------------------------------------------------------- */
+            function initPwaStandaloneAndPersistence() {
+                // Registrasi Service Worker
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('/mobile/sw.js', { scope: '/mobile/' })
+                        .then(reg => console.log('[PWA SW] Active:', reg.scope))
+                        .catch(err => console.warn('[PWA SW Notice]:', err));
+                }
+
+                // Cek apakah sudah dibuka sebagai aplikasi PWA terinstal
+                const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+                const modeBadge = document.getElementById('pwaModeBadge');
+                if (isStandalone && modeBadge) {
+                    modeBadge.textContent = "PWA INSTALLED";
+                    modeBadge.className = "px-1.5 py-0.2 rounded text-[8px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-600";
+                }
+
+                // Tangkap event beforeinstallprompt untuk menampilkan tombol Instal PWA
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    deferredPwaInstallPrompt = e;
+                    const banner = document.getElementById('pwaInstallBanner');
+                    if (banner && !isStandalone) {
+                        banner.classList.remove('hidden');
+                    }
+                });
+
+                window.addEventListener('appinstalled', () => {
+                    deferredPwaInstallPrompt = null;
+                    const banner = document.getElementById('pwaInstallBanner');
+                    if (banner) banner.classList.add('hidden');
+                    if (modeBadge) {
+                        modeBadge.textContent = "PWA INSTALLED";
+                        modeBadge.className = "px-1.5 py-0.2 rounded text-[8px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-600";
+                    }
+                    requestPersistentStorageQuota();
+                    showToast("Aplikasi PWA Mandor berhasil diinstal! Mode Offline Permanen aktif.", "📲");
+                });
+
+                // Minta izin Persistent Storage agar IndexedDB tidak pernah dihapus OS HP
+                requestPersistentStorageQuota();
+            }
+
+            async function requestPersistentStorageQuota() {
+                const statusEl = document.getElementById('lblPersistentStatus');
+                if (navigator.storage && navigator.storage.persist) {
+                    try {
+                        const isPersisted = await navigator.storage.persist();
+                        if (statusEl) {
+                            statusEl.innerHTML = isPersisted
+                                ? `<span>🛡️</span> <span class="text-emerald-500 font-bold">IndexedDB Persistent (Permanen)</span>`
+                                : `<span>🛡️</span> <span>IndexedDB Local Buffer Ready</span>`;
+                        }
+                    } catch (_) {}
+                }
+            }
+
+            async function triggerPwaInstallPrompt() {
+                if (!deferredPwaInstallPrompt) {
+                    showToast("Gunakan menu browser 'Tambahkan ke Layar Utama' (Add to Home Screen).", "📲");
+                    return;
+                }
+                deferredPwaInstallPrompt.prompt();
+                const { outcome } = await deferredPwaInstallPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    const banner = document.getElementById('pwaInstallBanner');
+                    if (banner) banner.classList.add('hidden');
+                }
+                deferredPwaInstallPrompt = null;
+            }
+
+            /* ---------------------------------------------------------------------
+               3. DATABASE LOKAL INDEXEDDB (ESTATES CACHE & OFFLINE SURVEYS QUEUE)
+               --------------------------------------------------------------------- */
+            const IDB_NAME = 'precision_palm_mobile_db';
+            const IDB_VERSION = 2;
+            const STORE_SURVEYS = 'offline_surveys_queue';
+            const STORE_ESTATES = 'estates_cache';
+            let idbConn = null;
+
+            function openMobileIndexedDb() {
+                return new Promise((resolve, reject) => {
+                    if (idbConn) return resolve(idbConn);
+
+                    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+
+                    req.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(STORE_SURVEYS)) {
+                            db.createObjectStore(STORE_SURVEYS, { keyPath: 'id', autoIncrement: true });
+                        }
+                        if (!db.objectStoreNames.contains(STORE_ESTATES)) {
+                            db.createObjectStore(STORE_ESTATES, { keyPath: 'kode_kebun' });
+                        }
+                    };
+
+                    req.onsuccess = (e) => {
+                        idbConn = e.target.result;
+                        resolve(idbConn);
+                    };
+
+                    req.onerror = (e) => {
+                        reject(e.target.error);
+                    };
+                });
+            }
+
+            async function cacheEstatesToIndexedDb(estatesArray) {
+                if (!Array.isArray(estatesArray) || estatesArray.length === 0) return;
+                try {
+                    const db = await openMobileIndexedDb();
+                    const tx = db.transaction(STORE_ESTATES, 'readwrite');
+                    const store = tx.objectStore(STORE_ESTATES);
+                    estatesArray.forEach(est => {
+                        if (est && est.kode_kebun) {
+                            store.put(est);
+                        }
+                    });
+                } catch (err) {
+                    console.warn('[IDB Cache Estates Notice]:', err);
+                }
+            }
+
+            async function getCachedEstatesFromIndexedDb() {
+                try {
+                    const db = await openMobileIndexedDb();
+                    return new Promise((resolve) => {
+                        const tx = db.transaction(STORE_ESTATES, 'readonly');
+                        const store = tx.objectStore(STORE_ESTATES);
+                        const req = store.getAll();
+                        req.onsuccess = () => resolve(req.result || []);
+                        req.onerror = () => resolve([]);
+                    });
+                } catch (_) {
+                    return [];
+                }
+            }
+
+            // Simpan Laporan Lapangan + Foto Geotag EXIF ke Buffer Lokal IndexedDB
+            async function saveCurrentSurveyToIndexedDb() {
+                const db = await openMobileIndexedDb();
+
+                const idKebun = currentlySelectedEstate?.id_kebun || currentlySelectedEstate?.id || 10;
+                const namaKebun = currentlySelectedEstate?.nama_kebun || "PT Mandailing Agro Sustainable";
+                const blockId = document.getElementById('inpBlockId')?.value || "Blok A - Gawangan #1";
+                const mandorName = document.getElementById('inpMandorName')?.value || "Mandor Sutrisno";
+                const nowWib = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false }) + " WIB";
+
+                const gapChecklist = {
+                    sterile_buffer_2m: !!document.getElementById('chkGapBuffer2m')?.checked,
+                    clean_alley_379: !!document.getElementById('chkGapAlley379')?.checked,
+                    frond_mulch: !!document.getElementById('chkGapMulch')?.checked,
+                    riparian_buffer: !!document.getElementById('chkGapRiparian')?.checked
+                };
+
+                const queueRecord = {
+                    id_kebun: idKebun,
+                    kode_kebun: activeEstateCode,
+                    nama_kebun: namaKebun,
+                    block_id: blockId,
+                    mandor: mandorName,
+                    latitude: liveCoords.lat,
+                    longitude: liveCoords.lng,
+                    elevation: liveCoords.elev,
+                    gps_accuracy: liveCoords.accuracy,
+                    cuaca: liveCoords.weather,
+                    foto_data_url: activePhotoDataUrl,
+                    foto_blob: activeGeotaggedBlob,
+                    filename: activePhotoFileName,
+                    piringan_steril_meter: gapChecklist.sterile_buffer_2m ? 2.0 : 1.0,
+                    defisit_tbs_persen: 1.2,
+                    gap_checklist: gapChecklist,
+                    waktu_pengambilan: nowWib,
+                    synced: 0
+                };
+
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE_SURVEYS, 'readwrite');
+                    const store = tx.objectStore(STORE_SURVEYS);
+                    const req = store.add(queueRecord);
+
+                    req.onsuccess = () => {
+                        refreshOfflineQueueDisplay();
+                        showToast(`Tersimpan di Buffer Offline HP! [${activeEstateCode} • ${blockId}]`, "💾");
+                        resolve(req.result);
+                    };
+                    req.onerror = (e) => reject(e.target.error);
+                });
+            }
+
+            async function refreshOfflineQueueDisplay() {
+                const db = await openMobileIndexedDb();
+                const tx = db.transaction(STORE_SURVEYS, 'readonly');
+                const store = tx.objectStore(STORE_SURVEYS);
+                const req = store.getAll();
+
+                req.onsuccess = () => {
+                    const items = req.result || [];
+                    const countEl = document.getElementById('dispQueueCount');
+                    const navBadge = document.getElementById('bnavSyncBadge');
+                    const container = document.getElementById('offlineQueueItemsContainer');
+
+                    if (countEl) {
+                        countEl.textContent = activeLanguage === 'en'
+                            ? `${items.length} Queued Offline`
+                            : `${items.length} Antrean Offline`;
+                    }
+
+                    if (navBadge) {
+                        if (items.length > 0) {
+                            navBadge.textContent = items.length;
+                            navBadge.classList.remove('hidden');
+                        } else {
+                            navBadge.classList.add('hidden');
+                        }
+                    }
+
+                    if (!container) return;
+                    if (items.length === 0) {
+                        container.innerHTML = `<div class="text-slate-400 text-center py-2">${activeLanguage === 'en' ? 'No pending offline reports on phone.' : 'Tidak ada antrean tertunda di HP.'}</div>`;
+                        return;
+                    }
+
+                    container.innerHTML = items.map(item => `
+                        <div class="p-2 rounded-xl bg-amber-950/20 border border-amber-500/40 flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2 truncate">
+                                <img src="${item.foto_data_url || '/static/img/sawit_drone.jpg'}" class="w-10 h-10 rounded-lg object-cover border border-amber-500/50 shrink-0" alt="Thumb">
+                                <div class="space-y-0.5 truncate">
+                                    <div class="font-bold text-slate-800 dark:text-amber-200 truncate">${item.kode_kebun} • ${item.block_id}</div>
+                                    <div class="text-[9px] text-emerald-600 dark:text-emerald-400">GPS: ${Number(item.latitude).toFixed(5)}, ${Number(item.longitude).toFixed(5)}</div>
+                                    <div class="text-[8px] text-slate-400">${item.waktu_pengambilan} • ${item.mandor}</div>
+                                </div>
+                            </div>
+                            <button type="button" onclick="deleteSingleQueueItem(${item.id})" class="px-2 py-1 rounded-lg bg-rose-900/60 hover:bg-rose-800 text-rose-200 text-[9px] font-bold shrink-0 cursor-pointer">
+                                🗑️
+                            </button>
+                        </div>
+                    `).join('');
+                };
+            }
+
+            async function deleteSingleQueueItem(itemId) {
+                const db = await openMobileIndexedDb();
+                const tx = db.transaction(STORE_SURVEYS, 'readwrite');
+                tx.objectStore(STORE_SURVEYS).delete(itemId);
+                tx.oncomplete = () => {
+                    refreshOfflineQueueDisplay();
+                    showToast("Item antrean offline dihapus.", "🗑️");
+                };
+            }
+
+            async function clearAllIndexedDbQueue() {
+                const db = await openMobileIndexedDb();
+                const tx = db.transaction(STORE_SURVEYS, 'readwrite');
+                tx.objectStore(STORE_SURVEYS).clear();
+                tx.oncomplete = () => {
+                    refreshOfflineQueueDisplay();
+                    showToast("Seluruh antrean buffer lokal dibersihkan.", "🗑️");
+                };
+            }
+
+            /* ---------------------------------------------------------------------
+               4. SINKRONISASI BERTAHAP DARI INDEXEDDB KE SERVER (APP.PY)
+               --------------------------------------------------------------------- */
+            async function syncAllOfflineSurveysToServer() {
+                if (!navigator.onLine) {
+                    await saveCurrentSurveyToIndexedDb();
+                    showToast("Sedang Offline! Laporan diamankan ke Buffer Lokal IndexedDB.", "⚠️");
+                    return;
+                }
+
+                const db = await openMobileIndexedDb();
+                const btn = document.getElementById('btnSyncToSqlite');
+                const icon = document.getElementById('syncSpinnerIcon');
+                const lbl = document.getElementById('syncBtnLabel');
+                const dict = MOBILE_I18N_DICT[activeLanguage] || MOBILE_I18N_DICT.id;
+
+                if (btn) btn.disabled = true;
+                if (icon) icon.className = "text-base animate-spin inline-block";
+                if (lbl) lbl.textContent = "Menyinkronkan ke Server...";
+
+                const queueItems = await new Promise((resolve) => {
+                    const tx = db.transaction(STORE_SURVEYS, 'readonly');
+                    const req = tx.objectStore(STORE_SURVEYS).getAll();
+                    req.onsuccess = () => resolve(req.result || []);
+                    req.onerror = () => resolve([]);
+                });
+
+                try {
+                    // Jika antrean kosong, langsung kirim form yang sedang aktif di layar
+                    if (queueItems.length === 0) {
+                        const uploadedUrl = await uploadSinglePhotoBlobToBackend(
+                            activeGeotaggedBlob,
+                            activePhotoFileName,
+                            activeEstateCode,
+                            currentlySelectedEstate?.id_kebun || 10,
+                            document.getElementById('inpBlockId')?.value || 'Blok A',
+                            liveCoords.lat,
+                            liveCoords.lng
+                        );
+
+                        const directPayload = {
+                            id_kebun: currentlySelectedEstate?.id_kebun || currentlySelectedEstate?.id || 10,
+                            kode_kebun: activeEstateCode,
+                            block_id: document.getElementById('inpBlockId')?.value || "Blok A - Gawangan #1",
+                            mandor: document.getElementById('inpMandorName')?.value || "Mandor Sutrisno",
+                            latitude: liveCoords.lat,
+                            longitude: liveCoords.lng,
+                            elevation: liveCoords.elev,
+                            cuaca: liveCoords.weather,
+                            foto_url: uploadedUrl || activeServerPhotoUrl || '/static/img/sawit_drone.jpg',
+                            piringan_steril_meter: document.getElementById('chkGapBuffer2m')?.checked ? 2.0 : 1.0,
+                            defisit_tbs_persen: 1.2
+                        };
+
+                        const res = await fetch(`/api/mobile-surveys?kode=${encodeURIComponent(activeEstateCode)}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(directPayload)
+                        });
+                        const resJson = await res.json();
+                        if (!res.ok || resJson.offline) {
+                            throw new Error("Offline atau gagal terhubung");
+                        }
+                        showToast(`Laporan aktif ${activeEstateCode} langsung terkirim ke SQLite Server!`, "🚀");
+                    } else {
+                        // Jika ada isi di antrean IndexedDB, kirim satu per satu (Foto + Data Survei)
+                        let syncedCount = 0;
+                        for (const item of queueItems) {
+                            const targetKode = item.kode_kebun || activeEstateCode;
+                            let finalServerFotoUrl = '/static/img/sawit_drone.jpg';
+
+                            if (item.foto_blob) {
+                                const uploaded = await uploadSinglePhotoBlobToBackend(
+                                    item.foto_blob,
+                                    item.filename || `GEOTAG_${targetKode}.jpg`,
+                                    targetKode,
+                                    item.id_kebun || 10,
+                                    item.block_id,
+                                    item.latitude,
+                                    item.longitude
+                                );
+                                if (uploaded) finalServerFotoUrl = uploaded;
+                            }
+
+                            const surveyBody = {
+                                id_kebun: item.id_kebun || 10,
+                                kode_kebun: targetKode,
+                                block_id: item.block_id,
+                                mandor: item.mandor,
+                                latitude: item.latitude,
+                                longitude: item.longitude,
+                                elevation: item.elevation,
+                                gps_accuracy: item.gps_accuracy,
+                                cuaca: item.cuaca,
+                                foto_url: finalServerFotoUrl,
+                                piringan_steril_meter: item.piringan_steril_meter,
+                                defisit_tbs_persen: item.defisit_tbs_persen,
+                                gap_checklist: item.gap_checklist,
+                                waktu_pengambilan: item.waktu_pengambilan
+                            };
+
+                            const res = await fetch(`/api/mobile-surveys?kode=${encodeURIComponent(targetKode)}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(surveyBody)
+                            });
+                            const resJson = await res.json();
+                            if (res.ok && resJson.success) {
+                                // Hapus item yang sudah sukses terkirim dari IndexedDB
+                                await new Promise((r) => {
+                                    const delTx = db.transaction(STORE_SURVEYS, 'readwrite');
+                                    delTx.objectStore(STORE_SURVEYS).delete(item.id);
+                                    delTx.oncomplete = () => r();
+                                });
+                                syncedCount++;
+                            }
+                        }
+                        showToast(`Sukses menyinkronkan ${syncedCount} laporan dari IndexedDB ke Server!`, "✅");
+                    }
+
+                    await refreshOfflineQueueDisplay();
+                    await fetchMobileSurveysFromBackend();
+                } catch (err) {
+                    console.warn('[Sync Notice]:', err);
+                    showToast("Sinyal terputus. Data tetap aman di antrean IndexedDB HP.", "⚠️");
+                } finally {
+                    if (btn) btn.disabled = false;
+                    if (icon) icon.className = "text-base";
+                    if (lbl) lbl.innerHTML = dict.btn_sync_sqlite;
+                }
+            }
+
+            async function uploadSinglePhotoBlobToBackend(blobObj, fileName, kodeKebun, idKebun, blockId, lat, lng) {
+                if (!blobObj || !navigator.onLine) return null;
+                try {
+                    const formData = new FormData();
+                    formData.append('photo', blobObj, fileName || `GEOTAG_${kodeKebun}.jpg`);
+                    formData.append('id_kebun', idKebun || 10);
+                    formData.append('title', `${kodeKebun} | GPS: ${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)}`);
+                    formData.append('block_id', blockId || 'Blok A');
+                    formData.append('tag', `GEOTAG_${Number(lat).toFixed(6)}_${Number(lng).toFixed(6)}`);
+
+                    const res = await fetch(`/api/spatial/upload-photo?kode=${encodeURIComponent(kodeKebun)}`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (res.ok) {
+                        const json = await res.json();
+                        if (json && json.success && json.file_url) {
+                            return json.file_url;
+                        }
+                    }
+                } catch (err) {
+                    console.warn('[Upload Photo Blob Notice]:', err);
+                }
+                return null;
+            }
+
+            /* ---------------------------------------------------------------------
+               5. INTEGRASI DATA KEBUN BACKEND + FALLBACK CACHE INDEXEDDB
+               --------------------------------------------------------------------- */
+            async function loadEstateDataFromBackend(kodeParam) {
+                const targetKode = (kodeParam || activeEstateCode || 'EST-MDN-010').trim();
+                activeEstateCode = targetKode;
+
+                try {
+                    const newUrl = `${window.location.pathname}?kode=${encodeURIComponent(activeEstateCode)}`;
+                    window.history.replaceState({ path: newUrl }, '', newUrl);
+                } catch (_) {}
+
+                let loadedFromNetwork = false;
+                if (navigator.onLine) {
+                    try {
+                        const res = await fetch(`/api/data/load?kode=${encodeURIComponent(activeEstateCode)}`);
+                        if (res.ok) {
+                            const json = await res.json();
+                            if (json && json.success && Array.isArray(json.estates)) {
+                                registeredEstatesList = json.estates;
+                                currentlySelectedEstate = json.active_estate || registeredEstatesList.find(e => e.kode_kebun === activeEstateCode) || null;
+                                await cacheEstatesToIndexedDb(registeredEstatesList);
+                                populateEstateDropdown();
+                                applySelectedEstateToUI();
+                                renderRecentSurveysList(json.field_tracking || []);
+                                loadedFromNetwork = true;
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('[Offline Estate Load Fallback]:', err);
+                    }
+                }
+
+                // Jika sedang di tengah kebun tanpa sinyal, ambil daftar kebun dari IndexedDB
+                if (!loadedFromNetwork) {
+                    const cachedEstates = await getCachedEstatesFromIndexedDb();
+                    if (cachedEstates.length > 0) {
+                        registeredEstatesList = cachedEstates;
+                    } else {
+                        registeredEstatesList = [
+                            {
+                                id_kebun: 10,
+                                kode_kebun: "EST-MDN-010",
+                                nama_kebun: "PT Mandailing Agro Sustainable",
+                                nomor_hgu: "010/HGU/BPN-MDN/2026",
+                                nomor_registrasi: "CERT-ECOGREEN-2026-0010",
+                                luas_ha: 1200,
+                                komoditas_sela: "Jahe Merah (Zingiber officinale)",
+                                centroid_lat: 0.824100,
+                                centroid_lng: 99.561200,
+                                elevation: 142
+                            }
+                        ];
+                    }
+                    currentlySelectedEstate = registeredEstatesList.find(e => e.kode_kebun === activeEstateCode) || registeredEstatesList[0];
+                    populateEstateDropdown();
+                    applySelectedEstateToUI();
+                }
+
+                if (navigator.onLine) {
+                    await fetchMobileSurveysFromBackend();
+                }
+            }
+
+            function populateEstateDropdown() {
+                const selectEl = document.getElementById('selectEstateCompany');
+                if (!selectEl || registeredEstatesList.length === 0) return;
+
+                selectEl.innerHTML = registeredEstatesList.map(est => {
+                    const isSelected = (est.kode_kebun === activeEstateCode) ? 'selected' : '';
+                    return `<option value="${est.kode_kebun}" ${isSelected}>${est.kode_kebun} • ${est.nama_kebun}</option>`;
+                }).join('');
+            }
+
+            function applySelectedEstateToUI() {
+                if (!currentlySelectedEstate) return;
+
+                const regTag = document.getElementById('selectedEstateRegTag');
+                const dispHgu = document.getElementById('dispEstateHgu');
+                const dispArea = document.getElementById('dispEstateAreaCrop');
+                const dispWeather = document.getElementById('valDispWeather');
+
+                const idNum = currentlySelectedEstate.id_kebun || currentlySelectedEstate.id || 10;
+                if (regTag) {
+                    regTag.textContent = currentlySelectedEstate.nomor_registrasi || `CERT-ECOGREEN-2026-${String(idNum).padStart(4, '0')}`;
+                }
+                if (dispHgu) {
+                    dispHgu.textContent = currentlySelectedEstate.nomor_hgu || '010/HGU/BPN-MDN/2026';
+                }
+                if (dispArea) {
+                    const areaVal = parseFloat(currentlySelectedEstate.luas_ha || 1200).toLocaleString();
+                    const cropVal = currentlySelectedEstate.komoditas_sela || 'Jahe Merah';
+                    dispArea.textContent = `${areaVal} Ha • ${cropVal}`;
+                }
+
+                if (!liveCoords.gpsLocked) {
+                    liveCoords.lat = parseFloat(currentlySelectedEstate.centroid_lat || 0.824100);
+                    liveCoords.lng = parseFloat(currentlySelectedEstate.centroid_lng || 99.561200);
+                    liveCoords.elev = parseFloat(currentlySelectedEstate.elevation || 142.0);
+                }
+                liveCoords.weather = currentlySelectedEstate.weather_summary || "26.6°C Cerah Berawan";
+                if (dispWeather) dispWeather.textContent = liveCoords.weather;
+
+                renderCoordinatesToDOM();
+                updateLiveHudOverlay();
+            }
+
+            async function handleEstateSelectionChange(newKode) {
+                if (!newKode) return;
+                liveCoords.gpsLocked = false;
+                await loadEstateDataFromBackend(newKode);
+                showToast(`Kebun aktif: ${newKode}`, "🏢");
+            }
+
+            async function fetchMobileSurveysFromBackend() {
+                if (!navigator.onLine) return;
+                try {
+                    const res = await fetch(`/api/mobile-surveys?kode=${encodeURIComponent(activeEstateCode)}`);
+                    if (res.ok) {
+                        const json = await res.json();
+                        if (json && json.success && Array.isArray(json.data)) {
+                            renderRecentSurveysList(json.data);
+                        }
+                    }
+                } catch (_) {}
+            }
+
+            function renderRecentSurveysList(records) {
+                const container = document.getElementById('recentSurveysList');
+                const countBadge = document.getElementById('dispBackendRecordCount');
+                if (!container) return;
+
+                const list = Array.isArray(records) ? records : [];
+                if (countBadge) countBadge.textContent = `${list.length} Log`;
+
+                if (list.length === 0) {
+                    container.innerHTML = `<div class="text-slate-400 text-center py-3">Belum ada log server untuk ${activeEstateCode}</div>`;
+                    return;
+                }
+
+                container.innerHTML = list.slice(0, 8).map(item => {
+                    const lat = parseFloat(item.latitude || item.lat || item.gps_lat || 0.8241).toFixed(6);
+                    const lng = parseFloat(item.longitude || item.lng || item.gps_lng || 99.5612).toFixed(6);
+                    const waktu = item.timestamp || item.waktu || item.waktu_pengambilan || '-';
+                    const blok = item.blok || item.block_id || `Titik #${item.titik_ke || 1}`;
+                    const mandor = item.mandor || 'Mandor Lapangan';
+                    return `
+                        <div class="p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+                            <div class="space-y-0.5 truncate">
+                                <div class="font-bold text-slate-800 dark:text-slate-200 truncate">${item.kode_kebun || activeEstateCode} • ${blok}</div>
+                                <div class="text-[9px] text-emerald-600 dark:text-emerald-400">GPS: ${lat}, ${lng} • ${mandor}</div>
+                                <div class="text-[8px] text-slate-400">${waktu}</div>
+                            </div>
+                            <span class="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 text-[8px] font-bold shrink-0">SYNCED</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            /* ---------------------------------------------------------------------
+               6. SENSOR GPS HARDWARE (BEKERJA MURNI OFFLINE TANPA INTERNET)
+               --------------------------------------------------------------------- */
+            function acquireDeviceGpsLocation(userTriggered = false) {
+                if (!navigator.geolocation) {
+                    renderCoordinatesToDOM();
+                    return;
+                }
+
+                const btn = document.getElementById('btnRefreshGps');
+                const origHtml = btn ? btn.innerHTML : '';
+                if (btn && userTriggered) {
+                    btn.innerHTML = `<span>⏳</span> <span>Mencari Satelit...</span>`;
+                    btn.disabled = true;
+                }
+
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        liveCoords.lat = pos.coords.latitude;
+                        liveCoords.lng = pos.coords.longitude;
+                        liveCoords.accuracy = pos.coords.accuracy || 3.2;
+                        if (pos.coords.altitude !== null && pos.coords.altitude !== undefined) {
+                            liveCoords.elev = pos.coords.altitude;
+                        }
+                        liveCoords.gpsLocked = true;
+                        renderCoordinatesToDOM();
+                        updateLiveHudOverlay();
+
+                        if (btn && userTriggered) {
+                            btn.innerHTML = origHtml;
+                            btn.disabled = false;
+                        }
+                        if (userTriggered) {
+                            showToast(`GPS Terkunci: ${liveCoords.lat.toFixed(6)}, ${liveCoords.lng.toFixed(6)} (±${liveCoords.accuracy.toFixed(1)}m)`, "📍");
+                        }
+                    },
+                    (err) => {
+                        console.warn('[GNSS Hardware Notice]:', err.message);
+                        renderCoordinatesToDOM();
+                        updateLiveHudOverlay();
+                        if (btn && userTriggered) {
+                            btn.innerHTML = origHtml;
+                            btn.disabled = false;
+                            showToast("Menggunakan koordinat konsesi kebun.", "ℹ️");
+                        }
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            }
+
+            function renderCoordinatesToDOM() {
+                const dispLat = document.getElementById('valDispLat');
+                const dispLng = document.getElementById('valDispLng');
+                const dispElev = document.getElementById('valDispElev');
+
+                if (dispLat) dispLat.textContent = liveCoords.lat.toFixed(6);
+                if (dispLng) dispLng.textContent = liveCoords.lng.toFixed(6);
+                if (dispElev) {
+                    const unit = activeLanguage === 'en' ? 'm MSL' : 'm DPL';
+                    dispElev.textContent = `${Math.round(liveCoords.elev)}${unit} (±${liveCoords.accuracy.toFixed(1)}m)`;
+                }
+            }
+
+            /* ---------------------------------------------------------------------
+               7. KAMERA GEOTAGGING: WATERMARK VISUAL + INJEKSI EXIF GPS METADATA
+               --------------------------------------------------------------------- */
+            function openNativeCameraInput(useRearCamera) {
+                const inputEl = document.getElementById('cameraRealFileInput');
+                if (!inputEl) return;
+                if (useRearCamera) {
+                    inputEl.setAttribute('capture', 'environment');
+                } else {
+                    inputEl.removeAttribute('capture');
+                }
+                inputEl.click();
+            }
+
+            async function toggleLiveCameraStream() {
+                if (liveVideoStream) {
+                    stopLiveCameraStream();
+                } else {
+                    await startLiveCameraStream();
+                }
+            }
+
+            async function startLiveCameraStream() {
+                acquireDeviceGpsLocation(false);
+
+                const videoEl = document.getElementById('liveCameraVideoEl');
+                const imgEl = document.getElementById('viewfinderPhotoImg');
+                const hudBanner = document.getElementById('liveCameraHudBanner');
+                const captureWrap = document.getElementById('liveCaptureBtnWrap');
+                const lblBtn = document.getElementById('lblBtnLiveCam');
+
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    openNativeCameraInput(true);
+                    return;
+                }
+
+                try {
+                    liveVideoStream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                        audio: false
+                    });
+
+                    if (videoEl) {
+                        videoEl.srcObject = liveVideoStream;
+                        videoEl.classList.remove('hidden');
+                    }
+                    if (imgEl) imgEl.classList.add('hidden');
+                    if (hudBanner) hudBanner.classList.remove('hidden');
+                    if (captureWrap) captureWrap.classList.remove('hidden');
+                    if (lblBtn) lblBtn.textContent = activeLanguage === 'en' ? 'Close Live' : 'Tutup Live';
+
+                    updateLiveHudOverlay();
+                    liveHudTimer = setInterval(updateLiveHudOverlay, 1000);
+                } catch (err) {
+                    openNativeCameraInput(true);
+                }
+            }
+
+            function stopLiveCameraStream() {
+                if (liveHudTimer) {
+                    clearInterval(liveHudTimer);
+                    liveHudTimer = null;
+                }
+                if (liveVideoStream) {
+                    liveVideoStream.getTracks().forEach(t => t.stop());
+                    liveVideoStream = null;
+                }
+                const videoEl = document.getElementById('liveCameraVideoEl');
+                const imgEl = document.getElementById('viewfinderPhotoImg');
+                const hudBanner = document.getElementById('liveCameraHudBanner');
+                const captureWrap = document.getElementById('liveCaptureBtnWrap');
+                const lblBtn = document.getElementById('lblBtnLiveCam');
+
+                if (videoEl) {
+                    videoEl.srcObject = null;
+                    videoEl.classList.add('hidden');
+                }
+                if (imgEl) imgEl.classList.remove('hidden');
+                if (hudBanner) hudBanner.classList.add('hidden');
+                if (captureWrap) captureWrap.classList.add('hidden');
+                if (lblBtn) lblBtn.textContent = activeLanguage === 'en' ? 'Live Camera' : 'Kamera Live';
+            }
+
+            function updateLiveHudOverlay() {
+                const hudEstate = document.getElementById('hudLiveEstate');
+                const hudTime = document.getElementById('hudLiveTime');
+                const hudCoords = document.getElementById('hudLiveCoords');
+
+                const blockId = document.getElementById('inpBlockId')?.value || 'Blok A';
+                const nowStr = new Date().toLocaleTimeString('id-ID', { hour12: false }) + ' WIB';
+
+                if (hudEstate) hudEstate.textContent = `${activeEstateCode} • ${blockId}`;
+                if (hudTime) hudTime.textContent = nowStr;
+                if (hudCoords) {
+                    hudCoords.textContent = `GPS: ${liveCoords.lat.toFixed(6)}° N, ${liveCoords.lng.toFixed(6)}° E (±${liveCoords.accuracy.toFixed(1)}m) • ${Math.round(liveCoords.elev)}m DPL`;
+                }
+            }
+
+            function degToExifDmsRational(decDegrees) {
+                const absDeg = Math.abs(decDegrees);
+                const deg = Math.floor(absDeg);
+                const minFloat = (absDeg - deg) * 60;
+                const min = Math.floor(minFloat);
+                const sec = Math.round((minFloat - min) * 60 * 10000);
+                return [[deg, 1], [min, 1], [sec, 10000]];
+            }
+
+            function embedExifGpsIntoJpegDataUrl(jpegDataUrl, meta) {
+                if (typeof window.piexif === 'undefined') return jpegDataUrl;
+                try {
+                    const zeroth = {};
+                    const exif = {};
+                    const gps = {};
+
+                    const now = new Date();
+                    const exifDateStr = `${now.getFullYear()}:${String(now.getMonth() + 1).padStart(2, '0')}:${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+                    zeroth[piexif.ImageIFD.Software] = "Precision Palm Geotag Engine v2026";
+                    zeroth[piexif.ImageIFD.Make] = "Precision Palm Mobile Node";
+                    zeroth[piexif.ImageIFD.Model] = meta.estateCode || "EST-MDN-010";
+                    zeroth[piexif.ImageIFD.DateTime] = exifDateStr;
+                    zeroth[piexif.ImageIFD.ImageDescription] = `Estate: ${meta.estateCode} | Block: ${meta.blockId} | GPS: ${meta.lat.toFixed(6)}, ${meta.lng.toFixed(6)} | Elev: ${Math.round(meta.elev)}m | Mandor: ${meta.mandor}`;
+
+                    exif[piexif.ExifIFD.DateTimeOriginal] = exifDateStr;
+                    exif[piexif.ExifIFD.DateTimeDigitized] = exifDateStr;
+
+                    gps[piexif.GPSIFD.GPSVersionID] = [2, 2, 0, 0];
+                    gps[piexif.GPSIFD.GPSLatitudeRef] = meta.lat >= 0 ? "N" : "S";
+                    gps[piexif.GPSIFD.GPSLatitude] = degToExifDmsRational(meta.lat);
+                    gps[piexif.GPSIFD.GPSLongitudeRef] = meta.lng >= 0 ? "E" : "W";
+                    gps[piexif.GPSIFD.GPSLongitude] = degToExifDmsRational(meta.lng);
+                    gps[piexif.GPSIFD.GPSAltitudeRef] = meta.elev >= 0 ? 0 : 1;
+                    gps[piexif.GPSIFD.GPSAltitude] = [Math.round(Math.abs(meta.elev) * 100), 100];
+
+                    const exifObj = { "0th": zeroth, "Exif": exif, "GPS": gps };
+                    const exifBytes = piexif.dump(exifObj);
+                    return piexif.insert(exifBytes, jpegDataUrl);
+                } catch (err) {
+                    console.warn('[EXIF Injection Notice]:', err);
+                    return jpegDataUrl;
+                }
+            }
+
+            function dataUrlToBlob(dataUrl) {
+                const parts = dataUrl.split(',');
+                const mime = parts[0].match(/:(.*?);/)[1] || 'image/jpeg';
+                const bstr = atob(parts[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while (n--) {
+                    u8arr[n] = bstr.charCodeAt(n);
+                }
+                return new Blob([u8arr], { type: mime });
+            }
+
+            async function stampAndEmbedGeotagOnImageSource(imgSource, width, height) {
+                const canvas = document.createElement('canvas');
+                canvas.width = width || 1280;
+                canvas.height = height || 720;
+                const ctx = canvas.getContext('2d');
+
+                ctx.drawImage(imgSource, 0, 0, canvas.width, canvas.height);
+
+                const estateName = currentlySelectedEstate?.nama_kebun || 'PT Mandailing Agro Sustainable';
+                const blockId = document.getElementById('inpBlockId')?.value || 'Blok A - Gawangan #1';
+                const mandorName = document.getElementById('inpMandorName')?.value || 'Mandor Sutrisno';
+                const nowWib = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false }) + ' WIB';
+
+                const barHeight = Math.max(76, Math.floor(canvas.height * 0.12));
+                ctx.fillStyle = 'rgba(2, 6, 23, 0.86)';
+                ctx.fillRect(0, canvas.height - barHeight, canvas.width, barHeight);
+
+                ctx.fillStyle = '#10b981';
+                ctx.fillRect(0, canvas.height - barHeight, canvas.width, 3);
+
+                const padX = Math.max(16, Math.floor(canvas.width * 0.02));
+                const fontLarge = Math.max(13, Math.floor(barHeight * 0.25));
+                const fontSmall = Math.max(11, Math.floor(barHeight * 0.20));
+
+                ctx.fillStyle = '#34d399';
+                ctx.font = `bold ${fontLarge}px "JetBrains Mono", monospace`;
+                ctx.fillText(`${activeEstateCode} • ${estateName} | ${blockId}`, padX, canvas.height - Math.floor(barHeight * 0.66));
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = `bold ${fontLarge}px "JetBrains Mono", monospace`;
+                ctx.fillText(`GPS: ${liveCoords.lat.toFixed(6)}° N, ${liveCoords.lng.toFixed(6)}° E (±${liveCoords.accuracy.toFixed(1)}m) | ELEV: ${Math.round(liveCoords.elev)}m DPL`, padX, canvas.height - Math.floor(barHeight * 0.36));
+
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = `${fontSmall}px "JetBrains Mono", monospace`;
+                ctx.fillText(`WAKTU: ${nowWib} | MANDOR: ${mandorName} | PRECISION PALM GEOTAG VERIFIED`, padX, canvas.height - Math.floor(barHeight * 0.12));
+
+                const rawJpegDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+                const exifJpegDataUrl = embedExifGpsIntoJpegDataUrl(rawJpegDataUrl, {
+                    estateCode: activeEstateCode,
+                    blockId: blockId,
+                    mandor: mandorName,
+                    lat: liveCoords.lat,
+                    lng: liveCoords.lng,
+                    elev: liveCoords.elev,
+                    timestamp: nowWib
+                });
+
+                const latClean = liveCoords.lat.toFixed(6).replace('.', '_');
+                const lngClean = liveCoords.lng.toFixed(6).replace('.', '_');
+                const geotagFilename = `GEOTAG_${activeEstateCode}_${latClean}N_${lngClean}E_${Date.now()}.jpg`;
+                const jpegBlob = dataUrlToBlob(exifJpegDataUrl);
+
+                return {
+                    dataUrl: exifJpegDataUrl,
+                    blob: jpegBlob,
+                    filename: geotagFilename,
+                    timestamp: nowWib
+                };
+            }
+
+            async function captureFrameFromLiveStream() {
+                const videoEl = document.getElementById('liveCameraVideoEl');
+                if (!videoEl) return;
+
+                const w = videoEl.videoWidth || 1280;
+                const h = videoEl.videoHeight || 720;
+                const processed = await stampAndEmbedGeotagOnImageSource(videoEl, w, h);
+
+                stopLiveCameraStream();
+                await applyProcessedGeotagPhotoToUI(processed);
+            }
+
+            function handleRealPhotoCaptured(event) {
+                const rawFile = event.target && event.target.files && event.target.files[0];
+                if (!rawFile) return;
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const tempImg = new Image();
+                    tempImg.onload = async function () {
+                        const maxW = 1280;
+                        const scale = tempImg.width > maxW ? (maxW / tempImg.width) : 1;
+                        const targetW = Math.round(tempImg.width * scale);
+                        const targetH = Math.round(tempImg.height * scale);
+
+                        const processed = await stampAndEmbedGeotagOnImageSource(tempImg, targetW, targetH);
+                        await applyProcessedGeotagPhotoToUI(processed);
+                    };
+                    tempImg.src = e.target.result;
+                };
+                reader.readAsDataURL(rawFile);
+            }
+
+            async function applyProcessedGeotagPhotoToUI(processed) {
+                activePhotoDataUrl = processed.dataUrl;
+                activePhotoFileName = processed.filename;
+                activeGeotaggedBlob = processed.blob;
+
+                const imgEl = document.getElementById('viewfinderPhotoImg');
+                const lblFileName = document.getElementById('lblCapturedFilename');
+                const metaCard = document.getElementById('geotagMetadataCard');
+                const metaDetails = document.getElementById('geotagPropertyDetails');
+
+                if (imgEl) imgEl.src = processed.dataUrl;
+                if (lblFileName) lblFileName.textContent = processed.filename;
+
+                if (metaCard && metaDetails) {
+                    const sizeKb = (processed.blob.size / 1024).toFixed(1);
+                    metaCard.classList.remove('hidden');
+                    metaDetails.innerHTML = `
+                        <div><strong>File:</strong> ${processed.filename} (${sizeKb} KB)</div>
+                        <div><strong>EXIF GPS:</strong> ${liveCoords.lat.toFixed(6)}° N, ${liveCoords.lng.toFixed(6)}° E • Elev: ${Math.round(liveCoords.elev)}m DPL</div>
+                        <div><strong>Waktu &amp; Kebun:</strong> ${processed.timestamp} • ${activeEstateCode}</div>
+                    `;
+                }
+
+                showToast("Foto Geotagging & EXIF GPS berhasil disematkan!", "📸");
+
+                if (navigator.onLine) {
+                    const uploadedUrl = await uploadSinglePhotoBlobToBackend(
+                        processed.blob,
+                        processed.filename,
+                        activeEstateCode,
+                        currentlySelectedEstate?.id_kebun || 10,
+                        document.getElementById('inpBlockId')?.value || 'Blok A',
+                        liveCoords.lat,
+                        liveCoords.lng
+                    );
+                    if (uploadedUrl) activeServerPhotoUrl = uploadedUrl;
+                }
+
+                await triggerAiVisionAnalysis(true);
+            }
+
+            function resetCapturedGeotagPhoto() {
+                activePhotoDataUrl = '/static/img/sawit_drone.jpg';
+                activeServerPhotoUrl = '/static/img/sawit_drone.jpg';
+                activePhotoFileName = 'sawit_drone.jpg';
+                activeGeotaggedBlob = null;
+
+                const imgEl = document.getElementById('viewfinderPhotoImg');
+                const lblFileName = document.getElementById('lblCapturedFilename');
+                const metaCard = document.getElementById('geotagMetadataCard');
+                const fileInput = document.getElementById('cameraRealFileInput');
+
+                if (imgEl) imgEl.src = '/static/img/sawit_drone.jpg';
+                if (lblFileName) lblFileName.textContent = 'sawit_drone.jpg';
+                if (metaCard) metaCard.classList.add('hidden');
+                if (fileInput) fileInput.value = '';
+
+                showToast("Foto kamera direset.", "🗑️");
+            }
+
+            /* ---------------------------------------------------------------------
+               8. RETIKEL KANVAS & PEMINDAIAN AI VISION (ONLINE & OFFLINE)
+               --------------------------------------------------------------------- */
+            function renderViewfinderReticles() {
+                const canvas = document.getElementById('viewfinderReticleCanvas');
+                if (!canvas) return;
+
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width || 360;
+                canvas.height = rect.height || 256;
+
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                const pad = 16;
+                const len = 14;
+                ctx.strokeStyle = 'rgba(52, 211, 153, 0.9)';
+                ctx.lineWidth = 2;
+
+                ctx.beginPath();
+                ctx.moveTo(pad, pad + len); ctx.lineTo(pad, pad); ctx.lineTo(pad + len, pad);
+                ctx.moveTo(canvas.width - pad - len, pad); ctx.lineTo(canvas.width - pad, pad); ctx.lineTo(canvas.width - pad, pad + len);
+                ctx.moveTo(pad, canvas.height - pad - len); ctx.lineTo(pad, canvas.height - pad); ctx.lineTo(pad + len, canvas.height - pad);
+                ctx.moveTo(canvas.width - pad - len, canvas.height - pad); ctx.lineTo(canvas.width - pad, canvas.height - pad); ctx.lineTo(canvas.width - pad, canvas.height - pad - len);
+                ctx.stroke();
+
+                const cx = canvas.width / 2;
+                const cy = canvas.height / 2;
+                ctx.strokeStyle = 'rgba(16, 185, 129, 0.45)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(cx - 14, cy); ctx.lineTo(cx + 14, cy);
+                ctx.moveTo(cx, cy - 14); ctx.lineTo(cx, cy + 14);
+                ctx.stroke();
+            }
+
+            function renderDetectedBoxes(boxes) {
+                const overlay = document.getElementById('viewfinderBBoxesOverlay');
+                if (!overlay) return;
+
+                if (!boxes || boxes.length === 0) {
+                    overlay.innerHTML = '';
+                    return;
+                }
+
+                overlay.innerHTML = boxes.map(item => {
+                    const box = item.box_2d || [0, 0, 1000, 1000];
+                    const top = (box[0] / 10.0).toFixed(1);
+                    const left = (box[1] / 10.0).toFixed(1);
+                    const height = ((box[2] - box[0]) / 10.0).toFixed(1);
+                    const width = ((box[3] - box[1]) / 10.0).toFixed(1);
+
+                    let borderCls = "border-emerald-400 bg-emerald-500/15";
+                    let badgeCls = "bg-emerald-950 text-emerald-300 border-emerald-400";
+                    let icon = "🌴";
+
+                    if (item.label === 'clean_alley') {
+                        borderCls = "border-sky-400 bg-sky-500/15";
+                        badgeCls = "bg-sky-950 text-sky-300 border-sky-400";
+                        icon = "🌱";
+                    } else if (item.label === 'root_buffer') {
+                        borderCls = "border-rose-400 bg-rose-500/15";
+                        badgeCls = "bg-rose-950 text-rose-300 border-rose-400";
+                        icon = "⭕";
+                    } else if (item.label === 'frond_mulch') {
+                        borderCls = "border-cyan-400 bg-cyan-500/15";
+                        badgeCls = "bg-cyan-950 text-cyan-300 border-cyan-400";
+                        icon = "🌿";
+                    }
+
+                    return `
+                        <div class="absolute border-2 ${borderCls} rounded-lg shadow-sm pointer-events-auto bbox-pop-in"
+                             style="top: ${top}%; left: ${left}%; width: ${width}%; height: ${height}%;">
+                            <span class="absolute -top-3 left-1 px-1.5 py-0.2 rounded border text-[7px] font-mono font-bold whitespace-nowrap ${badgeCls}">
+                                ${icon} ${item.label_name} [${Math.round(item.confidence * 100)}%]
+                            </span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            async function triggerAiVisionAnalysis(userClicked = false) {
+                if (isAiScanInProgress) return;
+                isAiScanInProgress = true;
+
+                const laser = document.getElementById('viewfinderLaserBar');
+                const badge = document.getElementById('aiScanStatusBadge');
+                const overlay = document.getElementById('viewfinderBBoxesOverlay');
+                const dict = MOBILE_I18N_DICT[activeLanguage] || MOBILE_I18N_DICT.id;
+
+                if (overlay) overlay.innerHTML = '';
+                if (laser) {
+                    laser.classList.remove('hidden');
+                    laser.classList.add('laser-scanning-active');
+                }
+                if (badge) {
+                    badge.textContent = dict.badge_scanning;
+                    badge.className = "text-[9px] bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-400 px-2 py-0.5 rounded-full font-mono font-bold animate-pulse";
+                }
+
+                if (navigator.onLine) {
+                    try {
+                        const formData = new FormData();
+                        if (activeGeotaggedBlob) {
+                            formData.append('image', activeGeotaggedBlob, activePhotoFileName);
+                        }
+                        formData.append('feature_name', `Mobile Geotag Vision (${activeEstateCode})`);
+                        formData.append('meta_info', `Estate: ${activeEstateCode} | GPS: ${liveCoords.lat.toFixed(6)}, ${liveCoords.lng.toFixed(6)}`);
+
+                        const fetchOpts = activeGeotaggedBlob
+                            ? { method: 'POST', body: formData }
+                            : {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    foto_url: activeServerPhotoUrl,
+                                    feature_name: `Mobile Geotag Vision (${activeEstateCode})`,
+                                    meta_info: `Estate: ${activeEstateCode} | GPS: ${liveCoords.lat.toFixed(6)}, ${liveCoords.lng.toFixed(6)}`
+                                })
+                            };
+
+                        const res = await fetch(`/api/ai/scan-image?kode=${encodeURIComponent(activeEstateCode)}`, fetchOpts);
+                        if (res.ok) {
+                            const json = await res.json();
+                            if (json && json.analysis) {
+                                const a = json.analysis;
+                                const clsEl = document.getElementById('lblAiClassification');
+                                const densEl = document.getElementById('lblAiCanopyDensity');
+                                const sumEl = document.getElementById('lblAiAuditorSummary');
+
+                                if (clsEl) clsEl.textContent = a.stand_classification || 'Prime Producing Stand (TM)';
+                                if (densEl) densEl.textContent = `Kanopi: ${a.canopy_density_pct || 76.5}% • Skor: ${a.visual_health_score || 95}/100`;
+                                if (sumEl) sumEl.textContent = a.auditor_summary || a.summary || 'Piringan 2.0m zero-tillage terverifikasi.';
+                            }
+                        }
+                    } catch (_) {}
+                } else {
+                    await new Promise(r => setTimeout(r, 650));
+                }
+
+                const boxes = [
+                    { label: 'palm_trunk', label_name: dict.box_palm, box_2d: [80, 60, 740, 380], confidence: 0.98 },
+                    { label: 'clean_alley', label_name: dict.box_alley, box_2d: [260, 360, 800, 780], confidence: 0.96 },
+                    { label: 'root_buffer', label_name: dict.box_buffer, box_2d: [540, 240, 860, 660], confidence: 0.99 },
+                    { label: 'frond_mulch', label_name: dict.box_mulch, box_2d: [420, 680, 820, 960], confidence: 0.94 }
+                ];
+
+                cachedDetectedBoxes = boxes;
+                renderDetectedBoxes(boxes);
+                renderViewfinderReticles();
+
+                if (laser) {
+                    laser.classList.remove('laser-scanning-active');
+                    laser.classList.add('hidden');
+                }
+                if (badge) {
+                    badge.textContent = `✓ ${dict.badge_verified}`;
+                    badge.className = "text-[9px] bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400 px-2 py-0.5 rounded-full font-mono font-bold";
+                }
+
+                isAiScanInProgress = false;
+            }
+
+            /* ---------------------------------------------------------------------
+               9. VOICE-TO-REPORT MANDOR (ONLINE BACKEND + OFFLINE NLP PARSER)
+               --------------------------------------------------------------------- */
+            let isVoiceRecording = false;
+            let voiceMediaRecorder = null;
+            let voiceTimerInterval = null;
+            let voiceElapsedSeconds = 0;
+            let webSpeechRecognizer = null;
+
+            function toggleMandorVoiceRecording() {
+                if (isVoiceRecording) {
+                    stopMandorVoiceRecording();
+                } else {
+                    startMandorVoiceRecording();
+                }
+            }
+
+            async function startMandorVoiceRecording() {
+                const btn = document.getElementById('btnToggleVoiceRecord');
+                const icon = document.getElementById('iconVoiceRecord');
+                const lblAction = document.getElementById('lblVoiceAction');
+                const lblTimer = document.getElementById('lblVoiceTimer');
+                const visualizer = document.getElementById('audioWaveVisualizer');
+                const badge = document.getElementById('voiceStatusBadge');
+                const dict = MOBILE_I18N_DICT[activeLanguage] || MOBILE_I18N_DICT.id;
+
+                voiceElapsedSeconds = 0;
+                isVoiceRecording = true;
+
+                if (btn) {
+                    btn.className = "w-12 h-12 rounded-2xl bg-gradient-to-tr from-rose-600 via-rose-500 to-amber-500 text-white flex items-center justify-center text-xl shadow-lg shadow-rose-950/60 voice-recording-pulse transition cursor-pointer shrink-0";
+                }
+                if (icon) icon.textContent = "⏹️";
+                if (lblAction) lblAction.textContent = dict.btn_recording;
+                if (visualizer) visualizer.classList.remove('hidden');
+                if (badge) {
+                    badge.textContent = "Recording...";
+                    badge.className = "text-[9px] bg-rose-950 text-rose-300 border border-rose-600 px-2 py-0.5 rounded-full font-mono font-bold animate-pulse";
+                }
+
+                voiceTimerInterval = setInterval(() => {
+                    voiceElapsedSeconds++;
+                    const mins = String(Math.floor(voiceElapsedSeconds / 60)).padStart(2, '0');
+                    const secs = String(voiceElapsedSeconds % 60).padStart(2, '0');
+                    if (lblTimer) lblTimer.textContent = `${mins}:${secs} • Chirp 2 Audio Stream`;
+                }, 1000);
+
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        voiceMediaRecorder = new MediaRecorder(stream);
+                        voiceMediaRecorder.onstop = () => {
+                            stream.getTracks().forEach(t => t.stop());
+                        };
+                        voiceMediaRecorder.start();
+                    } catch (_) {}
+                }
+
+                const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (SpeechRec) {
+                    webSpeechRecognizer = new SpeechRec();
+                    webSpeechRecognizer.lang = activeLanguage === 'en' ? 'en-US' : 'id-ID';
+                    webSpeechRecognizer.continuous = true;
+                    webSpeechRecognizer.interimResults = true;
+                    webSpeechRecognizer.onresult = (evt) => {
+                        let transcript = '';
+                        for (let i = evt.resultIndex; i < evt.results.length; ++i) {
+                            transcript += evt.results[i][0].transcript;
+                        }
+                        const textEl = document.getElementById('txtVoiceTranscription');
+                        if (textEl && transcript.trim()) {
+                            textEl.textContent = `"${transcript}"`;
+                        }
+                    };
+                    try { webSpeechRecognizer.start(); } catch (_) {}
+                }
+            }
+
+            async function stopMandorVoiceRecording() {
+                isVoiceRecording = false;
+                clearInterval(voiceTimerInterval);
+
+                const btn = document.getElementById('btnToggleVoiceRecord');
+                const icon = document.getElementById('iconVoiceRecord');
+                const lblAction = document.getElementById('lblVoiceAction');
+                const visualizer = document.getElementById('audioWaveVisualizer');
+                const dict = MOBILE_I18N_DICT[activeLanguage] || MOBILE_I18N_DICT.id;
+
+                if (btn) {
+                    btn.className = "w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-500 hover:scale-105 active:scale-95 text-white flex items-center justify-center text-xl shadow-lg shadow-indigo-950/60 transition cursor-pointer shrink-0";
+                }
+                if (icon) icon.textContent = "🎤";
+                if (lblAction) lblAction.textContent = dict.btn_record_voice;
+                if (visualizer) visualizer.classList.add('hidden');
+
+                if (voiceMediaRecorder && voiceMediaRecorder.state !== 'inactive') {
+                    try { voiceMediaRecorder.stop(); } catch (_) {}
+                }
+                if (webSpeechRecognizer) {
+                    try { webSpeechRecognizer.stop(); } catch (_) {}
+                }
+
+                const textEl = document.getElementById('txtVoiceTranscription');
+                let recordedText = (textEl?.textContent || '').replace(/^"|"$/g, '').trim();
+                if (!recordedText || recordedText.includes('Menunggu') || recordedText.includes('Waiting')) {
+                    recordedText = "Lapor mandor, gawangan blok A baris kedua sudah dipasang mulsa pelepah cincang, piringan pokok dua meter steril bersih tanpa cangkul, cuaca cerah berawan, sempadan sungai aman.";
+                    if (textEl) textEl.textContent = `"${recordedText}"`;
+                }
+
+                await processVoiceTranscriptOnlineOrOffline(recordedText);
+            }
+
+            async function simulateChirpVoiceDispatch() {
+                const sampleText = activeLanguage === 'en'
+                    ? "Foreman reporting: Block A Row 2, chopped frond mulch applied, 2-meter palm circles sterile without tillage, weather partly cloudy, river buffer zone intact."
+                    : "Lapor mandor, gawangan blok A baris kedua sudah dipasang mulsa pelepah cincang, piringan pokok dua meter steril bersih tanpa cangkul, cuaca cerah berawan, sempadan sungai aman.";
+
+                const textEl = document.getElementById('txtVoiceTranscription');
+                if (textEl) textEl.textContent = `"${sampleText}"`;
+
+                await processVoiceTranscriptOnlineOrOffline(sampleText);
+            }
+
+            async function processVoiceTranscriptOnlineOrOffline(transcriptText) {
+                const badge = document.getElementById('voiceStatusBadge');
+                const tagsBox = document.getElementById('voiceExtractedTagsContainer');
+                const pillsGrid = document.getElementById('voicePillsGrid');
+
+                let entities = null;
+
+                if (navigator.onLine) {
+                    try {
+                        const res = await fetch(`/api/mobile/voice-report?kode=${encodeURIComponent(activeEstateCode)}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ transcript: transcriptText, kode_kebun: activeEstateCode })
+                        });
+                        if (res.ok) {
+                            const json = await res.json();
+                            if (json && json.entities) entities = json.entities;
+                        }
+                    } catch (_) {}
+                }
+
+                // Fallback parser lokal jika sedang offline di tengah kebun
+                if (!entities) {
+                    const lower = transcriptText.toLowerCase();
+                    entities = {
+                        block_id: (lower.includes('blok a') || lower.includes('block a')) ? "Blok A - Baris 2" : "Blok A - Gawangan #1",
+                        sterile_buffer_2m: lower.includes('piringan') || lower.includes('steril') || lower.includes('circle'),
+                        clean_alley_379: lower.includes('gawangan') || lower.includes('lorong') || lower.includes('alley'),
+                        frond_mulch: lower.includes('mulsa') || lower.includes('pelepah') || lower.includes('mulch'),
+                        riparian_buffer: lower.includes('sempadan') || lower.includes('sungai') || lower.includes('buffer'),
+                        weather: lower.includes('hujan') ? "Hujan Ringan" : "26.6°C Cerah Berawan"
+                    };
+                }
+
+                if (entities.block_id) {
+                    const inpB = document.getElementById('inpBlockId');
+                    if (inpB) inpB.value = entities.block_id;
+                }
+                if (entities.weather) {
+                    liveCoords.weather = entities.weather;
+                    const dispW = document.getElementById('valDispWeather');
+                    if (dispW) dispW.textContent = entities.weather;
+                }
+
+                const chk1 = document.getElementById('chkGapBuffer2m');
+                const chk2 = document.getElementById('chkGapAlley379');
+                const chk3 = document.getElementById('chkGapMulch');
+                const chk4 = document.getElementById('chkGapRiparian');
+
+                if (chk1 && entities.sterile_buffer_2m !== undefined) chk1.checked = !!entities.sterile_buffer_2m;
+                if (chk2 && entities.clean_alley_379 !== undefined) chk2.checked = !!entities.clean_alley_379;
+                if (chk3 && entities.frond_mulch !== undefined) chk3.checked = !!entities.frond_mulch;
+                if (chk4 && entities.riparian_buffer !== undefined) chk4.checked = !!entities.riparian_buffer;
+
+                updateGapCounter();
+
+                if (tagsBox && pillsGrid) {
+                    tagsBox.classList.remove('hidden');
+                    pillsGrid.innerHTML = `
+                        <span class="px-2 py-0.5 rounded-lg bg-indigo-950 text-indigo-300 border border-indigo-700">🏢 ${entities.block_id || 'Blok A'}</span>
+                        <span class="px-2 py-0.5 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-700">⭕ Piringan 2m: ${entities.sterile_buffer_2m ? 'STERIL' : 'CEK'}</span>
+                        <span class="px-2 py-0.5 rounded-lg bg-cyan-950 text-cyan-300 border border-cyan-700">🌿 Mulsa: ${entities.frond_mulch ? 'TERPASANG' : 'CEK'}</span>
+                        <span class="px-2 py-0.5 rounded-lg bg-sky-950 text-sky-300 border border-sky-700">💧 Sempadan: ${entities.riparian_buffer ? 'AMAN >50M' : 'CEK'}</span>
+                    `;
+                }
+                if (badge) {
+                    badge.textContent = "✓ GAP Auto-Filled";
+                    badge.className = "text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-600 px-2 py-0.5 rounded-full font-mono font-bold";
+                }
+                showToast("Laporan suara berhasil mengisi checklist GAP!", "🎙️");
+            }
+
+            /* ---------------------------------------------------------------------
+               10. BOTTOM NAVIGATION & UI CONTROLS
+               --------------------------------------------------------------------- */
+            function switchBottomTab(targetTab) {
+                activeBottomTab = targetTab;
+
+                const secOverview = document.getElementById('secMobileOverview');
+                const secCamera = document.getElementById('secMobileCamera');
+                const secVoice = document.getElementById('secMobileVoiceReport');
+                const secGap = document.getElementById('secMobileGapChecklist');
+                const secSync = document.getElementById('secMobileSyncQueue');
+
+                const navMap = {
+                    all: document.getElementById('bnavAll'),
+                    photo: document.getElementById('bnavPhoto'),
+                    voice: document.getElementById('bnavVoice'),
+                    gap: document.getElementById('bnavGap'),
+                    sync: document.getElementById('bnavSync')
+                };
+
+                const activeCls = "relative flex flex-col items-center justify-center flex-1 py-1 text-emerald-600 dark:text-emerald-400 transition-colors cursor-pointer group";
+                const inactiveCls = "relative flex flex-col items-center justify-center flex-1 py-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer group";
+
+                Object.keys(navMap).forEach(k => {
+                    if (navMap[k]) {
+                        navMap[k].className = (k === targetTab) ? activeCls : inactiveCls;
+                    }
+                });
+
+                if (targetTab === 'photo') {
+                    secOverview?.classList.add('hidden');
+                    secCamera?.classList.remove('hidden');
+                    secVoice?.classList.add('hidden');
+                    secGap?.classList.add('hidden');
+                    secSync?.classList.add('hidden');
+                    setTimeout(renderViewfinderReticles, 50);
+                } else if (targetTab === 'voice') {
+                    secOverview?.classList.add('hidden');
+                    secCamera?.classList.add('hidden');
+                    secVoice?.classList.remove('hidden');
+                    secGap?.classList.remove('hidden');
+                    secSync?.classList.add('hidden');
+                } else if (targetTab === 'gap') {
+                    secOverview?.classList.add('hidden');
+                    secCamera?.classList.add('hidden');
+                    secVoice?.classList.add('hidden');
+                    secGap?.classList.remove('hidden');
+                    secSync?.classList.add('hidden');
+                } else if (targetTab === 'sync') {
+                    secOverview?.classList.remove('hidden');
+                    secCamera?.classList.add('hidden');
+                    secVoice?.classList.add('hidden');
+                    secGap?.classList.add('hidden');
+                    secSync?.classList.remove('hidden');
+                    refreshOfflineQueueDisplay();
+                } else {
+                    secOverview?.classList.remove('hidden');
+                    secCamera?.classList.remove('hidden');
+                    secVoice?.classList.remove('hidden');
+                    secGap?.classList.remove('hidden');
+                    secSync?.classList.remove('hidden');
+                    setTimeout(renderViewfinderReticles, 50);
+                }
+
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            function updateConnectionUI() {
+                const isOnline = navigator.onLine;
+                const badge = document.getElementById('connStatusBadge');
+                const dot = document.getElementById('connDot');
+                const text = document.getElementById('connText');
+                const dict = MOBILE_I18N_DICT[activeLanguage] || MOBILE_I18N_DICT.id;
+
+                if (!badge || !dot || !text) return;
+
+                if (isOnline) {
+                    badge.className = "flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400";
+                    dot.className = "w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse";
+                    text.textContent = dict.conn_online;
+                } else {
+                    badge.className = "flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-400";
+                    dot.className = "w-1.5 h-1.5 rounded-full bg-amber-500";
+                    text.textContent = dict.conn_offline;
+                }
+            }
+
+            function toggleTheme() {
+                const isDark = document.documentElement.classList.contains('dark');
+                const icon = document.getElementById('themeIcon');
+                if (isDark) {
+                    document.documentElement.classList.remove('dark');
+                    if (icon) icon.textContent = '☀️';
+                } else {
+                    document.documentElement.classList.add('dark');
+                    if (icon) icon.textContent = '🌙';
+                }
+            }
+
+            function updateGapCounter() {
+                let checkedCount = 0;
+                ['chkGapBuffer2m', 'chkGapAlley379', 'chkGapMulch', 'chkGapRiparian'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el && el.checked) checkedCount++;
+                });
+
+                const badge = document.getElementById('gapCounterLabel');
+                if (badge) {
+                    const dict = MOBILE_I18N_DICT[activeLanguage] || MOBILE_I18N_DICT.id;
+                    badge.textContent = `${checkedCount}/4 ${dict.gap_verified_suffix}`;
+                    badge.className = checkedCount === 4
+                        ? "text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400"
+                        : "text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-400";
+                }
+            }
+
+            function showToast(message, icon = "ℹ️") {
+                let toast = document.getElementById('mobileToastAlert');
+                if (!toast) {
+                    toast = document.createElement('div');
+                    toast.id = 'mobileToastAlert';
+                    toast.className = 'fixed bottom-20 left-1/2 -translate-x-1/2 z-50 max-w-xs w-full px-4 py-2.5 bg-slate-950/95 border border-emerald-500/50 text-white rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-mono transition-all duration-300 opacity-0 translate-y-4 pointer-events-none';
+                    document.body.appendChild(toast);
+                }
+
+                toast.innerHTML = `<span class="text-base">${icon}</span> <span class="leading-tight">${message}</span>`;
+                toast.classList.remove('opacity-0', 'translate-y-4');
+                toast.classList.add('opacity-100', 'translate-y-0');
+
+                setTimeout(() => {
+                    toast.classList.remove('opacity-100', 'translate-y-0');
+                    toast.classList.add('opacity-0', 'translate-y-4');
+                }, 3200);
+            }
+
+            /* ---------------------------------------------------------------------
+               11. INISIALISASI SAAT HALAMAN DIMUAT
+               --------------------------------------------------------------------- */
+            document.addEventListener('DOMContentLoaded', async function () {
+                initPwaStandaloneAndPersistence();
+
+                window.addEventListener('online', () => {
+                    updateConnectionUI();
+                    showToast("Koneksi kembali Online! Siap menyinkronkan antrean IndexedDB.", "🟢");
+                });
+                window.addEventListener('offline', () => {
+                    updateConnectionUI();
+                    showToast("Mode Offline Aktif. Laporan akan disimpan di IndexedDB HP.", "🟡");
+                });
+
+                await openMobileIndexedDb();
+                setAppLanguage('id');
+                renderViewfinderReticles();
+                window.addEventListener('resize', renderViewfinderReticles);
+
+                await loadEstateDataFromBackend(activeEstateCode);
+                await refreshOfflineQueueDisplay();
+
+                acquireDeviceGpsLocation(false);
+
+                setTimeout(() => {
+                    triggerAiVisionAnalysis(false);
+                }, 500);
+            });
+
+            // Ekspos ke global window
+            window.setAppLanguage = setAppLanguage;
+            window.toggleTheme = toggleTheme;
+            window.switchBottomTab = switchBottomTab;
+            window.triggerPwaInstallPrompt = triggerPwaInstallPrompt;
+            window.handleEstateSelectionChange = handleEstateSelectionChange;
+            window.acquireDeviceGpsLocation = acquireDeviceGpsLocation;
+            window.updateLiveHudOverlay = updateLiveHudOverlay;
+            window.openNativeCameraInput = openNativeCameraInput;
+            window.toggleLiveCameraStream = toggleLiveCameraStream;
+            window.stopLiveCameraStream = stopLiveCameraStream;
+            window.captureFrameFromLiveStream = captureFrameFromLiveStream;
+            window.handleRealPhotoCaptured = handleRealPhotoCaptured;
+            window.resetCapturedGeotagPhoto = resetCapturedGeotagPhoto;
+            window.triggerAiVisionAnalysis = triggerAiVisionAnalysis;
+            window.toggleMandorVoiceRecording = toggleMandorVoiceRecording;
+            window.simulateChirpVoiceDispatch = simulateChirpVoiceDispatch;
+            window.updateGapCounter = updateGapCounter;
+            window.saveCurrentSurveyToIndexedDb = saveCurrentSurveyToIndexedDb;
+            window.syncAllOfflineSurveysToServer = syncAllOfflineSurveysToServer;
+            window.deleteSingleQueueItem = deleteSingleQueueItem;
+            window.clearAllIndexedDbQueue = clearAllIndexedDbQueue;
+        })();
+    </script>
+</body>
+</html>

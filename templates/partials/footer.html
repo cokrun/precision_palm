@@ -1,0 +1,826 @@
+<!-- templates/partials/footer.html -->
+<style>
+  /* Animasi Shimmer Efek Berjalan untuk Footer */
+  @keyframes shimmerFooterSweep {
+    0% {
+      background-position: -200% 0;
+    }
+
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .footer-shimmer-glow {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .footer-shimmer-glow::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(16, 185, 129, 0.2) 20%,
+        rgba(56, 189, 248, 0.8) 50%,
+        rgba(16, 185, 129, 0.2) 80%,
+        transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmerFooterSweep 5s infinite linear;
+    pointer-events-none;
+  }
+
+  .footer-pill-shimmer {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.12) 0%, rgba(56, 189, 248, 0.35) 50%, rgba(16, 185, 129, 0.12) 100%);
+    background-size: 200% 100%;
+    animation: shimmerFooterSweep 3.5s infinite linear;
+  }
+</style>
+
+<footer id="mainAppFooter"
+  class="footer-shimmer-glow w-full mt-14 pt-8 pb-10 border-t border-slate-200/80 dark:border-slate-800 bg-white/75 dark:bg-slate-950/80 backdrop-blur-xl text-slate-700 dark:text-slate-300 transition-colors duration-200">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+
+    <!-- Top Label & System Status Strip dengan Shimmer -->
+    <div
+      class="flex flex-col sm:flex-row items-center justify-between gap-3 pb-3 border-b border-slate-200/60 dark:border-slate-800/80 text-xs">
+      <div class="flex items-center gap-2.5">
+        <div
+          class="w-7 h-7 rounded-lg bg-emerald-600/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-sm shadow-xs">
+          🌴
+        </div>
+        <div>
+          <span class="font-extrabold text-slate-900 dark:text-white font-mono tracking-tight uppercase"
+            data-i18n="footer_brand">Precision Palm Ecosystem</span>
+          <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono ml-1.5 hidden sm:inline"
+            data-i18n="footer_dock_sub">&bull; App Launcher Dock</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] font-mono text-slate-500 dark:text-slate-400 hidden md:inline"
+          data-i18n="footer_tap_hint">Tap any icon to launch module or view specification</span>
+        <span
+          class="footer-pill-shimmer inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-emerald-800 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-700 font-mono text-[10px] font-bold">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span data-i18n="footer_version">v2.8.0 Active Standard</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- MAIN APP LAUNCHER DOCK: CATEGORIZED APP ICON TILES -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+      <!-- GROUP 1: PLATFORM APPLICATIONS & NAVIGATION (7 COLS) -->
+      <div class="lg:col-span-7 space-y-3">
+        <div
+          class="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
+          <span data-i18n="footer_app_title">🚀 Applications &amp; Core Modules</span>
+          <span class="text-[10px] text-emerald-600 dark:text-emerald-400 lowercase font-normal"
+            data-i18n="footer_tap_open">tap to open</span>
+        </div>
+
+        <div class="grid grid-cols-3 sm:grid-cols-6 gap-3">
+          <!-- App 1: Home -->
+          <a href="/"
+            class="group flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-100/80 dark:hover:bg-slate-900/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-800 transition-all duration-200 cursor-pointer">
+            <div
+              class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-slate-800 to-slate-700 text-white shadow-md group-hover:scale-105 group-hover:shadow-emerald-500/20 group-hover:border-emerald-500 flex items-center justify-center text-2xl border border-slate-600 transition-all">
+              🏠
+            </div>
+            <span class="text-[11px] font-semibold text-slate-800 dark:text-slate-200 mt-2 truncate w-full"
+              data-i18n="footer_app_home">Home</span>
+            <span class="text-[9px] font-mono text-slate-400 dark:text-slate-500"
+              data-i18n="footer_sub_home">Landing</span>
+          </a>
+
+          <!-- App 2: Simulator Core -->
+          <a href="/simulator"
+            class="group flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-100/80 dark:hover:bg-slate-900/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-800 transition-all duration-200 cursor-pointer">
+            <div
+              class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-700 to-teal-500 text-white shadow-md group-hover:scale-105 group-hover:shadow-emerald-500/30 flex items-center justify-center text-2xl border border-emerald-400/50 transition-all">
+              ⚡
+            </div>
+            <span class="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 mt-2 truncate w-full"
+              data-i18n="footer_app_sim">In-Silico</span>
+            <span class="text-[9px] font-mono text-slate-400 dark:text-slate-500" data-i18n="footer_sub_sim">Stage 2B
+              Core</span>
+          </a>
+
+          <!-- App 3: Spatial Telemetry -->
+          <a href="/spatial"
+            class="group flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-100/80 dark:hover:bg-slate-900/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-800 transition-all duration-200 cursor-pointer">
+            <div
+              class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-700 to-sky-500 text-white shadow-md group-hover:scale-105 group-hover:shadow-sky-500/30 flex items-center justify-center text-2xl border border-sky-400/50 transition-all">
+              🗺️
+            </div>
+            <span class="text-[11px] font-semibold text-slate-800 dark:text-slate-200 mt-2 truncate w-full"
+              data-i18n="footer_app_spatial">Spatial</span>
+            <span class="text-[9px] font-mono text-slate-400 dark:text-slate-500" data-i18n="footer_sub_spatial">GIS
+              Telemetry</span>
+          </a>
+
+          <!-- App 4: Roadmap -->
+          <a href="/roadmap"
+            class="group flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-100/80 dark:hover:bg-slate-900/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-800 transition-all duration-200 cursor-pointer">
+            <div
+              class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-700 to-violet-500 text-white shadow-md group-hover:scale-105 group-hover:shadow-indigo-500/30 flex items-center justify-center text-2xl border border-indigo-400/50 transition-all">
+              🔁
+            </div>
+            <span class="text-[11px] font-semibold text-slate-800 dark:text-slate-200 mt-2 truncate w-full"
+              data-i18n="footer_app_roadmap">Compliance</span>
+            <span class="text-[9px] font-mono text-slate-400 dark:text-slate-500" data-i18n="footer_sub_roadmap">7-Stage
+              WBS</span>
+          </a>
+
+          <!-- App 5: Mobile Edge PWA -->
+          <a href="/mobile"
+            class="group flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-100/80 dark:hover:bg-slate-900/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-800 transition-all duration-200 cursor-pointer">
+            <div
+              class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-600 to-orange-500 text-white shadow-md group-hover:scale-105 group-hover:shadow-amber-500/30 flex items-center justify-center text-2xl border border-amber-400/50 transition-all">
+              📱
+            </div>
+            <span class="text-[11px] font-semibold text-slate-800 dark:text-slate-200 mt-2 truncate w-full"
+              data-i18n="footer_app_mobile">Field Node</span>
+            <span class="text-[9px] font-mono text-slate-400 dark:text-slate-500" data-i18n="footer_sub_mobile">Foreman
+              PWA</span>
+          </a>
+
+          <!-- App 6: Methodology Guide -->
+          <a href="/panduan"
+            class="group flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-100/80 dark:hover:bg-slate-900/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-800 transition-all duration-200 cursor-pointer">
+            <div
+              class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-teal-700 to-emerald-600 text-white shadow-md group-hover:scale-105 group-hover:shadow-teal-500/30 flex items-center justify-center text-2xl border border-teal-400/50 transition-all">
+              📚
+            </div>
+            <span class="text-[11px] font-semibold text-slate-800 dark:text-slate-200 mt-2 truncate w-full"
+              data-i18n="footer_app_guide">Methodology</span>
+            <span class="text-[9px] font-mono text-slate-400 dark:text-slate-500"
+              data-i18n="footer_sub_guide">Scientific Guide</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- GROUP 2: SCIENTIFIC STANDARDS & LEGAL DISCLOSURES (5 COLS - POP-UP TRIGGER TILES) -->
+      <div class="lg:col-span-5 space-y-3">
+        <div
+          class="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
+          <span data-i18n="footer_spec_title">🔬 Scientific &amp; Legal Specifications</span>
+          <span class="text-[10px] text-indigo-600 dark:text-indigo-400 lowercase font-normal"
+            data-i18n="footer_tap_popup">tap for pop-up</span>
+        </div>
+
+        <div class="grid grid-cols-3 sm:grid-cols-5 gap-3">
+          <!-- Info Tile 1: DJKI Legal / Copyright Modal -->
+          <button type="button" onclick="openFooterDetailModal('djki_legal')"
+            class="group flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-100/80 dark:hover:bg-slate-900/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-800 transition-all duration-200 cursor-pointer focus:outline-none">
+            <div
+              class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-800 to-indigo-700 text-white shadow-md group-hover:scale-105 group-hover:shadow-purple-500/30 flex items-center justify-center text-2xl border border-purple-400/50 transition-all">
+              🏛️
+            </div>
+            <span class="text-[11px] font-semibold text-slate-800 dark:text-slate-200 mt-2 truncate w-full"
+              data-i18n="footer_tile_djki">DJKI Legal</span>
+            <span class="text-[9px] font-mono text-slate-400 dark:text-slate-500"
+              data-i18n="footer_sub_djki">Copyright</span>
+          </button>
+
+          <!-- Info Tile 2: Canopy Physics Modal -->
+          <button type="button" onclick="openFooterDetailModal('canopy_physics')"
+            class="group flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-100/80 dark:hover:bg-slate-900/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-800 transition-all duration-200 cursor-pointer focus:outline-none">
+            <div
+              class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-800 to-green-600 text-white shadow-md group-hover:scale-105 group-hover:shadow-emerald-500/30 flex items-center justify-center text-2xl border border-emerald-400/50 transition-all">
+              🌿
+            </div>
+            <span class="text-[11px] font-semibold text-slate-800 dark:text-slate-200 mt-2 truncate w-full"
+              data-i18n="footer_tile_canopy">Canopy</span>
+            <span class="text-[9px] font-mono text-slate-400 dark:text-slate-500"
+              data-i18n="footer_sub_canopy">Beer-Lambert</span>
+          </button>
+
+          <!-- Info Tile 3: Carbon & Climate Asset Modal -->
+          <button type="button" onclick="openFooterDetailModal('carbon_standards')"
+            class="group flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-100/80 dark:hover:bg-slate-900/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-800 transition-all duration-200 cursor-pointer focus:outline-none">
+            <div
+              class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-teal-800 to-cyan-600 text-white shadow-md group-hover:scale-105 group-hover:shadow-teal-500/30 flex items-center justify-center text-2xl border border-teal-400/50 transition-all">
+              🌱
+            </div>
+            <span class="text-[11px] font-semibold text-slate-800 dark:text-slate-200 mt-2 truncate w-full"
+              data-i18n="footer_tile_carbon">Carbon</span>
+            <span class="text-[9px] font-mono text-slate-400 dark:text-slate-500" data-i18n="footer_sub_carbon">VM0007
+              Tier 3</span>
+          </button>
+
+          <!-- Info Tile 4: Geodetic & SHA-256 Crypto Modal -->
+          <button type="button" onclick="openFooterDetailModal('crypto_security')"
+            class="group flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-100/80 dark:hover:bg-slate-900/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-800 transition-all duration-200 cursor-pointer focus:outline-none">
+            <div
+              class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-rose-800 to-pink-600 text-white shadow-md group-hover:scale-105 group-hover:shadow-rose-500/30 flex items-center justify-center text-2xl border border-rose-400/50 transition-all">
+              🔒
+            </div>
+            <span class="text-[11px] font-semibold text-slate-800 dark:text-slate-200 mt-2 truncate w-full"
+              data-i18n="footer_tile_crypto">Crypto</span>
+            <span class="text-[9px] font-mono text-slate-400 dark:text-slate-500" data-i18n="footer_sub_crypto">SHA-256
+              Seal</span>
+          </button>
+
+          <!-- Info Tile 5: Gemini AI Engine Modal -->
+          <button type="button" onclick="openFooterDetailModal('gemini_ai')"
+            class="group flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-100/80 dark:hover:bg-slate-900/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-800 transition-all duration-200 cursor-pointer focus:outline-none">
+            <div
+              class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-700 to-sky-500 text-white shadow-md group-hover:scale-105 group-hover:shadow-blue-500/30 flex items-center justify-center text-2xl border border-sky-400/50 transition-all">
+              🤖
+            </div>
+            <span class="text-[11px] font-semibold text-slate-800 dark:text-slate-200 mt-2 truncate w-full"
+              data-i18n="footer_tile_gemini">Gemini AI</span>
+            <span class="text-[9px] font-mono text-slate-400 dark:text-slate-500" data-i18n="footer_sub_gemini">Vision
+              2.5</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Minimalist Bottom Copyright Strip -->
+    <div
+      class="pt-5 border-t border-slate-200/60 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-center sm:text-left text-[11px] font-mono text-slate-500 dark:text-slate-400">
+      <div class="flex items-center gap-2">
+        <span data-i18n="footer_copyright">&copy; 2026 Precision Palm &bull; Muhammad Rizki. All rights reserved.</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <button type="button" onclick="openFooterDetailModal('djki_legal')"
+          class="hover:text-emerald-600 dark:hover:text-emerald-400 transition underline cursor-pointer"
+          data-i18n="footer_legal_link">
+          Legal &amp; IP Disclosure
+        </button>
+        <span>&bull;</span>
+        <a href="/panduan" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition hover:underline"
+          data-i18n="footer_manual_link">
+          Regulatory Manual
+        </a>
+      </div>
+    </div>
+
+  </div>
+</footer>
+
+<!-- =========================================================================
+     INTERACTIVE FOOTER VIEW POP-UP (MODAL) FOR DETAILED SPECIFICATIONS
+     ========================================================================= -->
+<div id="footerDetailModal"
+  class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden animate-in fade-in duration-200">
+  <div
+    class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 transition-colors font-sans max-h-[90vh] overflow-y-auto">
+
+    <!-- Modal Header -->
+    <div class="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+      <div class="flex items-center gap-3">
+        <div id="footerModalIconBox"
+          class="w-11 h-11 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-2xl shadow-xs shrink-0">
+          🏛️
+        </div>
+        <div>
+          <span id="footerModalCategory"
+            class="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block"
+            data-i18n="footer_modal_spec_lbl">
+            Specification
+          </span>
+          <h3 id="footerModalTitle"
+            class="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white leading-tight">
+            Specification Title
+          </h3>
+        </div>
+      </div>
+      <button type="button" onclick="closeFooterDetailModal()"
+        class="text-slate-400 hover:text-slate-800 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer text-lg leading-none"
+        title="Close">
+        ✕
+      </button>
+    </div>
+
+    <!-- Modal Body Content -->
+    <div id="footerModalBody" class="space-y-3 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
+      <!-- Injected via JavaScript -->
+    </div>
+
+    <!-- Modal Footer Actions -->
+    <div class="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 text-xs">
+      <span class="text-[10px] font-mono text-slate-400 dark:text-slate-500"
+        data-i18n="footer_modal_engine_lbl">Precision Palm MRV Engine</span>
+      <button type="button" onclick="closeFooterDetailModal()"
+        class="px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-xl font-bold transition shadow-xs cursor-pointer"
+        data-i18n="footer_modal_close_btn">
+        Close
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  /* =========================================================================
+     FOOTER BILINGUAL SPECIFICATIONS DICTIONARY (EN & ID)
+     ========================================================================= */
+  const FOOTER_I18N_DICT = {
+    en: {
+      footer_brand: "Precision Palm Ecosystem",
+      footer_dock_sub: "• App Launcher Dock",
+      footer_tap_hint: "Tap any icon to launch module or view specification",
+      footer_version: "v2.8.0 Active Standard",
+      footer_app_title: "🚀 Applications & Core Modules",
+      footer_tap_open: "tap to open",
+      footer_app_home: "Home",
+      footer_sub_home: "Landing",
+      footer_app_sim: "In-Silico",
+      footer_sub_sim: "Stage 2B Core",
+      footer_app_spatial: "Spatial",
+      footer_sub_spatial: "GIS Telemetry",
+      footer_app_roadmap: "Compliance",
+      footer_sub_roadmap: "7-Stage WBS",
+      footer_app_mobile: "Field Node",
+      footer_sub_mobile: "Foreman PWA",
+      footer_app_guide: "Methodology",
+      footer_sub_guide: "Scientific Guide",
+      footer_spec_title: "🔬 Scientific & Legal Specifications",
+      footer_tap_popup: "tap for pop-up",
+      footer_tile_djki: "DJKI Legal",
+      footer_sub_djki: "Copyright",
+      footer_tile_canopy: "Canopy",
+      footer_sub_canopy: "Beer-Lambert",
+      footer_tile_carbon: "Carbon",
+      footer_sub_carbon: "VM0007 Tier 3",
+      footer_tile_crypto: "Crypto",
+      footer_sub_crypto: "SHA-256 Seal",
+      footer_tile_gemini: "Gemini AI",
+      footer_sub_gemini: "Vision 2.5",
+      footer_copyright: "© 2026 Precision Palm • Muhammad Rizki. All rights reserved.",
+      footer_legal_link: "Legal & IP Disclosure",
+      footer_manual_link: "Regulatory Manual",
+      footer_modal_spec_lbl: "Specification",
+      footer_modal_engine_lbl: "Precision Palm MRV Engine",
+      footer_modal_close_btn: "Close"
+    },
+    id: {
+      footer_brand: "Ekosistem Precision Palm",
+      footer_dock_sub: "• Dok Peluncur Aplikasi",
+      footer_tap_hint: "Ketuk ikon apa pun untuk membuka modul atau melihat spesifikasi",
+      footer_version: "v2.8.0 Standar Aktif",
+      footer_app_title: "🚀 Aplikasi & Modul Utama",
+      footer_tap_open: "ketuk untuk membuka",
+      footer_app_home: "Beranda",
+      footer_sub_home: "Halaman Awal",
+      footer_app_sim: "In-Silico",
+      footer_sub_sim: "Inti Tahap 2B",
+      footer_app_spatial: "Spasial",
+      footer_sub_spatial: "Telemetri SIG",
+      footer_app_roadmap: "Kepatuhan",
+      footer_sub_roadmap: "Alur 7-Tahap",
+      footer_app_mobile: "Node Lapangan",
+      footer_sub_mobile: "PWA Mandor",
+      footer_app_guide: "Metodologi",
+      footer_sub_guide: "Panduan Ilmiah",
+      footer_spec_title: "🔬 Spesifikasi Ilmiah & Regulasi",
+      footer_tap_popup: "ketuk untuk pop-up",
+      footer_tile_djki: "Legal DJKI",
+      footer_sub_djki: "Hak Cipta",
+      footer_tile_canopy: "Kanopi",
+      footer_sub_canopy: "Beer-Lambert",
+      footer_tile_carbon: "Karbon",
+      footer_sub_carbon: "VM0007 Tier 3",
+      footer_tile_crypto: "Kripto",
+      footer_sub_crypto: "Segel SHA-256",
+      footer_tile_gemini: "Gemini AI",
+      footer_sub_gemini: "Visi Multimodal",
+      footer_copyright: "© 2026 Precision Palm • Muhammad Rizki. Seluruh hak cipta dilindungi.",
+      footer_legal_link: "Keterbukaan Hukum & HAKI",
+      footer_manual_link: "Manual Regulasi",
+      footer_modal_spec_lbl: "Spesifikasi Teknis",
+      footer_modal_engine_lbl: "Mesin MRV Precision Palm",
+      footer_modal_close_btn: "Tutup"
+    }
+  };
+
+  const footerSpecsData = {
+    en: {
+      djki_legal: {
+        icon: "🏛️",
+        category: "Intellectual Property & Statutory Protection",
+        title: "DJKI Legal Registration & Intellectual Property Rights",
+        content: `
+          <div class="space-y-3 font-sans">
+            <div class="p-3 bg-purple-50 dark:bg-purple-950/40 rounded-xl border border-purple-200 dark:border-purple-800 text-purple-950 dark:text-purple-200">
+              <strong class="block text-xs font-bold">Directorate General of Intellectual Property (DJKI)</strong>
+              <p class="text-[11px] mt-1 leading-relaxed">
+                Copyright &copy; 2026 <strong>Muhammad Rizki</strong>. Officially registered at the Ministry of Law and Human Rights of the Republic of Indonesia as an Agroforestry Engineering Computer Program &amp; Statutory Compliance Suite.
+              </p>
+            </div>
+            <div class="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
+              <div class="flex items-start gap-2">
+                <span class="text-emerald-600 font-bold">&bull;</span>
+                <span><strong>Legal Basis:</strong> Law of the Republic of Indonesia Number 28 of 2014 concerning Copyright &amp; Berne Convention for the Protection of Literary and Artistic Works.</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="text-emerald-600 font-bold">&bull;</span>
+                <span><strong>Exclusive Scope:</strong> Covers all deterministic source code, palm frond canopy attenuation biophysical models, SQLite schema, Land Equivalent Ratio (LER) formulations, and geospatial telemetry APIs.</span>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      canopy_physics: {
+        icon: "🌿",
+        category: "Biophysical Modeling Specification",
+        title: "Monsi-Saeki Beer-Lambert Canopy Radiation Attenuation",
+        content: `
+          <div class="space-y-3 font-sans">
+            <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200">
+              <strong class="block text-xs font-bold font-mono">I = I₀ &times; exp(-k &times; LAI)</strong>
+              <p class="text-[11px] mt-1 leading-relaxed">
+                Deterministic model calculating transmission of Photosynthetically Active Radiation (PAR 400–700 nm) through oil palm frond canopy into productive alley corridors.
+              </p>
+            </div>
+            <div class="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Extinction Coefficient (k):</span>
+                <strong class="font-mono text-emerald-600">k = 0.45 (Monsi-Saeki Calibrated)</strong>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Planting Geometry:</span>
+                <strong class="font-mono">9.0m Triangular Grid (136–143 palms/ha)</strong>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Sterile Circle (ISPO GAP):</span>
+                <strong class="font-mono text-rose-500">2.0m Zero-Tillage Root Zone</strong>
+              </div>
+              <div class="flex justify-between pb-1">
+                <span>Effective Alley Corridor:</span>
+                <strong class="font-mono text-emerald-600">3.79 Meters (82.91% Net Area)</strong>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      carbon_standards: {
+        icon: "🌱",
+        category: "Climate Assets & Carbon Integrity",
+        title: "IPCC Tier 3 AFOLU & Verra VCS VM0007 Standards",
+        content: `
+          <div class="space-y-3 font-sans">
+            <div class="p-3 bg-teal-50 dark:bg-teal-950/40 rounded-xl border border-teal-200 dark:border-teal-800 text-teal-950 dark:text-teal-200">
+              <strong class="block text-xs font-bold">Avoided Deforestation &amp; Soil Organic Carbon Accounting</strong>
+              <p class="text-[11px] mt-1 leading-relaxed">
+                Total Climate Benefit (tCO₂e) = [ Spared Forest &times; 450.0 ] + [ Certified Land Area &times; 1.8 ]
+              </p>
+            </div>
+            <div class="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Tropical Forest Biomass Stock:</span>
+                <strong class="font-mono text-teal-600">450.0 tCO₂e/Ha (VM0007 Benchmark)</strong>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Soil Organic Carbon (SOC):</span>
+                <strong class="font-mono">+1.8 tCO₂e/Ha/Year (Mulch &amp; Exudates)</strong>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Synthetic Urea Offset:</span>
+                <strong class="font-mono text-indigo-600">141.3 kg Urea/Ha (Legume N-Fixation)</strong>
+              </div>
+              <div class="flex justify-between pb-1">
+                <span>Voluntary Carbon Reference:</span>
+                <strong class="font-mono text-amber-600">$ 12.00 USD / tCO₂e (VCM Gate)</strong>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      crypto_security: {
+        icon: "🔒",
+        category: "Statutory Geodetic & Cryptographic Protocol",
+        title: "OGC GeoJSON RFC 7946 & SHA-256 Tamper-Proof Seal",
+        content: `
+          <div class="space-y-3 font-sans">
+            <div class="p-3 bg-rose-50 dark:bg-rose-950/40 rounded-xl border border-rose-200 dark:border-rose-800 text-rose-950 dark:text-rose-200">
+              <strong class="block text-xs font-bold">FIPS 180-4 Cryptographic Audit Trail</strong>
+              <p class="text-[11px] mt-1 leading-relaxed">
+                Each verification generates a 64-character hexadecimal SHA-256 hash sealing estate identity, WGS84 coordinates, LER ratio, surveillance timestamps, and drone orthophotos.
+              </p>
+            </div>
+            <div class="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Coordinate Precision:</span>
+                <strong class="font-mono text-rose-600">WGS84 6-Decimal Precision (&lt;1 meter)</strong>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Export Polygon Format:</span>
+                <strong class="font-mono">OGC GeoJSON RFC 7946 Polygon</strong>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Statutory Compliance:</span>
+                <strong class="font-mono text-emerald-600">EUDR Article 9 &amp; TRACES DDS Ready</strong>
+              </div>
+              <div class="flex justify-between pb-1">
+                <span>Moratorium Clearance:</span>
+                <strong class="font-mono">100% Free of PIPPIB 2024 Forest</strong>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      gemini_ai: {
+        icon: "🤖",
+        category: "Autonomous Visual Perception & Reasoning",
+        title: "Google Cloud Run & Gemini 3.8 Flash Multimodal Vision",
+        content: `
+          <div class="space-y-3 font-sans">
+            <div class="p-3 bg-sky-50 dark:bg-sky-950/40 rounded-xl border border-sky-200 dark:border-sky-800 text-sky-950 dark:text-sky-200">
+              <strong class="block text-xs font-bold">Multimodal Visual RAG &amp; Object Detection</strong>
+              <p class="text-[11px] mt-1 leading-relaxed">
+                Processes drone canopy orthophotos (GSD &lt;3.2 cm/px) and foreman field photos to verify 2.0m sterile circle, 3.79m alley width, and lower frond chlorosis indicators.
+              </p>
+            </div>
+            <div class="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Serverless Architecture:</span>
+                <strong class="font-mono text-sky-600">Google Cloud Run (Serverless)</strong>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Object Detection Classes:</span>
+                <strong class="font-mono text-emerald-600">[Palm Stand], [Alley 3.79m], [2.0m Buffer]</strong>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Zero-Hallucination Protocol:</span>
+                <strong class="font-mono">Strict JSON Schema Enforcement</strong>
+              </div>
+              <div class="flex justify-between pb-1">
+                <span>Network Resilience:</span>
+                <strong class="font-mono text-amber-600">Offline SQLite Buffer &amp; Continuous Sync</strong>
+              </div>
+            </div>
+          </div>
+        `
+      }
+    },
+    id: {
+      djki_legal: {
+        icon: "🏛️",
+        category: "Perlindungan Kekayaan Intelektual & Statuter",
+        title: "Pendaftaran Resmi DJKI Kemenkumham RI & Hak Cipta",
+        content: `
+          <div class="space-y-3 font-sans">
+            <div class="p-3 bg-purple-50 dark:bg-purple-950/40 rounded-xl border border-purple-200 dark:border-purple-800 text-purple-950 dark:text-purple-200">
+              <strong class="block text-xs font-bold">Direktorat Jenderal Kekayaan Intelektual (DJKI) Kemenkumham RI</strong>
+              <p class="text-[11px] mt-1 leading-relaxed">
+                Hak Cipta &copy; 2026 <strong>Muhammad Rizki</strong>. Terdaftar resmi di Kementerian Hukum dan HAM Republik Indonesia sebagai Program Komputer Rekayasa Agroforestri &amp; Kepatuhan Statuter.
+              </p>
+            </div>
+            <div class="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
+              <div class="flex items-start gap-2">
+                <span class="text-emerald-600 font-bold">&bull;</span>
+                <span><strong>Dasar Hukum:</strong> Undang-Undang Republik Indonesia Nomor 28 Tahun 2014 tentang Hak Cipta &amp; Konvensi Bern (Berne Convention for the Protection of Literary and Artistic Works).</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="text-emerald-600 font-bold">&bull;</span>
+                <span><strong>Cakupan Hak Eksklusif:</strong> Meliputi seluruh kode sumber deterministik, algoritma biofisika atenuasi kanopi pelepah sawit, skema basis data SQLite, formulasi Land Equivalent Ratio (LER), dan integrasi API telemetri spasial.</span>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      canopy_physics: {
+        icon: "🌿",
+        category: "Spesifikasi Pemodelan Biofisika",
+        title: "Atenuasi Radiasi Kanopi Monsi-Saeki Beer-Lambert",
+        content: `
+          <div class="space-y-3 font-sans">
+            <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200">
+              <strong class="block text-xs font-bold font-mono">I = I₀ &times; exp(-k &times; LAI)</strong>
+              <p class="text-[11px] mt-1 leading-relaxed">
+                Model deterministik atenuasi penetrasi radiasi fotosintesis aktif (PAR 400–700 nm) menembus tajuk pelepah kelapa sawit ke lorong gawangan produktif.
+              </p>
+            </div>
+            <div class="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Koefisien Ekstingsi (k):</span>
+                <strong class="font-mono text-emerald-600">k = 0.45 (Kalibrasi Monsi-Saeki)</strong>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Pola Tanam Baku:</span>
+                <strong class="font-mono">9.0m Triangular Grid (136–143 pokok/ha)</strong>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Piringan Steril (ISPO GAP):</span>
+                <strong class="font-mono text-rose-500">2.0m Bebas Olah Tanah (Zero-Tillage)</strong>
+              </div>
+              <div class="flex justify-between pb-1">
+                <span>Koridor Bersih Gawangan:</span>
+                <strong class="font-mono text-emerald-600">3.79 Meter (82.91% Luas Efektif)</strong>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      carbon_standards: {
+        icon: "🌱",
+        category: "Integritas Aset Karbon & Iklim",
+        title: "Standar IPCC Tier 3 AFOLU & Verra VCS VM0007",
+        content: `
+          <div class="space-y-3 font-sans">
+            <div class="p-3 bg-teal-50 dark:bg-teal-950/40 rounded-xl border border-teal-200 dark:border-teal-800 text-teal-950 dark:text-teal-200">
+              <strong class="block text-xs font-bold">Akuntansi Deforestasi Tercegah &amp; Karbon Organik Tanah</strong>
+              <p class="text-[11px] mt-1 leading-relaxed">
+                Total Manfaat Iklim (tCO₂e) = [ Hutan Terhemat &times; 450.0 ] + [ Luas Kebun Bersertifikat &times; 1.8 ]
+              </p>
+            </div>
+            <div class="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Emisi Stok Hutan Tropis:</span>
+                <strong class="font-mono text-teal-600">450.0 tCO₂e/Ha (Acuan VM0007)</strong>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Sekuestrasi Karbon Tanah (SOC):</span>
+                <strong class="font-mono">+1.8 tCO₂e/Ha/Tahun (Mulsa &amp; Eksudat)</strong>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Substitusi Urea Sintetis:</span>
+                <strong class="font-mono text-indigo-600">141.3 kg Urea/Ha (Fiksasi Legum N)</strong>
+              </div>
+              <div class="flex justify-between pb-1">
+                <span>Valuasi Pasar Karbon Acuan:</span>
+                <strong class="font-mono text-amber-600">$ 12.00 USD / tCO₂e (Gerbang VCM)</strong>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      crypto_security: {
+        icon: "🔒",
+        category: "Protokol Geodesi & Kriptografi Statuter",
+        title: "OGC GeoJSON RFC 7946 & Segel Antirusak SHA-256",
+        content: `
+          <div class="space-y-3 font-sans">
+            <div class="p-3 bg-rose-50 dark:bg-rose-950/40 rounded-xl border border-rose-200 dark:border-rose-800 text-rose-950 dark:text-rose-200">
+              <strong class="block text-xs font-bold">Jejak Audit Kriptografi FIPS 180-4</strong>
+              <p class="text-[11px] mt-1 leading-relaxed">
+                Setiap verifikasi menghasilkan hash SHA-256 sepanjang 64 karakter heksadesimal yang mengunci identitas rekaman, koordinat WGS84, rasio LER, cap waktu survei, dan citra ortofoto.
+              </p>
+            </div>
+            <div class="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Spesifikasi Koordinat:</span>
+                <strong class="font-mono text-rose-600">WGS84 6-Desimal Presisi (&lt;1 meter)</strong>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Format Poligon Ekspor:</span>
+                <strong class="font-mono">OGC GeoJSON RFC 7946 Polygon</strong>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Kepatuhan Regulasi:</span>
+                <strong class="font-mono text-emerald-600">EUDR Pasal 9 &amp; Trase DDS Ready</strong>
+              </div>
+              <div class="flex justify-between pb-1">
+                <span>Kliring Moratorium Hutan:</span>
+                <strong class="font-mono">100% Bebas Moratorium PIPPIB 2024</strong>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      gemini_ai: {
+        icon: "🤖",
+        category: "Persepsi Visual Otonom & Penalaran AI",
+        title: "Google Cloud Run & Visi Multimodal Gemini 3.8 Flash",
+        content: `
+          <div class="space-y-3 font-sans">
+            <div class="p-3 bg-sky-50 dark:bg-sky-950/40 rounded-xl border border-sky-200 dark:border-sky-800 text-sky-950 dark:text-sky-200">
+              <strong class="block text-xs font-bold">Multimodal Visual RAG &amp; Deteksi Objek</strong>
+              <p class="text-[11px] mt-1 leading-relaxed">
+                Memindai foto kanopi drone (GSD &lt;3.2 cm/px) dan foto lapangan mandor untuk memverifikasi piringan steril 2.0m, lebar lorong 3.79m, dan deteksi klorosis pelepah bawah sawit.
+              </p>
+            </div>
+            <div class="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Arsitektur Eksekusi:</span>
+                <strong class="font-mono text-sky-600">Google Cloud Run (Serverless)</strong>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Kelas Objek Deteksi:</span>
+                <strong class="font-mono text-emerald-600">[Pokok Sawit], [Lorong 3.79m], [Piringan 2.0m]</strong>
+              </div>
+              <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                <span>Protokol Anti-Halusinasi:</span>
+                <strong class="font-mono">Penegakan Skema Ketat JSON</strong>
+              </div>
+              <div class="flex justify-between pb-1">
+                <span>Resiliensi Jaringan:</span>
+                <strong class="font-mono text-amber-600">Buffer SQLite Offline &amp; Sinkronisasi Otomatis</strong>
+              </div>
+            </div>
+          </div>
+        `
+      }
+    }
+  };
+
+  let lastOpenedSpecKey = null;
+
+  function getActiveFooterLang() {
+    try {
+      const stored = localStorage.getItem('precision_palm_lang') ||
+        localStorage.getItem('precision_palm_language') ||
+        localStorage.getItem('precision_palm_mobile_lang');
+      if (stored === 'id' || stored === 'en') return stored;
+    } catch (_) { }
+    return 'en';
+  }
+
+  function applyFooterTranslations(lang) {
+    const targetLang = (lang === 'id' || lang === 'en') ? lang : 'en';
+    const dict = FOOTER_I18N_DICT[targetLang] || FOOTER_I18N_DICT.en;
+
+    document.querySelectorAll('#mainAppFooter [data-i18n], #footerDetailModal [data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (dict && dict[key] !== undefined) {
+        el.innerHTML = dict[key];
+      }
+    });
+
+    // Re-render open modal content if currently visible
+    const modal = document.getElementById('footerDetailModal');
+    if (modal && !modal.classList.contains('hidden') && lastOpenedSpecKey) {
+      renderFooterModalContent(lastOpenedSpecKey, targetLang);
+    }
+  }
+
+  function renderFooterModalContent(specKey, lang) {
+    const targetLang = (lang === 'id' || lang === 'en') ? lang : 'en';
+    const dict = footerSpecsData[targetLang] || footerSpecsData.en;
+    const data = dict[specKey];
+    if (!data) return;
+
+    const iconBox = document.getElementById('footerModalIconBox');
+    const catEl = document.getElementById('footerModalCategory');
+    const titleEl = document.getElementById('footerModalTitle');
+    const bodyEl = document.getElementById('footerModalBody');
+
+    if (iconBox) iconBox.textContent = data.icon;
+    if (catEl) catEl.textContent = data.category;
+    if (titleEl) titleEl.textContent = data.title;
+    if (bodyEl) bodyEl.innerHTML = data.content;
+  }
+
+  /**
+   * Buka pop-up modal rincian spesifikasi
+   */
+  function openFooterDetailModal(specKey) {
+    lastOpenedSpecKey = specKey;
+    const currentLang = getActiveFooterLang();
+    renderFooterModalContent(specKey, currentLang);
+
+    const modal = document.getElementById('footerDetailModal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+  }
+
+  /**
+   * Tutup pop-up modal
+   */
+  function closeFooterDetailModal() {
+    const modal = document.getElementById('footerDetailModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+    lastOpenedSpecKey = null;
+  }
+
+  window.addEventListener('click', function (e) {
+    const modal = document.getElementById('footerDetailModal');
+    if (modal && e.target === modal) {
+      closeFooterDetailModal();
+    }
+  });
+
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      closeFooterDetailModal();
+    }
+  });
+
+  // Sinkronisasi saat event global 'languagechanged' dipancarkan
+  window.addEventListener('languagechanged', function (e) {
+    const lang = (e.detail && e.detail.lang) ? e.detail.lang : getActiveFooterLang();
+    applyFooterTranslations(lang);
+  });
+
+  // Inisialisasi awal saat dokumen dimuat
+  document.addEventListener('DOMContentLoaded', function () {
+    applyFooterTranslations(getActiveFooterLang());
+  });
+
+  window.openFooterDetailModal = openFooterDetailModal;
+  window.closeFooterDetailModal = closeFooterDetailModal;
+</script>

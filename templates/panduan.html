@@ -1,0 +1,1168 @@
+<!-- templates/panduan.html -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page_title">Precision Palm • System Guide &amp; Scientific Manual</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+                    }
+                }
+            }
+        };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Shimmer Effect for Scientific Headers */
+        @keyframes shimmerSweep {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        .ai-shimmer-badge {
+          background: linear-gradient(
+            90deg,
+            rgba(16, 185, 129, 0.12) 0%,
+            rgba(56, 189, 248, 0.45) 50%,
+            rgba(16, 185, 129, 0.12) 100%
+          );
+          background-size: 200% 100%;
+          animation: shimmerSweep 3.2s infinite linear;
+        }
+
+        /* PRINT STYLESHEET */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 15mm 12mm 15mm 12mm;
+            }
+
+            html, body {
+                background: #ffffff !important;
+                font-family: "Times New Roman", Times, Georgia, serif !important;
+                font-size: 10pt !important;
+                line-height: 1.4 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                color: #000000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            body, div, p, span, h1, h2, h3, h4, td, th,
+            header, main, section, footer, strong, em, li, ol, ul,
+            code, a, table, thead, tbody, tr {
+                color: #000000 !important;
+                background-color: transparent !important;
+                background: none !important;
+                box-shadow: none !important;
+                text-shadow: none !important;
+            }
+
+            * {
+                border-color: #000000 !important;
+                border-radius: 0 !important;
+                backdrop-filter: none !important;
+            }
+
+            .no-print, nav, button, input, #searchBoxContainer, #roleTabNav, #btnThemeToggle, #langContainer {
+                display: none !important;
+            }
+
+            .print-card {
+                border: 1px solid #000000 !important;
+                padding: 8pt !important;
+                margin-bottom: 10pt !important;
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen p-4 sm:p-6 lg:p-8 font-sans antialiased transition-colors duration-300 selection:bg-emerald-500 selection:text-slate-950">
+    <div class="max-w-6xl mx-auto space-y-8">
+
+        <!-- Modular Header Partial -->
+        {% include 'partials/header.html' ignore missing %}
+
+        <!-- QUICK SEARCH & TOOLBAR CONTAINER -->
+        <section id="searchBoxContainer" class="no-print bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-sm dark:shadow-xl backdrop-blur-md space-y-3 transition-colors">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div class="relative flex-1">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-sm">🔍</span>
+                    <input type="text" id="guideSearchInput" oninput="filterGuideSections()" placeholder="Search guide chapters, formulas, regulations (e.g. 4-Stage, GEE, Sentinel-2, Beer-Lambert, LER, SCS-CN, 180-Day SLA, PIPPIB, EUDR, All Report)..." class="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition shadow-inner font-mono">
+                    <button type="button" onclick="resetGuideSearch()" id="btnClearSearch" class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-bold cursor-pointer">✕</button>
+                </div>
+                <div class="flex items-center justify-between sm:justify-end gap-2.5 text-xs">
+                    <div id="searchCounter" class="font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800/80 font-bold">
+                        Showing all modules
+                    </div>
+                    <!-- Print Guide Button -->
+                    <button onclick="window.print()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-200 font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs" title="Print Scientific Manual / PDF">
+                        <span>🖨️</span> <span data-i18n="btn_print_manual">Print PDF</span>
+                    </button>
+                </div>
+            </div>
+            <!-- Quick Keyword Tags -->
+            <div class="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+                <span class="text-slate-700 dark:text-slate-300 font-semibold" data-i18n="txt_quick_tags">Quick Topics:</span>
+                <button type="button" onclick="setQuickSearch('GEE')" class="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-cyan-600 dark:text-cyan-400 border border-cyan-400/40 cursor-pointer font-bold">Google Earth Engine</button>
+                <button type="button" onclick="setQuickSearch('Sentinel-2')" class="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 cursor-pointer">Sentinel-2 NDVI</button>
+                <button type="button" onclick="setQuickSearch('Beer-Lambert')" class="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 cursor-pointer" data-i18n="tag_beer">Beer-Lambert</button>
+                <button type="button" onclick="setQuickSearch('LER')" class="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 cursor-pointer" data-i18n="tag_ler">LER &amp; PLS</button>
+                <button type="button" onclick="setQuickSearch('Hansen')" class="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 cursor-pointer">Hansen Deforestation</button>
+                <button type="button" onclick="setQuickSearch('Multi-Photo')" class="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 cursor-pointer">Multi-Photo HUD</button>
+                <button type="button" onclick="setQuickSearch('SRTM')" class="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 cursor-pointer">SRTM Slope</button>
+                <button type="button" onclick="setQuickSearch('EUDR')" class="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 cursor-pointer" data-i18n="tag_eudr">EUDR Art. 9</button>
+                <button type="button" onclick="setQuickSearch('PIPPIB')" class="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 cursor-pointer" data-i18n="tag_pippib">PIPPIB Moratorium</button>
+                <button type="button" onclick="setQuickSearch('SHA-256')" class="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 cursor-pointer" data-i18n="tag_sha">SHA-256 Seal</button>
+            </div>
+        </section>
+
+        <!-- Feedback for Empty Search Results -->
+        <div id="noResultsMessage" class="hidden p-8 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl space-y-2">
+            <span class="text-3xl">🔍</span>
+            <h3 class="text-base font-bold text-slate-900 dark:text-slate-200" data-i18n="txt_no_results_title">No Matching Topics Found</h3>
+            <p class="text-xs text-slate-600 dark:text-slate-400 max-w-md mx-auto" data-i18n="txt_no_results_desc">The search query does not match any chapters, formulas, or operational guidelines.</p>
+            <button onclick="resetGuideSearch()" class="mt-2 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold cursor-pointer" data-i18n="txt_btn_reset_search">Reset Search</button>
+        </div>
+
+        <!-- SECTION 1: 4 CORE PILLARS OF PRECISION PALM ARCHITECTURE -->
+        <section class="space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-emerald-600 dark:text-emerald-400 text-lg">🏛️</span>
+                    <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight" data-i18n="sec1_title">
+                        Section 1: 4 Core Pillars of Precision Palm Architecture
+                    </h2>
+                </div>
+                <span class="text-xs font-mono text-emerald-700 dark:text-emerald-400 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/60 font-bold" data-i18n="sec1_badge">Bento Architecture</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Pillar 01 -->
+                <div class="guide-item print-card bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 shadow-sm rounded-3xl p-5 flex flex-col justify-between space-y-3 transition group">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-black font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800" data-i18n="pilar1_tag">PILLAR 01</span>
+                            <span class="text-xl group-hover:scale-110 transition">📋</span>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white leading-snug" data-i18n="pilar1_heading">
+                            Cadastral Ingestion &amp; Land Tenure Vetting
+                        </h3>
+                        <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-sans" data-i18n="pilar1_body">
+                            Authentication of agrarian title deeds (HGU, SHM, e-STDB), municipal NOP property tax records, zero-overlap parcel cross-checking, and WGS84 6-decimal closed boundary polygons under ISPO Principle 1 and EUDR Article 9.
+                        </p>
+                    </div>
+                    <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80 text-[11px] font-mono text-emerald-700 dark:text-emerald-400 flex items-center justify-between" data-i18n="pilar1_sub">
+                        <span>ISPO Principle 1</span>
+                        <span class="font-bold">100% Non-Forest APL</span>
+                    </div>
+                </div>
+
+                <!-- Pillar 02 -->
+                <div class="guide-item print-card bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-sky-500/50 shadow-sm rounded-3xl p-5 flex flex-col justify-between space-y-3 transition group">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-black font-mono text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/80 px-2.5 py-0.5 rounded-full border border-sky-200 dark:border-sky-800" data-i18n="pilar2_tag">PILLAR 02</span>
+                            <span class="text-xl group-hover:scale-110 transition">🛰️</span>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white leading-snug" data-i18n="pilar2_heading">
+                            GEE Spatial Clearance, Biophysics &amp; Recommendation Gate
+                        </h3>
+                        <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-sans" data-i18n="pilar2_body">
+                            Autonomous Google Earth Engine (GEE) planetary screening: Hansen GFC zero post-2020 deforestation verification, SRTM 30m DEM slope safety (&le;15°), Sentinel-2 NDVI/NDMI canopy indices, and Beer-Lambert (k=0.45) light attenuation modeling.
+                        </p>
+                    </div>
+                    <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80 text-[11px] font-mono text-sky-700 dark:text-sky-400 flex items-center justify-between" data-i18n="pilar2_sub">
+                        <span>GEE &bull; Beer-Lambert</span>
+                        <span class="font-bold">LER &gt; 1.40x</span>
+                    </div>
+                </div>
+
+                <!-- Pillar 03 -->
+                <div class="guide-item print-card bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-amber-500/50 shadow-sm rounded-3xl p-5 flex flex-col justify-between space-y-3 transition group">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-black font-mono text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/80 px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800" data-i18n="pilar3_tag">PILLAR 03</span>
+                            <span class="text-xl group-hover:scale-110 transition">📜</span>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white leading-snug" data-i18n="pilar3_heading">
+                            Agronomic Blueprint &amp; Provisional Green Passport
+                        </h3>
+                        <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-sans" data-i18n="pilar3_body">
+                            Technical corridor geometry: 3.79m active alley beds, strict 2.0m feeder root zero-tillage exclusion circle, stoichiometric MOP/Urea compensation, and provisional planting permit bearing SHA-256 seal.
+                        </p>
+                    </div>
+                    <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80 text-[11px] font-mono text-amber-700 dark:text-amber-400 flex items-center justify-between" data-i18n="pilar3_sub">
+                        <span>3.79m Alley &bull; 2.0m Buffer</span>
+                        <span class="font-bold">Provisional Sealed</span>
+                    </div>
+                </div>
+
+                <!-- Pillar 04 -->
+                <div class="guide-item print-card bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-purple-500/50 shadow-sm rounded-3xl p-5 flex flex-col justify-between space-y-3 transition group">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-black font-mono text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/80 px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800" data-i18n="pilar4_tag">PILLAR 04</span>
+                            <span class="text-xl group-hover:scale-110 transition">🛡️</span>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white leading-snug" data-i18n="pilar4_heading">
+                            Continuous Edge Surveillance &amp; Statutory Seal
+                        </h3>
+                        <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-sans" data-i18n="pilar4_body">
+                            Multi-evidence drone scanning with consolidated detection ledgers, offline PWA surveillance (Q1–Q4), weather anti-fraud matching, 180-day SLA enforcement, BigQuery persistence, and EUDR TRACES-NT export certificate.
+                        </p>
+                    </div>
+                    <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80 text-[11px] font-mono text-purple-700 dark:text-purple-400 flex items-center justify-between" data-i18n="pilar4_sub">
+                        <span>Multi-Evidence &bull; 180d SLA</span>
+                        <span class="font-bold">Statutory Certified</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: 7 IN-SILICO SCIENTIFIC FORMULATIONS -->
+        <section class="space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-emerald-600 dark:text-emerald-400 text-lg">📐</span>
+                    <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight" data-i18n="sec_formula_title">
+                        Section 2: Core In-Silico Scientific Equations &amp; GEE Formulations
+                    </h2>
+                </div>
+                <span class="text-xs font-mono text-emerald-700 dark:text-emerald-400 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/60 font-bold" data-i18n="sec_formula_badge">7 Deterministic Models</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Formula 1: Beer-Lambert -->
+                <div class="guide-item print-card bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-3 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold font-mono text-emerald-700 dark:text-emerald-400 uppercase" data-i18n="form1_tag">1. Radiation Attenuation</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Monsi-Saeki (1953)</span>
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white" data-i18n="form1_title">Beer-Lambert Canopy Transmission</h3>
+                    <div class="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-emerald-700 dark:text-emerald-400 font-mono text-xs sm:text-sm p-3 rounded-2xl overflow-x-auto text-center font-bold">
+                        I = I₀ · exp(-k · LAI)
+                    </div>
+                    <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-sans" data-i18n="form1_desc">
+                        Where I₀ ≈ 1,800 µmol/m²/s is incident equatorial solar PAR, k = 0.45 is the calibrated oil palm extinction coefficient, and LAI(t) = 5.5 / [1 + exp(-0.7·(t - 3.5))] governs stand maturity. Leaving aside the 2.0m sterile circle, net corridor width is exactly 3.79m.
+                    </p>
+                </div>
+
+                <!-- Formula 2: LER & PLS -->
+                <div class="guide-item print-card bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-3 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold font-mono text-sky-700 dark:text-sky-400 uppercase" data-i18n="form2_tag">2. Land Sparing Efficiency</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Mead &amp; Willey (1980)</span>
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white" data-i18n="form2_title">Land Equivalent Ratio (LER) &amp; PLS</h3>
+                    <div class="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sky-700 dark:text-sky-400 font-mono text-xs sm:text-sm p-3 rounded-2xl overflow-x-auto text-center font-bold">
+                        LER = (Y_palm / M_palm) + (Y_crop / M_crop)<br>
+                        PLS (%) = [ 1.0 - (1.0 / LER) ] × 100.0
+                    </div>
+                    <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-sans" data-i18n="form2_desc">
+                        Quantifies biological land efficiency. LER &gt; 1.0 confirms spatial sparing: polyculture yields equivalent output requiring less cumulative land. Fresh Fruit Bunch (FFB) yield deficit is capped at &le; 4.5% to safeguard main cash crop viability.
+                    </p>
+                </div>
+
+                <!-- Formula 3: Avoided Deforestation & Carbon -->
+                <div class="guide-item print-card bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-3 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold font-mono text-teal-700 dark:text-teal-400 uppercase" data-i18n="form3_tag">3. High-Integrity Carbon</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Verra VM0007 / IPCC</span>
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white" data-i18n="form3_title">Avoided Deforestation &amp; Carbon Stock</h3>
+                    <div class="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-teal-700 dark:text-teal-400 font-mono text-xs sm:text-sm p-3 rounded-2xl overflow-x-auto text-center font-bold">
+                        Spared Ha = Area × (LER - 1.0)<br>
+                        tCO₂e = [ Spared × 450.0 ] + [ Area × 1.8 ]
+                    </div>
+                    <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-sans" data-i18n="form3_desc">
+                        Converts land sparing gains into primary rainforest area protected from agricultural expansion. Uses benchmark tropical lowland emission factor of 450.0 tCO₂e/Ha (Verra VM0007) plus annual soil organic carbon (SOC) sequestration of 1.8 tCO₂e/Ha/Yr.
+                    </p>
+                </div>
+
+                <!-- Formula 4: GEE Satellite Spectral Indices (BARU) -->
+                <div class="guide-item print-card bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-3 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold font-mono text-cyan-700 dark:text-cyan-400 uppercase">4. GEE Satellite Reflectance</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Copernicus Sentinel-2</span>
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white">Sentinel-2 NDVI &amp; NDMI Metrics</h3>
+                    <div class="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-cyan-700 dark:text-cyan-400 font-mono text-xs sm:text-sm p-3 rounded-2xl overflow-x-auto text-center font-bold">
+                        NDVI = (B8 - B4) / (B8 + B4)<br>
+                        NDMI = (B8 - B11) / (B8 + B11)
+                    </div>
+                    <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
+                        Extracted via Google Earth Engine API (cloud filter &lt; 20%). Calibrates empirical canopy vigor (NDVI &ge; 0.75 target) and root zone moisture content (NDMI &ge; 0.35) prior to running in-silico agroforestry simulations.
+                    </p>
+                </div>
+
+                <!-- Formula 5: Eco-Hydrology SCS-CN -->
+                <div class="guide-item print-card bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-3 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold font-mono text-amber-700 dark:text-amber-400 uppercase" data-i18n="form4_tag">5. Eco-Hydrology Sponge</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">USDA-NRCS SCS-CN</span>
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white" data-i18n="form4_title">Aquifer Recharge &amp; Runoff Suppression</h3>
+                    <div class="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-amber-700 dark:text-amber-400 font-mono text-xs sm:text-sm p-3 rounded-2xl overflow-x-auto text-center font-bold">
+                        Q = (P - Iₐ)² / (P - Iₐ + S)<br>
+                        Recharge = P · [1 - CN/100] · 10 · 1.25
+                    </div>
+                    <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-sans" data-i18n="form4_desc">
+                        Multilayer canopy interception and contour silt pits (rorak) decrease runoff Curve Number from 82 to 64 (-22.0%), suppressing topsoil erosion by -68.4% and recharging local aquifers by +1,850 m³/Ha/year.
+                    </p>
+                </div>
+
+                <!-- Formula 6: Stoichiometric NPK & Bio-Circularity -->
+                <div class="guide-item print-card bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-3 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold font-mono text-purple-700 dark:text-purple-400 uppercase" data-i18n="form5_tag">6. Nutrient Stoichiometry</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">PPKS Agronomy</span>
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white" data-i18n="form5_title">NPK Balance &amp; Frond Bio-Circularity</h3>
+                    <div class="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-purple-700 dark:text-purple-400 font-mono text-xs sm:text-sm p-3 rounded-2xl overflow-x-auto text-center font-bold">
+                        Urea Saved = N_bio · (100 / 46)<br>
+                        MOP Supp = K₂O_need · (100 / 60)
+                    </div>
+                    <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-sans" data-i18n="form5_desc">
+                        Legume companion biological N-fixation offsets up to 141.3 kg Urea/Ha. Potassium-demanding rhizomes receive compensatory +75 kg MOP/Ha in active alleys. Shredded pruned fronds return +36.2 kg organic K₂O/Ha.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: 4-STAGE SEQUENTIAL WORKFLOW & 180-DAY SLA STATE MACHINE -->
+        <section class="space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-emerald-600 dark:text-emerald-400 text-lg">🔁</span>
+                    <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight" data-i18n="sec2_title">
+                        Section 3: 4-Stage Sequential Certification Workflow &amp; 180-Day SLA State Machine
+                    </h2>
+                </div>
+                <span class="text-xs font-mono text-emerald-700 dark:text-emerald-400 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/60 font-bold" data-i18n="sec2_badge">Lifecycle State Machine</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Tahap 1 -->
+                <div class="guide-item print-card bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 font-mono text-xs font-bold border border-emerald-300 dark:border-emerald-800" data-i18n="stage1_badge">STAGE 1</span>
+                        <span class="text-[11px] font-mono text-slate-500">/pendaftaran</span>
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white font-sans" data-i18n="stage1_title">Stage 1: Application &amp; Land Tenure Vetting</h3>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-sans" data-i18n="stage1_body">
+                        Registration of applicant identity, statutory title deed numbers (HGU, SHM, e-STDB), municipal tax IDs (NOP PBB), and closed WGS84 boundary polygons with zero-overlap verification against PIPPIB moratorium layers.
+                    </p>
+                </div>
+
+                <!-- Tahap 2A & 2B -->
+                <div class="guide-item print-card bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2.5 py-0.5 rounded-full bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-400 font-mono text-xs font-bold border border-sky-300 dark:border-sky-800" data-i18n="stage2_badge">STAGE 2A • 2B</span>
+                        <span class="text-[11px] font-mono text-slate-500">/spatial • /proses</span>
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white font-sans" data-i18n="stage2_title">Stage 2A &amp; 2B: GEE Satellite &amp; In-Silico Biophysics</h3>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-sans" data-i18n="stage2_body">
+                        SRTM 30m terrain slope auditing (&le;15°), Sentinel-2 NDVI/NDMI calibration, Hansen GFC zero-deforestation audit post-2020, Beer-Lambert light transmission modeling, and provisional passport issuance with SHA-256 seal.
+                    </p>
+                </div>
+
+                <!-- Tahap 3 -->
+                <div class="guide-item print-card bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 font-mono text-xs font-bold border border-amber-300 dark:border-amber-800" data-i18n="stage3_badge">STAGE 3</span>
+                        <span class="text-[11px] font-mono text-slate-500">/timelines • /mobile</span>
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white font-sans" data-i18n="stage3_title">Stage 3: Multi-Evidence Drone &amp; 180-Day SLA</h3>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-sans" data-i18n="stage3_body">
+                        Multi-photo drone evidence consolidated into an automated object ledger. AI vision reticle scans 2.0m root buffer and BMKG satellite weather records. Reaching 180 days without verified planting triggers automatic suspension (SUSPENDED_6_MONTHS).
+                    </p>
+                </div>
+
+                <!-- Tahap 4 -->
+                <div class="guide-item print-card bg-white dark:bg-slate-900/80 border-2 border-purple-500/80 ring-2 ring-purple-500/20 rounded-3xl p-5 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2.5 py-0.5 rounded-full bg-purple-600 text-white font-mono text-xs font-bold" data-i18n="stage4_badge">STAGE 4</span>
+                        <span class="text-[11px] font-mono text-purple-600 font-bold">/roadmap</span>
+                    </div>
+                    <h3 class="text-sm font-bold text-purple-800 dark:text-purple-300 font-sans" data-i18n="stage4_title">Stage 4: Results, All-Report Dossier &amp; Statutory Seal</h3>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-sans" data-i18n="stage4_body">
+                        Official certification verdict gateway. Consolidates the complete All-Report 4-Stage audit dossier, validates the final Statutory Certificate with cryptographic SHA-256 seal, exports EUDR TRACES-NT DDS JSON, and syncs immutable BigQuery compliance ledgers.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: OPERATIONAL MANUAL BY ROLES & RESPONSIBILITIES -->
+        <section class="space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-emerald-600 dark:text-emerald-400 text-lg">👥</span>
+                    <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight" data-i18n="sec3_title">
+                        Section 4: Operational Manual by Roles &amp; Responsibilities (Role-Based SOP)
+                    </h2>
+                </div>
+                <span class="text-xs font-mono text-emerald-700 dark:text-emerald-400 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/60 font-bold" data-i18n="sec3_badge">Role-Based SOP</span>
+            </div>
+
+            <!-- Tab Buttons Selector -->
+            <div id="roleTabNav" class="no-print flex flex-wrap gap-2 p-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl transition-colors">
+                <button type="button" onclick="switchRoleGuide('mandor')" id="tabBtn_mandor" class="role-tab-btn flex-1 min-w-[140px] px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 bg-emerald-600 text-white shadow-md cursor-pointer">
+                    <span>👨‍🌾</span> <span data-i18n="txt_tab_mandor">Field Assistant (Mandor PWA)</span>
+                </button>
+                <button type="button" onclick="switchRoleGuide('agronomist')" id="tabBtn_agronomist" class="role-tab-btn flex-1 min-w-[140px] px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer">
+                    <span>🔬</span> <span data-i18n="txt_tab_agronomist">In-Silico Agronomist &amp; Planter</span>
+                </button>
+                <button type="button" onclick="switchRoleGuide('auditor')" id="tabBtn_auditor" class="role-tab-btn flex-1 min-w-[140px] px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer">
+                    <span>📋</span> <span data-i18n="txt_tab_auditor">ESG Auditor &amp; Asesor Sidang</span>
+                </button>
+                <button type="button" onclick="switchRoleGuide('management')" id="tabBtn_management" class="role-tab-btn flex-1 min-w-[140px] px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer">
+                    <span>🏛️</span> <span data-i18n="txt_tab_management">Management &amp; Exporters</span>
+                </button>
+            </div>
+
+            <!-- Tab Content 1: Field Assistant (Mandor Kebun) -->
+            <div id="tabContent_mandor" class="role-tab-pane guide-item print-card bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-2xl">👨‍🌾</span>
+                        <div>
+                            <h3 class="text-base font-bold text-emerald-700 dark:text-emerald-400" data-i18n="mandor_role_title">Standard Operating Procedure: Field Assistant (Mandor Kebun PWA)</h3>
+                            <p class="text-xs text-slate-600 dark:text-slate-400" data-i18n="mandor_role_sub">Surveilans multi-foto drone, verifikasi piringan steril 2.0m, dan pencocokan cuaca BMKG.</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-mono bg-slate-100 dark:bg-slate-950 px-2.5 py-1 rounded-full text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hidden sm:inline" data-i18n="mandor_badge">PWA Offline IndexedDB</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-sans">
+                    <div class="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                        <strong class="text-slate-900 dark:text-slate-200 block text-sm flex items-center gap-1.5">
+                            <span>1.</span> <span data-i18n="mandor_step1_title">Offline Multi-Photo Logging</span>
+                        </strong>
+                        <p class="text-slate-700 dark:text-slate-400 leading-relaxed" data-i18n="mandor_step1_body">
+                            Open /mobile. Select registered estate. Capture multiple photos (title deed, alleyway beds, and riparian buffer). Telemetry logs are buffered safely in local IndexedDB with zero signal required.
+                        </p>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                        <strong class="text-slate-900 dark:text-slate-200 block text-sm flex items-center gap-1.5">
+                            <span>2.</span> <span data-i18n="mandor_step2_title">Consolidated AI Reticle Vision</span>
+                        </strong>
+                        <p class="text-slate-700 dark:text-slate-400 leading-relaxed" data-i18n="mandor_step2_body">
+                            Gemini Vision scans all uploaded photos, accumulating detections into an unified ledger: verifies 2.0m sterile root rings, confirms 3.79m alley spacing, and detects foliar chlorosis.
+                        </p>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                        <strong class="text-slate-900 dark:text-slate-200 block text-sm flex items-center gap-1.5">
+                            <span>3.</span> <span data-i18n="mandor_step3_title">Replication &amp; Weather Anti-Fraud</span>
+                        </strong>
+                        <p class="text-slate-700 dark:text-slate-400 leading-relaxed" data-i18n="mandor_step3_body">
+                            Upon reconnecting to network, sync records to SQLite and BigQuery. The server cross-references photo capture timestamps against BMKG satellite weather records to ensure zero fraud.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content 2: In-Silico Agronomist & Planter -->
+            <div id="tabContent_agronomist" class="role-tab-pane guide-item print-card hidden bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-2xl">🔬</span>
+                        <div>
+                            <h3 class="text-base font-bold text-sky-700 dark:text-sky-400" data-i18n="agro_role_title">Analytical Procedure: In-Silico Agronomist &amp; Planter</h3>
+                            <p class="text-xs text-slate-600 dark:text-slate-400" data-i18n="agro_role_sub">GEE remote sensing metrics, canopy radiation simulation, and NPK fertilizer balancing.</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-mono bg-slate-100 dark:bg-slate-950 px-2.5 py-1 rounded-full text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hidden sm:inline" data-i18n="agro_badge">Engine Deterministic</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-sans">
+                    <div class="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                        <strong class="text-slate-900 dark:text-slate-200 block text-sm flex items-center gap-1.5">
+                            <span>1.</span> <span data-i18n="agro_step1_title">GEE Terrain &amp; Slope Inspection (/spatial)</span>
+                        </strong>
+                        <p class="text-slate-700 dark:text-slate-400 leading-relaxed" data-i18n="agro_step1_body">
+                            Inspect SRTM 30m terrain slope (ensure &le;15° safe non-terracing limit), elevation ASL, and soil pH. If pH &lt; 4.5, issue dolomite liming prescription prior to entering the simulator.
+                        </p>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                        <strong class="text-slate-900 dark:text-slate-200 block text-sm flex items-center gap-1.5">
+                            <span>2.</span> <span data-i18n="agro_step2_title">Multi-Candidate Decision Gate (/proses)</span>
+                        </strong>
+                        <p class="text-slate-700 dark:text-slate-400 leading-relaxed" data-i18n="agro_step2_body">
+                            The engine evaluates site biophysics and presents 2–3 optimal companion species (e.g. Red Ginger vs Curcuma vs Porang). Planter locks 1 definitive crop to issue the Provisional Passport.
+                        </p>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                        <strong class="text-slate-900 dark:text-slate-200 block text-sm flex items-center gap-1.5">
+                            <span>3.</span> <span data-i18n="agro_step3_title">MOP Dosing &amp; FFB Yield Deficit Cap</span>
+                        </strong>
+                        <p class="text-slate-700 dark:text-slate-400 leading-relaxed" data-i18n="agro_step3_body">
+                            Prescribe compensatory +75 kg MOP/Ha in active alleys to protect palm frond Potassium reserves, and verify oil palm bunch deficit remains strictly capped at &le; 4.5%.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content 3: ESG & Certification Auditor -->
+            <div id="tabContent_auditor" class="role-tab-pane guide-item print-card hidden bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-2xl">📋</span>
+                        <div>
+                            <h3 class="text-base font-bold text-amber-700 dark:text-amber-400" data-i18n="audit_role_title">Verification Protocol: ESG Auditor &amp; Certification Inspector</h3>
+                            <p class="text-xs text-slate-600 dark:text-slate-400" data-i18n="audit_role_sub">Consolidated All-Report review, PIPPIB 50m buffer evaluation, and statutory certification sign-off.</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-mono bg-slate-100 dark:bg-slate-950 px-2.5 py-1 rounded-full text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hidden sm:inline" data-i18n="audit_badge">All Report Docket</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-sans">
+                    <div class="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                        <strong class="text-slate-900 dark:text-slate-200 block text-sm flex items-center gap-1.5">
+                            <span>1.</span> <span data-i18n="audit_step1_title">Integrated All-Report Dossier Review</span>
+                        </strong>
+                        <p class="text-slate-700 dark:text-slate-400 leading-relaxed" data-i18n="audit_step1_body">
+                            Navigate to /roadmap and click 'All Report' on the estate row. Review consolidated 4-stage deliverables: title deed, GEE moratorium status, LER biophysics, and mandor photo logs.
+                        </p>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                        <strong class="text-slate-900 dark:text-slate-200 block text-sm flex items-center gap-1.5">
+                            <span>2.</span> <span data-i18n="audit_step2_title">Milestone Gateway Inspection (Inspect Detail)</span>
+                        </strong>
+                        <p class="text-slate-700 dark:text-slate-400 leading-relaxed" data-i18n="audit_step2_body">
+                            Click 'Inspect' on gateways P1.1 through P4.2. Verify in-situ visual outputs (View), automated machine audit (Review), and download official deliverable PDFs.
+                        </p>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                        <strong class="text-slate-900 dark:text-slate-200 block text-sm flex items-center gap-1.5">
+                            <span>3.</span> <span data-i18n="audit_step3_title">Statutory Seal &amp; SHA-256 Sign-off</span>
+                        </strong>
+                        <p class="text-slate-700 dark:text-slate-400 leading-relaxed" data-i18n="audit_step3_body">
+                            Input lead auditor name and official verdict, then click 'Certify &amp; Seal Gateway'. Locks immutable SHA-256 digital digest and issues the permanent statutory certificate.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content 4: Plantation Management & Exporters -->
+            <div id="tabContent_management" class="role-tab-pane guide-item print-card hidden bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-2xl">🏛️</span>
+                        <div>
+                            <h3 class="text-base font-bold text-purple-700 dark:text-purple-400" data-i18n="mgmt_role_title">Export &amp; Legality: Management &amp; Global Exporters</h3>
+                            <p class="text-xs text-slate-600 dark:text-slate-400" data-i18n="mgmt_role_sub">EUDR Article 9 due diligence compliance, public QR code verification, and TRACES DDS exports.</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-mono bg-slate-100 dark:bg-slate-950 px-2.5 py-1 rounded-full text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hidden sm:inline" data-i18n="mgmt_badge">EUDR TRACES-NT</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-sans">
+                    <div class="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                        <strong class="text-slate-900 dark:text-slate-200 block text-sm flex items-center gap-1.5">
+                            <span>1.</span> <span data-i18n="mgmt_step1_title">EUDR TRACES-NT JSON Export</span>
+                        </strong>
+                        <p class="text-slate-700 dark:text-slate-400 leading-relaxed" data-i18n="mgmt_step1_body">
+                            Download official European Commission TRACES-NT Due Diligence Statement (DDS) payload directly from the final certificate, locking 6-decimal WGS84 polygon coordinates.
+                        </p>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                        <strong class="text-slate-900 dark:text-slate-200 block text-sm flex items-center gap-1.5">
+                            <span>2.</span> <span data-i18n="mgmt_step2_title">Public QR Code Verification (/validasi)</span>
+                        </strong>
+                        <p class="text-slate-700 dark:text-slate-400 leading-relaxed" data-i18n="mgmt_step2_body">
+                            Provide QR codes or public URLs /validasi/REG_NUMBER to European buyers and customs officials to demonstrate transparent compliance against central ledgers.
+                        </p>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                        <strong class="text-slate-900 dark:text-slate-200 block text-sm flex items-center gap-1.5">
+                            <span>3.</span> <span data-i18n="mgmt_step3_title">180-Day SLA Enforcement Discipline</span>
+                        </strong>
+                        <p class="text-slate-700 dark:text-slate-400 leading-relaxed" data-i18n="mgmt_step3_body">
+                            Ensure estates maintain periodic quarterly surveillance uploads prior to the 180-day SLA tolerance deadline to keep certificates active and avoid automatic suspension.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: MULTI-STANDARD REGULATORY & COMPLIANCE MATRIX -->
+        <section class="space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-emerald-600 dark:text-emerald-400 text-lg">⚖️</span>
+                    <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight" data-i18n="sec_reg_title">
+                        Section 5: Multi-Standard Regulatory &amp; Compliance Matrix
+                    </h2>
+                </div>
+                <span class="text-xs font-mono text-emerald-700 dark:text-emerald-400 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/60 font-bold" data-i18n="sec_reg_badge">Compliance Matrix</span>
+            </div>
+
+            <div class="overflow-x-auto bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm">
+                <table class="w-full text-left text-xs text-slate-700 dark:text-slate-300 font-mono">
+                    <thead class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-200 uppercase font-mono text-[11px] border-b border-slate-200 dark:border-slate-800">
+                        <tr>
+                            <th class="p-3.5" data-i18n="th_standard">Regulatory Standard</th>
+                            <th class="p-3.5" data-i18n="th_mandate">Mandatory Requirement</th>
+                            <th class="p-3.5" data-i18n="th_module">Precision Palm Module</th>
+                            <th class="p-3.5" data-i18n="th_proof">Audit Deliverable Output</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 dark:divide-slate-800/80">
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                            <td class="p-3.5 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span class="text-emerald-600 dark:text-emerald-400">ISPO</span>
+                                <span class="text-[10px] text-slate-500 font-normal">Perpres 44/2020 &bull; Permentan 38/2020</span>
+                            </td>
+                            <td class="p-3.5 font-sans" data-i18n="row1_mandate">Principle 1 (Title Deed Legality), Principle 2 (GAP 2.0m Sterile Zero-Tillage Circle), Principle 3 (HCV Riparian Buffer Conservation &gt;50m).</td>
+                            <td class="p-3.5 text-emerald-600 dark:text-emerald-400 font-bold" data-i18n="row1_module">Stage 1, 2A, 3 &bull; AI Vision Multi-Photo HUD</td>
+                            <td class="p-3.5 text-slate-800 dark:text-slate-200 font-medium font-sans" data-i18n="row1_proof">GAP Compliance Certificate &amp; Consolidated Weed Circle Inspection Log</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                            <td class="p-3.5 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span class="text-sky-600 dark:text-sky-400">EUDR</span>
+                                <span class="text-[10px] text-slate-500 font-normal">Regulation (EU) 2023/1115</span>
+                            </td>
+                            <td class="p-3.5 font-sans" data-i18n="row2_mandate">Article 9 Due Diligence: 6-decimal WGS84 polygon coordinates of land boundaries with zero deforestation post-Dec 31, 2020 cut-off.</td>
+                            <td class="p-3.5 text-sky-600 dark:text-sky-400 font-bold" data-i18n="row2_module">GEE Hansen GFC + Sentinel-2 &amp; TRACES-NT Generator</td>
+                            <td class="p-3.5 text-slate-800 dark:text-slate-200 font-medium font-sans" data-i18n="row2_proof">Validated .json DDS Payload Ready for EU Information System</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                            <td class="p-3.5 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span class="text-indigo-600 dark:text-indigo-400">PIPPIB</span>
+                                <span class="text-[10px] text-slate-500 font-normal">SK MenLHK 2024 &bull; PP 23/2021</span>
+                            </td>
+                            <td class="p-3.5 font-sans" data-i18n="row3_mandate">Primary Forest Moratorium Clearance: Zero overlap with state conservation forest zones and minimum statutory buffer &ge; 50 meters.</td>
+                            <td class="p-3.5 text-indigo-600 dark:text-indigo-400 font-bold" data-i18n="row3_module">GEE Spatial Boundary + asean.mbtiles Layer</td>
+                            <td class="p-3.5 text-slate-800 dark:text-slate-200 font-medium font-sans" data-i18n="row3_proof">Statutory Moratorium Clearance Certificate (100% Arable APL Land)</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                            <td class="p-3.5 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span class="text-purple-600 dark:text-purple-400">Verra VCS</span>
+                                <span class="text-[10px] text-slate-500 font-normal">Methodology VM0007 / IPCC Tier 3</span>
+                            </td>
+                            <td class="p-3.5 font-sans" data-i18n="row4_mandate">Avoided deforestation accounting via dual-yield land sparing (LER &gt; 1.0) and soil organic carbon (SOC) sequestration of 1.8 tCO₂e/Ha/Yr.</td>
+                            <td class="p-3.5 text-purple-600 dark:text-purple-400 font-bold" data-i18n="row4_module">Carbon Accounting Core (450 tCO₂e/Ha Baseline)</td>
+                            <td class="p-3.5 text-slate-800 dark:text-slate-200 font-medium font-sans" data-i18n="row4_proof">Digital Carbon Valuation Certificate with SHA-256 Seal</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECTION 6: TECHNICAL Q&A & TROUBLESHOOTING (FAQ) -->
+        <section class="space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-emerald-600 dark:text-emerald-400 text-lg">💡</span>
+                    <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight" data-i18n="sec4_title">
+                        Section 6: Technical Q&amp;A &amp; Troubleshooting (FAQ)
+                    </h2>
+                </div>
+                <span class="text-xs font-mono text-emerald-700 dark:text-emerald-400 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/60 font-bold" data-i18n="sec4_badge">Technical FAQ</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- FAQ 1 -->
+                <div class="guide-item print-card bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-2.5 shadow-sm">
+                    <div class="flex items-start gap-2.5">
+                        <span class="text-lg text-emerald-600 dark:text-emerald-400">❓</span>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white leading-snug" data-i18n="faq1_q">
+                            Why is the 2.0-meter oil palm weed circle strictly prohibited from intercrops and mechanical hoeing?
+                        </h3>
+                    </div>
+                    <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed pl-7 font-sans" data-i18n="faq1_a">
+                        The 2.0m radius around palm bases contains the dense concentration of active superficial feeder roots responsible for absorbing over 80% of applied baseline fertilizers. Planting within this circle causes direct resource competition. Furthermore, mechanical hoeing injuries on root tissues serve as primary entry points for fatal soil-borne pathogens like basal stem rot (Ganoderma boninense).
+                    </p>
+                </div>
+
+                <!-- FAQ 2 -->
+                <div class="guide-item print-card bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-2.5 shadow-sm">
+                    <div class="flex items-start gap-2.5">
+                        <span class="text-lg text-amber-600 dark:text-amber-400">❓</span>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white leading-snug" data-i18n="faq2_q">
+                            How does Google Earth Engine verify EUDR post-2020 deforestation compliance?
+                        </h3>
+                    </div>
+                    <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed pl-7 font-sans">
+                        The backend queries the Hansen Global Forest Change dataset (UMD/hansen/global_forest_change) over the concession geometry. Pixels flagging tree cover loss during years 2021 through present are quantified. If tree loss is exactly 0.00 Ha, the estate is awarded verified EUDR Article 9 compliance.
+                    </p>
+                </div>
+
+                <!-- FAQ 3 -->
+                <div class="guide-item print-card bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-2.5 shadow-sm">
+                    <div class="flex items-start gap-2.5">
+                        <span class="text-lg text-sky-600 dark:text-sky-400">❓</span>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white leading-snug" data-i18n="faq3_q">
+                            Why does the mobile field app use IndexedDB instead of raw SQLite files on smartphones?
+                        </h3>
+                    </div>
+                    <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed pl-7 font-sans" data-i18n="faq3_a">
+                        The mobile app operates as a Progressive Web App (PWA) within a sandboxed mobile browser environment that restricts direct raw file system writes. IndexedDB is the official high-performance transactional database on mobile devices, capable of storing high-resolution photos and GPS telemetry permanently offline, synchronizing seamlessly to the central server upon reconnecting.
+                    </p>
+                </div>
+
+                <!-- FAQ 4 -->
+                <div class="guide-item print-card bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-2.5 shadow-sm">
+                    <div class="flex items-start gap-2.5">
+                        <span class="text-lg text-purple-600 dark:text-purple-400">❓</span>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white leading-snug" data-i18n="faq4_q">
+                            What is the 'All Report' document and how does the SHA-256 hash prove data authenticity?
+                        </h3>
+                    </div>
+                    <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed pl-7 font-sans" data-i18n="faq4_a">
+                        The All-Report document in Stage 4 (Roadmap) consolidates the complete 4-stage lifecycle: Stage 1 (Land Title), Stage 2A (PIPPIB Moratorium &amp; GEE Satellite), Stage 2B (In-Silico LER), and Stage 3 (Multi-Photo Drone Logs). A 64-character SHA-256 cryptographic digest locks all variables; any alteration of plot coordinates or yields immediately fails hash verification upon scanning at /validasi.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- JAVASCRIPT ENGINE: SEARCH FILTER, ROLE TABS, I18N -->
+    <script>
+        let currentLang = 'en';
+
+        const guideI18n = {
+            en: {
+                page_title: "Precision Palm • System Guide & Scientific Manual",
+                search_placeholder: "Search guide chapters, formulas, regulations (e.g. 4-Stage, GEE, Sentinel-2, Beer-Lambert, LER, SCS-CN, 180-Day SLA, PIPPIB, EUDR, All Report)...",
+                btn_print_manual: "Print PDF",
+                txt_quick_tags: "Quick Topics:",
+                tag_4stage: "4-Stage Workflow",
+                tag_beer: "Beer-Lambert",
+                tag_ler: "LER & PLS",
+                tag_scs: "SCS-CN Hydrology",
+                tag_npk: "NPK & Mulch",
+                tag_sla: "180-Day SLA",
+                tag_pippib: "PIPPIB Moratorium",
+                tag_eudr: "EUDR Art. 9",
+                tag_allreport: "All Report Dossier",
+                tag_pwa: "PWA IndexedDB",
+                tag_sha: "SHA-256 Seal",
+                txt_no_results_title: "No Matching Topics Found",
+                txt_no_results_desc: "The search query does not match any chapters, formulas, or operational guidelines.",
+                txt_btn_reset_search: "Reset Search",
+                
+                // Section 1
+                sec1_title: "Section 1: 4 Core Pillars of Precision Palm Architecture",
+                sec1_badge: "Bento Architecture",
+                pilar1_tag: "PILLAR 01",
+                pilar1_heading: "Cadastral Ingestion & Land Tenure Vetting",
+                pilar1_body: "Authentication of agrarian title deeds (HGU, SHM, e-STDB), municipal NOP property tax records, zero-overlap parcel cross-checking, and WGS84 6-decimal closed boundary polygons under ISPO Principle 1 and EUDR Article 9.",
+                pilar1_sub: "<span>ISPO Principle 1</span> <span class='font-bold'>100% Non-Forest APL</span>",
+                pilar2_tag: "PILLAR 02",
+                pilar2_heading: "GEE Spatial Clearance, Biophysics & Recommendation Gate",
+                pilar2_body: "Autonomous Google Earth Engine (GEE) planetary screening: Hansen GFC zero post-2020 deforestation verification, SRTM 30m DEM slope safety (≤15°), Sentinel-2 NDVI/NDMI canopy indices, and Beer-Lambert (k=0.45) light attenuation modeling.",
+                pilar2_sub: "<span>GEE • Beer-Lambert</span> <span class='font-bold'>LER > 1.40x</span>",
+                pilar3_tag: "PILLAR 03",
+                pilar3_heading: "Agronomic Blueprint & Provisional Green Passport",
+                pilar3_body: "Technical corridor geometry: 3.79m active alley beds, strict 2.0m feeder root zero-tillage exclusion circle, stoichiometric MOP/Urea compensation, and provisional planting permit bearing SHA-256 seal.",
+                pilar3_sub: "<span>3.79m Alley • 2.0m Buffer</span> <span class='font-bold'>Provisional Sealed</span>",
+                pilar4_tag: "PILLAR 04",
+                pilar4_heading: "Continuous Edge Surveillance & Statutory Seal",
+                pilar4_body: "Multi-evidence drone scanning with consolidated detection ledgers, offline PWA surveillance (Q1–Q4), weather anti-fraud matching, 180-day SLA enforcement, BigQuery persistence, and EUDR TRACES-NT export certificate.",
+                pilar4_sub: "<span>Multi-Evidence • 180d SLA</span> <span class='font-bold'>Statutory Certified</span>",
+
+                // Section 2
+                sec_formula_title: "Section 2: Core In-Silico Scientific Equations & GEE Formulations",
+                sec_formula_badge: "7 Deterministic Models",
+                form1_tag: "1. Radiation Attenuation",
+                form1_title: "Beer-Lambert Canopy Transmission",
+                form1_desc: "Where I₀ ≈ 1,800 µmol/m²/s is incident equatorial solar PAR, k = 0.45 is the calibrated oil palm extinction coefficient, and LAI(t) = 5.5 / [1 + exp(-0.7·(t - 3.5))] governs stand maturity. Leaving aside the 2.0m sterile circle, net corridor width is exactly 3.79m.",
+                form2_tag: "2. Land Sparing Efficiency",
+                form2_title: "Land Equivalent Ratio (LER) & PLS",
+                form2_desc: "Quantifies biological land efficiency. LER > 1.0 confirms spatial sparing: polyculture yields equivalent output requiring less cumulative land. Fresh Fruit Bunch (FFB) yield deficit is capped at ≤ 4.5% to safeguard main cash crop viability.",
+                form3_tag: "3. High-Integrity Carbon",
+                form3_title: "Avoided Deforestation & Carbon Stock",
+                form3_desc: "Converts land sparing gains into primary rainforest area protected from agricultural expansion. Uses benchmark tropical lowland emission factor of 450.0 tCO₂e/Ha (Verra VM0007) plus annual soil organic carbon (SOC) sequestration of 1.8 tCO₂e/Ha/Yr.",
+                form4_tag: "4. Eco-Hydrology Sponge",
+                form4_title: "Aquifer Recharge & Runoff Suppression",
+                form4_desc: "Multilayer canopy interception and contour silt pits (rorak) decrease runoff Curve Number from 82 to 64 (-22.0%), suppressing topsoil erosion by -68.4% and recharging local aquifers by +1,850 m³/Ha/year.",
+                form5_tag: "5. Nutrient Stoichiometry",
+                form5_title: "NPK Balance & Frond Bio-Circularity",
+                form5_desc: "Legume companion biological N-fixation offsets up to 141.3 kg Urea/Ha. Potassium-demanding rhizomes receive compensatory +75 kg MOP/Ha in active alleys. Shredded pruned fronds return +36.2 kg organic K₂O/Ha.",
+
+                // Section 3
+                sec2_title: "Section 3: 4-Stage Sequential Certification Workflow & 180-Day SLA State Machine",
+                sec2_badge: "Lifecycle State Machine",
+                stage1_badge: "STAGE 1",
+                stage1_title: "Stage 1: Application & Land Tenure Vetting",
+                stage1_body: "Registration of applicant identity, statutory title deed numbers (HGU, SHM, e-STDB), municipal tax IDs (NOP PBB), and closed WGS84 boundary polygons with zero-overlap verification against PIPPIB moratorium layers.",
+                stage2_badge: "STAGE 2A • 2B",
+                stage2_title: "Stage 2A & 2B: GEE Satellite & In-Silico Biophysics",
+                stage2_body: "SRTM 30m terrain slope auditing (≤15°), Sentinel-2 NDVI/NDMI calibration, Hansen GFC zero-deforestation audit post-2020, Beer-Lambert light transmission modeling, and provisional passport issuance with SHA-256 seal.",
+                stage3_badge: "STAGE 3",
+                stage3_title: "Stage 3: Multi-Evidence Drone & 180-Day SLA",
+                stage3_body: "Multi-photo drone evidence consolidated into an automated object ledger. AI vision reticle scans 2.0m root buffer and BMKG satellite weather records. Reaching 180 days without verified planting triggers automatic suspension (SUSPENDED_6_MONTHS).",
+                stage4_badge: "STAGE 4",
+                stage4_title: "Stage 4: Results, All-Report Dossier & Statutory Seal",
+                stage4_body: "Official certification verdict gateway. Consolidates the complete All-Report 4-Stage audit dossier, validates the final Statutory Certificate with cryptographic SHA-256 seal, exports EUDR TRACES-NT DDS JSON, and syncs immutable BigQuery compliance ledgers.",
+
+                // Section 4
+                sec3_title: "Section 4: Operational Manual by Roles & Responsibilities (Role-Based SOP)",
+                sec3_badge: "Role-Based SOP",
+                txt_tab_mandor: "Field Assistant (Mandor PWA)",
+                txt_tab_agronomist: "In-Silico Agronomist & Planter",
+                txt_tab_auditor: "ESG Auditor & Asesor Sidang",
+                txt_tab_management: "Management & Exporters",
+                mandor_role_title: "Standard Operating Procedure: Field Assistant (Mandor Kebun PWA)",
+                mandor_role_sub: "Multi-photo drone surveillance, 2.0m sterile root buffer verification, and BMKG weather anti-fraud.",
+                mandor_badge: "PWA Offline IndexedDB",
+                mandor_step1_title: "Offline Multi-Photo Logging",
+                mandor_step1_body: "Open /mobile. Select registered estate. Capture multiple photos (title deed, alleyway beds, and riparian buffer). Telemetry logs are buffered safely in local IndexedDB with zero signal required.",
+                mandor_step2_title: "Consolidated AI Reticle Vision",
+                mandor_step2_body: "Gemini Vision scans all uploaded photos, accumulating detections into an unified ledger: verifies 2.0m sterile root rings, confirms 3.79m alley spacing, and detects foliar chlorosis.",
+                mandor_step3_title: "Replication & Weather Anti-Fraud",
+                mandor_step3_body: "Upon reconnecting to network, sync records to SQLite and BigQuery. The server cross-references photo capture timestamps against BMKG satellite weather records to ensure zero fraud.",
+                agro_role_title: "Analytical Procedure: In-Silico Agronomist & Planter",
+                agro_role_sub: "GEE remote sensing metrics, canopy radiation simulation, and NPK fertilizer balancing.",
+                agro_badge: "Engine Deterministic",
+                agro_step1_title: "GEE Terrain & Slope Inspection (/spatial)",
+                agro_step1_body: "Inspect SRTM 30m terrain slope (ensure ≤15° safe non-terracing limit), elevation ASL, and soil pH. If pH < 4.5, issue dolomite liming prescription prior to entering the simulator.",
+                agro_step2_title: "Multi-Candidate Decision Gate (/proses)",
+                agro_step2_body: "The engine evaluates site biophysics and presents 2–3 optimal companion species (e.g. Red Ginger vs Curcuma vs Porang). Planter locks 1 definitive crop to issue the Provisional Passport.",
+                agro_step3_title: "MOP Dosing & FFB Yield Deficit Cap",
+                agro_step3_body: "Prescribe compensatory +75 kg MOP/Ha in active alleys to protect palm frond Potassium reserves, and verify oil palm bunch deficit remains strictly capped at ≤ 4.5%.",
+                audit_role_title: "Verification Protocol: ESG Auditor & Certification Inspector",
+                audit_role_sub: "Consolidated All-Report review, PIPPIB 50m buffer evaluation, and statutory certification sign-off.",
+                audit_badge: "All Report Docket",
+                audit_step1_title: "Integrated All-Report Dossier Review",
+                audit_step1_body: "Navigate to /roadmap and click 'All Report' on the estate row. Review consolidated 4-stage deliverables: title deed, GEE moratorium status, LER biophysics, and mandor photo logs.",
+                audit_step2_title: "Milestone Gateway Inspection (Inspect Detail)",
+                audit_step2_body: "Click 'Inspect' on gateways P1.1 through P4.2. Verify in-situ visual outputs (View), automated machine audit (Review), and download official deliverable PDFs.",
+                audit_step3_title: "Statutory Seal & SHA-256 Sign-off",
+                audit_step3_body: "Input lead auditor name and official verdict, then click 'Certify & Seal Gateway'. Locks immutable SHA-256 digital digest and issues the permanent statutory certificate.",
+                mgmt_role_title: "Export & Legality: Management & Global Exporters",
+                mgmt_role_sub: "EUDR Article 9 due diligence compliance, public QR code verification, and TRACES DDS exports.",
+                mgmt_badge: "EUDR TRACES-NT",
+                mgmt_step1_title: "EUDR TRACES-NT JSON Export",
+                mgmt_step1_body: "Download official European Commission TRACES-NT Due Diligence Statement (DDS) payload directly from the final certificate, locking 6-decimal WGS84 polygon coordinates.",
+                mgmt_step2_title: "Public QR Code Verification (/validasi)",
+                mgmt_step2_body: "Provide QR codes or public URLs /validasi/REG_NUMBER to European buyers and customs officials to demonstrate transparent compliance against central ledgers.",
+                mgmt_step3_title: "180-Day SLA Enforcement Discipline",
+                mgmt_step3_body: "Ensure estates maintain periodic quarterly surveillance uploads prior to the 180-day SLA tolerance deadline to keep certificates active and avoid automatic suspension.",
+
+                // Section 5
+                sec_reg_title: "Section 5: Multi-Standard Regulatory & Compliance Matrix",
+                sec_reg_badge: "Compliance Matrix",
+                th_standard: "Regulatory Standard",
+                th_mandate: "Mandatory Requirement",
+                th_module: "Precision Palm Module",
+                th_proof: "Audit Deliverable Output",
+                row1_mandate: "Principle 1 (Title Deed Legality), Principle 2 (GAP 2.0m Sterile Zero-Tillage Circle), Principle 3 (HCV Riparian Buffer Conservation >50m).",
+                row1_module: "Stage 1, 2A, 3 • AI Vision Multi-Photo HUD",
+                row1_proof: "GAP Compliance Certificate & Consolidated Weed Circle Inspection Log",
+                row2_mandate: "Article 9 Due Diligence: 6-decimal WGS84 polygon coordinates of land boundaries with zero deforestation post-Dec 31, 2020 cut-off.",
+                row2_module: "GEE Hansen GFC + Sentinel-2 & TRACES-NT Generator",
+                row2_proof: "Validated .json DDS Payload Ready for EU Information System",
+                row3_mandate: "Primary Forest Moratorium Clearance: Zero overlap with state conservation forest zones and minimum statutory buffer ≥ 50 meters.",
+                row3_module: "GEE Spatial Boundary + asean.mbtiles Layer",
+                row3_proof: "Statutory Moratorium Clearance Certificate (100% Arable APL Land)",
+                row4_mandate: "Avoided deforestation accounting via dual-yield land sparing (LER > 1.0) and soil organic carbon (SOC) sequestration of 1.8 tCO₂e/Ha/Yr.",
+                row4_module: "Carbon Accounting Core (450 tCO₂e/Ha Baseline)",
+                row4_proof: "Digital Carbon Valuation Certificate with SHA-256 Seal",
+
+                // Section 6 FAQ
+                sec4_title: "Section 6: Technical Q&A & Troubleshooting (FAQ)",
+                sec4_badge: "Technical FAQ",
+                faq1_q: "Why is the 2.0-meter oil palm weed circle strictly prohibited from intercrops and mechanical hoeing?",
+                faq1_a: "The 2.0m radius around palm bases contains the dense concentration of active superficial feeder roots responsible for absorbing over 80% of applied baseline fertilizers. Planting within this circle causes direct resource competition. Furthermore, mechanical hoeing injuries on root tissues serve as primary entry points for fatal soil-borne pathogens like basal stem rot (Ganoderma boninense).",
+                faq3_q: "Why does the mobile field app use IndexedDB instead of raw SQLite files on smartphones?",
+                faq3_a: "The mobile app operates as a Progressive Web App (PWA) within a sandboxed mobile browser environment that restricts direct raw file system writes. IndexedDB is the official high-performance transactional database on mobile devices, capable of storing high-resolution photos and GPS telemetry permanently offline, synchronizing seamlessly to the central server upon reconnecting.",
+                faq4_q: "What is the 'All Report' document and how does the SHA-256 hash prove data authenticity?",
+                faq4_a: "The All-Report document in Stage 4 (Roadmap) consolidates the complete 4-stage lifecycle: Stage 1 (Land Title), Stage 2A (PIPPIB Moratorium & GEE Satellite), Stage 2B (In-Silico LER), and Stage 3 (Multi-Photo Drone Logs). A 64-character SHA-256 cryptographic digest locks all variables; any alteration of plot coordinates or yields immediately fails hash verification upon scanning at /validasi."
+            },
+
+            id: {
+                page_title: "Panduan Sistem & Manual Ilmiah Precision Palm",
+                search_placeholder: "Cari bab panduan, rumus, regulasi (contoh: 4-Tahap, GEE, Sentinel-2, Beer-Lambert, LER, SCS-CN, SLA 180 Hari, PIPPIB, EUDR, All Report)...",
+                btn_print_manual: "Cetak PDF",
+                txt_quick_tags: "Topik Cepat:",
+                tag_4stage: "Alur 4-Tahap",
+                tag_beer: "Beer-Lambert",
+                tag_ler: "LER & PLS",
+                tag_scs: "Hidrologi SCS-CN",
+                tag_npk: "NPK & Mulsa",
+                tag_sla: "SLA 180 Hari",
+                tag_pippib: "Moratorium PIPPIB",
+                tag_eudr: "EUDR Pasal 9",
+                tag_allreport: "Dossier All Report",
+                tag_pwa: "PWA IndexedDB",
+                tag_sha: "Segel SHA-256",
+                txt_no_results_title: "Tidak Ada Topik yang Cocok",
+                txt_no_results_desc: "Kata kunci yang Anda masukkan tidak cocok dengan nama bab, rumus biofisika, atau panduan operasional.",
+                txt_btn_reset_search: "Reset Pencarian",
+                
+                // Section 1
+                sec1_title: "Bagian 1: 4 Pilar Utama Arsitektur Precision Palm",
+                sec1_badge: "Arsitektur Bento",
+                pilar1_tag: "PILAR 01",
+                pilar1_heading: "Asupan Data Kadastral & Verifikasi Hak Lahan",
+                pilar1_body: "Autentikasi alas hak agraria resmi (HGU, SHM, e-STDB), nomor objek pajak (NOP PBB), verifikasi nol tumpang tindih (zero-overlap), dan poligon batas bidang WGS84 6-desimal di bawah ISPO Prinsip 1 dan EUDR Pasal 9.",
+                pilar1_sub: "<span>ISPO Prinsip 1</span> <span class='font-bold'>100% APL Non-Hutan</span>",
+                pilar2_tag: "PILAR 02",
+                pilar2_heading: "Uji Spasial GEE, Biofisika & Gerbang Rekomendasi AI",
+                pilar2_body: "Penapisan skala planet Google Earth Engine (GEE): audit nol deforestasi Hansen GFC pasca-2020, kemiringan lereng SRTM 30m DEM (≤15°), indeks tajuk Sentinel-2 NDVI/NDMI, dan transmisi cahaya Beer-Lambert (k=0.45).",
+                pilar2_sub: "<span>GEE • Beer-Lambert</span> <span class='font-bold'>LER > 1.40x</span>",
+                pilar3_tag: "PILAR 03",
+                pilar3_heading: "Cetak Biru Agronomi & Paspor Rekomendasi Sementara",
+                pilar3_body: "Geometri koridor teknis: lorong aktif 3.79m, radius piringan steril 2.0m zero-tillage, pupuk penyeimbang MOP/Urea, dan izin tanam operasional berstempel kriptografi SHA-256.",
+                pilar3_sub: "<span>Lorong 3.79m • Piringan 2.0m</span> <span class='font-bold'>Segel Sementara</span>",
+                pilar4_tag: "PILAR 04",
+                pilar4_heading: "Surveilans Mandor Lapangan & Segel Statuter Final",
+                pilar4_body: "Pemindaian drone multi-foto dengan buku besar deteksi terpadu, PWA luring 4 triwulan (Q1–Q4), anti-fraud cuaca BMKG, penegakan SLA 180 hari, persistensi BigQuery, dan sertifikat ekspor EUDR TRACES-NT.",
+                pilar4_sub: "<span>Multi-Bukti • SLA 180 Hari</span> <span class='font-bold'>Bersertifikat Statuter</span>",
+
+                // Section 2
+                sec_formula_title: "Bagian 2: Formulasi Matematis In-Silico & Spektral GEE",
+                sec_formula_badge: "7 Model Deterministik",
+                form1_tag: "1. Atenuasi Radiasi Surya",
+                form1_title: "Transmisi Kanopi Beer-Lambert",
+                form1_desc: "Di mana I₀ ≈ 1.800 µmol/m²/s adalah radiasi PAR puncak surya, k = 0.45 koefisien ekstingsi pelepah sawit, dan LAI(t) = 5.5 / [1 + exp(-0.7·(t - 3.5))] mengatur kematangan tajuk. Menyisihkan piringan steril 2.0m, koridor efektif bersih adalah 3.79m.",
+                form2_tag: "2. Efisiensi Penghematan Lahan",
+                form2_title: "Land Equivalent Ratio (LER) & PLS",
+                form2_desc: "Mengukur efisiensi biologis lahan ganda. Nilai LER > 1.0 membuktikan penghematan lahan: polikultur menghasilkan output setara dengan areal lebih hemat. Batas defisit panen TBS sawit dikunci ≤ 4.5% demi melindungi hasil utama.",
+                form3_tag: "3. Karbon Berintegritas Tinggi",
+                form3_title: "Valuasi Deforestasi Tercegah & Karbon",
+                form3_desc: "Mengonversi efisiensi lahan ke areal hutan hujan primer yang terlindungi dari deforestasi. Menggunakan faktor emisi biomassa 450.0 tCO₂e/Ha (Verra VM0007) ditambah sekuestrasi karbon organik tanah (SOC) 1.8 tCO₂e/Ha/Tahun.",
+                form4_tag: "4. Spons Eko-Hidrologi",
+                form4_title: "Pengisian Akuifer & Penekanan Limpasan Erosi",
+                form4_desc: "Intersepsi kanopi bertingkat dan rorak sedimen kontur menurunkan Curve Number dari 82 ke 64 (-22.0%), menekan erosi tanah permukaan hingga -68.4% dan mengisi akuifer air tanah sebesar +1,850 m³/Ha/tahun.",
+                form5_tag: "5. Stoikiometri Hara",
+                form5_title: "Neraca Hara NPK & Daur Ulang Pelepah",
+                form5_desc: "Fiksasi N biologis legum menghemat hingga 141.3 kg Urea/Ha. Rimpang komersial (Jahe Merah/Temulawak) menerima kompensasi +75 kg MOP/Ha di lorong aktif. Pelepah pangkasan cincang mengembalikan +36.2 kg K₂O organik/Ha.",
+
+                // Section 3
+                sec2_title: "Bagian 3: Alur Kepatuhan 4-Tahap Berurutan & Mesin Status SLA 180 Hari",
+                sec2_badge: "Mesin Status Daur Hidup",
+                stage1_badge: "TAHAP 1",
+                stage1_title: "Tahap 1: Permohonan & Alas Hak Tenurial",
+                stage1_body: "Pendaftaran identitas pemohon, nomor sertifikat HGU/e-STDB, NOP PBB, dan poligon batas bidang tertutup WGS84 dengan verifikasi nol tumpang tindih terhadap zona moratorium PIPPIB.",
+                stage2_badge: "TAHAP 2A • 2B",
+                stage2_title: "Tahap 2A & 2B: Satelit GEE & Biofisika In-Silico",
+                stage2_body: "Audit kelerengan kontur SRTM 30m (≤15°), kalibrasi Sentinel-2 NDVI/NDMI, audit nol deforestasi Hansen GFC pasca-2020, model transmisi kanopi Beer-Lambert, dan penerbitan Paspor Sementara berstempel SHA-256.",
+                stage3_badge: "TAHAP 3",
+                stage3_title: "Tahap 3: Drone Multi-Bukti & Penegakan SLA 180 Hari",
+                stage3_body: "Bukti drone multi-foto diakumulasikan ke buku besar deteksi otomatis. Scanner retikel AI memindai piringan steril 2.0m dan mencocokkan cuaca satelit BMKG. Melewati 180 hari tanpa tanam fisik otomatis dibekukan (SUSPENDED_6_MONTHS).",
+                stage4_badge: "TAHAP 4",
+                stage4_title: "Tahap 4: Hasil, All Report & Sertifikat Statuter Final",
+                stage4_body: "Gerbang keputusan resmi Asesor. Mengonsolidasikan dokumen All-Report (Dossier Terpadu 4-Tahap), pengesahan Sertifikat Statuter Final berstempel SHA-256, ekspor EUDR TRACES-NT DDS JSON, dan sinkronisasi ke buku besar BigQuery.",
+
+                // Section 4
+                sec3_title: "Bagian 4: Manual Operasional Berdasarkan Hak Akses & Peran (Role-Based SOP)",
+                sec3_badge: "SOP Berbasis Peran",
+                txt_tab_mandor: "Mandor Kebun (PWA Lapangan)",
+                txt_tab_agronomist: "Agronomis In-Silico & Planter",
+                txt_tab_auditor: "Auditor ESG & Asesor Sidang",
+                txt_tab_management: "Manajemen & Eksportir",
+                mandor_role_title: "Prosedur Operasi Standar: Mandor Lapangan (Field Assistant PWA)",
+                mandor_role_sub: "Surveilans drone multi-foto, verifikasi piringan steril 2.0m, dan anti-fraud cuaca BMKG.",
+                mandor_badge: "PWA Offline IndexedDB",
+                mandor_step1_title: "Pencatatan Multi-Foto Offline",
+                mandor_step1_body: "Buka /mobile. Pilih kebun terdaftar. Ambil multi-foto (alas hak, lorong gawangan, dan sempadan). Log tersimpan aman di database IndexedDB ponsel tanpa memerlukan kuota data.",
+                mandor_step2_title: "Visi Retikel AI Terkonsolidasi",
+                mandor_step2_body: "Gemini Vision memindai seluruh foto dan mengakumulasikan objek ke buku besar terpadu: memverifikasi piringan steril 2.0m, lebar lorong 3.79m, dan klorosis pelepah.",
+                mandor_step3_title: "Sinkronisasi & Anti-Fraud Cuaca Satelit",
+                mandor_step3_body: "Saat terhubung ke internet, sinkronkan data ke SQLite dan BigQuery. Sistem mencocokkan waktu foto terhadap data satelit cuaca BMKG guna mencegah manipulasi foto palsu.",
+                agro_role_title: "Prosedur Analitis: Agronomis In-Silico & Planter",
+                agro_role_sub: "Metrik penginderaan jauh GEE, simulasi transmisi kanopi, dan formulasi pupuk NPK.",
+                agro_badge: "Engine Deterministic",
+                agro_step1_title: "Inspeksi Kelerengan & Topografi GEE (/spatial)",
+                agro_step1_body: "Tinjau kelerengan SRTM 30m DEM (pastikan ≤15° batas aman tanpa terasering), elevasi dpl, dan reaksi pH tanah. Bila pH < 4.5, keluarkan resep dolomit sebelum membuka simulator.",
+                agro_step2_title: "Gerbang Keputusan Multi-Kandidat (/proses)",
+                agro_step2_body: "Sistem menyajikan 2–3 opsi terbaik dari 15 spesies (misal Jahe Merah vs Temulawak vs Porang). Pilih dan kunci komoditas definitif untuk mengaktifkan paspor operasional sementara.",
+                agro_step3_title: "Dosis MOP & Batas Defisit TBS Sawit",
+                agro_step3_body: "Tentukan aplikasi pupuk MOP (KCl) kompensasi +75 kg/ha di lorong aktif agar pelepah sawit tidak kekurangan Kalium, dan kunci defisit panen sawit tetap ≤ 4.5%.",
+                audit_role_title: "Protokol Verifikasi: Auditor ESG & Asesor Sidang",
+                audit_role_sub: "Verifikasi dokumen utuh All Report, sempadan 50m PIPPIB, dan pengesahan sertifikat statuter.",
+                audit_badge: "All Report Docket",
+                audit_step1_title: "Pemeriksaan Dokumen All Report",
+                audit_step1_body: "Buka /roadmap dan klik tombol 'All Report' pada baris kebun. Tinjau rangkuman utuh 4 tahap: alas hak HGU, status moratorium GEE, biofisika LER, dan log surveilans foto mandor.",
+                audit_step2_title: "Inspeksi Gerbang Milestone (Inspect Detail)",
+                audit_step2_body: "Klik 'Inspect' pada gerbang P1.1 hingga P4.2. Periksa tampilan visual hasil nyata (View), telaah audit mesin (Review), dan berkas PDF luaran resmi.",
+                audit_step3_title: "Pengesahan Statuter Final & SHA-256",
+                audit_step3_body: "Masukkan nama asesor dan catatan resmi sidang, lalu klik 'Sahkan & Tandatangani Digital'. Mengunci stempel permanen SHA-256 dan menerbitkan sertifikat kepatuhan resmi.",
+                mgmt_role_title: "Ekspor & Legalitas: Manajemen Perkebunan & Eksportir",
+                mgmt_role_sub: "Kepatuhan uji tuntas EUDR Article 9, validasi publik QR Code, dan ekspor TRACES DDS.",
+                mgmt_badge: "EUDR TRACES-NT",
+                mgmt_step1_title: "Ekspor Berkas EUDR TRACES-NT JSON",
+                mgmt_step1_body: "Unduh berkas resmi Due Diligence Statement (DDS) Komisi Eropa dari sertifikat akhir, mengunci koordinat poligon WGS84 6-desimal dan status bebas deforestasi 2020.",
+                mgmt_step2_title: "Validasi Publik QR Code (/validasi)",
+                mgmt_step2_body: "Gunakan QR code atau URL /validasi/NOMOR_REG untuk pembuktian keabsahan sertifikat secara transparan ke pembeli CPO global dan otoritas pelabuhan internasional.",
+                mgmt_step3_title: "Disiplin Siklus SLA 180 Hari",
+                mgmt_step3_body: "Pastikan kebun rutin mengunggah survei triwulanan mandor sebelum batas 180 hari agar status sertifikat tetap berstatus AKTIF dan tidak dibekukan sistem.",
+
+                // Section 5
+                sec_reg_title: "Bagian 5: Matriks Kepatuhan Regulasi Multi-Standar",
+                sec_reg_badge: "Matriks Kepatuhan",
+                th_standard: "Standar Regulasi",
+                th_mandate: "Ketentuan Wajib",
+                th_module: "Modul Precision Palm",
+                th_proof: "Luaran Bukti Audit",
+                row1_mandate: "Prinsip 1 (Tenurial Alas Hak), Prinsip 2 (GAP Piringan Steril 2.0m Zero-Tillage), Prinsip 3 (Konservasi Sempadan Air HCV >50m).",
+                row1_module: "Tahap 1, 2A, 3 • AI Vision Multi-Foto HUD",
+                row1_proof: "Sertifikat Kepatuhan GAP & Buku Besar Inspeksi Piringan Terkonsolidasi",
+                row2_mandate: "Pasal 9 Uji Tuntas (Due Diligence): Poligon batas bidang presisi 6-desimal WGS84 tanpa deforestasi setelah cut-off 31 Desember 2020.",
+                row2_module: "GEE Hansen GFC + Sentinel-2 & Generator TRACES-NT",
+                row2_proof: "File .json DDS Siap Unggah ke Sistem Informasi TRACES Uni Eropa",
+                row3_mandate: "Kliring Moratorium Hutan Primer: Nol tumpang tindih dengan hutan lindung konservasi dan sempadan penyangga minimum ≥ 50 meter.",
+                row3_module: "Batas Spasial GEE + Layer asean.mbtiles",
+                row3_proof: "Surat Penetapan Bebas Moratorium (100% Lolos di Area Penggunaan Lain)",
+                row4_mandate: "Penghitungan Avoided Deforestation via efisiensi lahan ganda (LER > 1.0) dan sekuestrasi karbon organik tanah (SOC) 1.8 tCO₂e/Ha/Tahun.",
+                row4_module: "Carbon Accounting Core (450 tCO₂e/Ha Baseline)",
+                row4_proof: "Sertifikat Valuasi Karbon Digital Berstempel SHA-256",
+
+                // Section 6 FAQ
+                sec4_title: "Bagian 6: Tanya Jawab Teknis & Solusi Masalah (FAQ)",
+                sec4_badge: "FAQ Teknis",
+                faq1_q: "Mengapa piringan sawit radius 2.0 meter mutlak steril dari tanaman sela dan cangkulan?",
+                faq1_a: "Radius 2.0m dari pangkal pokok sawit adalah zona konsentrasi perakaran serabut aktif penyerap hara utama (feeder roots). Menanam tanaman sela di zona ini memicu kompetisi hara langsung dengan pokok sawit. Selain itu, luka mekanis akibat cangkul pada perakaran sawit menjadi pintu masuk infeksi jamur busuk pangkal batang berbahaya (Ganoderma boninense).",
+                faq3_q: "Mengapa aplikasi mandor mobile menggunakan IndexedDB alih-alih file SQLite internal di ponsel?",
+                faq3_a: "Aplikasi mobile berjalan sebagai Progressive Web App (PWA) di sandbox browser ponsel yang tidak mengizinkan akses tulis langsung ke file sistem mentah tanpa native bridge. IndexedDB adalah standar database transaksional resmi di HP yang mampu menampung puluhan foto beresolusi tinggi dan log GPS secara permanen meski tanpa sinyal, lalu secara instan tersinkronisasi ke basis data SQLite server pusat (precision_palm.db) saat tombol sinkron ditekan.",
+                faq4_q: "Apa fungsi dokumen 'All Report' dan bagaimana hash SHA-256 membuktikan integritasnya?",
+                faq4_a: "Dokumen All Report pada Tahap 4 (Roadmap) bertindak sebagai ringkasan dossier audit utuh yang mengonsolidasikan Tahap 1 (Alas Hak), Tahap 2A (Spasial PIPPIB & Satelit GEE), Tahap 2B (Simulator LER), dan Tahap 3 (Log Multi-Foto Drone Mandor). Kunci SHA-256 64-karakter mengunci seluruh variabel tersebut secara kriptografis; jika ada angka atau koordinat yang diubah tanpa izin, verifikasi hash otomatis gagal saat dipindai via halaman /validasi."
+            }
+        };
+
+        function setLanguage(lang) {
+            currentLang = (lang === 'id' || lang === 'en') ? lang : 'en';
+            const dict = guideI18n[currentLang];
+            if (!dict) return;
+
+            document.title = dict.page_title;
+            const searchInp = document.getElementById('guideSearchInput');
+            if (searchInp) searchInp.placeholder = dict.search_placeholder;
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (dict[key] !== undefined) {
+                    el.innerHTML = dict[key];
+                }
+            });
+
+            try {
+                localStorage.setItem('precision_palm_lang', currentLang);
+                localStorage.setItem('precision_palm_language', currentLang);
+                localStorage.setItem('preferred_palm_lang', currentLang);
+            } catch (e) {}
+
+            filterGuideSections();
+        }
+
+        window.setLanguage = setLanguage;
+        window.addEventListener('languagechanged', (e) => {
+            if (e.detail && e.detail.lang) setLanguage(e.detail.lang);
+        });
+
+        function switchRoleGuide(role) {
+            const roles = ['mandor', 'agronomist', 'auditor', 'management'];
+            roles.forEach(r => {
+                const btn = document.getElementById(`tabBtn_${r}`);
+                const pane = document.getElementById(`tabContent_${r}`);
+                if (r === role) {
+                    if (btn) btn.className = "role-tab-btn flex-1 min-w-[140px] px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 bg-emerald-600 text-white shadow-md cursor-pointer";
+                    if (pane) pane.classList.remove('hidden');
+                } else {
+                    if (btn) btn.className = "role-tab-btn flex-1 min-w-[140px] px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer";
+                    if (pane) pane.classList.add('hidden');
+                }
+            });
+        }
+
+        function filterGuideSections() {
+            const input = document.getElementById('guideSearchInput');
+            const query = (input ? input.value : '').toLowerCase().trim();
+            const items = document.querySelectorAll('.guide-item');
+            const btnClear = document.getElementById('btnClearSearch');
+            const counter = document.getElementById('searchCounter');
+            const noResults = document.getElementById('noResultsMessage');
+
+            if (btnClear) {
+                if (query.length > 0) btnClear.classList.remove('hidden');
+                else btnClear.classList.add('hidden');
+            }
+
+            let visibleCount = 0;
+            const totalCount = items.length;
+
+            items.forEach(item => {
+                const text = item.innerText.toLowerCase();
+                if (query === '' || text.includes(query)) {
+                    if (item.classList.contains('role-tab-pane')) {
+                        if (query !== '') item.classList.remove('hidden');
+                    } else {
+                        item.classList.remove('hidden');
+                    }
+                    visibleCount++;
+                } else {
+                    item.classList.add('hidden');
+                }
+            });
+
+            if (counter) {
+                if (query === '') {
+                    counter.innerText = currentLang === 'id' 
+                        ? `Menampilkan seluruh modul (${totalCount} item)` 
+                        : `Showing all modules (${totalCount} items)`;
+                    counter.className = "font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800/80 font-bold";
+                } else {
+                    counter.innerText = currentLang === 'id'
+                        ? `Ditemukan: ${visibleCount} dari ${totalCount} topik`
+                        : `Found: ${visibleCount} of ${totalCount} topics`;
+                    counter.className = "font-mono text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 px-3 py-1.5 rounded-xl border border-sky-200 dark:border-sky-800/80 font-bold";
+                }
+            }
+
+            if (noResults) {
+                if (visibleCount === 0 && query !== '') noResults.classList.remove('hidden');
+                else noResults.classList.add('hidden');
+            }
+
+            if (query === '') {
+                const activeRoleBtn = document.querySelector('.role-tab-btn.bg-emerald-600');
+                if (activeRoleBtn) {
+                    const roleId = activeRoleBtn.id.replace('tabBtn_', '');
+                    switchRoleGuide(roleId);
+                } else {
+                    switchRoleGuide('mandor');
+                }
+            }
+        }
+
+        function setQuickSearch(term) {
+            const input = document.getElementById('guideSearchInput');
+            if (input) {
+                input.value = term;
+                filterGuideSections();
+                input.focus();
+            }
+        }
+
+        function resetGuideSearch() {
+            const input = document.getElementById('guideSearchInput');
+            if (input) {
+                input.value = '';
+                filterGuideSections();
+                input.focus();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            let savedLang = localStorage.getItem('precision_palm_lang') || 
+                            localStorage.getItem('precision_palm_language') || 
+                            localStorage.getItem('preferred_palm_lang') || 
+                            'en';
+            setLanguage(savedLang);
+            switchRoleGuide('mandor');
+            filterGuideSections();
+        });
+    </script>
+</body>
+</html>

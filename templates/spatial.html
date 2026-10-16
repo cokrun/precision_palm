@@ -1,0 +1,1338 @@
+<!-- templates/spatial.html -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stage 2A: Site Characteristics &amp; Spatial Moratorium Audit • Precision Palm Cloud</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        };
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Leaflet GIS Engine (v1.9.4) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #090d16;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #10b981;
+        }
+
+        .leaflet-container {
+            background-color: #020617 !important;
+            font-family: 'Inter', sans-serif !important;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+            border: 1px solid #334155 !important;
+            border-radius: 14px !important;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7) !important;
+        }
+
+        .leaflet-popup-tip {
+            background-color: #0f172a !important;
+        }
+
+        @keyframes laserSweepVertical {
+            0% {
+                top: 2%;
+                opacity: 0.85;
+            }
+
+            50% {
+                top: 96%;
+                opacity: 1;
+            }
+
+            100% {
+                top: 2%;
+                opacity: 0.85;
+            }
+        }
+
+        .laser-scanning {
+            animation: laserSweepVertical 2.0s ease-in-out infinite;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen p-3 sm:p-6 transition-colors duration-200 font-sans selection:bg-emerald-500 selection:text-white">
+    <div class="max-w-7xl mx-auto space-y-6">
+
+        <!-- Header Partial Universal -->
+        {% include 'partials/header.html' ignore missing %}
+        {% include 'partials/floating_ai_log.html' ignore missing %}
+        <!-- ALUR TAHAP 2A: STEPPER PROSES KARAKTERISTIK LAHAN -->
+        <div
+            class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 px-5 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <div class="flex items-center gap-2.5">
+                <span
+                    class="w-6 h-6 rounded-lg bg-sky-600 text-white font-mono font-bold text-xs flex items-center justify-center">2A</span>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono block">
+                            <span data-i18n="spatial_stage_title">Stage 2A: Site Characteristics &amp; Spatial
+                                Moratorium Audit</span>
+                        </span>
+                        <span id="activeDossierBadge"
+                            class="hidden md:inline-block px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-400/30 text-[9px] font-mono font-bold">
+                            EST-MDN-001 • PT Mandailing Agro Sustainable
+                        </span>
+                        <span id="activeDossierHguTag"
+                            class="hidden lg:inline-block text-[9px] font-mono text-slate-400">
+                            HGU: 004/HGU/BPN-MDN/2021 • Area: 1,200 Ha
+                        </span>
+                        <span id="activeDossierNameTitle" class="hidden">Spatial Audit : PT Mandailing Agro
+                            Sustainable</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400 font-mono" data-i18n="spatial_stage_sub">
+                        Site Biophysics &bull; Terrain Slope &bull; Soil pH &bull; Microclimate &bull; Drone AI
+                        Inspection
+                    </span>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- DOSSIER SELECTION DROPDOWN -->
+                <div
+                    class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-mono">
+                    <span class="text-slate-400 text-[10px]" data-i18n="spatial_select_dossier_lbl">Active
+                        Dossier:</span>
+                    <select id="selectDossierApplication" onchange="handleDossierSelectionChange(this.value)"
+                        class="bg-transparent font-bold text-emerald-600 dark:text-emerald-400 focus:outline-none cursor-pointer">
+                        {% if estates %}
+                        {% for e in estates %}
+                        <option value="{{ e.kode_kebun }}">{{ e.kode_kebun }} • {{ e.nama_kebun }}</option>
+                        {% endfor %}
+                        {% else %}
+                        <option value="EST-MDN-001">EST-MDN-001 • PT Mandailing Agro Sustainable</option>
+                        <option value="EST-MDN-002">EST-MDN-002 • Koperasi Sawit Swadaya Maju</option>
+                        <option value="EST-MDN-003">EST-MDN-003 • PT Batang Gadis Plantation</option>
+                        <option value="EST-MDN-004">EST-MDN-004 • PT Sorik Marapi Agro Lestari</option>
+                        <option value="EST-MDN-005">EST-MDN-005 • KUD Harapan Bersama Natal</option>
+                        <option value="EST-MDN-006">EST-MDN-006 • PT Madina Bio Palma 06</option>
+                        <option value="EST-MDN-007">EST-MDN-007 • PT Madina Bio Palma 07</option>
+                        <option value="EST-MDN-008">EST-MDN-008 • PT Madina Bio Palma 08</option>
+                        <option value="EST-MDN-009">EST-MDN-009 • PT Madina Bio Palma 09</option>
+                        <option value="EST-MDN-010">EST-MDN-010 • PT Agro Madina Subur 10</option>
+                        {% endif %}
+                    </select>
+                </div>
+
+                <button type="button" onclick="acquireRealDeviceLocation()"
+                    class="px-3 py-1.5 rounded-xl border border-sky-400/60 bg-sky-950/80 hover:bg-sky-900 text-sky-200 text-xs font-bold font-mono transition flex items-center gap-1 cursor-pointer"
+                    title="Inspect Real Device GPS">
+                    <span>📍</span> <span data-i18n="spatial_btn_real_gps">Check Real GPS</span>
+                </button>
+
+                <a href="/pendaftaran"
+                    class="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 transition flex items-center gap-1 cursor-pointer">
+                    <span>📋</span> <span data-i18n="perm_view_dossiers">Applications Directory</span>
+                </a>
+
+                <button type="button" id="btnNavDirectToProses" onclick="saveSpatialInspectionAndProceed()"
+                    class="px-4 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                    <span data-i18n="spatial_btn_save_proceed">Save &amp; Proceed to Stage 2B</span> <span>&rarr;</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- TATA LETAK UTAMA: GRID PETA SATELIT GOOGLE EARTH (KIRI) VS SIFAT FISIK TANAH (KANAN) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+            <!-- KOLOM KIRI (7 SPAN): PETA SATELIT GOOGLE EARTH, POLIGON KEBUN, DAN LAYER PIPPIB -->
+            <div
+                class="lg:col-span-7 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3.5">
+
+                <!-- Banner Validasi Sempadan 50m PIPPIB Real-Time -->
+                <div id="spatialValidationBanner"
+                    class="p-3 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-all duration-300">
+                    <div class="flex items-center gap-2">
+                        <span id="spatialValIcon" class="text-xl">🛡️</span>
+                        <div>
+                            <div class="flex items-center gap-1.5 font-mono">
+                                <span class="font-bold text-slate-900 dark:text-white" id="spatialValTitle"
+                                    data-i18n="spatial_val_title">Satellite Spatial Validation / 50m Buffer:</span>
+                                <span id="spatialValBadge"
+                                    class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400"
+                                    data-i18n="status_safe_apl">
+                                    100% PASSED NON-FOREST APL
+                                </span>
+                            </div>
+                            <p id="spatialValDesc"
+                                class="text-[11px] text-slate-600 dark:text-slate-300 font-sans mt-0.5"
+                                data-i18n="spatial_val_desc">
+                                Plot coordinates verified inside Arable Land (APL). Distance to protected forest &ge;
+                                50m complies with PP 23/2021 &amp; ISPO Principle 3.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span
+                            class="text-[10px] font-mono px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700"
+                            data-i18n="spatial_lbl_pin_locked">
+                            🔒 Pin &amp; Polygon Locked
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Toolbar Kontrol Peta Google Earth, PIPPIB Layer, Fullscreen & Debug -->
+                <div
+                    class="flex flex-wrap items-center justify-between gap-2.5 text-xs font-mono border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                    <div class="flex items-center gap-1.5">
+                        <span class="font-bold text-slate-800 dark:text-slate-200" data-i18n="spatial_col_left_title">📍
+                            Registered Centroid:</span>
+                        <span id="mapCenterCoordsDisplay"
+                            class="text-emerald-600 dark:text-emerald-400 font-bold">0.824100, 99.561200</span>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-1.5 text-[10px]">
+                        <button type="button" id="btnToggleMapFullscreen" onclick="toggleMapFullscreen()"
+                            class="px-2.5 py-1 rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-300 dark:border-indigo-700 cursor-pointer hover:bg-indigo-200 transition flex items-center gap-1">
+                            <span>⛶</span> <span id="lblBtnMapFullscreen" data-i18n="spatial_btn_fullscreen">Fullscreen
+                                Map</span>
+                        </button>
+                        <button type="button" id="btnBasemapSat" onclick="switchMapBaseLayer('sat')"
+                            class="px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-700 cursor-pointer">
+                            🛰️ Google Satellite
+                        </button>
+                        <button type="button" id="btnBasemapOsm" onclick="switchMapBaseLayer('osm')"
+                            class="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 cursor-pointer">
+                            🗺️ OSM
+                        </button>
+                        <button type="button" id="btnToggleMoratorium" onclick="toggleMoratoriumLayer()"
+                            class="px-2.5 py-1 rounded-lg bg-rose-600 text-white font-bold border border-rose-500 shadow-xs cursor-pointer flex items-center gap-1">
+                            <span>🌲</span> <span id="lblToggleMoratorium" data-i18n="perm_lbl_pippib">PIPPIB Layer
+                                (Active)</span>
+                        </button>
+                        <!-- TOMBOL DEBUG SPASIAL -->
+                        <button type="button" onclick="toggleSpatialDebugPanel()"
+                            class="px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-emerald-600 hover:text-white font-mono font-bold text-[10px] border border-slate-300 dark:border-slate-700 cursor-pointer transition flex items-center gap-1">
+                            <span>🛠️</span> <span data-i18n="spatial_btn_debug">Moratorium Debug</span>
+                        </button>
+                        <div
+                            class="flex items-center gap-1 bg-white dark:bg-slate-900 px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-700">
+                            <span class="text-slate-500 text-[9px]" data-i18n="perm_lbl_opacity">Opacity:</span>
+                            <input type="range" id="sliderMoratoriumOpacity" min="0.1" max="1" step="0.05" value="0.65"
+                                oninput="setMoratoriumOpacity(this.value)"
+                                class="w-14 sm:w-16 h-1 bg-slate-300 dark:bg-slate-700 rounded appearance-none cursor-pointer accent-rose-500">
+                            <span id="lblOpacityValue"
+                                class="text-rose-600 dark:text-rose-400 font-bold text-[9px]">65%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PANEL DEBUG SPASIAL -->
+                <div id="spatialDebugPanel"
+                    class="hidden p-3.5 rounded-2xl bg-slate-950 border-2 border-emerald-500 space-y-2 text-xs font-mono text-slate-200 shadow-xl">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                        <span class="text-[11px] font-bold text-emerald-400 flex items-center gap-1.5">
+                            <span>🛠️</span> <span data-i18n="spatial_debug_title">MORATORIUM &amp; APL BOUNDARY DEBUG
+                                DIAGNOSTICS</span>
+                        </span>
+                        <button type="button" onclick="autoEnclaveToCleanApl()"
+                            class="px-3 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 text-white font-bold text-[10px] shadow transition cursor-pointer flex items-center gap-1">
+                            <span>⚡</span> <span data-i18n="spatial_debug_enclave">Auto-Enclave to Clean APL</span>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
+                        <div><span class="text-slate-400 block">Estate Code:</span><strong id="debug_estate_code"
+                                class="text-white">EST-MDN-001</strong></div>
+                        <div><span class="text-slate-400 block">Centroid WGS84:</span><strong id="debug_centroid_coords"
+                                class="text-emerald-400">0.824100, 99.561200</strong></div>
+                        <div><span class="text-slate-400 block">Distance to Forest:</span><strong
+                                id="debug_forest_distance" class="text-sky-400">15,000.0 m</strong></div>
+                        <div><span class="text-slate-400 block">Regulatory Status:</span><strong
+                                id="debug_moratorium_status" class="text-emerald-400">100% PASSED APL</strong></div>
+                    </div>
+                    <p class="text-[10px] text-slate-400 font-sans leading-tight">
+                        If parcel polygon intersects the red PIPPIB boundary, click <strong>"Auto-Enclave to Clean
+                            APL"</strong> above to clip boundary polygon to eastern arable parcel.
+                    </p>
+                </div>
+
+                <!-- Kanvas Peta Leaflet (Tinggi 460px) Sesuai Pengaturan Permohonan -->
+                <div id="mapCanvasWrapper"
+                    class="relative w-full h-80 sm:h-[420px] md:h-[460px] rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 shadow-inner bg-slate-950 transition-all duration-300">
+                    <div id="telemetryMap" class="w-full h-full z-10"></div>
+
+                    <!-- Floating HUD Status Pin & Fullscreen Close Button -->
+                    <div class="absolute top-3 right-3 z-20 flex items-center gap-2 pointer-events-none">
+                        <span id="mapStatusPill"
+                            class="px-2.5 py-1 rounded-lg bg-slate-950/90 text-emerald-300 border border-emerald-500/50 text-[10px] font-mono font-bold shadow-md pointer-events-auto"
+                            data-i18n="spatial_hud_locked">
+                            Coordinates and parcel boundary locked from registration dossier (Stage 1)
+                        </span>
+                        <button type="button" id="btnMapFullscreenClose" onclick="toggleMapFullscreen()"
+                            class="hidden px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white border border-rose-400 text-[10px] font-mono font-bold shadow-md pointer-events-auto cursor-pointer">
+                            ✕ Exit Fullscreen
+                        </button>
+                    </div>
+
+                    <!-- Legenda Kartografis di Kiri Bawah Peta -->
+                    <div
+                        class="absolute bottom-3 left-3 z-20 p-2.5 rounded-xl bg-slate-950/90 backdrop-blur-md border border-slate-700/80 shadow-lg text-[10px] font-mono space-y-1.5 pointer-events-auto select-none">
+                        <span
+                            class="text-[9px] text-slate-400 font-bold uppercase tracking-wider block border-b border-slate-800 pb-1"
+                            data-i18n="perm_legend_title">
+                            SPATIAL GIS LEGEND:
+                        </span>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3.5 h-3.5 rounded bg-rose-600/70 border border-rose-400 shrink-0"></span>
+                            <span class="text-slate-200" data-i18n="perm_legend_forest">Protected Forest / PIPPIB
+                                2024</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-3.5 h-3.5 rounded bg-emerald-500/30 border-2 border-emerald-400 shrink-0"></span>
+                            <span class="text-slate-200" data-i18n="perm_legend_hgu">HGU Boundary (APL Area)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-emerald-500 border border-white shrink-0"></span>
+                            <span class="text-slate-200" data-i18n="perm_legend_centroid">Estate Centroid
+                                (Locked)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-3 h-3 rounded-full bg-emerald-400/40 border-2 border-emerald-400 shrink-0"></span>
+                            <span class="text-slate-200">Piringan Sawit (2.0m Steril)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="w-3.5 h-3.5 rounded-full bg-slate-900 border border-sky-400 text-[8px] flex items-center justify-center shrink-0">🚁</span>
+                            <span class="text-slate-200">GPS Drone Inspection Tracker</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4 KOTAK RINGKASAN KOORDINAT, ELEVASI DPL & TOMBOL LOCATION TRACKING AI SCANNING -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                    <!-- KOTAK 1: LONGITUDE -->
+                    <div
+                        class="p-3 rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-950 text-white shadow-xs border border-indigo-800/40 space-y-1">
+                        <span class="text-[9px] font-bold uppercase text-indigo-300 font-sans block"
+                            data-i18n="spatial_card_long">LONGITUDE (EASTING)</span>
+                        <div id="card_val_longitude"
+                            class="text-sm sm:text-base font-black font-mono text-white select-all">99.561200° E</div>
+                        <span class="text-[8px] text-indigo-300/80 font-mono block">WGS84 6-Decimal Precision</span>
+                    </div>
+
+                    <!-- KOTAK 2: LATITUDE -->
+                    <div
+                        class="p-3 rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-950 text-white shadow-xs border border-indigo-800/40 space-y-1">
+                        <span class="text-[9px] font-bold uppercase text-indigo-300 font-sans block"
+                            data-i18n="spatial_card_lat">LATITUDE (NORTHING)</span>
+                        <div id="card_val_latitude"
+                            class="text-sm sm:text-base font-black font-mono text-white select-all">0.824100° N</div>
+                        <span class="text-[8px] text-indigo-300/80 font-mono block">WGS84 Geodetic EPSG:4326</span>
+                    </div>
+
+                    <!-- KOTAK 3: KETINGGIAN TEMPAT (DPL) -->
+                    <div
+                        class="p-3 rounded-2xl bg-gradient-to-br from-slate-900 to-teal-950 text-white shadow-xs border border-teal-800/40 space-y-1">
+                        <span class="text-[9px] font-bold uppercase text-teal-300 font-sans block"
+                            data-i18n="spatial_card_elev">ELEVATION (MSL)</span>
+                        <div id="card_val_elevation"
+                            class="text-sm sm:text-base font-black font-mono text-emerald-300 select-all">142 m MSL
+                        </div>
+                        <span id="lbl_alt_suitability_class"
+                            class="text-[8px] text-emerald-400 font-mono block truncate">S1 - Lowland Plains</span>
+                    </div>
+
+                    <!-- KOTAK 4: TOMBOL LOCATION TRACKING AI SCANNING -->
+                    <button type="button" id="btnLocationAiScanning" onclick="triggerLocationTrackingAiScan()"
+                        class="p-3 rounded-2xl bg-gradient-to-br from-amber-600 via-amber-700 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white shadow-md border border-amber-400/60 flex flex-col justify-center items-center text-center transition-all transform hover:-translate-y-0.5 cursor-pointer group">
+                        <div class="flex items-center gap-1.5 text-xs font-bold font-mono uppercase tracking-tight">
+                            <span id="iconLocationScan"
+                                class="text-base group-hover:rotate-12 transition-transform">🛰️</span>
+                            <span data-i18n="spatial_btn_loc_tracking">LOCATION TRACKING</span>
+                        </div>
+                        <span class="text-[11px] font-mono font-bold text-amber-200 mt-0.5"
+                            data-i18n="spatial_btn_ai_scanning">AI SCANNING</span>
+                    </button>
+                </div>
+
+                <!-- KOLOM REVIEW AI HASIL PEMERIKSAAN LOKASI (WARNA LEBIH TERANG & KONTRAS TINGGI) -->
+                <div id="locationAiReviewCard"
+                    class="p-4 rounded-2xl bg-slate-900 border-2 border-emerald-500/60 shadow-md space-y-2.5 text-xs font-mono text-slate-100">
+                    <div class="flex items-center justify-between border-b border-emerald-500/30 pb-2">
+                        <span class="text-xs font-bold uppercase text-emerald-300 flex items-center gap-1.5 font-mono">
+                            <span>🤖</span> <span data-i18n="spatial_review_ai_title">AI Review: Statutory Machine
+                                Ground Truth</span>
+                        </span>
+                        <span id="locationReviewBadge"
+                            class="text-[10px] font-mono px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500 font-bold shadow-sm"
+                            data-i18n="spatial_review_clean">
+                            Location not forest protected
+                        </span>
+                    </div>
+
+                    <div id="locationReviewContent"
+                        class="text-xs text-slate-100 dark:text-slate-100 leading-relaxed font-sans space-y-1.5 font-medium">
+                        <p class="font-bold text-white text-sm flex items-center gap-1.5">
+                            <span class="text-emerald-400">✓</span> <span>Location not forest protected (100% Non-Forest
+                                APL Cleared)</span>
+                        </p>
+                        <p class="text-slate-200 text-xs">
+                            WGS84 geodetic verification confirms that the plantation parcel is 100% located within
+                            legitimate Arable Land (APL). Safe distance to outermost PIPPIB 2024 protected forest
+                            moratorium boundary is verified &ge; 50 meters (satisfying statutory PP No. 23/2021 &amp;
+                            ISPO Principle 3). Elevation 142m MSL and slope 4.5° are highly optimal for active 3.79m
+                            alley agroforestry cultivation.
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- KOLOM KANAN (5 SPAN): FORM KARAKTERISTIK FISIK LAHAN & SIFAT TAPAK -->
+            <div class="lg:col-span-5 space-y-4">
+
+                <!-- KARTU PANEL: GEE REMOTE SENSING AUDIT (EARTH ENGINE PIPELINE) -->
+                <div id="geeAuditPanelCard"
+                    class="bg-gradient-to-br from-slate-900 via-slate-950 to-emerald-950 p-4 sm:p-5 rounded-3xl border-2 border-emerald-500/70 shadow-xl space-y-3.5 text-white">
+                    <div class="flex items-center justify-between border-b border-emerald-500/30 pb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">🛰️</span>
+                            <div>
+                                <h3
+                                    class="text-xs font-bold text-emerald-300 uppercase font-mono tracking-wider flex items-center gap-1.5">
+                                    <span>GEE Remote Sensing Audit</span>
+                                    <span id="geeLiveIndicator"
+                                        class="px-1.5 py-0.2 rounded text-[8px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">GEE
+                                        API</span>
+                                </h3>
+                                <span class="text-[9.5px] text-slate-400 font-mono">
+                                    Hansen GFC &bull; Sentinel-2 MSI &bull; SRTM Topo
+                                </span>
+                            </div>
+                        </div>
+                        <button type="button" id="btnTriggerGeeAudit" onclick="runGeeSatelliteAuditUI()"
+                            class="px-2.5 py-1 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 text-white font-mono font-bold text-[10px] shadow-sm transition flex items-center gap-1 cursor-pointer">
+                            <span id="geeBtnIcon">⚡</span> <span id="geeBtnText">Run GEE Audit</span>
+                        </button>
+                    </div>
+
+                    <!-- 3 Bento Metrik Utama: EUDR Deforestation, Sentinel-2 NDVI/NDMI, SRTM Slope -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs font-mono">
+
+                        <!-- 1. EUDR Hansen Deforestation -->
+                        <div class="p-2.5 rounded-2xl bg-slate-900/90 border border-emerald-500/40 space-y-1">
+                            <div class="flex items-center justify-between text-[9px] text-slate-400">
+                                <span>🌲 EUDR Cutoff</span>
+                                <span class="text-emerald-400 font-bold">2020-12-31</span>
+                            </div>
+                            <div class="text-base font-black text-white" id="geeValEudrLoss">
+                                0.00 <span class="text-[10px] font-normal text-slate-400">Ha Loss</span>
+                            </div>
+                            <div class="pt-0.5">
+                                <span id="geeBadgeEudrStatus"
+                                    class="inline-block px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-500 truncate w-full text-center">
+                                    EUDR COMPLIANT (0% Loss)
+                                </span>
+                            </div>
+                            <span class="text-[8px] text-slate-400 block truncate">UMD Hansen GFC 30m</span>
+                        </div>
+
+                        <!-- 2. Sentinel-2 Canopy Health (NDVI & NDMI) -->
+                        <div class="p-2.5 rounded-2xl bg-slate-900/90 border border-sky-500/40 space-y-1">
+                            <div class="flex items-center justify-between text-[9px] text-slate-400">
+                                <span>🌿 S2 Canopy</span>
+                                <span class="text-sky-400 font-bold">10m MSI</span>
+                            </div>
+                            <div class="flex items-baseline justify-between">
+                                <div class="text-base font-black text-sky-300" id="geeValNdvi">
+                                    0.8245 <span class="text-[9px] font-normal text-slate-400">NDVI</span>
+                                </div>
+                                <div class="text-[10px] font-bold text-teal-400" id="geeValNdmi">
+                                    0.4420 <span class="text-[8px] text-slate-400">NDMI</span>
+                                </div>
+                            </div>
+                            <div class="pt-0.5">
+                                <span id="geeBadgeCanopyStatus"
+                                    class="inline-block px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-sky-950 text-sky-300 border border-sky-500 truncate w-full text-center">
+                                    Dense Crown Health
+                                </span>
+                            </div>
+                            <span class="text-[8px] text-slate-400 block truncate">Cloud Filter &lt; 20%</span>
+                        </div>
+
+                        <!-- 3. SRTM Slope & Topography -->
+                        <div class="p-2.5 rounded-2xl bg-slate-900/90 border border-amber-500/40 space-y-1">
+                            <div class="flex items-center justify-between text-[9px] text-slate-400">
+                                <span>⛰️ SRTM Slope</span>
+                                <span class="text-amber-400 font-bold">&le; 15° Limit</span>
+                            </div>
+                            <div class="flex items-baseline justify-between">
+                                <div class="text-base font-black text-amber-300" id="geeValSlope">
+                                    4.50° <span class="text-[9px] font-normal text-slate-400">Slope</span>
+                                </div>
+                                <div class="text-[10px] font-bold text-slate-300" id="geeValElevation">
+                                    142.0m <span class="text-[8px] text-slate-400">ASL</span>
+                                </div>
+                            </div>
+                            <div class="pt-0.5">
+                                <span id="geeBadgeSlopeStatus"
+                                    class="inline-block px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-500 truncate w-full text-center">
+                                    SAFE AGROFORESTRY
+                                </span>
+                            </div>
+                            <span class="text-[8px] text-slate-400 block truncate">USGS SRTM GL1 30m</span>
+                        </div>
+
+                    </div>
+
+                    <!-- Seal Kriptografi & Telemetri GEE -->
+                    <div
+                        class="p-2 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[9px] font-mono text-slate-400">
+                        <div class="flex items-center gap-1.5 truncate">
+                            <span class="text-emerald-400">🔒 GEE Audit Seal:</span>
+                            <span id="geeAuditShaText"
+                                class="text-slate-300 select-all truncate font-bold">A0F19C87648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327EE0</span>
+                        </div>
+                        <span id="geeAuditTimeText" class="text-slate-500 shrink-0">Updated: Just Now</span>
+                    </div>
+                </div>
+
+                <!-- PANEL TELEMETRI AGROKLIMAT & CUACA REAL-TIME -->
+                <div
+                    class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3.5">
+                    <div
+                        class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">🌦️</span>
+                            <div>
+                                <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase font-mono tracking-wider"
+                                    data-i18n="spatial_weather_title">
+                                    Microclimate &amp; Field Weather Properties
+                                </h3>
+                                <span class="text-[10px] text-slate-400 font-mono"
+                                    data-i18n="spatial_weather_sub">Open-Meteo &amp; Topography Sync</span>
+                            </div>
+                        </div>
+                        <button type="button" onclick="refreshBioclimaticData()"
+                            class="p-1 rounded-lg text-slate-400 hover:text-emerald-500 transition cursor-pointer"
+                            title="Refresh Weather Data">
+                            <span id="icon_refresh_weather">🔄</span>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                        <div
+                            class="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                            <span class="text-slate-400 block text-[9px]" data-i18n="spatial_lbl_temp">Air Temperature
+                                (2m):</span>
+                            <strong id="geo_val_temp" class="text-amber-500 text-sm font-bold">26.6 °C</strong>
+                            <span class="text-[9px] text-slate-500 block">Lapse Rate: -0.6°C/100m</span>
+                        </div>
+                        <div
+                            class="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                            <span class="text-slate-400 block text-[9px]" data-i18n="spatial_lbl_rh">Relative
+                                Humidity:</span>
+                            <strong id="geo_val_rh" class="text-cyan-500 text-sm font-bold">78 %</strong>
+                            <span class="text-[9px] text-slate-500 block">Optimal 70% - 90%</span>
+                        </div>
+                        <div
+                            class="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                            <span class="text-slate-400 block text-[9px]" data-i18n="spatial_lbl_rain">Annual
+                                Precipitation:</span>
+                            <strong id="geo_val_rainfall" class="text-blue-500 text-sm font-bold">2,188 mm</strong>
+                            <span class="text-[9px] text-slate-500 block">Schmidt-Ferguson Type A</span>
+                        </div>
+                        <div
+                            class="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                            <span class="text-slate-400 block text-[9px]" data-i18n="spatial_lbl_sun">Solar
+                                Irradiance:</span>
+                            <strong id="geo_val_sun" class="text-emerald-500 text-sm font-bold">6.5 hrs/day</strong>
+                            <span class="text-[9px] text-slate-500 block">Adequate PAR Radiation</span>
+                        </div>
+                    </div>
+
+                    <!-- Indikator Kesesuaian Fisik Tapak -->
+                    <div
+                        class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-slate-700 dark:text-slate-300 text-[11px]"
+                                data-i18n="spatial_site_index">Physical Site Suitability Index:</span>
+                            <span id="geo_suitability_score"
+                                class="font-mono font-bold text-emerald-600 dark:text-emerald-400">95.0% (S1)</span>
+                        </div>
+                        <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                            <div id="geo_suitability_progress"
+                                class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500"
+                                style="width: 95%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FORM SIFAT FISIK TANAH & KEMIRINGAN LERENG -->
+                <div
+                    class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <div
+                        class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                        <span
+                            class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase font-mono tracking-wider flex items-center gap-1.5">
+                            <span>🧪</span> <span data-i18n="spatial_soil_params_title">Soil Physical Parameters &amp;
+                                Topography</span>
+                        </span>
+                        <span class="text-[10px] text-emerald-600 font-mono font-bold"
+                            data-i18n="spatial_card_topo">Land Characteristics</span>
+                    </div>
+
+                    <!-- Soil Acidity (pH) -->
+                    <div class="space-y-1 text-xs">
+                        <div class="flex items-center justify-between">
+                            <label for="inp_soil_ph"
+                                class="font-semibold text-slate-700 dark:text-slate-300 text-[11px]"
+                                data-i18n="spatial_lbl_soil_ph">
+                                Soil Acidity Level (Soil pH) *
+                            </label>
+                            <span id="txt_soil_ph_display"
+                                class="font-mono font-bold text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[11px]">
+                                5.5 (Optimal)
+                            </span>
+                        </div>
+                        <input type="range" id="inp_soil_ph" min="3.5" max="7.5" step="0.1" value="5.5"
+                            oninput="handleSoilParamChange()" class="w-full accent-emerald-500 cursor-pointer">
+                        <div class="flex justify-between text-[9px] text-slate-400 font-mono">
+                            <span>3.5 (Strongly Acidic)</span>
+                            <span class="text-emerald-600 font-bold">5.5 (Optimal)</span>
+                            <span>7.5 (Neutral/Alkaline)</span>
+                        </div>
+                        <p id="txt_dolomite_hint" class="text-[10px] text-slate-400 font-mono pt-0.5">
+                            ✓ Normal pH condition. High-dose dolomite lime amelioration not required.
+                        </p>
+                    </div>
+
+                    <!-- Kemiringan Lereng (Slope Derajat) -->
+                    <div class="space-y-1 text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
+                        <div class="flex items-center justify-between">
+                            <label for="inp_terrain_slope"
+                                class="font-semibold text-slate-700 dark:text-slate-300 text-[11px]"
+                                data-i18n="spatial_lbl_slope">
+                                Topographic Slope (Degrees / °) *
+                            </label>
+                            <span id="txt_slope_display"
+                                class="font-mono font-bold text-sky-600 dark:text-sky-400 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[11px]">
+                                4.5° (Gentle Slope)
+                            </span>
+                        </div>
+                        <input type="range" id="inp_terrain_slope" min="0" max="25" step="0.5" value="4.5"
+                            oninput="handleSoilParamChange()" class="w-full accent-sky-500 cursor-pointer">
+                        <div class="flex justify-between text-[9px] text-slate-400 font-mono">
+                            <span>0° (Flat)</span>
+                            <span class="text-sky-600 font-bold">4.5° (Safe for Beds)</span>
+                            <span>&gt;15° (Contour Terracing Required)</span>
+                        </div>
+                        <p id="txt_terrace_hint" class="text-[10px] text-slate-400 font-mono pt-0.5">
+                            ✓ Slope &le; 8% (&le; 4.5°). Safe for conventional contour beds along palm alleyways.
+                        </p>
+                    </div>
+
+                    <!-- Tekstur Tanah & Aerasi -->
+                    <div class="space-y-1 text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
+                        <label for="inp_soil_texture"
+                            class="block font-semibold text-slate-700 dark:text-slate-300 text-[11px]"
+                            data-i18n="spatial_lbl_texture">
+                            Soil Texture &amp; Drainage Capacity *
+                        </label>
+                        <select id="inp_soil_texture" onchange="handleSoilParamChange()"
+                            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                            <option value="sandy_loam" selected>Sandy Loam • Optimal Aeration &amp; Drainage</option>
+                            <option value="clay">Clay • Slow Drainage / Requires Contour Trenching</option>
+                            <option value="peat">Shallow Peat (&lt;0.8m) • Water Table Sluice Gate Required</option>
+                            <option value="sandy">Sandy • Low Nutrient Retention / Mulching Required</option>
+                        </select>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- SEKSI TENGAH: GALERI FOTO EVIDENCE, TOMBOL SCANNING FOTO & SCANNER AI VISUAL HUD -->
+        <div
+            class="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div
+                class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div>
+                    <span
+                        class="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block"
+                        data-i18n="spatial_drone_title">
+                        DUAL-VIEW MULTIMODAL AI FIELD REVIEW &amp; EVIDENCE CACHE
+                    </span>
+                    <h3
+                        class="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>📸</span> <span data-i18n="spatial_evidence_title">Field Evidence Photos &amp; AI Reticle
+                            HUD Vision Scanning</span>
+                    </h3>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="aiScanBadge"
+                        class="hidden px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                        <span>AI Vision Scanning...</span>
+                    </span>
+                    <span id="galleryCountBadge"
+                        class="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+                        8 Registered Photos
+                    </span>
+                </div>
+            </div>
+
+            <!-- ROW 1: TOP 2-COLUMN SPLIT (Gallery & Reticle HUD) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                <!-- Left: Dropzone & Gallery Thumbnails (lg:col-span-5) -->
+                <div class="lg:col-span-5 space-y-3">
+                    <div onclick="document.getElementById('fileInputSupportingPhoto').click()"
+                        class="cursor-pointer py-4 px-3 flex flex-col items-center justify-center rounded-2xl bg-slate-50 dark:bg-slate-950 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 transition text-center group">
+                        <input type="file" id="fileInputSupportingPhoto" accept="image/*" class="hidden"
+                            onchange="handleNewPhotoUpload(event)">
+                        <span class="text-3xl mb-1 group-hover:scale-110 transition-transform">🚁</span>
+                        <p class="text-xs font-bold text-slate-800 dark:text-slate-200"
+                            data-i18n="spatial_upload_photo_prompt">
+                            Upload new drone photo or <span
+                                class="text-emerald-500 dark:text-emerald-400 underline">browse file</span>
+                        </p>
+                        <p class="text-[10px] text-slate-400 mt-0.5 font-mono" data-i18n="spatial_upload_photo_sub">
+                            JPG/PNG format &bull; Automatically scanned by AI &amp; saved to memory</p>
+                    </div>
+
+                    <!-- Multi-Select Toolbar & Counter -->
+                    <div
+                        class="flex items-center justify-between px-1 py-1 text-[10px] font-mono bg-slate-900/60 rounded-xl border border-slate-800">
+                        <label
+                            class="flex items-center gap-1.5 cursor-pointer text-slate-300 hover:text-white select-none">
+                            <input type="checkbox" id="galleryMasterCheckbox"
+                                onchange="toggleSelectAllPhotos(this.checked)" checked
+                                class="w-3.5 h-3.5 rounded border-slate-600 bg-slate-950 text-emerald-500 focus:ring-emerald-400 cursor-pointer">
+                            <span class="font-bold text-slate-200" data-i18n="spatial_select_all_photos">Select
+                                All</span>
+                        </label>
+                        <span id="gallerySelectionBadge"
+                            class="px-2 py-0.5 rounded-full bg-emerald-950/90 text-emerald-300 border border-emerald-500/50 font-bold text-[9.5px]">
+                            8 / 8 Selected
+                        </span>
+                    </div>
+
+                    <!-- Grid Thumbnails + Tombol Scanning Foto -->
+                    <div class="flex items-center gap-2">
+                        <div id="galleryThumbnailsGrid"
+                            class="flex-1 grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1"></div>
+
+                        <button type="button" id="btnTriggerPhotoScan" onclick="triggerScanningFotoAction()"
+                            class="w-32 h-24 rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-800 hover:from-emerald-500 hover:to-teal-600 text-white font-mono font-bold text-xs shadow-md border border-emerald-400/60 flex flex-col items-center justify-center gap-1 transition-all transform hover:-translate-y-0.5 cursor-pointer shrink-0 text-center px-1.5"
+                            title="Scan all selected photos with AI Vision">
+                            <span class="text-2xl">🤖</span>
+                            <span id="btnPhotoScanLabel" data-i18n="spatial_btn_photo_scan">Photo Scan</span>
+                            <span id="btnPhotoScanCountSub"
+                                class="text-[9px] text-emerald-200/90 font-mono font-normal">(8 Selected)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right: Reticle HUD Canvas & Object Detection Indicators (lg:col-span-7) -->
+                <div class="lg:col-span-7 space-y-3">
+                    <div
+                        class="relative w-full h-64 sm:h-80 rounded-2xl overflow-hidden bg-slate-950 border border-slate-300 dark:border-slate-700 shadow-inner group">
+                        <img id="verifPhotoImg" src="/static/img/field_wetland_buffer.jpg" alt="Field Evidence Photo"
+                            class="w-full h-full object-cover">
+
+                        <canvas id="reticleCanvas"
+                            class="absolute inset-0 w-full h-full pointer-events-none z-10"></canvas>
+                        <div id="aiScanningLaser"
+                            class="hidden absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_#34d399] z-25 pointer-events-none">
+                        </div>
+                        <div id="droneBBoxesOverlay" class="absolute inset-0 pointer-events-none z-20"></div>
+
+                        <div
+                            class="absolute bottom-3 left-3 bg-slate-950/85 backdrop-blur-md border border-slate-700 px-2.5 py-1 rounded-lg text-[10px] font-mono text-slate-200 flex items-center gap-1.5 shadow z-30">
+                            <span>📸</span> <span id="verifPhotoLabel">field_wetland_buffer.jpg</span>
+                        </div>
+
+                        <div class="absolute top-3 right-3 flex items-center gap-1.5 z-30">
+                            <button type="button" onclick="triggerScanningFotoAction()"
+                                class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-[10px] font-bold shadow-md transition flex items-center gap-1 cursor-pointer">
+                                <span>⚡</span> <span data-i18n="spatial_btn_rescan">Rescan AI</span>
+                            </button>
+                            <span id="aiReviewStatusTag"
+                                class="px-2 py-1 rounded-lg bg-slate-950/85 text-emerald-300 border border-emerald-500/50 text-[10px] font-mono font-bold"
+                                data-i18n="spatial_tag_rescan">
+                                AI Review Verified (Interactive)
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Indikator Deteksi Objek Reticle -->
+                    <div
+                        class="p-2.5 rounded-2xl bg-slate-950/90 border border-slate-800 text-[10px] font-mono text-slate-300 flex flex-wrap items-center justify-between gap-1.5">
+                        <span
+                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-950 border border-emerald-500/60 text-emerald-300 font-bold">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> [Optimal Palm Crown]
+                        </span>
+                        <span
+                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-sky-950 border border-sky-500/60 text-sky-300 font-bold">
+                            <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span> [Alley Corridor 3.79m]
+                        </span>
+                        <span
+                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-rose-950 border border-rose-500/60 text-rose-300 font-bold">
+                            <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> [Sterile Circle 2.0m]
+                        </span>
+                        <span
+                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-950 border border-cyan-500/60 text-cyan-300 font-bold">
+                            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> [Living Weed Mulch]
+                        </span>
+                        <span id="aiDetectionIoUBadge" class="text-emerald-400 font-bold">IoU: 0.94 • Conf: 96%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROW 2: MIDDLE 2-COLUMN SPLIT SIDE-BY-SIDE (Consolidated Ledger & Review AI) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                <!-- Left: Consolidated Evidence Ledger (lg:col-span-7) -->
+                <div id="consolidatedLedgerCard"
+                    class="lg:col-span-7 p-4 sm:p-5 rounded-3xl bg-slate-900/95 border-2 border-emerald-500/70 shadow-xl space-y-3.5 text-white flex flex-col justify-between">
+                    <div
+                        class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-500/30 pb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">📊</span>
+                            <div>
+                                <h4
+                                    class="text-xs font-bold text-emerald-300 uppercase font-mono tracking-wider flex items-center gap-1.5">
+                                    <span data-i18n="spatial_ledger_card_title">CONSOLIDATED EVIDENCE LEDGER</span>
+                                    <span
+                                        class="px-1.5 py-0.2 rounded text-[8px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30"
+                                        data-i18n="spatial_ledger_aggregate_badge">ALL-PHOTO AGGREGATE</span>
+                                </h4>
+                                <span class="text-[9.5px] text-slate-400 font-mono" data-i18n="spatial_ledger_sub">
+                                    Cumulative AI Vision findings across all registered photos
+                                </span>
+                            </div>
+                        </div>
+                        <span id="ledgerPhotoCountBadge"
+                            class="self-start sm:self-auto text-[9.5px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500 font-bold">
+                            8 Aggregated Evidence Photos
+                        </span>
+                    </div>
+
+                    <!-- 4 Bento Metrik Akumulasi Terpadu -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
+                        <!-- 1. Total Palm Crowns -->
+                        <div class="p-2.5 rounded-2xl bg-slate-950/80 border border-emerald-500/40 space-y-1">
+                            <span class="text-[9px] text-slate-400 block" data-i18n="spatial_ledger_palm_total">🌴 Total
+                                Palm Crowns</span>
+                            <div class="text-sm sm:text-base font-black text-white" id="ledgerTotalCrowns">
+                                43 <span class="text-[9.5px] font-normal text-emerald-400 font-bold"
+                                    data-i18n="spatial_ledger_crowns_unit">Crowns</span>
+                            </div>
+                            <div class="text-[8.5px] text-emerald-300 font-bold truncate" id="ledgerCrownsSub">
+                                42 Optimal &bull; 1 Stressed
+                            </div>
+                            <span
+                                class="inline-block px-1.5 py-0.2 rounded text-[8px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-600 truncate w-full text-center"
+                                data-i18n="spatial_ledger_vigor_badge">
+                                96.4% Prime Vigor
+                            </span>
+                        </div>
+
+                        <!-- 2. Alley Width -->
+                        <div class="p-2.5 rounded-2xl bg-slate-950/80 border border-sky-500/40 space-y-1">
+                            <span class="text-[9px] text-slate-400 block" data-i18n="spatial_ledger_alley_width">🚜
+                                Alley Width</span>
+                            <div class="text-sm sm:text-base font-black text-sky-300" id="ledgerAlleyWidth">
+                                3.85 <span class="text-[9.5px] font-normal text-slate-400"
+                                    data-i18n="spatial_ledger_alley_unit">Meters</span>
+                            </div>
+                            <div class="text-[8.5px] text-sky-300 font-bold truncate"
+                                data-i18n="spatial_ledger_alley_sub">
+                                Multi-site Average
+                            </div>
+                            <span
+                                class="inline-block px-1.5 py-0.2 rounded text-[8px] font-bold bg-sky-950 text-sky-300 border border-sky-600 truncate w-full text-center"
+                                data-i18n="spatial_ledger_alley_badge">
+                                Suitable for Intercropping
+                            </span>
+                        </div>
+
+                        <!-- 3. Root Buffer (2m) -->
+                        <div class="p-2.5 rounded-2xl bg-slate-950/80 border border-rose-500/40 space-y-1">
+                            <span class="text-[9px] text-slate-400 block" data-i18n="spatial_ledger_root_buffer">⭕ Root
+                                Buffer (2m)</span>
+                            <div class="text-sm sm:text-base font-black text-rose-300" id="ledgerSterileStatus">
+                                100% <span class="text-[9.5px] font-normal text-slate-400">Compliant</span>
+                            </div>
+                            <div class="text-[8.5px] text-rose-300 font-bold truncate"
+                                data-i18n="spatial_ledger_root_sub">
+                                Weed-free Radius
+                            </div>
+                            <span
+                                class="inline-block px-1.5 py-0.2 rounded text-[8px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-600 truncate w-full text-center"
+                                data-i18n="spatial_ledger_root_badge">
+                                Zero-Tillage Buffer
+                            </span>
+                        </div>
+
+                        <!-- 4. Riparian Buffer -->
+                        <div class="p-2.5 rounded-2xl bg-slate-950/80 border border-teal-500/40 space-y-1">
+                            <span class="text-[9px] text-slate-400 block" data-i18n="spatial_ledger_riparian">💧
+                                Riparian Buffer</span>
+                            <div class="text-sm sm:text-base font-black text-teal-300" id="ledgerRiparianStatus">
+                                &ge; 50m <span class="text-[9.5px] font-normal text-slate-400">Protected</span>
+                            </div>
+                            <div class="text-[8.5px] text-teal-300 font-bold truncate"
+                                data-i18n="spatial_ledger_riparian_sub">
+                                Natural Conservation Buffer
+                            </div>
+                            <span
+                                class="inline-block px-1.5 py-0.2 rounded text-[8px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-600 truncate w-full text-center"
+                                data-i18n="spatial_ledger_riparian_badge">
+                                Compliant PP 23/2021
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Review AI Card (lg:col-span-5) -->
+                <div id="photoAiReviewCard"
+                    class="lg:col-span-5 p-4 sm:p-5 rounded-3xl bg-slate-900 border-2 border-emerald-500/60 shadow-xl space-y-3 text-xs font-mono text-slate-100 flex flex-col justify-between">
+                    <div class="flex items-center justify-between border-b border-emerald-500/30 pb-2">
+                        <span class="text-xs font-bold uppercase text-emerald-300 flex items-center gap-1.5 font-mono">
+                            <span>🤖</span> <span data-i18n="spatial_review_ai_heading">REVIEW AI</span>
+                        </span>
+                        <span id="photoReviewBadge"
+                            class="text-[10px] font-mono px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500 font-bold shadow-sm"
+                            data-i18n="spatial_review_badge_verified">
+                            Object Verified
+                        </span>
+                    </div>
+
+                    <div id="photoReviewContent"
+                        class="text-xs text-slate-100 leading-relaxed font-sans space-y-2 font-medium flex-1">
+                        <p class="font-bold text-white text-xs flex items-center gap-1.5">
+                            <span class="text-teal-400">💧</span> <span>Riparian Conservation Buffer Zone &bull; Buffer
+                                &ge; 50m</span>
+                        </p>
+                        <div class="text-slate-100 text-[11px] space-y-1.5 pt-1 leading-relaxed font-sans">
+                            <p>
+                                <strong class="text-teal-300">Environmental HCV Protection:</strong> AI Vision confirms
+                                natural watercourse buffer is fully protected (&ge; 50 meters) with zero illicit palm
+                                encroachment, compliant with PP 23/2021 &amp; ISPO Principle 2.
+                            </p>
+                            <p>
+                                <strong class="text-emerald-300">Canopy &amp; Sterile Circle:</strong> 6 palm crowns
+                                detected on non-conservation bank in prime vigor, 2.0m sterile circle strictly
+                                maintained free of agrochemicals along buffer edge.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROW 3: FULL WIDTH 12-COLUMN SECTION (Detailed Evidence Photos Table & Cumulative Auditor Synthesis) -->
+            <div class="space-y-3">
+                <!-- Tabel Rincian Temuan AI Vision Per Foto Terdaftar -->
+                <div class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/70">
+                    <table class="w-full text-left text-[10px] font-mono">
+                        <thead class="bg-slate-900 text-slate-400 border-b border-slate-800">
+                            <tr>
+                                <th class="p-2.5 w-9 text-center">
+                                    <input type="checkbox" id="tableMasterCheckbox"
+                                        onchange="toggleSelectAllPhotos(this.checked)" checked
+                                        class="w-3.5 h-3.5 rounded border-slate-600 bg-slate-950 text-emerald-500 focus:ring-emerald-400 cursor-pointer"
+                                        title="Select / Deselect All Photos">
+                                </th>
+                                <th class="p-2.5" data-i18n="spatial_tbl_col_photo">Foto / Bukti</th>
+                                <th class="p-2.5" data-i18n="spatial_tbl_col_tag">Kategori Tag</th>
+                                <th class="p-2.5" data-i18n="spatial_tbl_col_crown">Tajuk Sawit</th>
+                                <th class="p-2.5" data-i18n="spatial_tbl_col_alley">Koridor Gawangan</th>
+                                <th class="p-2.5" data-i18n="spatial_tbl_col_circle">Piringan 2m</th>
+                                <th class="p-2.5" data-i18n="spatial_tbl_col_riparian">Sempadan</th>
+                                <th class="p-2.5 text-right" data-i18n="spatial_tbl_col_status">Status AI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledgerTableBody" class="divide-y divide-slate-800/80 text-slate-200">
+                            <!-- Terisi otomatis oleh spatial.js -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Sintesis Kesimpulan Auditor Kumulatif -->
+                <div
+                    class="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/90 via-slate-950 to-slate-900 border border-emerald-500/50 space-y-1.5">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                        <span class="font-bold text-emerald-300 font-sans flex items-center gap-1.5">
+                            <span>📑</span> <span data-i18n="spatial_ledger_synthesis_title">Sintesis Kesimpulan Auditor
+                                Kumulatif (Multi-Bukti Spasial)</span>
+                        </span>
+                        <span id="ledgerCumulativeScoreBadge"
+                            class="text-[9.5px] font-mono px-2 py-0.5 rounded bg-emerald-900 text-emerald-200 font-bold border border-emerald-600 self-start sm:self-auto">
+                            Health Score: 97/100 &bull; Compliance: 100%
+                        </span>
+                    </div>
+                    <p id="ledgerCumulativeSummaryText"
+                        class="text-[11px] text-slate-200 leading-relaxed font-sans font-medium">
+                        Cumulative multimodal vision analysis across 8 evidence photos verifies prime palm crown
+                        consistency (97.7% optimal out of total 43 crowns), uniform alley corridor width of 3.85m,
+                        sterile root circles preserved with zero erosion, and riparian buffer verified compliant with
+                        ISPO &amp; HCV standards.
+                    </p>
+                </div>
+            </div>
+
+            <!-- ROW 4: FULL WIDTH 12-COLUMN SECTION (Physical Site Technical Advisory Letter) -->
+            <div id="landSuitabilityAdvisoryCard"
+                class="p-4 sm:p-5 rounded-3xl bg-slate-900 border-2 border-emerald-500/70 shadow-xl space-y-3 text-xs font-mono text-slate-100">
+                <div class="flex items-center justify-between border-b border-emerald-500/30 pb-2">
+                    <strong class="text-white text-xs font-sans flex items-center gap-1.5">
+                        <span>📋</span> <span data-i18n="spatial_advisory_title">Physical Site Technical Advisory
+                            Letter</span>
+                    </strong>
+                    <span id="badge_suitability_verdict"
+                        class="text-[9px] px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500 font-bold shadow-sm"
+                        data-i18n="spatial_advisory_verdict">
+                        CULTIVATION ELIGIBLE
+                    </span>
+                </div>
+                <p id="txt_technical_recommendation"
+                    class="text-[11px] leading-relaxed font-sans text-slate-200 font-medium"
+                    data-i18n="spatial_advisory_text">
+                    Selected physical site characteristics (Elevation 142m ASL, pH 5.5, slope 4.5°, sandy loam texture)
+                    verified. Safe for 3.79m contour beds. Results ready for Stage 2B: In-Silico Biophysics Simulator.
+                </p>
+
+                <!-- DUAL-LAYER: KOLOM CATATAN & JUSTIFIKASI ASESOR (HUMAN-IN-THE-LOOP) -->
+                <div class="pt-2 border-t border-emerald-500/30 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-emerald-300 flex items-center gap-1.5 font-sans">
+                            <span>✍️</span> <span data-i18n="spatial_assessor_notes">Official Assessor Notes &amp;
+                                Justification (Human-in-the-Loop)</span>
+                        </span>
+                        <span class="text-[9px] text-slate-300 font-mono" data-i18n="spatial_human_in_loop">Auditor
+                            Sign-Off</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
+                        <div>
+                            <label for="inp_assessor_name" class="text-slate-300 block mb-0.5 font-sans"
+                                data-i18n="spatial_lbl_assessor_name">Assessor / Auditor Name:</label>
+                            <input type="text" id="inp_assessor_name" value="(Lead Assessor)"
+                                placeholder="Assessor / Auditor name..."
+                                class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label for="inp_assessor_verdict" class="text-slate-300 block mb-0.5 font-sans"
+                                data-i18n="spatial_lbl_assessor_verdict">Assessor Verdict:</label>
+                            <select id="inp_assessor_verdict" onchange="handleAssessorVerdictChange(this.value)"
+                                class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-emerald-300 font-bold focus:outline-none focus:border-emerald-500 cursor-pointer">
+                                <option value="DISETUJUI_PENUH" selected data-i18n="spatial_verdict_approved">✓ Fully
+                                    Approved (Eligible for Planting)</option>
+                                <option value="DISETUJUI_BERSYARAT" data-i18n="spatial_verdict_conditional">ℹ️
+                                    Conditionally Approved</option>
+                                <option value="PERLU_VERIFIKASI_LAPANGAN" data-i18n="spatial_verdict_reverify">⚠️
+                                    Requires Re-Verification</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="inp_assessor_notes" class="text-slate-300 block text-[10px] mb-0.5 font-sans"
+                            data-i18n="spatial_lbl_assessor_notes_field">Assessor Technical Considerations / Rationale
+                            (Optional):</label>
+                        <textarea id="inp_assessor_notes" rows="2"
+                            placeholder="Enter technical notes and justification (e.g. contour silt pit recommendations, runoff drainage canals, or dolomite amelioration)..."
+                            class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-sans"></textarea>
+                    </div>
+                </div>
+
+                <div class="pt-2 flex items-center justify-end">
+                    <button type="button" onclick="saveSpatialInspectionAndProceed()"
+                        class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer">
+                        <span data-i18n="spatial_btn_proceed_simulator">Proceed to Stage 2B In-Silico Engine</span>
+                        <span>&rarr;</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEKSI BAWAH: DAFTAR HASIL TRACKING LAPANGAN / MOBILE EDGE NODE -->
+        <div
+            class="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div
+                class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div class="space-y-0.5">
+                    <span
+                        class="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                        INTEGRATED SURVEILLANCE GROUND TRUTH EVIDENCE
+                    </span>
+                    <h3
+                        class="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>📱</span> <span data-i18n="spatial_surveys_title">Field Tracking &amp; Mobile Edge Node
+                            Surveillance Records</span>
+                    </h3>
+                    <p class="text-[11px] text-slate-500 font-sans" data-i18n="spatial_surveys_sub">
+                        Periodic survey logs from field supervisors and edge PWA sensors as supporting proof of site
+                        compliance.
+                    </p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="mobileSurveysCountBadge"
+                        class="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+                        Loading Reports...
+                    </span>
+                    <button type="button" onclick="loadMobileSurveysTable()"
+                        class="p-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
+                        title="Refresh Table">
+                        🔄
+                    </button>
+                </div>
+            </div>
+
+            <!-- Toolbar Pencarian & Filter Cepat Tabel Tracking -->
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+                <div class="relative flex-1 sm:max-w-md">
+                    <span
+                        class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">🔍</span>
+                    <input type="text" id="inpSearchSurveys" oninput="handleSurveysSearch(this.value)"
+                        placeholder="Filter instant: ID, Cycle, Blok, Mandor, Status..."
+                        class="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-mono transition">
+                </div>
+                <div class="flex items-center justify-between sm:justify-end gap-3 text-xs font-mono text-slate-500">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[11px]">Tampilkan:</span>
+                        <select id="selectSurveysPageSize" onchange="handleSurveysPageSizeChange(this.value)"
+                            class="text-xs py-1 px-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-mono">
+                            <option value="5" selected>5 baris / hal</option>
+                            <option value="10">10 baris / hal</option>
+                            <option value="25">25 baris / hal</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabel Hasil Tracking Lapangan dengan Kolom Pangkal Sticky -->
+            <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 relative">
+                <table class="w-full text-left text-xs whitespace-nowrap">
+                    <thead
+                        class="bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[10px] font-bold border-b border-slate-200 dark:border-slate-700 font-mono">
+                        <tr>
+                            <th class="px-3 py-3 text-center w-12 sticky left-0 bg-slate-100 dark:bg-slate-800 z-20 border-r border-slate-200 dark:border-slate-700 shadow-xs"
+                                data-i18n="th_no">No.</th>
+                            <th
+                                class="px-3.5 py-3 sticky left-12 bg-slate-100 dark:bg-slate-800 z-20 border-r border-slate-300 dark:border-slate-700 min-w-[210px] shadow-sm">
+                                <span class="flex items-center gap-1">
+                                    <span>📸</span> <span>Foto &amp; View Summary</span>
+                                </span>
+                            </th>
+                            <th class="px-4 py-3" data-i18n="spatial_th_time">Timestamp &amp; Cycle</th>
+                            <th class="px-4 py-3" data-i18n="spatial_th_block">Block &amp; Field Location</th>
+                            <th class="px-4 py-3" data-i18n="spatial_th_coords">WGS84 GPS Coordinates</th>
+                            <th class="px-4 py-3 text-center" data-i18n="spatial_th_elev_slope">Elevation &bull; Slope
+                            </th>
+                            <th class="px-4 py-3" data-i18n="spatial_th_circle">Sterile Buffer 2.0m</th>
+                            <th class="px-4 py-3 text-center" data-i18n="spatial_th_ai_weather">AI &amp; Weather
+                                Validation</th>
+                            <th class="px-4 py-3 text-center font-mono">SHA-256 Seal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mobileSurveysTableBody"
+                        class="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-slate-900/60 font-mono text-xs">
+                        <tr>
+                            <td colspan="9" class="py-8 text-center text-slate-400 font-mono text-xs">
+                                Loading mobile tracking records...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Kontrol Navigasi Pagination -->
+            <div id="surveysPaginationContainer"
+                class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1 text-xs font-mono">
+                <span id="surveysPaginationInfo" class="text-slate-500 text-[11px]">
+                    Memuat halaman...
+                </span>
+                <div id="surveysPaginationButtons" class="flex items-center gap-1.5">
+                    <!-- Tombol Prev, Nomor Halaman, dan Next akan diinjeksi via JS -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODAL POP-UP: VIEW SUMMARY DOKUMEN BUKTI SURVEILANS LAPANGAN -->
+    <div id="surveySummaryModal"
+        class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 hidden">
+        <div
+            class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl max-w-4xl w-full max-h-[94vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div
+                class="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-2xl">📋</span>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white"
+                                data-i18n="spatial_modal_title">Field Surveillance Proof &amp; Physical Site Compliance
+                                Document</h3>
+                            <span id="summaryModalIdTag"
+                                class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold">#SURV-001</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5" data-i18n="spatial_modal_sub">
+                            Dual-View Vision AI Verification, Satellite Weather Integrity &bull; ISPO Principle 2 &amp;
+                            EUDR Article 9</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeSurveySummaryModal()"
+                    class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 text-base cursor-pointer">✕</button>
+            </div>
+
+            <div class="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs font-sans text-slate-700 dark:text-slate-200"
+                id="surveySummaryModalBody">
+                <!-- Populated dynamically by JavaScript -->
+            </div>
+
+            <div
+                class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex flex-wrap items-center justify-between gap-2.5">
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="window.print()"
+                        class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 border border-slate-300 dark:border-slate-700 transition cursor-pointer">
+                        <span>🖨️</span> <span data-i18n="spatial_modal_print">Print Proof Document</span>
+                    </button>
+                    <a id="btnModalGoToProses" href="/proses"
+                        class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                        <span>⚡ <span data-i18n="spatial_modal_proceed">Proceed to Simulator (Stage 2B)</span></span>
+                        <span>&rarr;</span>
+                    </a>
+                </div>
+                <button type="button" onclick="closeSurveySummaryModal()"
+                    class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs transition cursor-pointer"
+                    data-i18n="spatial_modal_close">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FLOATING AI EXECUTION TERMINAL (Modular Partial) -->
+
+    <!-- TOAST NOTIFIKASI RINGAN -->
+    <div id="toastNotification"
+        class="fixed bottom-5 right-5 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+        <div
+            class="bg-slate-900 text-white border border-slate-700 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-mono">
+            <span id="toastIcon">ℹ️</span>
+            <span id="toastMessage">System notification</span>
+        </div>
+    </div>
+
+    <script src="/static/js/spatial.js"></script>
+    <script>
+        if (typeof window.clearTerminalLogs !== 'function') {
+            window.clearTerminalLogs = function () {
+                const container = document.getElementById('floatingTerminalLogStream');
+                if (container) {
+                    container.innerHTML = `<div id="terminalEmptyPlaceholder" class="p-4 text-center text-slate-400 text-[10px]">⚡ AI Terminal cleared. Awaiting telemetry...</div>`;
+                }
+            };
+        }
+        var clearTerminalLogs = window.clearTerminalLogs;
+
+        // Reactive bilingual synchronization for spatial.html
+        window.addEventListener('languagechanged', function (e) {
+            if (typeof applyTranslations === 'function') {
+                applyTranslations();
+            }
+            if (typeof loadMobileSurveysTable === 'function') {
+                loadMobileSurveysTable();
+            }
+        });
+        document.addEventListener('DOMContentLoaded', function () {
+            if (typeof applyTranslations === 'function') {
+                applyTranslations();
+            }
+        });
+        // Pemanggil Asli Gemini Multimodal Vision API
+        async function scanFieldImageWithGemini(fileOrBlob) {
+            const formData = new FormData();
+            formData.append('image', fileOrBlob, 'field_parcel_inspection.jpg');
+
+            const statusPill = document.getElementById('aiScanStatusPill');
+            if (statusPill) statusPill.innerText = "Analyzing canopy & sterile circle via Gemini 3.8 Flash...";
+
+            try {
+                const resp = await fetch('/api/ai/scan-image', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await resp.json();
+                if (data.status === 'success') {
+                    const ai = data.analysis;
+
+                    // Perbarui antarmuka dengan hasil analisis murni AI
+                    document.getElementById('lblCanopyDensity').innerText = `${ai.canopy_density_pct}%`;
+                    document.getElementById('lblStandClass').innerText = ai.stand_classification;
+                    document.getElementById('lblHealthScore').innerText = `${ai.visual_health_score}/100`;
+                    document.getElementById('lblAuditorSummary').innerText = ai.auditor_summary;
+
+                    // Tanda piringan steril 2.0m (true/false)
+                    const circleBadge = document.getElementById('badgeSterileCircle');
+                    if (circleBadge) {
+                        circleBadge.className = ai.sterile_circle_2m_compliant
+                            ? "px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold"
+                            : "px-2 py-0.5 rounded text-[10px] bg-rose-950 text-rose-300 border border-rose-600 font-bold";
+                        circleBadge.innerText = ai.sterile_circle_2m_compliant ? "✓ 2.0m ROOT BUFFER COMPLIANT" : "🚨 ROOT BUFFER VIOLATION";
+                    }
+                } else {
+                    alert("Failed to process AI Vision: " + data.message);
+                }
+            } catch (err) {
+                console.error("Failed to connect to Google Cloud Run:", err);
+            } finally {
+                if (statusPill) statusPill.innerText = "Gemini Vision Audit Complete";
+            }
+        }
+    </script>
+    <script src="/static/js/global_ai_triggers.js"></script>
+    {% include "partials/floating_ai_log.html" ignore missing %}
+</body>
+
+</html>

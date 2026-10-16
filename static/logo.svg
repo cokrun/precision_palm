@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 80" class="h-10 w-auto">
+  <defs>
+    <!-- Gradien Ikon Utama -->
+    <linearGradient id="emeraldGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#047857"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+    <linearGradient id="accentCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .brand-title-primary { fill: #0F172A; }
+    .brand-title-accent { fill: #059669; }
+    .brand-subtitle-tag { fill: #64748B; }
+    .brand-sensor-bg { fill: #0F172A; }
+    @media (prefers-color-scheme: dark) {
+      .brand-title-primary { fill: #F8FAFC; }
+      .brand-title-accent { fill: #10B981; }
+      .brand-subtitle-tag { fill: #94A3B8; }
+      .brand-sensor-bg { fill: #022C22; }
+    }
+  </style>
+
+  <!-- Simbol Geometris Ikon (Kiri) -->
+  <g transform="translate(10, 10)">
+    <!-- Titik Koordinat Spasial Luar / Buffer Piringan -->
+    <circle cx="30" cy="30" r="28" fill="none" stroke="#10B981" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.45"/>
+    <circle cx="30" cy="30" r="20" fill="none" stroke="url(#accentCyan)" stroke-width="2"/>
+    
+    <!-- Struktur Kanopi Pelepah Geometris (Pola Segitiga & Sudut Presisi) -->
+    <path d="M30 10 L30 46" stroke="#047857" stroke-width="3" stroke-linecap="round"/>
+    <path d="M30 18 L16 12 Q24 24 30 28" fill="url(#emeraldGrad)"/>
+    <path d="M30 18 L44 12 Q36 24 30 28" fill="url(#emeraldGrad)"/>
+    <path d="M30 26 L12 24 Q22 34 30 36" fill="url(#emeraldGrad)"/>
+    <path d="M30 26 L48 24 Q38 34 30 36" fill="url(#emeraldGrad)"/>
+    
+    <!-- Titik Sensor AI Telemetri -->
+    <circle cx="30" cy="30" r="4.5" class="brand-sensor-bg" stroke="#38BDF8" stroke-width="2"/>
+  </g>
+
+  <!-- Tipografi Teks Logo (Kanan) -->
+  <g transform="translate(85, 42)">
+    <text x="0" y="0" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Inter', sans-serif" font-size="24" font-weight="900" letter-spacing="1.5" class="brand-title-primary">
+      PRECISION
+    </text>
+    <text x="148" y="0" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Inter', sans-serif" font-size="24" font-weight="700" letter-spacing="0.5" class="brand-title-accent">
+      PALM
+    </text>
+    <!-- Subtitle Tagline Metodologi -->
+    <text x="1" y="18" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Inter', sans-serif" font-size="8.5" font-weight="600" letter-spacing="2.2" class="brand-subtitle-tag">
+      REGENERATIVE AGROFORESTRY COMPUTING
+    </text>
+  </g>
+</svg>

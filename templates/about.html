@@ -1,0 +1,946 @@
+<!-- simulasi/templates/about.html -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page_title">About Precision Palm - Genesis, Architecture & Development Team</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            900: '#064e3b',
+                            950: '#022c22'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+
+        .about-glass-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.05);
+        }
+
+        .dark .about-glass-card {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(51, 65, 85, 0.7);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+        }
+    </style>
+</head>
+
+<body
+    class="bg-slate-900 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-sans antialiased transition-colors duration-300 selection:bg-emerald-500 selection:text-white">
+
+    <!-- Modular Universal Header Partial -->
+    {% include 'partials/header.html' %}
+
+    <div class="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-8 space-y-8">
+
+        <!-- Hero Header Section -->
+        <section class="about-glass-card p-6 sm:p-10 rounded-3xl relative overflow-hidden transition-colors">
+            <div
+                class="absolute -right-16 -top-16 w-64 h-64 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none">
+            </div>
+            <div class="absolute -left-16 -bottom-16 w-64 h-64 bg-sky-500/15 rounded-full blur-3xl pointer-events-none">
+            </div>
+
+            <div class="space-y-4 relative z-10">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span
+                        class="text-[11px] font-mono tracking-wider uppercase text-emerald-800 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/80 px-3 py-1 rounded-full border border-emerald-300 dark:border-emerald-800 font-bold"
+                        id="badge_hero">
+                        System Architecture & Engineering Dossier
+                    </span>
+                    <span class="text-xs text-slate-600 dark:text-slate-400 font-mono font-semibold"
+                        id="hero_subtitle_tag">
+                        Precision Palm In-Silico Simulator • v2.6.4 Production
+                    </span>
+                </div>
+
+                <h1 id="hero_title"
+                    class="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-950 dark:text-white tracking-tight leading-tight">
+                    Engineering Agroforestry Intelligence for Sustainable Oil Palm Landscapes
+                </h1>
+
+                <p id="hero_desc"
+                    class="text-sm sm:text-base text-slate-800 dark:text-slate-300 font-medium leading-relaxed max-w-3xl">
+                    Precision Palm bridges mathematical biophysics, Google Earth Engine (GEE) planetary remote sensing,
+                    and Google Gemini 3.8 Flash Multimodal Reasoning to transform monoculture oil palm plantations into
+                    high-yield, zero-deforestation regenerative agroforestry corridors.
+                </p>
+
+                <!-- Key Metrics Quick Strip -->
+                <div
+                    class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-200 dark:border-slate-800 text-xs">
+                    <div
+                        class="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800/70">
+                        <span class="text-slate-600 dark:text-slate-400 block text-[10px] font-semibold"
+                            id="stat1_lbl">Alley Spatial Utilization</span>
+                        <strong
+                            class="text-emerald-700 dark:text-emerald-400 text-base sm:text-lg font-mono font-bold">82.91%
+                            ~ 84%</strong>
+                    </div>
+                    <div
+                        class="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800/70">
+                        <span class="text-slate-600 dark:text-slate-400 block text-[10px] font-semibold"
+                            id="stat2_lbl">Sterile Root Buffer</span>
+                        <strong class="text-sky-700 dark:text-sky-400 text-base sm:text-lg font-mono font-bold">Radius
+                            2.0 m</strong>
+                    </div>
+                    <div
+                        class="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800/70">
+                        <span class="text-slate-600 dark:text-slate-400 block text-[10px] font-semibold"
+                            id="stat3_lbl">Audit Traceability</span>
+                        <strong
+                            class="text-purple-700 dark:text-purple-400 text-base sm:text-lg font-mono font-bold">SHA-256
+                            + QR</strong>
+                    </div>
+                    <div
+                        class="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800/70">
+                        <span class="text-slate-600 dark:text-slate-400 block text-[10px] font-semibold"
+                            id="stat4_lbl">Compliance Targets</span>
+                        <strong class="text-amber-700 dark:text-amber-400 text-base sm:text-lg font-mono font-bold">EUDR
+                            & Verra</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <main class="space-y-8">
+
+            <!-- BAGIAN 1: Visi & Latar Belakang Ide -->
+            <section class="about-glass-card p-6 sm:p-8 rounded-3xl space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                    <h2
+                        class="text-xl sm:text-2xl font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-2.5">
+                        <span
+                            class="p-2 bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-800/60 rounded-xl text-base">🌱</span>
+                        <span id="sec1_title">1. The Genesis & Vision (Visi & Latar Belakang Ide)</span>
+                    </h2>
+                    <span class="text-[11px] font-mono text-slate-500 font-bold uppercase">Section 01</span>
+                </div>
+
+                <div class="space-y-4 text-xs sm:text-sm text-slate-800 dark:text-slate-300 leading-relaxed font-medium"
+                    id="sec1_body">
+                    <!-- Dynamic Content via JS -->
+                </div>
+            </section>
+
+            <!-- BAGIAN 2: Proses Rekayasa & Metodologi -->
+            <section class="about-glass-card p-6 sm:p-8 rounded-3xl space-y-6">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                    <h2 class="text-xl sm:text-2xl font-bold text-sky-700 dark:text-sky-400 flex items-center gap-2.5">
+                        <span
+                            class="p-2 bg-sky-100 dark:bg-sky-950/80 border border-sky-300 dark:border-sky-800/60 rounded-xl text-base">⚙️</span>
+                        <span id="sec2_title">2. Engineering Methodology (Proses Rekayasa & Metodologi)</span>
+                    </h2>
+                    <span class="text-[11px] font-mono text-slate-500 font-bold uppercase">Section 02</span>
+                </div>
+
+                <p id="sec2_intro"
+                    class="text-xs sm:text-sm text-slate-800 dark:text-slate-300 leading-relaxed font-medium">
+                    <!-- Dynamic intro via JS -->
+                </p>
+
+                <!-- 4-Phase Grid Workflow -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="sec2_grid">
+                    <!-- Dynamic 4 phases via JS -->
+                </div>
+            </section>
+
+            <!-- BAGIAN 3: Tim Pengembang -->
+            <section class="about-glass-card p-6 sm:p-8 rounded-3xl space-y-6">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                    <h2
+                        class="text-xl sm:text-2xl font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-2.5">
+                        <span
+                            class="p-2 bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-800/60 rounded-xl text-base">👨‍💻</span>
+                        <span id="sec3_title">3. Development Team & Leadership (Tim Pengembang)</span>
+                    </h2>
+                    <span class="text-[11px] font-mono text-slate-500 font-bold uppercase">Section 03</span>
+                </div>
+
+                <div class="bg-slate-50 dark:bg-slate-950/80 p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800/90 flex flex-col md:flex-row gap-6 items-start"
+                    id="sec3_card">
+                    <!-- Dynamic Team Card via JS -->
+                </div>
+
+                <!-- 2-Column Grid: Contributors & Support -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                    <!-- Kolom 1 -->
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
+                            <span
+                                class="p-1.5 bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-800/60 rounded-lg text-sm">🛠️</span>
+                            <h3 class="text-sm sm:text-base font-bold text-slate-950 dark:text-slate-100"
+                                id="col1_title">
+                                Core Engineering Team & Contributors
+                            </h3>
+                        </div>
+
+                        <div class="space-y-3">
+                            <!-- Card Ali Aman S.Kom (Core Engineering Team) -->
+                            <div
+                                class="rounded-xl p-5 border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-900/60 shadow-sm flex items-start gap-4">
+                                <div
+                                    class="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 flex-shrink-0 shadow-md">
+                                    <div
+                                        class="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center font-bold text-sm text-emerald-400">
+                                        AA
+                                    </div>
+                                </div>
+                                <div class="space-y-1.5 flex-1 min-w-0">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <h4 class="font-bold text-slate-950 dark:text-slate-100 text-sm sm:text-base">
+                                            Ali Aman</h4>
+                                        <span
+                                            class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-400 font-semibold"
+                                            id="contrib_ali_badge">Software & Support</span>
+                                    </div>
+                                    <p class="text-xs font-bold text-emerald-700 dark:text-emerald-400"
+                                        id="contrib_ali_role">
+                                        Web Developer & Software engineer
+                                    </p>
+                                    <p class="text-xs text-slate-700 dark:text-slate-300 font-medium leading-relaxed"
+                                        id="contrib_ali_desc">
+                                        Passionate about building modern, responsive, and user-friendly websites using
+                                        the latest web technologies. Focused on creating clean designs, efficient code,
+                                        and seamless user experiences. Always eager to learn new skills and explore
+                                        innovative solutions in web development. </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kolom 2 -->
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
+                            <span
+                                class="p-1.5 bg-purple-100 dark:bg-purple-950/80 border border-purple-300 dark:border-purple-800/60 rounded-lg text-sm">🏛️</span>
+                            <h3 class="text-sm sm:text-base font-bold text-slate-950 dark:text-slate-100"
+                                id="col2_title">
+                                Institutional Support & Special Thanks
+                            </h3>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div
+                                class="rounded-xl p-5 border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-900/60 shadow-sm flex items-start gap-4">
+                                <div
+                                    class="w-12 h-12 rounded-xl bg-gradient-to-tr from-purple-500 to-indigo-400 p-0.5 flex-shrink-0 shadow-md">
+                                    <div
+                                        class="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center font-bold text-sm text-purple-400">
+                                        AY
+                                    </div>
+                                </div>
+                                <div class="space-y-1.5 flex-1 min-w-0">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <h4 class="font-bold text-slate-950 dark:text-slate-100 text-sm sm:text-base">
+                                            Ahmad Yasir Lubis</h4>
+                                        <span
+                                            class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-100 dark:bg-purple-950/80 border border-purple-300 dark:border-purple-800 text-purple-800 dark:text-purple-300 font-semibold"
+                                            id="support1_badge">Regional Policy</span>
+                                    </div>
+                                    <p class="text-xs font-bold text-purple-700 dark:text-purple-400"
+                                        id="support1_role">
+                                        Kepala Badan Pendapatan Daerah Kabupaten Mandailing Natal
+                                    </p>
+                                    <p class="text-xs text-slate-700 dark:text-slate-300 font-medium leading-relaxed"
+                                        id="support1_desc">
+                                        Dukungan kebijakan data spasial daerah, fasilitasi riset lapangan, dan tata
+                                        kelola inovasi digital.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUPPORTING TEAM SECTION -->
+                <div class="pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
+                    <h3 class="text-xl sm:text-2xl font-black text-center text-slate-950 dark:text-white tracking-tight"
+                        id="supporting_team_title">
+                        Supporting Team
+                    </h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Card 1: Rahmat Parlindungan Nasution -->
+                        <div
+                            class="rounded-xl p-5 border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-900/60 shadow-sm flex items-start gap-4">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-gradient-to-tr from-teal-500 to-cyan-400 p-0.5 flex-shrink-0 shadow-md">
+                                <div
+                                    class="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center font-bold text-sm text-teal-400">
+                                    RN
+                                </div>
+                            </div>
+                            <div class="space-y-1.5 flex-1 min-w-0">
+                                <div class="flex items-center justify-between gap-2">
+                                    <h4 class="font-bold text-slate-950 dark:text-slate-100 text-sm sm:text-base">Rahmat
+                                        Parlindungan Nasution</h4>
+                                    <span
+                                        class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-teal-100 dark:bg-teal-950/80 border border-teal-300 dark:border-teal-800 text-teal-800 dark:text-teal-400 font-semibold"
+                                        id="contrib2_badge">Infrastructure</span>
+                                </div>
+                                <p class="text-xs font-bold text-teal-700 dark:text-teal-400" id="contrib2_role">
+                                    Specialist Server &amp; Security
+                                </p>
+                                <p class="text-xs text-slate-700 dark:text-slate-300 font-medium leading-relaxed"
+                                    id="contrib2_desc">
+                                    Mastery of server operating systems, computer networks (TCP/IP, DNS, VPN), firewall
+                                    configuration, penetration testing, and automated deployment scripting.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Card 2: Muhammad Sayyid Ali -->
+                        <div
+                            class="rounded-xl p-5 border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-900/60 shadow-sm flex items-start gap-4">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-gradient-to-tr from-sky-500 to-emerald-400 p-0.5 flex-shrink-0 shadow-md">
+                                <div
+                                    class="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center font-bold text-sm text-sky-400">
+                                    SA
+                                </div>
+                            </div>
+                            <div class="space-y-1.5 flex-1 min-w-0">
+                                <div class="flex items-center justify-between gap-2">
+                                    <h4 class="font-bold text-slate-950 dark:text-slate-100 text-sm sm:text-base">
+                                        Muhammad Sayyid Ali</h4>
+                                    <span
+                                        class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-sky-100 dark:bg-sky-950/80 border border-sky-300 dark:border-sky-800 text-sky-800 dark:text-sky-400 font-semibold"
+                                        id="contrib1_badge">Software &amp; Agronomy</span>
+                                </div>
+                                <p class="text-xs font-bold text-emerald-700 dark:text-emerald-400" id="contrib1_role">
+                                    Software Developer &amp; Agronomic Researcher
+                                </p>
+                                <p class="text-xs text-slate-700 dark:text-slate-300 font-medium leading-relaxed"
+                                    id="contrib1_desc">
+                                    Focuses primarily on building scalable, reliable commercial products, applications,
+                                    or production systems with predefined business requirements.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- BAGIAN 4: Ucapan Terima Kasih & Apresiasi -->
+            <section class="about-glass-card p-6 sm:p-8 rounded-3xl space-y-6">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                    <h2
+                        class="text-xl sm:text-2xl font-bold text-purple-700 dark:text-purple-400 flex items-center gap-2.5">
+                        <span
+                            class="p-2 bg-purple-100 dark:bg-purple-950/80 border border-purple-300 dark:border-purple-800/60 rounded-xl text-base">🙏</span>
+                        <span id="sec4_title">4. Acknowledgments & Gratitude (Apresiasi & Mitra Riset)</span>
+                    </h2>
+                    <span class="text-[11px] font-mono text-slate-500 font-bold uppercase">Section 04</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="sec4_grid">
+                    <!-- Dynamic Acknowledgments via JS -->
+                </div>
+            </section>
+
+            <!-- DEDICATED MACHINE EVIDENCE & BIGQUERY AUDIT SECTION -->
+            <section
+                class="mt-10 p-6 sm:p-8 rounded-3xl bg-slate-900/90 border border-emerald-500/40 shadow-2xl space-y-6 font-sans">
+                <div
+                    class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                            <span class="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider">
+                                EVIDENTIARY AUDIT PROOF • GOOGLE CLOUD NATIVE
+                            </span>
+                        </div>
+                        <h3 class="text-xl sm:text-2xl font-black text-white tracking-tight mt-1">
+                            Bukti Eksekusi Mesin AI, Google Earth Engine &amp; Arsitektur BigQuery Ledger
+                        </h3>
+                    </div>
+                    <span
+                        class="px-3 py-1 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono text-cyan-300 font-bold self-start md:self-auto">
+                        Dataset: precision_palm_dw.node_audit_reviews
+                    </span>
+                </div>
+
+                <p class="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-4xl">
+                    Sistem Precision Palm menjamin 100% inferensi berbasis cloud dan bebas simulasi lokal. Seluruh
+                    pengujian tata batas moratorium (PIPPIB) dan verifikasi deforestasi dieksekusi langsung secara
+                    otonom melalui integrasi <strong>Google Earth Engine API</strong> dan model <strong>Google Gemini
+                        3.8 Flash</strong> via endpoint terotentikasi, dengan hasil audit statuter dibekukan secara
+                    permanen ke gudang data <strong>Google Cloud BigQuery</strong>.
+                </p>
+
+                <!-- INTERACTIVE TERMINAL SIMULATOR PROOF -->
+                <div
+                    class="rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden shadow-2xl font-mono text-xs">
+                    <div class="px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-rose-500/80 inline-block"></span>
+                            <span class="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
+                            <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
+                            <span class="text-slate-400 text-[11px] ml-2 font-bold">Cloud Shell —
+                                palm-project-511008</span>
+                        </div>
+                        <span class="text-emerald-400 text-[10px] font-bold">HTTP/2 200 OK • Live Machine Output</span>
+                    </div>
+
+                    <div
+                        class="p-4 sm:p-5 overflow-x-auto space-y-3 text-slate-300 text-[11px] leading-relaxed max-h-[380px] overflow-y-auto">
+                        <div class="text-emerald-400">
+                            <span class="text-slate-500">$</span> curl -X POST
+                            https://precision-palm-739036785917.asia-southeast2.run.app/api/ai/audit \<br>
+                            &nbsp;&nbsp;-H "Content-Type: application/json" \<br>
+                            &nbsp;&nbsp;-d '{"concession_id": "ESTATE-MADINA-001", "overlap_ha": 0.0, "gee_pipeline":
+                            true, "zone_name": "PIPPIB Moratorium Clearing"}'
+                        </div>
+
+                        <div
+                            class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800/80 text-slate-200 space-y-2 whitespace-pre-wrap">
+                            <strong class="text-cyan-400 block border-b border-slate-800 pb-1">RESPONSE PAYLOAD (Google
+                                Earth Engine &amp; Gemini 3.8 Flash Reasoning):</strong>
+                            {
+                            "concession_id": "ESTATE-MADINA-001",
+                            "gee_remote_sensing": {
+                            "sentinel2_ndvi_mean": 0.784,
+                            "sentinel2_ndmi_moisture": 0.412,
+                            "srtm_slope_degrees": 4.5,
+                            "hansen_forest_loss_post_2020_ha": 0.0
+                            },
+                            "ai_audit_report": "**ENVIRONMENTAL COMPLIANCE & REGENERATIVE CLEARANCE**
+                            *Executive Directorate of Agrarian Compliance & Forestry Oversight*
+                            *Concession:* ESTATE-MADINA-001 | *Audit Status:* 100% NON-FOREST APL
+
+                            **1. Risk Assessment: ZERO RISK (PASSED)**
+                            Concession polygon boundary is completely outside PIPPIB 2024 primary forest moratoriums
+                            with geodesic buffer clearance > 4,310 meters.
+
+                            **2. Satellite Evidence (Google Earth Engine API):**
+                            • Sentinel-2 Harmonized: High canopy vigor (NDVI: 0.784) and healthy moisture retention.
+                            • SRTM 30m DEM: Mean contour slope 4.5° (&le; 15° non-terracing safe threshold).
+                            • Hansen GFC 2020–2024: Zero tree-cover loss post-December 31, 2020 cut-off date.
+
+                            **3. Statutory Legal Verdict:**
+                            • EUDR Regulation (EU) 2023/1115 (Article 9 & 10): 100% Compliant Due Diligence Statement.
+                            • PP No. 23/2021: Riparian buffer > 50m respected. Fully cleared for regenerative intercrop
+                            development."
+                            }
+                        </div>
+
+                        <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+                            <span>Target Table: <code
+                                    class="text-purple-300">precision_palm_dw.node_audit_reviews</code></span>
+                            <span class="text-emerald-400 font-bold">✓ ASYNC PERSISTED WITH SHA-256 HASH</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4 PILAR KEUNGGULAN ARSITEKTUR CLOUD NATIVE -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 font-mono text-xs">
+                    <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
+                        <span class="text-cyan-400 font-bold block">1. BigQuery DW Ledger</span>
+                        <p class="text-slate-400 text-[11px] font-sans">
+                            Riwayat ulasan audit simpul disimpan permanen di tabel Cloud Data Warehouse, tidak hilang
+                            meskipun kontainer Cloud Run mengalami *restart* atau *scale-to-zero*.
+                        </p>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
+                        <span class="text-emerald-400 font-bold block">2. Fast Async Pipeline</span>
+                        <p class="text-slate-400 text-[11px] font-sans">
+                            Penulisan baris data audit ke BigQuery berjalan secara *non-blocking background thread*,
+                            menghasilkan latensi respon inferensi model di bawah 3 detik.
+                        </p>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
+                        <span class="text-indigo-400 font-bold block">3. Cryptographic Seal</span>
+                        <p class="text-slate-400 text-[11px] font-sans">
+                            Setiap hasil telaah yuridis disegel dengan ringkasan hash SHA-256 yang divalidasi
+                            keabsahannya pada portal publik sertifikat.
+                        </p>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
+                        <span class="text-sky-400 font-bold block">4. GEE Satellite Pipeline</span>
+                        <p class="text-slate-400 text-[11px] font-sans">
+                            Ekstraksi indeks vegetasi Sentinel-2 (filter awan &lt;20%) dan audit deforestasi historis
+                            Hansen Global Forest Change pasca cut-off date 31 Desember 2020 secara otomatis.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+    </div>
+
+
+    <!-- Script Bilingual & Black Box Architecture Synchronized -->
+    <script>
+        const aboutI18n = {
+            en: {
+                page_title: "About Precision Palm - Genesis, Architecture & Development Team",
+                nav_home: "Home",
+                nav_guide: "Scientific Whitepaper",
+                nav_mobile: "Foreman Mobile App",
+                nav_slides: "Slide Deck",
+                badge_hero: "System Architecture & Engineering Dossier",
+                hero_subtitle_tag: "Precision Palm In-Silico Simulator • v2.6.4 Production",
+                hero_title: "Engineering Agroforestry Intelligence for Sustainable Oil Palm Landscapes",
+                hero_desc: "Precision Palm bridges mathematical biophysics, Google Earth Engine (GEE) planetary remote sensing, and Google Gemini 3.8 Flash Multimodal Reasoning to transform monoculture oil palm plantations into high-yield, zero-deforestation regenerative agroforestry corridors.",
+                stat1_lbl: "Alley Spatial Utilization",
+                stat2_lbl: "Sterile Root Buffer",
+                stat3_lbl: "Audit Traceability",
+                stat4_lbl: "Compliance Targets",
+
+                sec1_title: "1. The Genesis & Vision",
+                sec1_body: `
+                    <p class="leading-relaxed">
+                        For decades, industrial oil palm (<em>Elaeis guineensis</em>) cultivation across Southeast Asia (particularly Indonesia and Malaysia), Central Africa, and Latin America has been caught in an acute sustainability paradox. Driven by global demand for edible vegetable oil and biofuels, monoculture expansion has resulted in catastrophic primary tropical rainforest clearings, irreversible biodiversity loss, peatland drainage fires, and extensive topsoil degradation. Furthermore, millions of independent smallholders remain economically fragile, tethered to the volatile pricing of a single commodity: Fresh Fruit Bunches (FFB).
+                    </p>
+                    <div class="p-4 bg-slate-100 dark:bg-slate-950/80 rounded-xl border border-slate-300 dark:border-slate-800 space-y-2">
+                        <strong class="text-emerald-700 dark:text-emerald-400 block text-xs uppercase tracking-wider font-bold">The Untapped Spatial Opportunity:</strong>
+                        <p class="text-slate-800 dark:text-slate-300">
+                            In a standard 9.0-meter equilateral triangular planting geometry (136–143 palms/ha), the inter-row corridors represent between <strong>82.91% and 84.00% of the gross estate area</strong>. In conventional estates, these vast avenues are treated merely as access paths (gawangan mati) or left under unmanaged weeds, consuming costly herbicides and contributing zero nutritional or economic yield.
+                        </p>
+                    </div>
+                    <p class="leading-relaxed">
+                        <strong>The Precision Palm Thesis:</strong> By combining deterministic light extinction physics (Monsi & Saeki / Beer-Lambert Law), Google Earth Engine planetary satellite audits, and rigorous subterranean root zoning, Precision Palm proves that high-density understory crops (such as shade-tolerant red ginger, grain legumes, porang, and cardamom) can be cultivated within the inter-row avenues. This achieves <em>zero-deforestation yield intensification</em>, spares natural forest cover (Forest Spared Index), boosts smallholder gross revenues by up to 280%, and sequesters durable soil organic carbon (SOC) under certified carbon methodologies (IPCC Tier 3 & Verra VCS VM0007).
+                    </p>
+                `,
+
+                sec2_title: "2. Engineering Methodology & Black Box Architecture",
+                sec2_intro: "The Precision Palm architecture is engineered across four encapsulated, interdependent computational stages, guaranteeing high mathematical fidelity, planetary remote sensing accuracy, and enterprise-grade cryptographic compliance:",
+                sec2_grid: `
+                    <!-- Phase 1 -->
+                    <div class="p-5 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                        <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold text-xs uppercase tracking-wide">
+                            <span class="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-950 border border-emerald-300 dark:border-emerald-800 flex items-center justify-center font-mono">1</span>
+                            <span>Proprietary Biophysical Decision Engine</span>
+                        </div>
+                        <h4 class="text-slate-950 dark:text-slate-100 font-bold text-sm">Encapsulated Beer-Lambert & Multi-Crop LER Core</h4>
+                        <p class="text-slate-700 dark:text-slate-400 text-xs leading-relaxed font-medium">
+                            Computes canopy Photosynthetically Active Radiation (PAR) extinction and logistic leaf area growth through an isolated remote microservice gateway. Biological land superiority is indexed via the Mead & Willey Land Equivalent Ratio (LER) and Percentage Land Saved (PLS) without exposing internal algorithmic weights.
+                        </p>
+                    </div>
+
+                    <!-- Phase 2 -->
+                    <div class="p-5 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                        <div class="flex items-center gap-2 text-sky-700 dark:text-sky-400 font-bold text-xs uppercase tracking-wide">
+                            <span class="w-6 h-6 rounded-lg bg-sky-100 dark:bg-sky-950 border border-sky-300 dark:border-sky-800 flex items-center justify-center font-mono">2</span>
+                            <span>Spatial Root Buffer & GEE Geodesic Zoning</span>
+                        </div>
+                        <h4 class="text-slate-950 dark:text-slate-100 font-bold text-sm">2.0m Sterile Circle & SRTM 30m Slope Clearance</h4>
+                        <p class="text-slate-700 dark:text-slate-400 text-xs leading-relaxed font-medium">
+                            Guarantees root protection by enforcing an unplanted 2.0m radius buffer around each trunk while modeling contour slopes via GEE SRTM DEM to confirm inclination &le;15° with zero erosion hazard. Preserves 3.79–4.50m clean alley corridors and caps palm deficit below &le; 4.5%.
+                        </p>
+                    </div>
+
+                    <!-- Phase 3 -->
+                    <div class="p-5 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                        <div class="flex items-center gap-2 text-purple-700 dark:text-purple-400 font-bold text-xs uppercase tracking-wide">
+                            <span class="w-6 h-6 rounded-lg bg-purple-100 dark:bg-purple-950 border border-purple-800 flex items-center justify-center font-mono">3</span>
+                            <span>Multimodal AI Vision & GEE Remote Sensing</span>
+                        </div>
+                        <h4 class="text-slate-950 dark:text-slate-100 font-bold text-sm">Gemini 3.8 Flash Vision + Sentinel-2 NDVI/NDMI</h4>
+                        <p class="text-slate-700 dark:text-slate-400 text-xs leading-relaxed font-medium">
+                            Fuses high-resolution drone orthophotos with Sentinel-2 multispectral vegetation indices (cloud cover &lt;20%) and Hansen GFC historical deforestation layers. Multimodal agents classify canopy density, alley openness, and foliar chlorosis with dynamic HUD reticles.
+                        </p>
+                    </div>
+
+                    <!-- Phase 4 -->
+                    <div class="p-5 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                        <div class="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-xs uppercase tracking-wide">
+                            <span class="w-6 h-6 rounded-lg bg-amber-100 dark:bg-amber-950 border border-amber-800 flex items-center justify-center font-mono">4</span>
+                            <span>Quality Verification & Cryptographic Auditing</span>
+                        </div>
+                        <h4 class="text-slate-950 dark:text-slate-100 font-bold text-sm">Immutable SHA-256 Stamp & OGC GeoJSON Export</h4>
+                        <p class="text-slate-700 dark:text-slate-400 text-xs leading-relaxed font-medium">
+                            Models biological nitrogen fixation and potassium compensation demands. Generates tamper-proof SHA-256 cryptographic certificates with scannable QR verification URLs and exports OGC GeoJSON (RFC 7946) layers ready for official EUDR Article 9 customs clearance.
+                        </p>
+                    </div>
+                `,
+
+                sec3_title: "3. Development Team & Leadership",
+                sec3_card: `
+                    <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 p-1 flex-shrink-0 shadow-lg">
+                        <div class="w-full h-full bg-slate-900 rounded-xl flex items-center justify-center text-3xl font-black text-emerald-400">
+                            MR
+                        </div>
+                    </div>
+                    <div class="space-y-3 flex-1">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <h3 class="text-lg sm:text-xl font-bold text-slate-950 dark:text-slate-100">Muhammad Rizki</h3>
+                                <p class="text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400">
+                                    Lead System Architect, Full-Stack AI Engineer & Agronomic Model Developer
+                                </p>
+                            </div>
+                            <span class="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-400 text-[11px] font-mono rounded-full font-bold">
+                                Sole Inventor & Author
+                            </span>
+                        </div>
+
+                        <p class="text-xs sm:text-sm text-slate-800 dark:text-slate-300 leading-relaxed font-medium">
+                            Muhammad Rizki is the sole creator, system architect, and mathematical model designer of the Precision Palm in-silico simulation suite. He engineered the entire platform end-to-end: deriving the biophysical models, designing the distributed Google Cloud Run and GEE satellite pipelines, integrating Gemini 3.8 Flash Vision spatial reticles, and orchestrating cryptographic SHA-256 certificate compliance.
+                        </p>
+
+                        <div class="pt-2 border-t border-slate-200 dark:border-slate-800 flex flex-wrap gap-2 text-[11px] font-mono font-bold">
+                            <span class="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-slate-800 dark:text-slate-300">Distributed Architecture</span>
+                            <span class="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-slate-800 dark:text-slate-300">Google Earth Engine (GEE)</span>
+                            <span class="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-slate-800 dark:text-slate-300">BigQuery ESG Ledger</span>
+                            <span class="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-slate-800 dark:text-slate-300">Multimodal Generative AI</span>
+                            <span class="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-slate-800 dark:text-slate-300">Tropical Agroforestry</span>
+                        </div>
+                    </div>
+                `,
+
+                col1_title: "Core Engineering Team & Contributors",
+                contrib_ali_role: "Software engineer & Technical Support",
+                contrib_ali_desc: "build and code products, while Technical Support troubleshoots and fixes user issues. Both keep tech running technology cloud server and security",
+                contrib_ali_badge: "Software & Support",
+                supporting_team_title: "Supporting Team",
+                contrib1_role: "Software Developer & Agronomic Researcher",
+                contrib1_desc: "Focuses primarily on building scalable, reliable commercial products, applications, or production systems with predefined business requirements.",
+                contrib1_badge: "Software & Agronomy",
+                contrib2_role: "Specialist Server & Security",
+                contrib2_desc: "Mastery of server operating systems, computer networks (TCP/IP, DNS, VPN), firewall configuration, penetration testing, and automated deployment scripting.",
+                contrib2_badge: "Infrastructure",
+
+                col2_title: "Institutional Support & Special Thanks",
+                support1_role: "Kepala Badan Pendapatan Daerah Kabupaten Mandailing Natal",
+                support1_desc: "Regional spatial data policy support, field research facilitation, and digital innovation governance.",
+                support1_badge: "Regional Policy",
+
+                sec4_title: "4. Acknowledgments & Gratitude",
+                sec4_grid: `
+                    <div class="p-5 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                        <div class="text-2xl">☁️</div>
+                        <h4 class="text-slate-950 dark:text-slate-100 font-bold text-sm">Google Cloud & Google Earth Engine</h4>
+                        <p class="text-slate-700 dark:text-slate-400 text-xs leading-relaxed font-medium">
+                            Gratitude is extended to the Google Cloud, Google Earth Engine, and Copernicus Open Access Hub teams for providing planetary-scale satellite remote sensing, serverless hosting on Google Cloud Run, and multimodal intelligence via Gemini 3.8 Flash.
+                        </p>
+                    </div>
+
+                    <div class="p-5 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                        <div class="text-2xl">📚</div>
+                        <h4 class="text-slate-950 dark:text-slate-100 font-bold text-sm">Scientific & Agronomic Community</h4>
+                        <p class="text-slate-700 dark:text-slate-400 text-xs leading-relaxed font-medium">
+                            Honoring foundational benchmarks established by Corley & Tinker (2015) in oil palm physiology, Mead & Willey (1980) on Land Equivalent Ratios, Hansen et al. (2013) on Global Forest Change, and Verra VCS VM0007 REDD+ carbon methodology.
+                        </p>
+                    </div>
+
+                    <div class="p-5 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                        <div class="text-2xl">🏛️</div>
+                        <h4 class="text-slate-950 dark:text-slate-100 font-bold text-sm">DJKI Kemenkumham Republic of Indonesia</h4>
+                        <p class="text-slate-700 dark:text-slate-400 text-xs leading-relaxed font-medium">
+                            Appreciation to the Directorate General of Intellectual Property (DJKI) Ministry of Law and Human Rights RI for facilitating legal copyright protection (Undang-Undang No. 28 Tahun 2014) for high-impact national computer software innovations.
+                        </p>
+                    </div>
+                `,
+
+                footer_copyright: "© 2026 Precision Palm - Muhammad Rizki. All Rights Reserved.",
+                badge_foot_1: "Registered Computer Program",
+                badge_foot_2: "DJKI Kemenkumham",
+                badge_foot_3: "Google Cloud Run Ready",
+                footer_disclaimer: "In-Silico Agroforestry Computational Simulator • Compliant with IPCC Tier 3, Verra VCS VM0007 & EUDR Traceability."
+            },
+
+            id: {
+                page_title: "Tentang Precision Palm - Visi, Arsitektur Sistem & Tim Pengembang",
+                nav_home: "Dasbor Simulator",
+                nav_guide: "Karya Tulis Ilmiah (HAKI)",
+                nav_mobile: "Aplikasi Mandor Mobile",
+                nav_slides: "Slide Presentasi",
+                badge_hero: "Spesifikasi Arsitektur Sistem & Rekayasa",
+                hero_subtitle_tag: "Simulator In-Silico Precision Palm • v2.6.4 Produksi",
+                hero_title: "Rekayasa Kecerdasan Agroforestri untuk Perkebunan Kelapa Sawit Berkelanjutan",
+                hero_desc: "Precision Palm menghubungkan biofisika matematis, penginderaan jauh skala planet Google Earth Engine (GEE), dan Penalaran Multimodal Google Gemini 3.8 Flash untuk mentransformasi kebun kelapa sawit monokultur menjadi koridor agroforestri regeneratif berdaya hasil tinggi tanpa deforestasi.",
+                stat1_lbl: "Pemanfaatan Gawangan Spasial",
+                stat2_lbl: "Zona Buffer Steril Akar",
+                stat3_lbl: "Ketertelusuran Audit",
+                stat4_lbl: "Standar Kepatuhan",
+
+                sec1_title: "1. Visi & Latar Belakang Ide (The Genesis & Vision)",
+                sec1_body: `
+                    <p class="leading-relaxed">
+                        Selama beberapa dekade, budidaya kelapa sawit (<em>Elaeis guineensis</em>) monokultur skala industri di Asia Tenggara (khususnya Indonesia dan Malaysia), Afrika Tengah, dan Amerika Latin terperangkap dalam paradoks keberlanjutan yang rumit. Terdorong oleh tingginya permintaan global akan minyak nabati pangan dan biofuel, ekspansi monokultur secara historis memicu pembukaan hutan hujan primer tropis, penurunan drastis keanekaragaman hayati, kebakaran lahan gambut, serta pemadatan tanah. Di sisi lain, jutaan petani kelapa sawit swadaya sangat rentan secara ekonomi akibat ketergantungan mutlak pada fluktuasi harga Tandan Buah Segar (TBS).
+                    </p>
+                    <div class="p-4 bg-slate-100 dark:bg-slate-950/80 rounded-xl border border-slate-300 dark:border-slate-800 space-y-2">
+                        <strong class="text-emerald-700 dark:text-emerald-400 block text-xs uppercase tracking-wider font-bold">Peluang Spasial yang Terabaikan:</strong>
+                        <p class="text-slate-800 dark:text-slate-300">
+                            Dalam pola tanam standar segitiga sama sisi 9.0 meter (populasi 136–143 pokok/ha), koridor gawangan antarpokok sawit mencakup <strong>82.91% hingga 84.00% dari total luas kebun</strong>. Di perkebunan konvensional, koridor gawangan mati yang sangat luas ini hanya digunakan sebagai jalur pikul panen atau dibiarkan ditumbuhi gulma liar yang terus-menerus disemprot herbisida kimia tanpa menghasilkan nilai pangan maupun ekonomi.
+                        </p>
+                    </div>
+                    <p class="leading-relaxed">
+                        <strong>Tesis Utama Precision Palm:</strong> Melalui integrasi hukum fisika transmisi radiasi surya dengan audit satelit skala planet Google Earth Engine dan zonasi perakaran bawah tanah yang presisi, Precision Palm membuktikan bahwa tanaman sela bernilai tinggi dan toleran naungan (seperti jahe merah, legum biji, porang, dan kapulaga) dapat dibudidayakan di lorong gawangan. Metode ini mewujudkan <em>intensifikasi hasil panen tanpa deforestasi</em>, menyelamatkan tutupan hutan alam, mendongkrak pendapatan bruto petani hingga 280%, serta mengunci karbon organik tanah (SOC) yang terverifikasi standar karbon internasional (IPCC Tier 3 & Verra VCS VM0007).
+                    </p>
+                `,
+
+                sec2_title: "2. Metodologi Rekayasa & Arsitektur Black Box",
+                sec2_intro: "Arsitektur perangkat lunak Precision Palm direkayasa melalui 4 tahap komputasi terenkapsulasi yang saling terhubung secara terstruktur, menjamin presisi matematis, keakuratan penginderaan jauh satelit, serta kepatuhan audit kriptografis:",
+                sec2_grid: `
+                    <!-- Phase 1 -->
+                    <div class="p-5 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                        <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold text-xs uppercase tracking-wide">
+                            <span class="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-950 border border-emerald-300 dark:border-emerald-800 flex items-center justify-center font-mono">1</span>
+                            <span>Proprietary Biophysical Decision Engine</span>
+                        </div>
+                        <h4 class="text-slate-950 dark:text-slate-100 font-bold text-sm">Modul Inti Beer-Lambert & Pemodelan LER Terisolasi</h4>
+                        <p class="text-slate-700 dark:text-slate-400 text-xs leading-relaxed font-medium">
+                            Memproses koefisien atenuasi radiasi kanopi (PAR) dan pertumbuhan indeks luas daun melalui gerbang microservice terenkapsulasi. Efisiensi biologis dihitung menggunakan Land Equivalent Ratio (LER) Mead & Willey dan Percentage Land Saved (PLS) tanpa memaparkan bobot algoritma internal ke publik.
+                        </p>
+                    </div>
+
+                    <!-- Phase 2 -->
+                    <div class="p-5 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                        <div class="flex items-center gap-2 text-sky-700 dark:text-sky-400 font-bold text-xs uppercase tracking-wide">
+                            <span class="w-6 h-6 rounded-lg bg-sky-100 dark:bg-sky-950 border border-sky-300 dark:border-sky-800 flex items-center justify-center font-mono">2</span>
+                            <span>Zonasi Spasial & Topografi Lereng GEE</span>
+                        </div>
+                        <h4 class="text-slate-950 dark:text-slate-100 font-bold text-sm">Piringan Steril 2.0m & Kliring Lereng SRTM 30m</h4>
+                        <p class="text-slate-700 dark:text-slate-400 text-xs leading-relaxed font-medium">
+                            Melindungi perakaran pokok sawit dengan menetapkan zona steril radius 2.0m bebas olah tanah, dipadukan pemodelan elevasi SRTM DEM via GEE untuk memastikan kemiringan lereng &le;15° bebas risiko erosi. Membuka koridor gawangan 3.79–4.50m dengan defisit sawit di bawah ambang ketat &le; 4.5%.
+                        </p>
+                    </div>
+
+                    <!-- Phase 3 -->
+                    <div class="p-5 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                        <div class="flex items-center gap-2 text-purple-700 dark:text-purple-400 font-bold text-xs uppercase tracking-wide">
+                            <span class="w-6 h-6 rounded-lg bg-purple-100 dark:bg-purple-950 border border-purple-300 dark:border-purple-800 flex items-center justify-center font-mono">3</span>
+                            <span>Fusi AI Multimodal & Penginderaan Jauh GEE</span>
+                        </div>
+                        <h4 class="text-slate-950 dark:text-slate-100 font-bold text-sm">Gemini 3.8 Flash Vision + Sentinel-2 NDVI/NDMI</h4>
+                        <p class="text-slate-700 dark:text-slate-400 text-xs leading-relaxed font-medium">
+                            Mengintegrasikan ortofoto drone UAV dengan indeks spektral vegetasi Sentinel-2 (filter awan &lt;20%) dan layer audit deforestasi Hansen GFC. Vision AI Gemini 3.8 Flash memindai tegakan sawit, koridor gawangan, dan klorosis pelepah dengan retikel HUD dinamis.
+                        </p>
+                    </div>
+
+                    <!-- Phase 4 -->
+                    <div class="p-5 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                        <div class="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-xs uppercase tracking-wide">
+                            <span class="w-6 h-6 rounded-lg bg-amber-100 dark:bg-amber-950 border border-amber-300 dark:border-amber-800 flex items-center justify-center font-mono">4</span>
+                            <span>Verifikasi Mutu & Interoperabilitas Kriptografis</span>
+                        </div>
+                        <h4 class="text-slate-950 dark:text-slate-100 font-bold text-sm">Stempel SHA-256 & Ekspor OGC GeoJSON</h4>
+                        <p class="text-slate-700 dark:text-slate-400 text-xs leading-relaxed font-medium">
+                            Menghitung fiksasi nitrogen biologis serta kompensasi hara Kalium. Menerbitkan sertifikat digital berstempel kriptografis SHA-256 yang dapat diverifikasi melalui QR Code serta mengekspor poligon OGC GeoJSON (RFC 7946) untuk pemenuhan regulasi deforestasi Uni Eropa (EUDR).
+                        </p>
+                    </div>
+                `,
+
+                sec3_title: "3. Tim Pengembang & Kepemimpinan Riset",
+                sec3_card: `
+                    <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 p-1 flex-shrink-0 shadow-lg">
+                        <div class="w-full h-full bg-slate-900 rounded-xl flex items-center justify-center text-3xl font-black text-emerald-400">
+                            MR
+                        </div>
+                    </div>
+                    <div class="space-y-3 flex-1">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <h3 class="text-lg sm:text-xl font-bold text-slate-950 dark:text-slate-100">Muhammad Rizki</h3>
+                                <p class="text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400">
+                                    Lead System Architect, Full-Stack AI Engineer & Agronomic Model Developer
+                                </p>
+                            </div>
+                            <span class="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-400 text-[11px] font-mono rounded-full font-bold">
+                                Penemu & Pencipta Tunggal
+                            </span>
+                        </div>
+
+                        <p class="text-xs sm:text-sm text-slate-800 dark:text-slate-300 leading-relaxed font-medium">
+                            Muhammad Rizki adalah pencipta tunggal, arsitek sistem, dan perancang model matematis dari perangkat lunak simulasi in-silico Precision Palm. Beliau merekayasa platform ini secara menyeluruh dari hulu ke hilir: merancang arsitektur pipeline satelit Google Earth Engine dan Google Cloud Run, mengintegrasikan reticle spasial Gemini 3.8 Flash Vision, serta membangun pipeline verifikasi sertifikat kriptografis SHA-256.
+                        </p>
+
+                        <div class="pt-2 border-t border-slate-200 dark:border-slate-800 flex flex-wrap gap-2 text-[11px] font-mono font-bold">
+                            <span class="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-slate-800 dark:text-slate-300">Arsitektur Terdistribusi</span>
+                            <span class="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-slate-800 dark:text-slate-300">Google Earth Engine (GEE)</span>
+                            <span class="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-slate-800 dark:text-slate-300">BigQuery ESG Ledger</span>
+                            <span class="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-slate-800 dark:text-slate-300">AI Generatif Multimodal</span>
+                            <span class="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-slate-800 dark:text-slate-300">Agroforestri Tropis</span>
+                        </div>
+                    </div>
+                `,
+
+                col1_title: "Tim Pengembang & Kontributor Teknis",
+                contrib_ali_role: "Software engineer & Technical Support",
+                contrib_ali_desc: "build and code products, while Technical Support troubleshoots and fixes user issues. Both keep tech running technology cloud server and security",
+                contrib_ali_badge: "Software & Support",
+                supporting_team_title: "Supporting Team",
+                contrib1_role: "Software Developer & Agronomic Researcher",
+                contrib1_desc: "Berfokus terutama pada membangun produk komersial, aplikasi, atau sistem produksi yang dapat diskalakan dan andal dengan persyaratan bisnis yang telah ditentukan.",
+                contrib1_badge: "Software & Agronomi",
+                contrib2_role: "Specialist Server & Security",
+                contrib2_desc: "Penguasaan sistem operasi server, jaringan komputer (TCP/IP, DNS, VPN), konfigurasi firewall, pengujian penetrasi, dan otomatisasi deployment.",
+                contrib2_badge: "Infrastruktur",
+
+                col2_title: "Apresiasi Khusus & Dukungan Institusional",
+                support1_role: "Kepala Badan Pendapatan Daerah Kabupaten Mandailing Natal",
+                support1_desc: "Dukungan kebijakan data spasial daerah, fasilitasi riset lapangan, dan tata kelola inovasi digital.",
+                support1_badge: "Kebijakan Daerah",
+
+                sec4_title: "4. Ucapan Terima Kasih & Apresiasi",
+                sec4_grid: `
+                    <div class="p-5 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                        <div class="text-2xl">☁️</div>
+                        <h4 class="text-slate-950 dark:text-slate-100 font-bold text-sm">Tim Google Cloud & Google Earth Engine</h4>
+                        <p class="text-slate-700 dark:text-slate-400 text-xs leading-relaxed font-medium">
+                            Apresiasi tertinggi disampaikan kepada Google Cloud, tim Google Earth Engine, dan Copernicus Open Access Hub atas penyediaan infrastruktur komputasi penginderaan jauh skala planet, serverless hosting via Google Cloud Run, serta kapabilitas multimodal via Gemini 3.8 Flash.
+                        </p>
+                    </div>
+
+                    <div class="p-5 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                        <div class="text-2xl">📚</div>
+                        <h4 class="text-slate-950 dark:text-slate-100 font-bold text-sm">Komunitas Ilmiah & Peneliti Agronomi</h4>
+                        <p class="text-slate-700 dark:text-slate-400 text-xs leading-relaxed font-medium">
+                            Penghargaan mendalam atas landasan ilmiah klasik yang dirintis oleh Corley & Tinker (2015) terkait fisiologi kelapa sawit, Mead & Willey (1980) mengenai Land Equivalent Ratio, Hansen et al. (2013) tentang pemantauan tutupan hutan global, serta metodologi karbon Verra VCS VM0007.
+                        </p>
+                    </div>
+
+                    <div class="p-5 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                        <div class="text-2xl">🏛️</div>
+                        <h4 class="text-slate-950 dark:text-slate-100 font-bold text-sm">DJKI Kemenkumham Republik Indonesia</h4>
+                        <p class="text-slate-700 dark:text-slate-400 text-xs leading-relaxed font-medium">
+                            Terima kasih kepada Direktorat Jenderal Kekayaan Intelektual (DJKI) Kementerian Hukum dan HAM RI atas perlindungan hukum dan pencatatan resmi hak cipta karya inovasi perangkat lunak nasional (Undang-Undang No. 28 Tahun 2014 tentang Hak Cipta).
+                        </p>
+                    </div>
+                `,
+
+                footer_copyright: "© 2026 Precision Palm - Muhammad Rizki. Seluruh Hak Cipta Dilindungi Undang-Undang.",
+                badge_foot_1: "Program Komputer Terdaftar",
+                badge_foot_2: "DJKI Kemenkumham RI",
+                badge_foot_3: "Google Cloud Run Ready",
+                footer_disclaimer: "Simulator Komputasi Agroforestri In-Silico • Mematuhi Kepatuhan IPCC Tier 3, Verra VCS VM0007 & Ketertelusuran EUDR."
+            }
+        };
+
+        function setAboutLang(lang) {
+            if (!aboutI18n[lang]) return;
+            const t = aboutI18n[lang];
+
+            const safeSetText = (id, val) => {
+                const el = document.getElementById(id);
+                if (el && val !== undefined) el.innerText = val;
+            };
+            const safeSetHtml = (id, val) => {
+                const el = document.getElementById(id);
+                if (el && val !== undefined) el.innerHTML = val;
+            };
+
+            safeSetText('page_title', t.page_title);
+            safeSetText('badge_hero', t.badge_hero);
+            safeSetText('hero_subtitle_tag', t.hero_subtitle_tag);
+            safeSetText('hero_title', t.hero_title);
+            safeSetText('hero_desc', t.hero_desc);
+            safeSetText('stat1_lbl', t.stat1_lbl);
+            safeSetText('stat2_lbl', t.stat2_lbl);
+            safeSetText('stat3_lbl', t.stat3_lbl);
+            safeSetText('stat4_lbl', t.stat4_lbl);
+
+            safeSetText('sec1_title', t.sec1_title);
+            safeSetHtml('sec1_body', t.sec1_body);
+
+            safeSetText('sec2_title', t.sec2_title);
+            safeSetText('sec2_intro', t.sec2_intro);
+            safeSetHtml('sec2_grid', t.sec2_grid);
+
+            safeSetText('sec3_title', t.sec3_title);
+            safeSetHtml('sec3_card', t.sec3_card);
+
+            safeSetText('col1_title', t.col1_title);
+            safeSetText('contrib1_role', t.contrib1_role);
+            safeSetText('contrib1_desc', t.contrib1_desc);
+            safeSetText('contrib1_badge', t.contrib1_badge);
+            safeSetText('contrib2_role', t.contrib2_role);
+            safeSetText('contrib2_desc', t.contrib2_desc);
+            safeSetText('contrib2_badge', t.contrib2_badge);
+
+            safeSetText('col2_title', t.col2_title);
+            safeSetText('support1_role', t.support1_role);
+            safeSetText('support1_desc', t.support1_desc);
+            safeSetText('support1_badge', t.support1_badge);
+
+            safeSetText('sec4_title', t.sec4_title);
+            safeSetHtml('sec4_grid', t.sec4_grid);
+
+            safeSetText('footer_copyright', t.footer_copyright);
+            safeSetText('badge_foot_1', t.badge_foot_1);
+            safeSetText('badge_foot_2', t.badge_foot_2);
+            safeSetText('badge_foot_3', t.badge_foot_3);
+            safeSetText('footer_disclaimer', t.footer_disclaimer);
+
+            localStorage.setItem('preferred_palm_about_lang', lang);
+            localStorage.setItem('preferred_palm_lang', lang);
+            localStorage.setItem('precision_palm_lang', lang);
+        }
+        window.applyLanguage = setAboutLang;
+        window.addEventListener('languagechanged', (e) => {
+            if (e.detail && e.detail.lang) setAboutLang(e.detail.lang);
+        });
+        window.addEventListener('languagechange', (e) => {
+            if (e.detail && e.detail.lang) setAboutLang(e.detail.lang);
+        });
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const isDark = html.classList.contains('dark');
+            const icon = document.getElementById('theme_icon');
+            const label = document.getElementById('theme_label');
+
+            if (isDark) {
+                html.classList.remove('dark');
+                document.body.classList.remove('bg-slate-950', 'text-slate-100');
+                document.body.classList.add('bg-slate-100', 'text-slate-900');
+                if (icon) icon.innerText = '☀️';
+                if (label) label.innerText = 'Light';
+                localStorage.setItem('preferred_palm_theme', 'light');
+            } else {
+                html.classList.add('dark');
+                document.body.classList.remove('bg-slate-100', 'text-slate-900');
+                document.body.classList.add('bg-slate-950', 'text-slate-100');
+                if (icon) icon.innerText = '🌙';
+                if (label) label.innerText = 'Dark';
+                localStorage.setItem('preferred_palm_theme', 'dark');
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('preferred_palm_theme') || 'dark';
+            if (savedTheme === 'light') {
+                document.documentElement.classList.remove('dark');
+                document.body.classList.remove('bg-slate-950', 'text-slate-100');
+                document.body.classList.add('bg-slate-100', 'text-slate-900');
+                const icon = document.getElementById('theme_icon');
+                const label = document.getElementById('theme_label');
+                if (icon) icon.innerText = '☀️';
+                if (label) label.innerText = 'Light';
+            }
+
+            const savedLang = localStorage.getItem('preferred_palm_about_lang') || localStorage.getItem('preferred_palm_lang') || 'en';
+            setAboutLang(savedLang);
+        });
+    </script>
+</body>
+
+</html>

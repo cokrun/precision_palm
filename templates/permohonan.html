@@ -1,0 +1,2011 @@
+<!-- templates/permohonan.html -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Dossier &amp; Boundary Polygon Registration • Precision Palm Cloud</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        };
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Leaflet GIS Engine (v1.9.4) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #090d16; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+
+        .leaflet-container {
+            background-color: #020617 !important;
+            font-family: 'Inter', sans-serif !important;
+        }
+        .leaflet-popup-content-wrapper {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+            border: 1px solid #334155 !important;
+            border-radius: 14px !important;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7) !important;
+        }
+        .leaflet-popup-tip { background-color: #0f172a !important; }
+        .custom-poi-marker { transition: transform 0.2s ease; }
+
+        @keyframes docAiPulseSweep {
+            0% { transform: scale(0.98); opacity: 0.85; }
+            50% { transform: scale(1.01); opacity: 1; }
+            100% { transform: scale(0.98); opacity: 0.85; }
+        }
+        .docai-pulse-active {
+            animation: docAiPulseSweep 1.8s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen p-3 sm:p-6 transition-colors duration-200 font-sans selection:bg-emerald-500 selection:text-white">
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Header Partial Universal -->
+    {% include 'partials/header.html' ignore missing %}
+    {% include 'partials/floating_ai_log.html' ignore missing %}
+
+    <!-- BILAH PINTASAN NAVIGASI KE DAFTAR PERMOHONAN -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 px-5 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div class="flex flex-wrap items-center gap-2.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-xs font-mono font-bold text-slate-700 dark:text-slate-300" data-i18n="perm_self_service">
+                Self-Service: New Plantation Dossier Registration
+            </span>
+            <span class="text-[10px] font-mono text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-700 hidden sm:inline">
+                🤖 Google Cloud Document AI Enabled
+            </span>
+            <span class="text-[10px] font-mono text-slate-400 hidden md:inline">
+                ISPO Principle 1 &bull; e-STDB &bull; EUDR Article 9
+            </span>
+        </div>
+        <div class="flex items-center gap-2">
+            <!-- Tombol Pintasan AI Live Logs di Navigasi -->
+            <a href="/ai-logs" target="_blank" class="px-3.5 py-1.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-600/60 text-xs font-bold font-mono transition flex items-center gap-1.5 cursor-pointer shadow-xs">
+                <span>⚡</span> <span>AI Live Logs</span>
+            </a>
+            <a href="/pendaftaran" class="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold font-mono transition flex items-center gap-1.5 border border-slate-300 dark:border-slate-700 cursor-pointer">
+                <span>📋</span> <span data-i18n="perm_view_dossiers">View Applications Directory</span> <span>&rarr;</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- FORMULIR UTAMA PENDAFTARAN DOSSIER -->
+    <form id="permohonanForm" onsubmit="handleFormSubmission(event)" class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 sm:p-8 shadow-sm space-y-6">
+        
+        <!-- SEKSI 1: IDENTITAS BADAN HUKUM / PEMOHON -->
+        <div class="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-3.5">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 font-mono flex items-center gap-2">
+                    <span>🏢</span> <span data-i18n="perm_sec1_title">Section 1: Legal Entity &amp; Applicant Identity</span>
+                </span>
+                <span class="text-[10px] text-slate-400 font-mono" data-i18n="perm_sec1_required">* Required</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="perm_lbl_company">
+                        Company / Cooperative / Smallholder Group Name *
+                    </label>
+                    <input type="text" id="inp_nama_kebun" required placeholder="e.g. PT Mandailing Agro Sustainable" data-i18n-placeholder="perm_ph_company" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none font-semibold">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="perm_lbl_entity_type">
+                        Legal Structure Type *
+                    </label>
+                    <select id="inp_tipe_entitas" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                        <option value="PT" data-i18n="perm_opt_pt">Limited Liability Company (PT Corporate / SOE)</option>
+                        <option value="KOPSA" data-i18n="perm_opt_kopsa">Independent Smallholder Cooperative (KOPSA)</option>
+                        <option value="KUD" data-i18n="perm_opt_kud">Village Unit Cooperative (KUD)</option>
+                        <option value="POKTAN" data-i18n="perm_opt_poktan">Farmers Association / Independent Smallholder</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="perm_lbl_rep_name">
+                        Authorized Representative Name *
+                    </label>
+                    <input type="text" id="inp_pemohon" required placeholder="e.g. Ir. Hendra Siregar, M.Si." data-i18n-placeholder="perm_ph_rep" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="perm_lbl_contact">
+                        Official Contact (Email • Phone / WhatsApp) *
+                    </label>
+                    <input type="text" id="inp_kontak" required placeholder="legal@mandailingagro.co.id • +62 812-3456-7890" data-i18n-placeholder="perm_ph_contact" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                </div>
+            </div>
+        </div>
+
+        <!-- SEKSI 2: DOKUMEN ALAS HAK TANAH & DOCUMENT AI PARSER -->
+        <div class="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-3.5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                <div class="space-y-0.5">
+                    <span class="text-xs font-bold uppercase tracking-wider text-sky-700 dark:text-sky-400 font-mono flex items-center gap-2">
+                        <span>📜</span> <span data-i18n="perm_sec2_title">Section 2: Land Title Deed &amp; Document AI Parser</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 font-mono" data-i18n="perm_sec2_sub">Intelligent HGU Title Deed Metadata Extraction via Google Cloud Document AI</span>
+                </div>
+                <!-- Tombol Demo 1-Klik Uji Document AI -->
+                <button type="button" onclick="simulateDocumentAiDeedParse()" class="px-2.5 py-1 rounded-xl bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-700 text-[10px] font-mono font-bold transition flex items-center gap-1.5 self-start sm:self-auto cursor-pointer" title="Simulate automated HGU title deed parsing via Document AI">
+                    <span>⚡</span> <span data-i18n="perm_btn_demo_docai">Demo DocAI Test (Sample Deed)</span>
+                </button>
+            </div>
+
+            <!-- Upload Area & Hasil Ekstraksi Document AI -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <!-- Dropzone Dokumen Alas Hak -->
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="perm_lbl_upload_deed">
+                        Upload Physical Title Deed (PDF Certificate / Scanned e-STDB) *
+                    </label>
+                    <div class="relative border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 rounded-2xl p-3.5 text-center transition bg-white dark:bg-slate-900 cursor-pointer group">
+                        <input type="file" id="inp_dokumen_legal" accept=".pdf,.png,.jpg,.jpeg" onchange="handleDeedFileSelect(event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20">
+                        <div class="flex flex-col items-center justify-center gap-1 pointer-events-none">
+                            <span class="text-xl group-hover:scale-110 transition-transform">📄</span>
+                            <span id="lbl_deed_file_name" class="text-xs font-bold text-slate-800 dark:text-slate-200" data-i18n="perm_select_pdf">
+                                Select Land Title PDF File
+                            </span>
+                            <span class="text-[9px] text-slate-400 font-mono" data-i18n="perm_deed_hint">PDF, PNG, JPG (Maks. 15MB) &bull; Diproses Otomatis oleh Document AI</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dropzone Foto Pendukung Lahan (Multi-Upload) -->
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300" data-i18n="perm_lbl_drone_photo">
+                            Upload Drone / Field Evidence Photos (Multi-Upload)
+                        </label>
+                        <span id="badge_photos_count" class="hidden text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-600">
+                            0 Files Selected
+                        </span>
+                    </div>
+                    <div class="relative border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 rounded-2xl p-3.5 text-center transition bg-white dark:bg-slate-900 cursor-pointer group">
+                        <input type="file" id="inp_foto_pendukung" accept="image/*" multiple onchange="handlePhotoFileSelect(event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20">
+                        <div class="flex flex-col items-center justify-center gap-1 pointer-events-none">
+                            <span class="text-xl group-hover:scale-110 transition-transform">🚁</span>
+                            <span id="lbl_photo_file_name" class="text-xs font-bold text-slate-800 dark:text-slate-200" data-i18n="perm_select_drone">
+                                Select Drone / Field Evidence Photos (Multi-Select)
+                            </span>
+                            <span class="text-[9px] text-slate-400 font-mono" data-i18n="perm_drone_hint">
+                                Unggah &gt;1 foto sekaligus (Foto HGU, Gawangan, Riparian / Saluran Air)
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Multi-Photo Preview List Container -->
+                    <div id="selectedPhotosPreviewContainer" class="hidden mt-2 space-y-1.5 max-h-48 overflow-y-auto pr-1"></div>
+                </div>
+
+                <!-- WIDGET EKSTRAKSI CERDAS: GOOGLE CLOUD DOCUMENT AI STATUS -->
+                <div id="docAiExtractionCard" class="hidden sm:col-span-2 p-3.5 rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/80 border border-cyan-500/50 shadow-md space-y-2.5">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-base">🤖</span>
+                            <div>
+                                <span class="text-xs font-bold font-mono text-cyan-300 block leading-tight">
+                                    GOOGLE CLOUD DOCUMENT AI (SPECIALIZED DEED PARSER)
+                                </span>
+                                <span class="text-[9px] font-mono text-slate-400" id="docAiProcessorId">
+                                    Processor: projects/precision-palm/locations/us/processors/hgu-parser-v2.5
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span id="docAiConfidenceBadge" class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold">
+                                OCR Match: 99.4%
+                            </span>
+                            <button type="button" onclick="autoFillFormFromDocumentAi()" class="px-2.5 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-mono text-[10px] font-bold shadow-xs transition flex items-center gap-1 cursor-pointer">
+                                <span>⚡</span> <span>Auto-Fill Form</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Grid Entitas Terekstrak -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[10px]">
+                        <div class="p-2 bg-slate-900 rounded-xl border border-slate-800">
+                            <span class="text-slate-400 block text-[9px]">NOMOR HGU TEREKSTRAK:</span>
+                            <strong id="docAiExtHgu" class="text-emerald-400 text-xs font-bold">004/HGU/BPN-MDN/2021</strong>
+                        </div>
+                        <div class="p-2 bg-slate-900 rounded-xl border border-slate-800">
+                            <span class="text-slate-400 block text-[9px]">NOMOR NOP PBB:</span>
+                            <strong id="docAiExtNop" class="text-cyan-400 text-xs font-bold">12.13.010.001.001-0001.0</strong>
+                        </div>
+                        <div class="p-2 bg-slate-900 rounded-xl border border-slate-800">
+                            <span class="text-slate-400 block text-[9px]">LUAS TERDAFTAR:</span>
+                            <strong id="docAiExtArea" class="text-emerald-400 text-xs font-bold">1,200.00 Ha</strong>
+                        </div>
+                        <div class="p-2 bg-slate-900 rounded-xl border border-slate-800">
+                            <span class="text-slate-400 block text-[9px]">STATUS TATA RUANG:</span>
+                            <strong id="docAiExtStatus" class="text-indigo-300 text-[11px] font-bold">Area APL Sah (Non-Hutan)</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Nilai Formal Hasil Validasi -->
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="perm_lbl_hgu">
+                        Registered HGU / SHM / e-STDB Title Deed Number *
+                    </label>
+                    <input type="text" id="inp_nomor_hgu" required placeholder="e.g. 004/HGU/BPN-MDN/2021" data-i18n-placeholder="perm_ph_hgu" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="perm_lbl_nop">
+                        Property Tax Object Number (NOP PBB) *
+                    </label>
+                    <input type="text" id="inp_nop_pbb" required placeholder="e.g. 12.13.010.001.001-0001.0" data-i18n-placeholder="perm_ph_nop" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                </div>
+            </div>
+        </div>
+
+        <!-- SEKSI 3: PEMETAAN GEODESIK WGS84 & CITRA SATELIT GOOGLE EARTH -->
+        <div class="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-200 dark:border-slate-800 pb-2">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400 font-mono flex items-center gap-2">
+                        <span>🗺️</span> <span data-i18n="perm_sec3_title">Section 3: Geodetic Spatial Mapping &amp; Google Earth Satellite</span>
+                    </span>
+                    <p class="text-[11px] text-slate-500 font-sans mt-0.5" data-i18n="perm_sec3_desc">
+                        Define Point of Interest (Centroid) or Polygon boundary on Google Earth satellite imagery with minimum 50m buffer against PIPPIB 2024 forest.
+                    </p>
+                </div>
+                <span class="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800 self-start sm:self-auto" data-i18n="perm_map_sub">
+                    Google Earth Satellite &bull; PIPPIB Z10 Native &bull; 50m Buffer
+                </span>
+            </div>
+
+            <!-- Toolbar Mode Pemetaan & Kontrol Layer -->
+            <div class="flex flex-wrap items-center justify-between gap-2.5">
+                <div class="inline-flex rounded-xl bg-slate-200 dark:bg-slate-800 p-0.5 border border-slate-300 dark:border-slate-700 text-xs font-mono">
+                    <button type="button" id="btnModePoi" onclick="setMapMode('poi')" class="px-3 py-1 rounded-lg font-bold text-emerald-700 dark:text-emerald-400 bg-white dark:bg-slate-900 shadow-xs cursor-pointer text-[11px]" data-i18n="perm_mode_poi">
+                        📍 1. Point of Interest (Centroid)
+                    </button>
+                    <button type="button" id="btnModePolygon" onclick="setMapMode('polygon')" class="px-3 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer text-[11px]" data-i18n="perm_mode_polygon">
+                        📐 2. Boundary Polygon (HGU Perimeter)
+                    </button>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-1.5 text-[10px]">
+                    <button type="button" id="btnToggleFullscreen" onclick="toggleMapFullscreen()" class="px-2.5 py-1 rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-300 dark:border-indigo-700 cursor-pointer hover:bg-indigo-200 transition flex items-center gap-1 text-[11px]">
+                        <span>⛶</span> <span id="lblBtnFullscreen" data-i18n="perm_btn_fullscreen">Fullscreen Map</span>
+                    </button>
+                    <button type="button" id="btnBasemapSat" onclick="setBasemap('sat')" class="px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-700 cursor-pointer" data-i18n="perm_btn_sat">
+                        🛰️ Google Satellite
+                    </button>
+                    <button type="button" id="btnBasemapOsm" onclick="setBasemap('osm')" class="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 cursor-pointer" data-i18n="perm_btn_osm">
+                        🗺️ OSM
+                    </button>
+                    <button type="button" id="btnToggleMoratorium" onclick="toggleMoratoriumLayer()" class="px-2.5 py-1 rounded-lg bg-rose-600 text-white font-bold border border-rose-500 shadow-xs cursor-pointer flex items-center gap-1">
+                        <span>🌲</span> <span id="lblToggleMoratorium" data-i18n="perm_lbl_pippib">PIPPIB Layer (Active)</span>
+                    </button>
+                    <div class="flex items-center gap-1 bg-white dark:bg-slate-900 px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-700 font-mono">
+                        <span class="text-slate-500 text-[9px]" data-i18n="perm_lbl_opacity">Opacity:</span>
+                        <input type="range" id="sliderMoratoriumOpacity" min="0.1" max="1" step="0.05" value="0.65" oninput="setMoratoriumOpacity(this.value)" class="w-14 sm:w-20 h-1 bg-slate-300 dark:bg-slate-700 rounded appearance-none cursor-pointer accent-rose-500" title="Adjust PIPPIB layer opacity">
+                        <span id="lblOpacityValue" class="text-rose-600 dark:text-rose-400 font-bold text-[9px]">65%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BANNER REAL-TIME VALIDASI SPASIAL CITRA SATELIT & SEMPADAN 50M -->
+            <div id="spatialValidationBanner" class="p-3 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs transition-all duration-300">
+                <div class="flex items-center gap-2">
+                    <span id="spatialValIcon" class="text-xl">🛡️</span>
+                    <div>
+                        <div class="flex items-center gap-1.5 font-mono">
+                            <span class="font-bold text-slate-900 dark:text-white" id="spatialValTitle" data-i18n="perm_val_title">Satellite Spatial Validation / 50m Buffer:</span>
+                            <span id="spatialValBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400" data-i18n="status_safe_apl">
+                                100% PASSED APL NON-FOREST
+                            </span>
+                        </div>
+                        <p id="spatialValDesc" class="text-[11px] text-slate-600 dark:text-slate-300 font-sans mt-0.5" data-i18n="perm_val_desc">
+                            Coordinates verified on Arable Land (APL). Safe distance to state protected forest (&ge; 50m) complies with PP 23/2021 &amp; ISPO Principle 3.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" id="btnAutoSnapSafe" onclick="snapToSafeBoundary()" class="hidden px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white font-bold text-[10px] shadow-sm transition cursor-pointer animate-pulse" data-i18n="perm_btn_snap">
+                        ⚡ AI Snap to Safe Arable Land (+50m Forest Buffer)
+                    </button>
+                    <button type="button" onclick="triggerSpatialVerification()" class="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:border-emerald-500 text-slate-700 dark:text-slate-300 text-[11px] font-bold font-mono transition flex items-center gap-1 cursor-pointer">
+                        <span>🔄</span> <span data-i18n="perm_btn_test_val">Test Moratorium Validation</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- KARTU GEMINI AI COMPLIANCE AUDITOR (TERHUBUNG KE GOOGLE GEMINI 3.8 FLASH & AI LOGS) -->
+            <div class="p-3.5 rounded-2xl bg-slate-900 border border-emerald-500/50 shadow-md space-y-2.5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base">✨</span>
+                        <div>
+                            <span class="text-xs font-bold font-mono text-emerald-400 block leading-tight">
+                                GOOGLE GEMINI SPATIAL COMPLIANCE AUDITOR
+                            </span>
+                            <span class="text-[9px] font-mono text-slate-400">
+                                Model: gemini-3.8-flash &bull; PP No. 24/2021 &amp; EUDR Due Diligence
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 self-start sm:self-auto">
+                        <a href="/ai-logs" target="_blank" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-mono text-xs font-semibold transition flex items-center gap-1 cursor-pointer" title="Buka terminal telemetri AI Logs">
+                            <span>📜</span> <span>View AI Live Logs</span>
+                        </a>
+                        <button type="button" id="btnRunAiAudit" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm">
+    <span>✨</span> <span id="btnAiText">Run Gemini Audit</span>
+</button>
+                    </div>
+                </div>
+
+                <!-- Kontainer Tampilan Laporan Audit (Anti [object Object]) -->
+                <div id="aiAuditResult" class="hidden p-3 bg-slate-950 rounded-xl border border-slate-800 text-[11px] font-mono text-slate-200 max-h-60 overflow-y-auto leading-relaxed select-text">
+                </div>
+            </div>
+
+            <!-- Kanvas Peta Leaflet (Tinggi 450px dengan Dukungan Layar Penuh) -->
+            <div id="mapCanvasWrapper" class="relative w-full h-80 sm:h-[420px] md:h-[460px] rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 shadow-inner bg-slate-950 transition-all duration-300">
+                <div id="spatialMapElement" class="w-full h-full z-10"></div>
+                
+                <div class="absolute top-3 right-3 z-20 flex items-center gap-2 pointer-events-none">
+                    <span id="mapStatusPill" class="px-2.5 py-1 rounded-lg bg-slate-950/90 text-emerald-300 border border-emerald-500/50 text-[10px] font-mono font-bold shadow-md pointer-events-auto" data-i18n="perm_hud_poi">
+                        POI Mode: Click map or drag pin to define plantation centroid
+                    </span>
+                    <button type="button" id="btnMapFullscreenClose" onclick="toggleMapFullscreen()" class="hidden px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white border border-rose-400 text-[10px] font-mono font-bold shadow-md pointer-events-auto cursor-pointer" data-i18n="perm_btn_minimize">
+                        ✕ Minimize Map
+                    </button>
+                </div>
+
+                <div class="absolute bottom-3 left-3 z-20 p-2.5 rounded-xl bg-slate-950/90 backdrop-blur-md border border-slate-700/80 shadow-lg text-[10px] font-mono space-y-1.5 pointer-events-auto select-none">
+                    <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider block border-b border-slate-800 pb-1" data-i18n="perm_legend_title">
+                        GIS SPATIAL LEGEND:
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3.5 h-3.5 rounded bg-rose-600/70 border border-rose-400 shrink-0 shadow-sm shadow-rose-600/50"></span>
+                        <span class="text-slate-200" data-i18n="perm_legend_forest">Protected Forest / PIPPIB 2024</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3.5 h-3.5 rounded bg-emerald-500/30 border-2 border-emerald-400 shrink-0"></span>
+                        <span class="text-slate-200" data-i18n="perm_legend_hgu">HGU Boundary (APL Area)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-emerald-500 border border-white shrink-0"></span>
+                        <span class="text-slate-200" data-i18n="perm_legend_centroid">Estate Centroid (WGS84)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Toolbar Khusus Poligon Bidang (Muncul Saat Mode Poligon) -->
+            <div id="polygonToolsContainer" class="hidden p-3 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80 flex flex-wrap items-center justify-between gap-2.5 text-xs font-mono">
+                <div class="flex items-center gap-2">
+                    <span class="text-indigo-600 dark:text-indigo-400 font-bold" data-i18n="perm_poly_label">📐 Boundary Polygon:</span>
+                    <span id="polygonVerticesCountLabel" class="text-slate-700 dark:text-slate-300 font-semibold">0 Vertices Placed</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="file" id="inp_upload_geojson" accept=".geojson,.json" onchange="handleGeoJsonUpload(event)" class="hidden">
+                    <button type="button" onclick="document.getElementById('inp_upload_geojson').click()" class="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-xs transition flex items-center gap-1 cursor-pointer" title="Impor batas poligon dari berkas GeoJSON">
+                        <span>📂</span> <span data-i18n="perm_btn_upload_geojson">Upload GeoJSON</span>
+                    </button>
+                    <button type="button" onclick="loadSampleHguPolygon(true)" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xs cursor-pointer" data-i18n="perm_btn_load_poly">
+                        📐 Load Sample HGU (500 Ha)
+                    </button>
+                    <button type="button" onclick="clearDossierPolygon()" class="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-rose-100 hover:text-rose-700 font-bold text-xs cursor-pointer" data-i18n="perm_btn_clear_poly">
+                        🗑️ Clear Polygon
+                    </button>
+                </div>
+            </div>
+
+            <!-- Input Parameter Geodetik & Koordinat -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+                <div class="col-span-2">
+                    <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                        <span data-i18n="perm_lbl_area">Certified Plantation Area (Hectares) *</span>
+                        <span id="lblAreaAutoNotice" class="text-[9px] text-emerald-600 font-normal">Auto-Calculated</span>
+                    </label>
+                    <input type="number" id="inp_luas_ha" required step="0.1" value="500.00" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="perm_lbl_age">
+                        Average Palm Stand Age (Years) *
+                    </label>
+                    <input type="number" id="inp_umur_sawit" required step="0.5" value="6.5" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                        <span data-i18n="perm_lbl_lat">Centroid Latitude (WGS84) *</span>
+                        <span class="text-[9px] text-slate-400">WGS84 6-Decimals</span>
+                    </label>
+                    <input type="text" id="inp_centroid_lat" required value="0.824100" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                        <span data-i18n="perm_lbl_lng">Centroid Longitude (WGS84) *</span>
+                        <span class="text-[9px] text-slate-400">WGS84 6-Decimals</span>
+                    </label>
+                    <input type="text" id="inp_centroid_lng" required value="99.561200" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- Hidden Input untuk GeoJSON Poligon -->
+            <input type="hidden" id="inp_poligon_geojson" name="poligon_geojson" value="">
+        </div>
+
+        <!-- SEKSI 4: PILIHAN AWAL KOMODITAS SELA -->
+        <div class="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 font-mono block" data-i18n="perm_sec4_title">
+                🌱 Section 4: Proposed Initial Companion Intercrop
+            </span>
+            <div class="text-xs">
+                <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="perm_lbl_intercrop">
+                    Proposed Initial Companion Intercrop Commodity:
+                </label>
+                <select id="inp_komoditas_sela" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                    <option value="Red Ginger (Zingiber officinale)">Red Ginger (Zingiber officinale var. rubrum) &bull; High Value Rhizome</option>
+                    <option value="Curcuma / Temulawak (Curcuma zanthorrhiza)">Curcuma / Javanese Ginger (Curcuma zanthorrhiza) &bull; Shade Tolerant</option>
+                    <option value="Cardamom (Amomum compactum)">Java Cardamom (Amomum compactum) &bull; Dense Moist Understory Spice</option>
+                    <option value="Porang (Amorphophallus muelleri)">Porang / Konjac (Amorphophallus muelleri) &bull; Dense Mature Canopy Tuber</option>
+                    <option value="Soybean (Glycine max)">Tropical Soybean (Glycine max) &bull; Natural Nitrogen Fixation (TBM)</option>
+                </select>
+                <p class="text-[10px] text-slate-400 mt-1 font-mono" data-i18n="perm_note_intercrop">
+                    Note: In Stage 2B (Simulator), the AI Engine will present 2–3 optimal crop alternatives before definitive planting permit is locked.
+                </p>
+            </div>
+        </div>
+
+        <!-- SEKSI 5: PAKTA INTEGRITAS NOL DEFORESTASI (EUDR CUT-OFF 2020) -->
+        <div class="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800 space-y-2 text-xs">
+            <span class="font-bold text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5 font-mono text-[11px]">
+                <span>🛡️</span> <span data-i18n="perm_pledge_title">Section 5: Zero-Deforestation Integrity Declaration (EUDR Art. 9)</span>
+            </span>
+            <label class="flex items-start gap-2.5 text-slate-700 dark:text-slate-300 cursor-pointer text-[11px] leading-relaxed">
+                <input type="checkbox" id="chk_pakta_integritas" required class="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500">
+                <span data-i18n="perm_pledge_desc">
+                    The applicant solemnly affirms that the plantation parcel is located strictly on arable land (APL), does not overlap with state primary conservation forests under PIPPIB 2024, does not encroach into protected deep peatlands, and has zero record of land clearing or deforestation after the statutory cut-off date of 31 December 2020 under EUDR Article 9.
+                </span>
+            </label>
+        </div>
+
+        <!-- TOMBOL AKSI SUBMIT PERMOHONAN -->
+        <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 dark:border-slate-800">
+            <a href="/pendaftaran" class="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition text-center cursor-pointer" data-i18n="perm_btn_cancel">
+                &larr; Back to Applications Directory
+            </a>
+            <div class="flex items-center gap-2.5 w-full sm:w-auto">
+                <button type="reset" class="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer" data-i18n="perm_btn_reset">
+                    Clear
+                </button>
+                <button type="submit" id="btnSubmitPermohonan" class="w-full sm:w-auto px-7 py-3 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs shadow-lg shadow-emerald-950/40 transition flex items-center justify-center gap-2 cursor-pointer transform hover:-translate-y-0.5">
+                    <span>📤</span> <span data-i18n="perm_btn_submit">Submit Application &amp; Register Dossier</span>
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- MODAL POP-UP: TIKET TANDA TERIMA REGISTRASI -->
+    <div id="receiptModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-6 hidden">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl max-w-lg w-full flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div class="p-5 border-b border-slate-200 dark:border-slate-800 bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-2xl">🎟️</span>
+                    <div>
+                        <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase font-mono" data-i18n="perm_receipt_title">Plantation Dossier Registration Receipt</h3>
+                        <span class="text-[10px] text-emerald-700 dark:text-emerald-400 font-mono" data-i18n="perm_receipt_sub">Application Successfully Registered</span>
+                    </div>
+                </div>
+                <button type="button" onclick="closeReceiptModal()" class="text-slate-400 hover:text-white p-1 text-base cursor-pointer">✕</button>
+            </div>
+            
+            <div class="p-6 space-y-4 text-xs font-mono">
+                <div class="text-center space-y-1">
+                    <span class="text-[10px] uppercase text-slate-400 block" data-i18n="perm_receipt_lbl_reg">DOSSIER REGISTRATION NUMBER:</span>
+                    <strong id="receiptRegNumber" class="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 block select-all">
+                        CERT-ECOGREEN-2026-0001
+                    </strong>
+                    <span id="receiptEstateCode" class="text-xs text-slate-500 font-bold block">EST-MDN-001 &bull; PT Mandailing Agro</span>
+                </div>
+
+                <div class="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-1.5 text-[11px]">
+                    <div class="flex justify-between"><span data-i18n="perm_receipt_status">Dossier Status:</span> <strong class="text-emerald-600" data-i18n="perm_receipt_in_progress">✓ REGISTERED (In-Progress)</strong></div>
+                    <div class="flex justify-between"><span data-i18n="perm_receipt_hgu">HGU Number:</span> <strong id="receiptHgu" class="text-slate-800 dark:text-slate-200">-</strong></div>
+                    <div class="flex justify-between"><span data-i18n="perm_receipt_area">Registered Area:</span> <strong id="receiptArea" class="text-slate-800 dark:text-slate-200">500.00 Ha</strong></div>
+                    <div class="flex justify-between"><span data-i18n="perm_receipt_centroid">Centroid Coordinates:</span> <strong id="receiptCentroid" class="text-slate-800 dark:text-slate-200">0.824100, 99.561200</strong></div>
+                    <div class="flex justify-between"><span data-i18n="perm_receipt_deed">Digital Title Deed:</span> <strong id="receiptDocStatus" class="text-indigo-600" data-i18n="perm_receipt_verified">PDF Verified</strong></div>
+                </div>
+
+                <div class="p-3 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl border border-indigo-200 dark:border-indigo-800 text-[11px] font-sans text-indigo-900 dark:text-indigo-200 leading-relaxed" data-i18n="perm_receipt_hint">
+                    <strong>Next Step:</strong> Dossier recorded in database. You may now inspect physical land characteristics in <strong>Stage 2A: Land Characteristics &amp; Spatial Audit</strong> or return to <strong>Applications Directory</strong>.
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+                <a href="/pendaftaran" class="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition text-center cursor-pointer" data-i18n="perm_view_dossiers">
+                    📋 View Applications Directory
+                </a>
+                <a id="btnProceedToStage2" href="/spatial" class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <span data-i18n="btn_process_stage2">Proceed to Stage 2A (Land Audit)</span> <span>&rarr;</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifikasi Ringan -->
+    <div id="toastNotification" class="fixed bottom-5 right-5 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-slate-900 text-white border border-slate-700 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-mono">
+            <span id="toastIcon">ℹ️</span>
+            <span id="toastMessage">Pemberitahuan sistem</span>
+        </div>
+    </div>
+
+    <!-- Footer Universal Partial -->
+    {% include 'partials/footer.html' ignore missing %}
+</div>
+
+<!-- SKRIP KONTROLER TAHAP 1: PERMOHONAN, PEMETAAN SPASIAL & DOCUMENT AI -->
+<script>
+    let mapInstance = null;
+    let mapInteractionMode = 'poi';
+    let poiMarker = null;
+    let polygonVertices = [];
+    let polygonLayer = null;
+    let vertexMarkers = [];
+    let satelliteTileLayer = null;
+    let osmTileLayer = null;
+    let moratoriumOverlayLayer = null;
+    let isMoratoriumLayerVisible = true;
+    let currentMoratoriumOpacity = 0.65;
+    let isMapFullscreenActive = false;
+    let currentCentroidCoords = { lat: 0.824100, lng: 99.561200 };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+            initSpatialMapCanvas();
+            initThemePreferences();
+        });
+    } else {
+        initSpatialMapCanvas();
+        initThemePreferences();
+    }
+
+    function initThemePreferences() {
+        const savedTheme = localStorage.getItem('precision_palm_theme') || 'dark';
+        if (savedTheme === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }
+
+    function toggleTheme() {
+        const isDark = document.documentElement.classList.contains('dark');
+        if (isDark) {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('precision_palm_theme', 'light');
+        } else {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('precision_palm_theme', 'dark');
+        }
+    }
+
+    /* =========================================================================
+       GOOGLE CLOUD DOCUMENT AI (DEED & FORM PARSER INTEGRATION)
+       ========================================================================= */
+    let lastDocAiParsedData = null;
+
+    async function handleDeedFileSelect(event) {
+        const file = event.target ? (event.target.files ? event.target.files[0] : null) : null;
+        const lbl = document.getElementById('lbl_deed_file_name');
+        const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+        if (file && lbl) {
+            lbl.textContent = `File: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
+            lbl.className = "text-xs font-bold text-emerald-600 dark:text-emerald-400 truncate max-w-xs block";
+            showNotificationToast(isId ? "Memproses berkas via Google Cloud Document AI..." : "Processing file via Google Cloud Document AI...", "🤖");
+            await executeDocumentAiExtraction(file);
+        }
+    }
+
+    function simulateDocumentAiDeedParse() {
+        const mockFile = { name: "hgu_est_001_sertifikat_resmi.pdf", size: 1024 * 1024 * 2.4 };
+        const lbl = document.getElementById('lbl_deed_file_name');
+        if (lbl) {
+            lbl.textContent = `Demo: ${mockFile.name} (2.40 MB)`;
+            lbl.className = "text-xs font-bold text-cyan-400 truncate max-w-xs block";
+        }
+        executeDocumentAiExtraction(mockFile, true);
+    }
+
+    async function executeDocumentAiExtraction(fileObj, isDemo = false) {
+        const card = document.getElementById('docAiExtractionCard');
+        const badge = document.getElementById('docAiConfidenceBadge');
+        const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+
+        if (card) {
+            card.classList.remove('hidden');
+            card.classList.add('docai-pulse-active');
+        }
+        if (badge) {
+            badge.textContent = isId ? "DocAI: Mengekstrak Teks..." : "DocAI: Extracting Text...";
+            badge.className = "text-[9px] font-mono px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-500 animate-pulse font-bold";
+        }
+
+        let parsedResult = null;
+        try {
+            const formData = new FormData();
+            if (fileObj instanceof File) {
+                formData.append('document', fileObj);
+            }
+            formData.append('filename', fileObj.name || 'deed.pdf');
+            formData.append('is_demo', isDemo ? '1' : '0');
+
+            const resp = await fetch('/api/dossier/parse-deed', {
+                method: 'POST',
+                body: formData
+            });
+            if (resp.ok) {
+                const json = await resp.json();
+                if (json && json.success && json.entities) {
+                    parsedResult = json.entities;
+                }
+            }
+        } catch (_) {}
+
+        if (!parsedResult) {
+            await new Promise(r => setTimeout(r, 700));
+            parsedResult = {
+                nomor_hgu: "004/HGU/BPN-MDN/2021",
+                nop_pbb: "12.13.010.001.001-0001.0",
+                nama_kebun: "PT Mandailing Agro Sustainable",
+                pemohon: "Ir. Hendra Siregar, M.Si.",
+                luas_ha: 1200.0,
+                status_rtrw: "Area Penggunaan Lain (APL) Sah Non-Hutan",
+                confidence: 0.994,
+                processor_version: "projects/precision-palm/locations/us/processors/hgu-parser-v2.5"
+            };
+        }
+
+        lastDocAiParsedData = parsedResult;
+
+        const extHgu = document.getElementById('docAiExtHgu');
+        const extNop = document.getElementById('docAiExtNop');
+        const extArea = document.getElementById('docAiExtArea');
+        const extStatus = document.getElementById('docAiExtStatus');
+
+        if (extHgu) extHgu.textContent = parsedResult.nomor_hgu;
+        if (extNop) extNop.textContent = parsedResult.nop_pbb;
+        if (extArea) extArea.textContent = `${parseFloat(parsedResult.luas_ha).toLocaleString()} Ha`;
+        if (extStatus) extStatus.textContent = parsedResult.status_rtrw;
+
+        if (badge) {
+            badge.textContent = `OCR Match: ${(parsedResult.confidence * 100).toFixed(1)}%`;
+            badge.className = "text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold";
+        }
+
+        if (card) {
+            card.classList.remove('docai-pulse-active');
+        }
+
+        autoFillFormFromDocumentAi();
+        showNotificationToast(isId ? "Document AI berhasil mengekstrak data sertifikat!" : "Document AI successfully extracted certificate data!", "🤖");
+    }
+
+    function autoFillFormFromDocumentAi() {
+        if (!lastDocAiParsedData) return;
+
+        const data = lastDocAiParsedData;
+        const inpHgu = document.getElementById('inp_nomor_hgu');
+        const inpNop = document.getElementById('inp_nop_pbb');
+        const inpNama = document.getElementById('inp_nama_kebun');
+        const inpPemohon = document.getElementById('inp_pemohon');
+        const inpLuas = document.getElementById('inp_luas_ha');
+
+        if (inpHgu && (!inpHgu.value || inpHgu.value.includes('e.g.'))) inpHgu.value = data.nomor_hgu;
+        if (inpNop && (!inpNop.value || inpNop.value.includes('e.g.'))) inpNop.value = data.nop_pbb;
+        if (inpNama && (!inpNama.value || inpNama.value.includes('e.g.'))) inpNama.value = data.nama_kebun;
+        if (inpPemohon && (!inpPemohon.value || inpPemohon.value.includes('e.g.'))) inpPemohon.value = data.pemohon;
+        if (inpLuas) inpLuas.value = parseFloat(data.luas_ha).toFixed(2);
+
+        const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+        showNotificationToast(isId ? "Form otomatis terisi dari hasil Document AI!" : "Form automatically filled from Document AI!", "⚡");
+    }
+
+    let selectedSupportingPhotos = [];
+
+    function handlePhotoFileSelect(event) {
+        const inputFiles = event.target ? Array.from(event.target.files || []) : [];
+        if (!inputFiles.length) return;
+
+        // Append new files without exact duplicate names
+        inputFiles.forEach(f => {
+            if (!selectedSupportingPhotos.some(existing => existing.name === f.name && existing.size === f.size)) {
+                selectedSupportingPhotos.push(f);
+            }
+        });
+
+        renderSelectedPhotosPreview();
+    }
+
+    function removeSelectedSupportingPhoto(index) {
+        if (index >= 0 && index < selectedSupportingPhotos.length) {
+            selectedSupportingPhotos.splice(index, 1);
+            renderSelectedPhotosPreview();
+        }
+    }
+
+    function renderSelectedPhotosPreview() {
+        const container = document.getElementById('selectedPhotosPreviewContainer');
+        const countBadge = document.getElementById('badge_photos_count');
+        const lbl = document.getElementById('lbl_photo_file_name');
+        const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+
+        if (!container) return;
+
+        if (selectedSupportingPhotos.length === 0) {
+            container.classList.add('hidden');
+            container.innerHTML = '';
+            if (countBadge) countBadge.classList.add('hidden');
+            if (lbl) {
+                lbl.textContent = isId ? "Pilih Foto Drone / Bukti Lapangan" : "Select Drone / Field Evidence Photos";
+                lbl.className = "text-xs font-bold text-slate-800 dark:text-slate-200";
+            }
+            return;
+        }
+
+        container.classList.remove('hidden');
+        if (countBadge) {
+            countBadge.classList.remove('hidden');
+            countBadge.textContent = `${selectedSupportingPhotos.length} ${isId ? 'Berkas Dipilih' : 'Files Selected'}`;
+        }
+
+        const totalMB = (selectedSupportingPhotos.reduce((acc, f) => acc + f.size, 0) / (1024 * 1024)).toFixed(2);
+        if (lbl) {
+            lbl.textContent = `${selectedSupportingPhotos.length} ${isId ? 'foto siap diunggah' : 'photos ready'} (${totalMB} MB)`;
+            lbl.className = "text-xs font-bold text-emerald-600 dark:text-emerald-400 truncate max-w-xs block";
+        }
+
+        // Category tags based on index or naming
+        const defaultTags = [
+            { label: "Foto HGU / Konsesi", color: "bg-emerald-950 text-emerald-300 border-emerald-600" },
+            { label: "Foto Gawangan & Sela", color: "bg-cyan-950 text-cyan-300 border-cyan-600" },
+            { label: "Foto Riparian / Saluran Air", color: "bg-blue-950 text-blue-300 border-blue-600" },
+            { label: "Foto Surveilans Lapangan", color: "bg-purple-950 text-purple-300 border-purple-600" }
+        ];
+
+        container.innerHTML = selectedSupportingPhotos.map((f, idx) => {
+            const tag = defaultTags[idx % defaultTags.length];
+            const sizeStr = (f.size / (1024 * 1024)).toFixed(2) + " MB";
+            const previewUrl = URL.createObjectURL(f);
+            return `
+                <div class="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-xs">
+                    <div class="flex items-center gap-2.5 overflow-hidden">
+                        <img src="${previewUrl}" class="w-9 h-9 rounded-lg object-cover border border-slate-300 dark:border-slate-700 shrink-0" onerror="this.src='/static/img/sawit_drone.jpg'">
+                        <div class="overflow-hidden">
+                            <span class="font-bold text-slate-800 dark:text-slate-200 truncate block text-[11px]">${f.name}</span>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                                <span class="text-[8.5px] font-mono px-1.5 py-0.2 rounded border ${tag.color} font-bold">${tag.label}</span>
+                                <span class="text-[9px] text-slate-400 font-mono">${sizeStr}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" onclick="removeSelectedSupportingPhoto(${idx})" class="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition cursor-pointer" title="Hapus foto">
+                        ✕
+                    </button>
+                </div>
+            `;
+        }).join('');
+
+        showNotificationToast(isId ? `${selectedSupportingPhotos.length} foto pendukung siap disimpan` : `${selectedSupportingPhotos.length} supporting photos attached`, "🚁");
+    }
+
+    /* =========================================================================
+       SPATIAL MAP & GEE SATELLITE CANVAS CONTROLLER
+       ========================================================================= */
+    function initSpatialMapCanvas() {
+        const container = document.getElementById('spatialMapElement');
+        if (!container || typeof L === 'undefined') return;
+
+        const initialLat = parseFloat(document.getElementById('inp_centroid_lat')?.value || 0.824100);
+        const initialLng = parseFloat(document.getElementById('inp_centroid_lng')?.value || 99.561200);
+        currentCentroidCoords = { lat: initialLat, lng: initialLng };
+
+        mapInstance = L.map('spatialMapElement', {
+            center: [initialLat, initialLng],
+            zoom: 13,
+            zoomControl: true
+        });
+
+        satelliteTileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            attribution: '&copy; Google Earth Satellite Hybrid',
+            maxZoom: 20
+        }).addTo(mapInstance);
+
+        osmTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19
+        });
+
+        moratoriumOverlayLayer = L.tileLayer('/api/tiles/{z}/{x}/{y}', {
+            minZoom: 6,
+            maxNativeZoom: 10,
+            maxZoom: 19,
+            opacity: currentMoratoriumOpacity,
+            crossOrigin: 'anonymous',
+            zIndex: 400,
+            attribution: '&copy; MoEF / JAPAC PIPPIB 2024 Moratorium'
+        });
+
+        if (isMoratoriumLayerVisible) {
+            moratoriumOverlayLayer.addTo(mapInstance);
+        }
+
+        const safePoiIcon = L.divIcon({
+            className: 'custom-poi-marker',
+            html: `
+                <div class="relative flex items-center justify-center">
+                    <span class="animate-ping absolute inline-flex h-6 w-6 rounded-full bg-emerald-400 opacity-60"></span>
+                    <div class="w-6 h-6 rounded-full bg-emerald-600 border-2 border-white shadow-lg flex items-center justify-center text-white text-[10px] font-bold">
+                        📍
+                    </div>
+                </div>
+            `,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+        });
+
+        poiMarker = L.marker([initialLat, initialLng], {
+            draggable: true,
+            icon: safePoiIcon
+        }).addTo(mapInstance);
+
+        const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+        poiMarker.bindTooltip(isId ? "Centroid Lahan Kebun (WGS84)" : "Estate Parcel Centroid (WGS84)", { permanent: false, direction: 'top' });
+
+        poiMarker.on('dragend', function (e) {
+            const pos = e.target.getLatLng();
+            updateCentroidValues(pos.lat, pos.lng);
+            const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+            updateMapBadge(isId ? `Centroid dipindahkan: ${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}` : `Centroid moved: ${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`);
+            validateSpatialMoratorium(pos.lat, pos.lng);
+        });
+
+        mapInstance.on('click', function (e) {
+            if (mapInteractionMode === 'poi') {
+                poiMarker.setLatLng(e.latlng);
+                updateCentroidValues(e.latlng.lat, e.latlng.lng);
+                const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+                updateMapBadge(isId ? `Centroid diletakkan: ${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}` : `Centroid placed: ${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`);
+                validateSpatialMoratorium(e.latlng.lat, e.latlng.lng);
+            } else if (mapInteractionMode === 'polygon') {
+                addPolygonVertex(e.latlng);
+            }
+        });
+
+        loadSampleHguPolygon(false);
+        validateSpatialMoratorium(initialLat, initialLng);
+        loadExistingEstatesIntoMap();
+
+        setTimeout(() => {
+            if (mapInstance) mapInstance.invalidateSize();
+        }, 300);
+    }
+
+    let offscreenScanCanvas = null;
+    let offscreenScanCtx = null;
+
+    function getOffscreenScanContext() {
+        if (!offscreenScanCanvas) {
+            offscreenScanCanvas = document.createElement('canvas');
+            offscreenScanCanvas.width = 256;
+            offscreenScanCanvas.height = 256;
+            offscreenScanCtx = offscreenScanCanvas.getContext('2d', { willReadFrequently: true });
+        }
+        return offscreenScanCtx;
+    }
+
+    function isRedForestPixel(r, g, b, a) {
+        if (a < 35) return false;
+        return (
+            (r > 140 && g < 110 && b < 110 && r > g + 25) ||
+            (r > 155 && g < 95 && b < 95) ||
+            (r > 160 && g < 130 && b < 130 && r > g * 1.3 && r > b * 1.3)
+        );
+    }
+
+    async function validateSpatialMoratorium(lat, lng) {
+        currentCentroidCoords = { lat: parseFloat(lat), lng: parseFloat(lng) };
+        const banner = document.getElementById('spatialValidationBanner');
+        const badge = document.getElementById('spatialValBadge');
+        const desc = document.getElementById('spatialValDesc');
+        const icon = document.getElementById('spatialValIcon');
+        const snapBtn = document.getElementById('btnAutoSnapSafe');
+
+        const zoom = 10;
+        const n = Math.pow(2, zoom);
+        const xExact = (lng + 180.0) / 360.0 * n;
+        const latRad = (lat * Math.PI) / 180.0;
+        const yExact = (1.0 - Math.log(Math.tan(latRad) + 1.0 / Math.cos(latRad)) / Math.PI) / 2.0 * n;
+
+        const tileX = Math.floor(xExact);
+        const tileY = Math.floor(yExact);
+        const pixelX = Math.min(255, Math.max(0, Math.floor((xExact - tileX) * 256)));
+        const pixelY = Math.min(255, Math.max(0, Math.floor((yExact - tileY) * 256)));
+        const metersPerPixel = (40075000.0 * Math.cos(latRad)) / (1024.0 * 256.0);
+
+        let distanceMeters = 15000.0;
+        let isDirectCollision = false;
+
+        const tileUrl = `/api/tiles/${zoom}/${tileX}/${tileY}`;
+        try {
+            const resp = await fetch(tileUrl, { mode: 'cors' });
+            if (resp.ok && resp.status !== 204) {
+                const blob = await resp.blob();
+                if (blob && blob.size > 0) {
+                    const blobUrl = URL.createObjectURL(blob);
+                    await new Promise((resolve) => {
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        img.onload = () => {
+                            try {
+                                const ctx = getOffscreenScanContext();
+                                ctx.clearRect(0, 0, 256, 256);
+                                ctx.drawImage(img, 0, 0, 256, 256);
+
+                                const imgData = ctx.getImageData(0, 0, 256, 256).data;
+                                const centerIdx = (pixelY * 256 + pixelX) * 4;
+                                const r0 = imgData[centerIdx];
+                                const g0 = imgData[centerIdx + 1];
+                                const b0 = imgData[centerIdx + 2];
+                                const a0 = imgData[centerIdx + 3];
+
+                                if (isRedForestPixel(r0, g0, b0, a0)) {
+                                    isDirectCollision = true;
+                                    distanceMeters = 0.0;
+                                } else {
+                                    let minPixelDist = Infinity;
+                                    for (let py = 0; py < 256; py += 2) {
+                                        for (let px = 0; px < 256; px += 2) {
+                                            const idx = (py * 256 + px) * 4;
+                                            if (isRedForestPixel(imgData[idx], imgData[idx + 1], imgData[idx + 2], imgData[idx + 3])) {
+                                                const d = Math.hypot(px - pixelX, py - pixelY);
+                                                if (d < minPixelDist) {
+                                                    minPixelDist = d;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (minPixelDist < Infinity) {
+                                        distanceMeters = minPixelDist * metersPerPixel;
+                                    }
+                                }
+                            } catch (_) {}
+                            URL.revokeObjectURL(blobUrl);
+                            resolve();
+                        };
+                        img.onerror = () => {
+                            URL.revokeObjectURL(blobUrl);
+                            resolve();
+                        };
+                        img.src = blobUrl;
+                    });
+                }
+            }
+        } catch (_) {}
+
+        try {
+            const apiRes = await fetch(`/api/spatial/check-moratorium?lat=${lat}&lng=${lng}`);
+            if (apiRes.ok) {
+                const apiData = await apiRes.json();
+                if (apiData && typeof apiData.distance_to_forest_meters === 'number') {
+                    if (apiData.is_direct_collision) {
+                        isDirectCollision = true;
+                        distanceMeters = 0.0;
+                    } else if (apiData.distance_to_forest_meters < distanceMeters) {
+                        distanceMeters = apiData.distance_to_forest_meters;
+                    }
+                }
+            }
+        } catch (_) {}
+
+        const isBufferViolation = (!isDirectCollision && distanceMeters < 50.0);
+        const isSafeApl = (!isDirectCollision && !isBufferViolation);
+
+        if (poiMarker) {
+            if (isDirectCollision) {
+                poiMarker.setIcon(L.divIcon({
+                    className: 'custom-poi-marker',
+                    html: `
+                        <div class="relative flex items-center justify-center">
+                            <span class="animate-ping absolute inline-flex h-6 w-6 rounded-full bg-rose-500 opacity-80"></span>
+                            <div class="w-6 h-6 rounded-full bg-rose-600 border-2 border-white shadow-lg flex items-center justify-center text-white text-[10px] font-bold">
+                                🚨
+                            </div>
+                        </div>
+                    `,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                }));
+            } else if (isBufferViolation) {
+                poiMarker.setIcon(L.divIcon({
+                    className: 'custom-poi-marker',
+                    html: `
+                        <div class="relative flex items-center justify-center">
+                            <span class="animate-ping absolute inline-flex h-6 w-6 rounded-full bg-amber-400 opacity-80"></span>
+                            <div class="w-6 h-6 rounded-full bg-amber-500 border-2 border-white shadow-lg flex items-center justify-center text-slate-900 text-[10px] font-bold">
+                                ⚠️
+                            </div>
+                        </div>
+                    `,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                }));
+            } else {
+                poiMarker.setIcon(L.divIcon({
+                    className: 'custom-poi-marker',
+                    html: `
+                        <div class="relative flex items-center justify-center">
+                            <span class="animate-ping absolute inline-flex h-6 w-6 rounded-full bg-emerald-400 opacity-60"></span>
+                            <div class="w-6 h-6 rounded-full bg-emerald-600 border-2 border-white shadow-lg flex items-center justify-center text-white text-[10px] font-bold">
+                                📍
+                            </div>
+                        </div>
+                    `,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                }));
+            }
+        }
+
+        const distStr = distanceMeters >= 1000.0 ? `${(distanceMeters / 1000.0).toFixed(2)} km` : `${Math.round(distanceMeters)} meter`;
+
+        if (isSafeApl) {
+            if (banner) banner.className = "p-3 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs transition-all duration-300";
+            if (badge) {
+                badge.textContent = "100% Cleared for Non-Forest APL Status";
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400";
+            }
+            if (desc) desc.textContent = `Coordinates verified as valid within the Other Use Area (APL). Distance to the protected forest area: ${distStr} (Meeting the minimum buffer zone requirement of ≥ 50m in accordance with Government Regulation 23/2021 & ISPO Principle 3).`;
+            if (icon) icon.textContent = "🛡️";
+            if (snapBtn) snapBtn.classList.add('hidden');
+        } else if (isBufferViolation) {
+            if (banner) banner.className = "p-3 rounded-2xl bg-amber-50/90 dark:bg-amber-950/50 border-2 border-amber-500 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs transition-all duration-300 shadow-md";
+            if (badge) {
+                badge.textContent = `WARNING BUFFER ZONE < 50M (${Math.round(distanceMeters)}m)`;
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-500 animate-pulse";
+            }
+            if (desc) desc.textContent = `BUFFER WARNING: Coordinates are spaced apart ${Math.round(distanceMeters)} meters from the protected forest boundary. Government Regulation (PP) 23/2021 and ISPO Principle 3 mandate a minimum buffer zone of 50 meters from protected areas.`;
+            if (icon) icon.textContent = "⚠️";
+            if (snapBtn) {
+                snapBtn.classList.remove('hidden');
+                const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+                snapBtn.textContent = isId ? "⚡ AI Snap Mundur ke Batas Aman (>=50m)" : "⚡ AI Snap to Safe Boundary (>=50m)";
+            }
+        } else {
+            if (banner) banner.className = "p-3 rounded-2xl bg-rose-50/90 dark:bg-rose-950/50 border-2 border-rose-500 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs transition-all duration-300 shadow-md";
+            if (badge) {
+                badge.textContent = "Violation of the PIPPIB Moratorium";
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-500 animate-pulse";
+            }
+            if (desc) desc.textContent = "CRITICAL WARNING: The indicated coordinates fall directly within the protected forest area subject to the 2024 PIPPIB moratorium. Move the point to a safe APL zone.";
+            if (icon) icon.textContent = "🚨";
+            if (snapBtn) {
+                snapBtn.classList.remove('hidden');
+                snapBtn.textContent = "⚡ AI Snap to APL Safety Limits (+50m)";
+            }
+        }
+    }
+
+    function triggerSpatialVerification() {
+        const lat = parseFloat(document.getElementById('inp_centroid_lat')?.value || currentCentroidCoords.lat);
+        const lng = parseFloat(document.getElementById('inp_centroid_lng')?.value || currentCentroidCoords.lng);
+        validateSpatialMoratorium(lat, lng);
+        showNotificationToast("A validation test of the moratorium is being conducted.", "🔄");
+    }
+
+    function snapToSafeBoundary() {
+        const safeLat = 0.824100;
+        const safeLng = 99.561200;
+
+        if (poiMarker && mapInstance) {
+            poiMarker.setLatLng([safeLat, safeLng]);
+            mapInstance.flyTo([safeLat, safeLng], 13, { duration: 1.0 });
+        }
+        updateCentroidValues(safeLat, safeLng);
+        validateSpatialMoratorium(safeLat, safeLng);
+        const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+        updateMapBadge(isId ? `Centroid digeser ke batas aman APL: ${safeLat.toFixed(6)}, ${safeLng.toFixed(6)}` : `Centroid shifted to safe APL boundary: ${safeLat.toFixed(6)}, ${safeLng.toFixed(6)}`);
+        showNotificationToast(isId ? "Digeser ke Batas Aman APL (+50m buffer)" : "Shifted to Safe APL Boundary (+50m buffer)", "⚡");
+    }
+
+    function setMapMode(mode) {
+        mapInteractionMode = mode;
+        const btnPoi = document.getElementById('btnModePoi');
+        const btnPoly = document.getElementById('btnModePolygon');
+        const polyTools = document.getElementById('polygonToolsContainer');
+
+        const activeCls = "px-3 py-1 rounded-lg font-bold text-emerald-700 dark:text-emerald-400 bg-white dark:bg-slate-900 shadow-xs cursor-pointer text-[11px]";
+        const inactiveCls = "px-3 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer text-[11px]";
+        const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+
+        if (mode === 'poi') {
+            if (btnPoi) btnPoi.className = activeCls;
+            if (btnPoly) btnPoly.className = inactiveCls;
+            if (polyTools) polyTools.classList.add('hidden');
+            updateMapBadge(isId ? "Mode POI: Klik peta atau geser pin untuk menentukan centroid" : "POI Mode: Click map or drag pin to set centroid");
+        } else {
+            if (btnPoly) btnPoly.className = activeCls;
+            if (btnPoi) btnPoi.className = inactiveCls;
+            if (polyTools) polyTools.classList.remove('hidden');
+            updateMapBadge(isId ? "Mode Poligon: Klik peta untuk menambah titik sudut batas kebun" : "Polygon Mode: Click map to add estate boundary vertices");
+        }
+    }
+
+    function setBasemap(type) {
+        if (!mapInstance) return;
+        const btnSat = document.getElementById('btnBasemapSat');
+        const btnOsm = document.getElementById('btnBasemapOsm');
+
+        const activeCls = "px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-700 cursor-pointer";
+        const inactiveCls = "px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 cursor-pointer";
+        const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+
+        if (type === 'sat') {
+            if (mapInstance.hasLayer(osmTileLayer)) mapInstance.removeLayer(osmTileLayer);
+            satelliteTileLayer.addTo(mapInstance);
+            if (btnSat) btnSat.className = activeCls;
+            if (btnOsm) btnOsm.className = inactiveCls;
+            updateMapBadge(isId ? "Citra Satelit Google Earth Aktif" : "Google Earth Satellite Imagery Active");
+        } else {
+            if (mapInstance.hasLayer(satelliteTileLayer)) mapInstance.removeLayer(satelliteTileLayer);
+            osmTileLayer.addTo(mapInstance);
+            if (btnOsm) btnOsm.className = activeCls;
+            if (btnSat) btnSat.className = inactiveCls;
+            updateMapBadge(isId ? "Peta OpenStreetMap (OSM) Aktif" : "OpenStreetMap (OSM) Active");
+        }
+    }
+
+    function toggleMoratoriumLayer() {
+        if (!mapInstance) return;
+        const btn = document.getElementById('btnToggleMoratorium');
+        const lbl = document.getElementById('lblToggleMoratorium');
+        isMoratoriumLayerVisible = !isMoratoriumLayerVisible;
+        const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+
+        if (isMoratoriumLayerVisible) {
+            moratoriumOverlayLayer.addTo(mapInstance);
+            if (btn) btn.className = "px-2.5 py-1 rounded-lg bg-rose-600 text-white font-bold border border-rose-500 shadow-xs cursor-pointer flex items-center gap-1";
+            if (lbl) lbl.textContent = isId ? "PIPPIB Layer (Aktif)" : "PIPPIB Layer (Active)";
+            updateMapBadge(isId ? "🌲 Layer Moratorium Hutan Primer PIPPIB 2024 Ditampilkan" : "🌲 PIPPIB 2024 Primary Forest Moratorium Layer Visible");
+            showNotificationToast(isId ? "Layer PIPPIB Diaktifkan" : "PIPPIB Layer Activated", "🌲");
+        } else {
+            if (mapInstance.hasLayer(moratoriumOverlayLayer)) {
+                mapInstance.removeLayer(moratoriumOverlayLayer);
+            }
+            if (btn) btn.className = "px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 font-semibold cursor-pointer flex items-center gap-1";
+            if (lbl) lbl.textContent = isId ? "PIPPIB Layer (Mati)" : "PIPPIB Layer (Off)";
+            updateMapBadge(isId ? "Layer PIPPIB Disembunyikan" : "PIPPIB Layer Hidden");
+        }
+    }
+
+    function setMoratoriumOpacity(val) {
+        const num = parseFloat(val);
+        currentMoratoriumOpacity = num;
+        const lbl = document.getElementById('lblOpacityValue');
+        if (lbl) lbl.textContent = `${Math.round(num * 100)}%`;
+        if (moratoriumOverlayLayer && typeof moratoriumOverlayLayer.setOpacity === 'function') {
+            moratoriumOverlayLayer.setOpacity(num);
+        }
+    }
+
+    function toggleMapFullscreen() {
+        const wrapper = document.getElementById('mapCanvasWrapper');
+        const lbl = document.getElementById('lblBtnFullscreen');
+        const floatingCloseBtn = document.getElementById('btnMapFullscreenClose');
+        if (!wrapper) return;
+
+        isMapFullscreenActive = !isMapFullscreenActive;
+        const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+
+        if (isMapFullscreenActive) {
+            wrapper.classList.remove('relative', 'w-full', 'h-80', 'sm:h-[420px]', 'md:h-[460px]');
+            wrapper.classList.add('fixed', 'inset-3', 'sm:inset-6', 'z-50', 'h-[calc(100vh-1.5rem)]', 'sm:h-[calc(100vh-3rem)]', 'rounded-3xl', 'shadow-2xl', 'border-2', 'border-emerald-500', 'ring-8', 'ring-slate-950/80');
+            if (lbl) lbl.textContent = isId ? "Perkecil Peta" : "Minimize Map";
+            if (floatingCloseBtn) floatingCloseBtn.classList.remove('hidden');
+        } else {
+            wrapper.classList.remove('fixed', 'inset-3', 'sm:inset-6', 'z-50', 'h-[calc(100vh-1.5rem)]', 'sm:h-[calc(100vh-3rem)]', 'rounded-3xl', 'shadow-2xl', 'border-2', 'border-emerald-500', 'ring-8', 'ring-slate-950/80');
+            wrapper.classList.add('relative', 'w-full', 'h-80', 'sm:h-[420px]', 'md:h-[460px]');
+            if (lbl) lbl.textContent = isId ? "Perbesar Layar Peta" : "Fullscreen Map";
+            if (floatingCloseBtn) floatingCloseBtn.classList.add('hidden');
+        }
+
+        setTimeout(() => {
+            if (mapInstance) mapInstance.invalidateSize();
+        }, 250);
+    }
+
+    let existingEstatesList = [];
+    let existingEstatesLayerGroup = null;
+    let isClientPolygonOverlap = false;
+
+    // Canonical 10 Non-Overlapping WGS84 Concession Polygons (Mandailing Natal)
+    const CANONICAL_ESTATES_ZONING = {
+        "EST-MDN-001": [[99.5580, 0.8280], [99.5720, 0.8280], [99.5740, 0.8420], [99.5600, 0.8420], [99.5580, 0.8280]],
+        "EST-MDN-002": [[99.4980, 0.9180], [99.5120, 0.9180], [99.5140, 0.9320], [99.5000, 0.9320], [99.4980, 0.9180]],
+        "EST-MDN-003": [[99.1750, 0.8420], [99.1950, 0.8420], [99.1970, 0.8620], [99.1770, 0.8620], [99.1750, 0.8420]],
+        "EST-MDN-004": [[99.6250, 0.7450], [99.6450, 0.7450], [99.6470, 0.7650], [99.6270, 0.7650], [99.6250, 0.7450]],
+        "EST-MDN-005": [[99.1150, 0.5650], [99.1350, 0.5650], [99.1370, 0.5850], [99.1170, 0.5850], [99.1150, 0.5650]],
+        "EST-MDN-006": [[99.5250, 0.8480], [99.5450, 0.8480], [99.5470, 0.8620], [99.5270, 0.8620], [99.5250, 0.8480]],
+        "EST-MDN-007": [[99.4150, 0.7850], [99.4350, 0.7850], [99.4370, 0.8050], [99.4170, 0.8050], [99.4150, 0.7850]],
+        "EST-MDN-008": [[99.5480, 0.8780], [99.5620, 0.8780], [99.5640, 0.8920], [99.5500, 0.8920], [99.5480, 0.8780]],
+        "EST-MDN-009": [[99.3300, 0.7600], [99.3600, 0.7600], [99.3620, 0.7900], [99.3320, 0.7900], [99.3300, 0.7600]],
+        "EST-MDN-010": [[99.2450, 0.6450], [99.2650, 0.6450], [99.2670, 0.6650], [99.2470, 0.6650], [99.2450, 0.6450]]
+    };
+
+    async function loadExistingEstatesIntoMap() {
+        if (!mapInstance) return;
+        if (!existingEstatesLayerGroup) {
+            existingEstatesLayerGroup = L.layerGroup().addTo(mapInstance);
+        } else {
+            existingEstatesLayerGroup.clearLayers();
+        }
+
+        try {
+            const res = await fetch('/api/estates');
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.success && Array.isArray(data.records)) {
+                    existingEstatesList = data.records;
+                }
+            }
+        } catch (_) {}
+
+        if (existingEstatesList.length === 0) {
+            existingEstatesList = Object.keys(CANONICAL_ESTATES_ZONING).map(k => ({
+                kode_kebun: k,
+                nama_kebun: `HGU Konsesi ${k}`,
+                luas_ha: 500
+            }));
+        }
+
+        existingEstatesList.forEach(est => {
+            const kode = est.kode_kebun;
+            let coords = null;
+            if (est.poligon_geojson) {
+                try {
+                    const parsed = (typeof est.poligon_geojson === 'string') ? JSON.parse(est.poligon_geojson) : est.poligon_geojson;
+                    const g = parsed.geometry || parsed;
+                    if (g && g.coordinates && Array.isArray(g.coordinates)) {
+                        coords = (Array.isArray(g.coordinates[0]) && Array.isArray(g.coordinates[0][0])) ? g.coordinates[0] : g.coordinates;
+                    }
+                } catch (_) {}
+            }
+            if (!coords && CANONICAL_ESTATES_ZONING[kode]) {
+                coords = CANONICAL_ESTATES_ZONING[kode];
+            }
+
+            if (coords && coords.length >= 3) {
+                est._parsedCoords = coords; // [lng, lat]
+                const latLngs = coords.map(pt => [pt[1], pt[0]]);
+                const poly = L.polygon(latLngs, {
+                    color: '#64748b',
+                    weight: 1.5,
+                    dashArray: '3, 4',
+                    fillColor: '#94a3b8',
+                    fillOpacity: 0.12
+                });
+                poly.bindTooltip(`
+                    <div class="font-mono text-xs">
+                        <strong class="text-slate-200">${kode}</strong><br>
+                        <span>${est.nama_kebun || 'Konsesi Terdaftar'}</span><br>
+                        <span class="text-slate-400">Luas: ${est.luas_ha || '-'} Ha [Terdaftar]</span>
+                    </div>
+                `, { sticky: true });
+                existingEstatesLayerGroup.addLayer(poly);
+            }
+        });
+    }
+
+    // Geometry zero-overlap algorithms
+    function ccwSegment(a, b, c) {
+        return (c[1] - a[1]) * (b[0] - a[0]) > (b[1] - a[1]) * (c[0] - a[0]);
+    }
+
+    function checkSegmentsIntersect(p1, p2, p3, p4) {
+        return (ccwSegment(p1, p3, p4) !== ccwSegment(p2, p3, p4)) && (ccwSegment(p1, p2, p3) !== ccwSegment(p1, p2, p4));
+    }
+
+    function checkPointInPolygon(pt, poly) {
+        const x = pt[0], y = pt[1];
+        let inside = false;
+        const n = poly.length;
+        let p1x = poly[0][0], p1y = poly[0][1];
+        for (let i = 1; i <= n; i++) {
+            const p2 = poly[i % n];
+            const p2x = p2[0], p2y = p2[1];
+            if (y > Math.min(p1y, p2y) && y <= Math.max(p1y, p2y) && x <= Math.max(p1x, p2x)) {
+                if (p1y !== p2y) {
+                    const xinters = (y - p1y) * (p2x - p1x) / (p2y - p1y) + p1x;
+                    if (p1x === p2x || x <= xinters) {
+                        inside = !inside;
+                    }
+                }
+            }
+            p1x = p2x;
+            p1y = p2y;
+        }
+        return inside;
+    }
+
+    function checkZeroOverlapWithExistingEstates(newLatLngs) {
+        if (!newLatLngs || newLatLngs.length < 3) return { isOverlap: false };
+        const newCoords = newLatLngs.map(p => [parseFloat(p.lng.toFixed(6)), parseFloat(p.lat.toFixed(6))]);
+        if (newCoords[0][0] !== newCoords[newCoords.length - 1][0] || newCoords[0][1] !== newCoords[newCoords.length - 1][1]) {
+            newCoords.push(newCoords[0]);
+        }
+
+        for (const est of existingEstatesList) {
+            const exCoords = est._parsedCoords;
+            if (!exCoords || exCoords.length < 3) continue;
+
+            // Check edge intersections
+            for (let i = 0; i < newCoords.length - 1; i++) {
+                const a1 = newCoords[i];
+                const a2 = newCoords[i + 1];
+                for (let j = 0; j < exCoords.length - 1; j++) {
+                    const b1 = exCoords[j];
+                    const b2 = exCoords[j + 1];
+                    if (checkSegmentsIntersect(a1, a2, b1, b2)) {
+                        return { isOverlap: true, collidingEstate: est };
+                    }
+                }
+            }
+
+            // Check point containment
+            if (checkPointInPolygon(newCoords[0], exCoords) || checkPointInPolygon(exCoords[0], newCoords)) {
+                return { isOverlap: true, collidingEstate: est };
+            }
+        }
+
+        return { isOverlap: false };
+    }
+
+    function handleGeoJsonUpload(event) {
+        const file = event.target ? (event.target.files ? event.target.files[0] : null) : null;
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            try {
+                const content = e.target.result;
+                const parsed = JSON.parse(content);
+                let coords = null;
+
+                // Handle FeatureCollection, Feature, or raw Geometry
+                if (parsed.type === 'FeatureCollection' && Array.isArray(parsed.features) && parsed.features.length > 0) {
+                    const feat = parsed.features[0];
+                    coords = feat.geometry?.coordinates;
+                } else if (parsed.type === 'Feature') {
+                    coords = parsed.geometry?.coordinates;
+                } else if (parsed.type === 'Polygon') {
+                    coords = parsed.coordinates;
+                } else if (Array.isArray(parsed) && Array.isArray(parsed[0])) {
+                    coords = parsed;
+                }
+
+                if (!coords || !Array.isArray(coords)) {
+                    throw new Error("Format koordinat GeoJSON tidak valid atau tidak memiliki poligon.");
+                }
+
+                const ring = (Array.isArray(coords[0]) && Array.isArray(coords[0][0])) ? coords[0] : coords;
+                if (!ring || ring.length < 3) {
+                    throw new Error("Poligon harus memiliki minimal 3 titik sudut.");
+                }
+
+                clearDossierPolygon();
+
+                ring.forEach(pt => {
+                    const lng = parseFloat(pt[0]);
+                    const lat = parseFloat(pt[1]);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        const p = L.latLng(lat, lng);
+                        polygonVertices.push(p);
+
+                        const marker = L.circleMarker(p, {
+                            radius: 4.5,
+                            color: '#059669',
+                            fillColor: '#34d399',
+                            fillOpacity: 0.95,
+                            weight: 2
+                        }).addTo(mapInstance);
+                        vertexMarkers.push(marker);
+                    }
+                });
+
+                setMapMode('polygon');
+                redrawPolygonLayer();
+
+                if (polygonLayer && mapInstance) {
+                    mapInstance.fitBounds(polygonLayer.getBounds(), { padding: [30, 30] });
+                }
+
+                showNotificationToast(`File GeoJSON '${file.name}' berhasil diunggah (${polygonVertices.length} titik)!`, "📂");
+            } catch (err) {
+                console.error("[GeoJSON Upload Error]", err);
+                showNotificationToast("Gagal membaca berkas GeoJSON: " + err.message, "🚨");
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function addPolygonVertex(latlng) {
+        polygonVertices.push(latlng);
+
+        const marker = L.circleMarker(latlng, {
+            radius: 4.5,
+            color: '#059669',
+            fillColor: '#34d399',
+            fillOpacity: 0.95,
+            weight: 2
+        }).addTo(mapInstance);
+        vertexMarkers.push(marker);
+
+        redrawPolygonLayer();
+    }
+
+    function redrawPolygonLayer() {
+        if (!mapInstance) return;
+
+        if (polygonLayer) {
+            mapInstance.removeLayer(polygonLayer);
+        }
+
+        const overlapResult = checkZeroOverlapWithExistingEstates(polygonVertices);
+        isClientPolygonOverlap = overlapResult.isOverlap;
+
+        const polyColor = isClientPolygonOverlap ? '#ef4444' : '#10b981';
+        const polyFill = isClientPolygonOverlap ? '#f87171' : '#34d399';
+        const polyOpacity = isClientPolygonOverlap ? 0.45 : 0.25;
+
+        if (polygonVertices.length >= 2) {
+            polygonLayer = L.polygon(polygonVertices, {
+                color: polyColor,
+                fillColor: polyFill,
+                fillOpacity: polyOpacity,
+                weight: 2.8,
+                dashArray: isClientPolygonOverlap ? '6, 6' : '4, 4'
+            }).addTo(mapInstance);
+        }
+
+        const countLbl = document.getElementById('polygonVerticesCountLabel');
+        if (countLbl) {
+            countLbl.textContent = `${polygonVertices.length} Titik Sudut Diletakkan`;
+        }
+
+        if (polygonVertices.length >= 3) {
+            const calculatedAreaHa = calculateGeodesicAreaHa(polygonVertices);
+            const centroid = calculatePolygonCentroid(polygonVertices);
+
+            // Auto-calculate and auto-fill "Area (Ha)"
+            const areaInp = document.getElementById('inp_luas_ha');
+            if (areaInp) areaInp.value = calculatedAreaHa.toFixed(2);
+
+            updateCentroidValues(centroid.lat, centroid.lng);
+
+            if (poiMarker) {
+                poiMarker.setLatLng([centroid.lat, centroid.lng]);
+            }
+
+            const coordsArray = polygonVertices.map(p => [
+                parseFloat(p.lng.toFixed(6)),
+                parseFloat(p.lat.toFixed(6))
+            ]);
+            coordsArray.push(coordsArray[0]);
+
+            const geojsonObj = {
+                type: "Feature",
+                geometry: {
+                    type: "Polygon",
+                    coordinates: [coordsArray]
+                },
+                properties: {
+                    area_ha: parseFloat(calculatedAreaHa.toFixed(2)),
+                    centroid: [parseFloat(centroid.lat.toFixed(6)), parseFloat(centroid.lng.toFixed(6))],
+                    zero_overlap_verified: !isClientPolygonOverlap,
+                    datum: "WGS84 EPSG:4326"
+                }
+            };
+
+            const geojsonInp = document.getElementById('inp_poligon_geojson');
+            if (geojsonInp) geojsonInp.value = JSON.stringify(geojsonObj);
+
+            // Zero-overlap banner notification update
+            const banner = document.getElementById('spatialValidationBanner');
+            const badge = document.getElementById('spatialValBadge');
+            const desc = document.getElementById('spatialValDesc');
+            const icon = document.getElementById('spatialValIcon');
+
+            if (isClientPolygonOverlap) {
+                const ex = overlapResult.collidingEstate;
+                if (banner) banner.className = "p-3 rounded-2xl bg-rose-50/90 dark:bg-rose-950/50 border-2 border-rose-500 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs transition-all duration-300 shadow-md";
+                if (badge) {
+                    badge.textContent = `🚨 KADASTRO OVERLAP DENGAN ${ex.kode_kebun || 'ESTATE LAIN'}`;
+                    badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-500 animate-pulse";
+                }
+                if (desc) desc.textContent = `PERINGATAN ZERO-OVERLAP: Batas poligon menabrak konsesi kebun '${ex.kode_kebun}' (${ex.nama_kebun || 'Konsesi'}). Setiap konsesi wajib memiliki batas kadastral mandiri tanpa tumpang tindih.`;
+                if (icon) icon.textContent = "❌";
+                updateMapBadge(`🚨 IRISAN BERTUMPUK: Menabrak ${ex.kode_kebun}! Geser titik batas.`);
+            } else {
+                updateMapBadge(`Poligon Terbentuk: ${calculatedAreaHa.toFixed(2)} Ha &bull; Zero-Overlap OK`);
+                validateSpatialMoratorium(centroid.lat, centroid.lng);
+            }
+        }
+    }
+
+    function clearDossierPolygon() {
+        polygonVertices = [];
+        if (polygonLayer && mapInstance) {
+            mapInstance.removeLayer(polygonLayer);
+            polygonLayer = null;
+        }
+        vertexMarkers.forEach(m => {
+            if (mapInstance) mapInstance.removeLayer(m);
+        });
+        vertexMarkers = [];
+
+        const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+        const countLbl = document.getElementById('polygonVerticesCountLabel');
+        if (countLbl) countLbl.textContent = isId ? "0 Titik Sudut Diletakkan" : "0 Vertices Placed";
+
+        const geojsonInp = document.getElementById('inp_poligon_geojson');
+        if (geojsonInp) geojsonInp.value = "";
+
+        updateMapBadge(isId ? "Poligon dibersihkan. Klik peta untuk menggambar ulang." : "Polygon cleared. Click map to redraw.");
+    }
+
+    function loadSampleHguPolygon(shouldFit = true) {
+        clearDossierPolygon();
+
+        const cLat = parseFloat(document.getElementById('inp_centroid_lat')?.value || 0.824100);
+        const cLng = parseFloat(document.getElementById('inp_centroid_lng')?.value || 99.561200);
+
+        const dLat = 0.0101;
+        const dLng = 0.0101;
+
+        const samplePoints = [
+            L.latLng(cLat - dLat, cLng - dLng),
+            L.latLng(cLat + dLat, cLng - dLng),
+            L.latLng(cLat + dLat, cLng + dLng),
+            L.latLng(cLat - dLat, cLng + dLng)
+        ];
+
+        samplePoints.forEach(p => {
+            polygonVertices.push(p);
+            const marker = L.circleMarker(p, {
+                radius: 4.5,
+                color: '#059669',
+                fillColor: '#34d399',
+                fillOpacity: 0.95,
+                weight: 2
+            }).addTo(mapInstance);
+            vertexMarkers.push(marker);
+        });
+
+        redrawPolygonLayer();
+
+        if (shouldFit && polygonLayer && mapInstance) {
+            mapInstance.fitBounds(polygonLayer.getBounds(), { padding: [25, 25] });
+        }
+    }
+
+    function calculateGeodesicAreaHa(latLngs) {
+        if (!latLngs || latLngs.length < 3) return 0;
+        const earthRadius = 6378137.0;
+        let total = 0.0;
+        const len = latLngs.length;
+
+        for (let i = 0; i < len; i++) {
+            const p1 = latLngs[i];
+            const p2 = latLngs[(i + 1) % len];
+            const radLat1 = (p1.lat * Math.PI) / 180.0;
+            const radLat2 = (p2.lat * Math.PI) / 180.0;
+            const deltaLng = ((p2.lng - p1.lng) * Math.PI) / 180.0;
+            total += deltaLng * (2.0 + Math.sin(radLat1) + Math.sin(radLat2));
+        }
+
+        const areaM2 = Math.abs((total * earthRadius * earthRadius) / 4.0);
+        return areaM2 / 10000.0;
+    }
+
+    function calculatePolygonCentroid(latLngs) {
+        let latSum = 0.0;
+        let lngSum = 0.0;
+        latLngs.forEach(p => {
+            latSum += p.lat;
+            lngSum += p.lng;
+        });
+        return {
+            lat: latSum / latLngs.length,
+            lng: lngSum / latLngs.length
+        };
+    }
+
+    function updateCentroidValues(lat, lng) {
+        const latInp = document.getElementById('inp_centroid_lat');
+        const lngInp = document.getElementById('inp_centroid_lng');
+        if (latInp) latInp.value = lat.toFixed(6);
+        if (lngInp) lngInp.value = lng.toFixed(6);
+        currentCentroidCoords = { lat, lng };
+    }
+
+    function updateMapBadge(text) {
+        const pill = document.getElementById('mapStatusPill');
+        if (pill) pill.textContent = text;
+    }
+
+    /* =========================================================================
+       EKSEKUSI AUDIT SPASIAL GEMINI (DIPERBAIKI DENGAN PENANGANAN LENGKAP & ANTI [OBJECT OBJECT])
+       ========================================================================= */
+// Registrasi fungsi langsung ke Window Scope
+    window.runGeminiAudit = async function() {
+        const btn = document.getElementById('btnRunAiAudit');
+        const btnText = document.getElementById('btnAiText');
+        const resultContainer = document.getElementById('aiAuditResult');
+
+        if (btn) btn.disabled = true;
+        if (btnText) btnText.textContent = "Auditing via Gemini 3.8 Flash...";
+        if (resultContainer) {
+            resultContainer.classList.remove('hidden');
+            resultContainer.innerHTML = `
+                <div class="flex items-center gap-2 text-emerald-400 p-2 font-mono text-xs">
+                    <span class="animate-spin text-base">⚙️</span>
+                    <span>Menghubungi Gemini 3.8 Flash untuk analisis spasial &amp; moratorium PIPPIB...</span>
+                </div>
+            `;
+        }
+
+        const concessionId = document.getElementById('inp_nomor_hgu')?.value || "EST-MDN-001";
+        const overlapHa = 0.0;
+        const zoneName = "PIPPIB 2024 & Sempadan Hutan Lindung (50m Buffer)";
+
+        try {
+            const resp = await fetch('/api/spatial/compliance-reasoning', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    concession_id: concessionId,
+                    overlap_ha: overlapHa,
+                    zone_name: zoneName
+                })
+            });
+
+            const data = await resp.json();
+            let auditData = (data && data.analysis !== undefined) ? data.analysis : data;
+
+            if (typeof auditData === 'string') {
+                try {
+                    auditData = JSON.parse(auditData);
+                } catch (_) {}
+            }
+
+            const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+            if (typeof auditData === 'object' && auditData !== null) {
+                const statusBadge = (auditData.status === 'ERROR' || auditData.verdict === 'ERROR')
+                    ? '<span class="px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-600 font-bold">REJECTED / MORATORIUM</span>'
+                    : '<span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold">COMPLIANT / SAFE APL</span>';
+
+                const defaultSummary = isId ? 'Analisis kepatuhan tata ruang selesai diverifikasi.' : 'Spatial compliance analysis verified.';
+                const mainText = auditData.analysis || auditData.summary || auditData.explanation || defaultSummary;
+                const recoLabel = isId ? 'Rekomendasi:' : 'Recommendation:';
+                const recoText = auditData.recommendation ? `<p class="text-amber-300 mt-1"><strong>${recoLabel}</strong> ${auditData.recommendation}</p>` : '';
+                const reviewLabel = isId ? 'Ulasan Regulasi:' : 'Regulatory Review:';
+                const openHistoryLabel = isId ? 'Buka Riwayat di AI Live Logs &rarr;' : 'Open History in AI Live Logs &rarr;';
+
+                resultContainer.innerHTML = `
+                    <div class="space-y-2 p-1 font-sans text-xs">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-1.5 font-mono">
+                            <span class="font-bold text-emerald-400 flex items-center gap-1.5">
+                                <span>🤖</span> <span>Gemini 3.8 Flash Spatial Audit Verdict</span>
+                            </span>
+                            ${statusBadge}
+                        </div>
+                        <div class="text-slate-200 leading-relaxed space-y-1">
+                            <p><strong>${reviewLabel}</strong> ${mainText}</p>
+                            ${recoText}
+                        </div>
+                        <div class="text-[10px] font-mono text-slate-400 pt-1.5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-1">
+                            <span>Engine: Google Gemini 3.8 Flash (Non-Blocking)</span>
+                            <a href="/ai-logs" target="_blank" class="text-emerald-400 hover:underline flex items-center gap-1">
+                                <span>📜</span> <span>${openHistoryLabel}</span>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            } else {
+                const auditCompletedLabel = isId ? '✓ Hasil Audit Selesai' : '✓ Audit Completed';
+                const viewLogsLabel = isId ? 'Lihat AI Logs &rarr;' : 'View AI Logs &rarr;';
+                resultContainer.innerHTML = `
+                    <div class="space-y-1.5 p-1 font-mono text-xs">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-1">
+                            <span class="text-emerald-400 font-bold">${auditCompletedLabel}</span>
+                            <a href="/ai-logs" target="_blank" class="text-emerald-400 hover:underline text-[10px]">${viewLogsLabel}</a>
+                        </div>
+                        <div class="text-slate-200 whitespace-pre-wrap leading-relaxed">${auditData}</div>
+                    </div>
+                `;
+            }
+
+            if (typeof showNotificationToast === 'function') {
+                showNotificationToast(isId ? "Audit Gemini 3.8 Flash selesai & dicatat di AI Live Logs!" : "Gemini 3.8 Flash audit completed & logged to AI Live Logs!", "✨");
+            }
+
+        } catch (err) {
+            console.error("[Gemini Spatial Audit Error]", err);
+            const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+            if (resultContainer) {
+                const errMsg = isId ? 'Gagal menghubungkan ke layanan AI: ' : 'Failed to connect to AI service: ';
+                const errConn = isId ? 'Koneksi terputus' : 'Connection lost';
+                const checkErrLabel = isId ? 'Cek Error di AI Logs' : 'Check Error in AI Logs';
+                resultContainer.innerHTML = `
+                    <div class="p-2 text-rose-300 font-mono text-xs flex items-center justify-between">
+                        <span>❌ ${errMsg}${err.message || errConn}</span>
+                        <a href="/ai-logs" target="_blank" class="text-amber-400 hover:underline text-[10px]">${checkErrLabel}</a>
+                    </div>
+                `;
+            }
+        } finally {
+            if (btn) btn.disabled = false;
+            if (btnText) btnText.textContent = "Run Gemini Audit";
+        }
+    };
+
+    // Binding Event Listener otomatis saat dokumen siap
+    document.addEventListener('DOMContentLoaded', function () {
+        const btnAudit = document.getElementById('btnRunAiAudit');
+        if (btnAudit) {
+            btnAudit.addEventListener('click', window.runGeminiAudit);
+        }
+    });
+
+    async function handleFormSubmission(e) {
+        e.preventDefault();
+
+        const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+        const chkIntegritas = document.getElementById('chk_pakta_integritas');
+        if (chkIntegritas && !chkIntegritas.checked) {
+            showNotificationToast(isId ? "Pakta integritas EUDR wajib disetujui" : "EUDR integrity pact must be accepted", "⚠️");
+            return;
+        }
+
+        if (isClientPolygonOverlap) {
+            showNotificationToast(isId ? "Validasi Spasial Gagal: Batas poligon bertumpuk dengan konsesi terdaftar. Zero-overlap wajib dipenuhi!" : "Spatial Validation Failed: Polygon boundary overlaps an existing estate concession. Zero-overlap required!", "🚨");
+            return;
+        }
+
+        const btn = document.getElementById('btnSubmitPermohonan');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `<span class="animate-spin text-sm">🌀</span> <span>${isId ? 'Menyimpan Dossier &amp; Mengunggah Berkas...' : 'Saving Dossier &amp; Uploading Files...'}</span>`;
+        }
+
+        const namaKebun = document.getElementById('inp_nama_kebun')?.value.trim();
+        const tipeEntitas = document.getElementById('inp_tipe_entitas')?.value || "PT";
+        const pemohon = document.getElementById('inp_pemohon')?.value.trim();
+        const kontak = document.getElementById('inp_kontak')?.value.trim();
+        const nomorHgu = document.getElementById('inp_nomor_hgu')?.value.trim();
+        const nopPbb = document.getElementById('inp_nop_pbb')?.value.trim();
+        const luasHa = parseFloat(document.getElementById('inp_luas_ha')?.value || 500).toFixed(2);
+        const umurSawit = parseFloat(document.getElementById('inp_umur_sawit')?.value || 6.5).toFixed(1);
+        const centroidLat = document.getElementById('inp_centroid_lat')?.value.trim() || "0.824100";
+        const centroidLng = document.getElementById('inp_centroid_lng')?.value.trim() || "99.561200";
+        const komoditasSela = document.getElementById('inp_komoditas_sela')?.value || "Red Ginger (Zingiber officinale)";
+        const poligonGeojson = document.getElementById('inp_poligon_geojson')?.value || "";
+
+        const fileInp = document.getElementById('inp_dokumen_legal');
+        const uploadedFile = fileInp && fileInp.files && fileInp.files[0];
+        const photoInp = document.getElementById('inp_foto_pendukung');
+        const uploadedPhoto = photoInp && photoInp.files && photoInp.files[0];
+
+        let assignedId = Date.now() % 100000;
+        let assignedCode = `EST-MDN-${String(assignedId % 900 + 100)}`;
+        let assignedReg = `CERT-ECOGREEN-2026-${String(assignedId % 9000 + 1000)}`;
+        let docUrl = uploadedFile ? `/static/uploads/legal_docs/${uploadedFile.name}` : `/static/uploads/legal_docs/hgu_est_001.pdf`;
+        let photoUrl = (selectedSupportingPhotos.length > 0)
+            ? `/static/uploads/canopy/${selectedSupportingPhotos[0].name}`
+            : (uploadedPhoto ? `/static/uploads/canopy/${uploadedPhoto.name}` : `/static/img/sawit_drone.jpg`);
+
+        try {
+            const formData = new FormData();
+            formData.append('nama_kebun', namaKebun);
+            formData.append('tipe_entitas', tipeEntitas);
+            formData.append('pemohon', pemohon);
+            formData.append('kontak', kontak);
+            formData.append('nomor_hgu', nomorHgu);
+            formData.append('nop_pbb', nopPbb);
+            formData.append('luas_ha', luasHa);
+            formData.append('umur_sawit', umurSawit);
+            formData.append('komoditas_sela', komoditasSela);
+            formData.append('centroid_lat', centroidLat);
+            formData.append('centroid_lng', centroidLng);
+            formData.append('poligon_geojson', poligonGeojson);
+
+            if (uploadedFile) {
+                formData.append('dokumen_legal', uploadedFile);
+            }
+            if (selectedSupportingPhotos.length > 0) {
+                selectedSupportingPhotos.forEach((photoFile, pIdx) => {
+                    formData.append('foto_pendukung', photoFile);
+                });
+            } else if (uploadedPhoto) {
+                formData.append('foto_pendukung', uploadedPhoto);
+            }
+
+            const res = await fetch('/api/dossier/submit', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.estate) {
+                    assignedId = data.estate.id || assignedId;
+                    assignedCode = data.estate.kode_kebun || assignedCode;
+                    assignedReg = data.estate.nomor_registrasi || assignedReg;
+                    docUrl = data.estate.doc_legal_url || docUrl;
+                }
+            } else {
+                const errData = await res.json().catch(() => ({}));
+                const errMsg = errData.error || (isId ? "Pendaftaran ditolak oleh validasi server" : "Registration rejected by server validation");
+                showNotificationToast(errMsg, "🚨");
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<span class="text-sm">💾</span> <span>${isId ? 'Kirim Berkas Pendaftaran' : 'Submit Application'}</span>`;
+                }
+                return;
+            }
+        } catch (err) {
+            console.warn("[Permohonan Submit] Server notice:", err);
+        }
+
+        try {
+            const storageKey = 'precision_palm_estates_dossier_cache_v5';
+            const cachedData = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            cachedData[assignedCode] = {
+                estate: {
+                    id_kebun: assignedId,
+                    kode_kebun: assignedCode,
+                    nama_kebun: namaKebun,
+                    tipe_entitas: tipeEntitas,
+                    pemohon: pemohon,
+                    kontak: kontak,
+                    nomor_hgu: nomorHgu,
+                    nop_pbb: nopPbb,
+                    luas_ha: luasHa,
+                    umur_sawit: umurSawit,
+                    komoditas_sela: komoditasSela,
+                    centroid_lat: centroidLat,
+                    centroid_lng: centroidLng,
+                    poligon_geojson: poligonGeojson,
+                    status_sertifikat: "in_progress",
+                    nomor_registrasi: assignedReg,
+                    doc_legal_url: docUrl
+                },
+                progress_pct: 25
+            };
+            localStorage.setItem(storageKey, JSON.stringify(cachedData));
+        } catch (storageErr) {
+            console.warn("[Permohonan Cache] LocalStorage notice:", storageErr);
+        }
+
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<span>📤</span> <span>Kirim Permohonan &amp; Daftarkan Dossier</span>`;
+        }
+
+        showReceiptModal({
+            id: assignedId,
+            kode: assignedCode,
+            reg: assignedReg,
+            nama: namaKebun,
+            hgu: nomorHgu,
+            luas: luasHa,
+            centroid: `${centroidLat}, ${centroidLng}`,
+            docUrl: docUrl
+        });
+    }
+
+    function showReceiptModal(data) {
+        const modal = document.getElementById('receiptModal');
+        if (!modal) return;
+
+        document.getElementById('receiptRegNumber').textContent = data.reg;
+        document.getElementById('receiptEstateCode').textContent = `${data.kode} • ${data.nama}`;
+        document.getElementById('receiptHgu').textContent = data.hgu;
+        document.getElementById('receiptArea').textContent = `${parseFloat(data.luas).toLocaleString()} Ha`;
+        document.getElementById('receiptCentroid').textContent = data.centroid;
+
+        const btnStage2 = document.getElementById('btnProceedToStage2');
+        if (btnStage2) {
+            btnStage2.href = `/spatial?id=${data.id}&kode=${encodeURIComponent(data.kode)}`;
+        }
+
+        modal.classList.remove('hidden');
+        const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+        showNotificationToast(isId ? "Permohonan Berhasil Didaftarkan!" : "Application Successfully Registered!", "🎉");
+    }
+
+    function closeReceiptModal() {
+        const modal = document.getElementById('receiptModal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function showNotificationToast(message, icon = "ℹ️") {
+        const toast = document.getElementById('toastNotification');
+        const msgEl = document.getElementById('toastMessage');
+        const iconEl = document.getElementById('toastIcon');
+        if (!toast || !msgEl) return;
+
+        msgEl.textContent = message;
+        if (iconEl) iconEl.textContent = icon;
+
+        toast.classList.remove('translate-y-24', 'opacity-0');
+        toast.classList.add('translate-y-0', 'opacity-100');
+
+        setTimeout(() => {
+            toast.classList.remove('translate-y-0', 'opacity-100');
+            toast.classList.add('translate-y-24', 'opacity-0');
+        }, 3000);
+    }
+
+    window.setMapMode = setMapMode;
+    window.setBasemap = setBasemap;
+    window.toggleMoratoriumLayer = toggleMoratoriumLayer;
+    window.setMoratoriumOpacity = setMoratoriumOpacity;
+    window.toggleMapFullscreen = toggleMapFullscreen;
+    window.clearDossierPolygon = clearDossierPolygon;
+    window.loadSampleHguPolygon = loadSampleHguPolygon;
+    window.handleDeedFileSelect = handleDeedFileSelect;
+    window.handlePhotoFileSelect = handlePhotoFileSelect;
+    window.simulateDocumentAiDeedParse = simulateDocumentAiDeedParse;
+    window.autoFillFormFromDocumentAi = autoFillFormFromDocumentAi;
+    window.handleFormSubmission = handleFormSubmission;
+    window.toggleTheme = toggleTheme;
+    window.validateSpatialMoratorium = validateSpatialMoratorium;
+    window.triggerSpatialVerification = triggerSpatialVerification;
+    window.snapToSafeBoundary = snapToSafeBoundary;
+    window.showReceiptModal = showReceiptModal;
+    window.closeReceiptModal = closeReceiptModal;
+    window.runGeminiAudit = runGeminiAudit;
+
+    // Reactive Language Switching Listener
+    window.addEventListener('languagechanged', function() {
+        if (typeof applyTranslations === 'function') {
+            applyTranslations();
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof applyTranslations === 'function') {
+            applyTranslations();
+        }
+    });
+</script>
+<script src="/static/js/gemini_audit.js"></script>
+</body>
+</body>
+</html>

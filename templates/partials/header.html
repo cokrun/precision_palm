@@ -1,0 +1,659 @@
+<!-- templates/partials/header.html -->
+<header class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-3.5 sm:p-4 shadow-sm transition-colors duration-200">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <!-- BRAND LOGO & SYSTEM IDENTITY -->
+        <div class="flex items-center justify-between">
+            <a href="/" class="flex items-center gap-3 group cursor-pointer" title="Precision Palm Cloud • Regenerative Agroforestry" data-i18n-title="brand_logo_title">
+                <div class="flex items-center">
+                    <img src="/static/logo.svg" alt="Precision Palm Logo" class="h-9 sm:h-10 w-auto group-hover:scale-105 transition-transform" onerror="this.onerror=null; this.src='/static/icon.png';">
+                </div>
+            </a>
+
+            <!-- Mobile Menu Toggle Button -->
+            <button type="button" onclick="toggleMobileNavMenu()" class="lg:hidden p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer" title="Toggle Navigation Menu" data-i18n-title="nav_menu_toggle_title">
+                <span class="text-xl">☰</span>
+            </button>
+        </div>
+
+        <!-- PRIMARY 4-STAGE SEQUENTIAL NAVIGATION LINKS -->
+        <nav id="primaryNavMenu" class="hidden lg:flex flex-wrap items-center gap-1 sm:gap-1.5 text-xs font-mono font-semibold">
+            <!-- Home -->
+            <a href="/" class="px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1.5" title="Home Dashboard" data-i18n-title="nav_home_title">
+                <span>🏠</span> <span data-i18n="nav_home">Home</span>
+            </a>
+
+            <!-- Stage 1: Applications -->
+            <a href="/pendaftaran" class="px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:bg-slate-800 transition flex items-center gap-1.5" title="Stage 1: Applications Directory & Land Titles" data-i18n-title="nav_stage1_title">
+                <span class="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-800 text-[10px] font-bold inline-flex items-center justify-center text-slate-700 dark:text-slate-300">1</span>
+                <span data-i18n="nav_stage1">Applications</span>
+            </a>
+
+            <!-- Stage 2A: Spatial Audit -->
+            <a href="/spatial" class="px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:bg-slate-800 transition flex items-center gap-1.5" title="Stage 2A: Spatial Audit & PIPPIB Moratorium Clearance" data-i18n-title="nav_stage2a_title">
+                <span class="w-4 h-4 rounded-full bg-sky-200 dark:bg-sky-950 text-[10px] font-bold inline-flex items-center justify-center text-sky-700 dark:text-sky-300">2A</span>
+                <span data-i18n="nav_stage2a">Spatial Audit</span>
+            </a>
+
+            <!-- Stage 2B: In-Silico Engine -->
+            <a href="/proses" class="px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:bg-slate-800 transition flex items-center gap-1.5" title="Stage 2B: In-Silico Biophysics & Crop Recommendation Engine" data-i18n-title="nav_stage2b_title">
+                <span class="w-4 h-4 rounded-full bg-emerald-200 dark:bg-emerald-950 text-[10px] font-bold inline-flex items-center justify-center text-emerald-700 dark:text-emerald-300">2B</span>
+                <span data-i18n="nav_stage2b">In-Silico Engine</span>
+            </a>
+
+            <!-- Stage 3: Surveillance -->
+            <a href="/timelines" class="px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1.5 border border-transparent hover:border-amber-400/40" title="Stage 3: Periodic Field Surveillance Cycles & 180-Day SLA Enforcement" data-i18n-title="nav_stage3_title">
+                <span class="w-4 h-4 rounded-full bg-amber-200 dark:bg-amber-950 text-[10px] font-bold inline-flex items-center justify-center text-amber-700 dark:text-amber-300">3</span>
+                <span data-i18n="nav_stage3">Surveillance</span>
+            </a>
+
+            <!-- Stage 4: Compliance Governance -->
+            <a href="/roadmap" class="px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-purple-500 dark:hover:text-purple-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1.5" title="Stage 4: Compliance Governance, All-Report Master Dossier & Final Certificate" data-i18n-title="nav_stage4_title">
+                <span class="w-4 h-4 rounded-full bg-purple-200 dark:bg-purple-950 text-[10px] font-bold inline-flex items-center justify-center text-purple-700 dark:text-purple-300">4</span>
+                <span data-i18n="nav_stage4">Compliance Governance</span>
+            </a>
+
+            <!-- TOPOLOGI SIKLUS NODE 4-WARNA -->
+            <a href="/topologi" class="px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1.5" title="4-Color Node Lifecycle Topology & Grounded AI" data-i18n-title="nav_topology_title">
+                <span>🔄</span> <span data-i18n="nav_topology">Lifecycle Topology</span>
+            </a>
+
+            <!-- ARSITEKTUR TEKNOLOGI GCP -->
+            <a href="/teknologi" class="px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1.5" title="Enterprise Architecture & Google Cloud AI Stack" data-i18n-title="nav_technology_title">
+                <span>⚡</span> <span data-i18n="nav_technology">Architecture Stack</span>
+            </a>
+
+            <!-- SEPARATOR -->
+            <div class="h-4 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block mx-1"></div>
+
+            <!-- FIELD NODE PWA (/mobile) -->
+            <a href="/mobile" class="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-emerald-600 hover:text-white text-slate-700 dark:text-slate-300 transition flex items-center gap-1 border border-slate-300 dark:border-slate-700" title="Foreman Offline Field Node PWA" data-i18n-title="nav_node_pwa_title">
+                <span>📱</span> <span data-i18n="nav_node_pwa">Field Node</span>
+            </a>
+
+            <!-- MORE DROPDOWN MENU -->
+            <div class="relative group">
+                <button type="button" class="px-2.5 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1 cursor-pointer" title="More Navigation Links" data-i18n-title="nav_more_title">
+                    <span data-i18n="nav_more">More</span> <span>▾</span>
+                </button>
+                <div class="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-2 hidden group-hover:block z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <a href="/guide" class="block px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-600 text-xs transition font-semibold text-emerald-600 dark:text-emerald-400">
+                        🎯 <span data-i18n="nav_interactive_guide">Interactive Process Guide</span>
+                    </a>
+                    <a href="/validasi" class="block px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-600 text-xs transition">
+                        🛡️ <span data-i18n="nav_qr">Public QR Validation</span>
+                    </a>
+                    <a href="/panduan" class="block px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-600 text-xs transition">
+                        📖 <span data-i18n="nav_guide">Scientific SOP &amp; Guide</span>
+                    </a>
+                    <a href="/mapping" class="block px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-600 text-xs transition">
+                        🌲 <span data-i18n="nav_moratorium">PIPPIB Inspection</span>
+                    </a>
+                    <a href="/slides" class="block px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-600 text-xs transition">
+                        📑 <span data-i18n="nav_slides">Slide Deck</span>
+                    </a>
+                    <a href="/topologi" class="block px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-600 text-xs transition">
+                        🔄 <span data-i18n="nav_topology">Lifecycle Topology</span>
+                    </a>
+                    <a href="/teknologi" class="block px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-600 text-xs transition">
+                        ⚡ <span data-i18n="nav_technology">Architecture Stack</span>
+                    </a>
+                    <a href="/about" class="block px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-600 text-xs transition">
+                        ℹ️ <span data-i18n="nav_about">About &amp; IP License</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- ACTION UTILITIES: THEME, LANGUAGE & ESTATE SCOPE CONTROLS -->
+        <div class="flex flex-wrap items-center justify-end gap-2 text-xs font-mono">
+            <!-- Estate Scope Context Selector (Dual-Scope: Global vs Isolated Dossier) - HANYA TAMPIL DI 6 HALAMAN: pendaftaran, spatial, simulator, timelines, roadmap, topologi -->
+            <div class="relative hidden items-center" id="headerEstateScopeContainer" title="Filter Estate Dossier (Global vs Spesifik Estate)">
+                <label for="headerEstateScopeSelect" class="sr-only">Scope Estate Dossier</label>
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                    <span class="text-xs">🏢</span>
+                    <select id="headerEstateScopeSelect" onchange="onHeaderEstateScopeChanged(this.value)" class="bg-transparent text-[11px] font-mono font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer pr-1">
+                        <option value="" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">🌐 Mode Global (Semua 10 Estate)</option>
+                        <option value="9hdjjs8" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">PT Sawit Madina 10 (EST-MDN-010)</option>
+                        <option value="a8f92b1" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">PT Sawit Madina 01 (EST-MDN-001)</option>
+                        <option value="b1c83d2" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">PT Sawit Madina 02 (EST-MDN-002)</option>
+                        <option value="c2d74e3" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">PT Sawit Madina 03 (EST-MDN-003)</option>
+                        <option value="d3e65f4" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">PT Sawit Madina 04 (EST-MDN-004)</option>
+                        <option value="e4f56a5" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">PT Sawit Madina 05 (EST-MDN-005)</option>
+                        <option value="f5a47b6" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">PT Sawit Madina 06 (EST-MDN-006)</option>
+                        <option value="g6b38c7" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">PT Sawit Madina 07 (EST-MDN-007)</option>
+                        <option value="h7c29d8" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">PT Sawit Madina 08 (EST-MDN-008)</option>
+                        <option value="i4a29d9" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">PT Sawit Madina 09 (EST-MDN-009)</option>
+                    </select>
+                </div>
+            </div>
+            <script>
+                (function() {
+                    try {
+                        var p = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
+                        var isAllowed = /^\/(pendaftaran|permohonan|spatial|simulator|proses|proses_bisnis|timelines|roadmap|topologi)(\.html)?$/.test(p);
+                        var el = document.getElementById('headerEstateScopeContainer');
+                        if (el) {
+                            if (isAllowed) {
+                                el.classList.remove('hidden');
+                                el.classList.add('inline-flex');
+                                el.style.display = 'inline-flex';
+                            } else {
+                                el.classList.add('hidden');
+                                el.classList.remove('inline-flex');
+                                el.style.display = 'none';
+                            }
+                        }
+                    } catch (_) {}
+                })();
+            </script>
+
+            <!-- Language Switcher (EN / ID) -->
+            <div class="inline-flex rounded-xl bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700">
+                <button type="button" id="btnLangEN" onclick="setAppLanguage('en')" class="px-2 py-1 rounded-lg transition-all bg-emerald-600 text-white font-bold shadow-xs cursor-pointer text-[10px]" title="English">
+                    EN
+                </button>
+                <button type="button" id="btnLangID" onclick="setAppLanguage('id')" class="px-2 py-1 rounded-lg transition-all text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer font-bold text-[10px]" title="Bahasa Indonesia">
+                    ID
+                </button>
+            </div>
+
+            <!-- Dark / Light Theme Toggle -->
+            <button type="button" onclick="toggleThemeMode()" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-emerald-500 border border-slate-200 dark:border-slate-700 transition cursor-pointer" title="Toggle Dark/Light Mode" data-i18n-title="theme_toggle_title">
+                <span id="themeToggleIcon" class="text-sm">🌙</span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- Centralized Reactive Bilingual Engine -->
+<script src="/static/js/i18n.js"></script>
+
+<script>
+    /* =========================================================================
+       1. NAVIGASI MOBILE MENU ACCORDION
+       ========================================================================= */
+    function toggleMobileNavMenu() {
+        const nav = document.getElementById('primaryNavMenu');
+        if (nav) {
+            nav.classList.toggle('hidden');
+            nav.classList.toggle('flex');
+            nav.classList.toggle('flex-col');
+            nav.classList.toggle('pt-3');
+            nav.classList.toggle('border-t');
+            nav.classList.toggle('border-slate-100');
+            nav.classList.toggle('dark:border-slate-800');
+        }
+    }
+
+    /* =========================================================================
+       2. CACHE & KONTROL TEMA PERSISTEN (DARK / LIGHT MODE)
+       ========================================================================= */
+    function applyThemeMode(theme) {
+        const targetTheme = (theme === 'light') ? 'light' : 'dark';
+        const icon = document.getElementById('themeToggleIcon');
+
+        if (targetTheme === 'dark') {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('precision_palm_theme', 'dark');
+            if (icon) icon.textContent = '🌙';
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('precision_palm_theme', 'light');
+            if (icon) icon.textContent = '☀️';
+        }
+
+        document.querySelectorAll('.theme-toggle-icon').forEach(function(el) {
+            el.textContent = (targetTheme === 'dark') ? '🌙' : '☀️';
+        });
+
+        window.dispatchEvent(new CustomEvent('themechanged', { detail: { theme: targetTheme } }));
+    }
+
+    function toggleThemeMode() {
+        const isCurrentlyDark = document.documentElement.classList.contains('dark');
+        applyThemeMode(isCurrentlyDark ? 'light' : 'dark');
+    }
+
+    /* =========================================================================
+       3. CACHE & KONTROL BAHASA PERSISTEN (PENYELARASAN DENGAN TERMINOLOGI RESMI)
+       ========================================================================= */
+    const HEADER_I18N_DICT = {
+        en: {
+            brand_logo_title: "Precision Palm Cloud • Regenerative Agroforestry",
+            nav_menu_toggle_title: "Toggle Navigation Menu",
+            theme_toggle_title: "Toggle Dark/Light Mode",
+            nav_brand_title: "PRECISION PALM",
+            nav_brand_tag: "RegTech • ESG",
+            nav_brand_sub: "Enterprise Statutory Compliance • In-Silico Agroforestry Engine",
+            nav_home: "Home",
+            nav_home_title: "Home Dashboard",
+            nav_stage1: "Applications",
+            nav_stage1_title: "Stage 1: Applications Directory & Land Titles",
+            nav_stage2a: "Spatial Audit",
+            nav_stage2a_title: "Stage 2A: Spatial Audit & PIPPIB Moratorium Clearance",
+            nav_stage2b: "In-Silico Engine",
+            nav_stage2b_title: "Stage 2B: In-Silico Biophysics & Crop Recommendation Engine",
+            nav_stage3: "Surveillance",
+            nav_stage3_title: "Stage 3: Periodic Field Surveillance Cycles & 180-Day SLA Enforcement",
+            nav_stage4: "Compliance Governance",
+            nav_stage4_title: "Stage 4: Compliance Governance, All-Report Master Dossier & Final Certificate",
+            nav_topology: "Lifecycle Topology",
+            nav_topology_title: "4-Color Node Lifecycle Topology & Grounded AI",
+            nav_technology: "Architecture Stack",
+            nav_technology_title: "Enterprise Architecture & Google Cloud AI Stack",
+            nav_node_pwa: "Field Node",
+            nav_node_pwa_title: "Foreman Offline Field Node PWA",
+            nav_more: "More",
+            nav_more_title: "More Navigation Links",
+            nav_qr: "Public QR Validation",
+            nav_guide: "Scientific SOP & Guide",
+            nav_moratorium: "PIPPIB Inspection",
+            nav_slides: "Presentation Slides",
+            nav_about: "About & IP License"
+        },
+        id: {
+            brand_logo_title: "Precision Palm Cloud • Agroforestri Regeneratif",
+            nav_menu_toggle_title: "Buka/Tutup Menu Navigasi",
+            theme_toggle_title: "Ganti Mode Gelap/Terang",
+            nav_brand_title: "PRECISION PALM",
+            nav_brand_tag: "RegTech • ESG",
+            nav_brand_sub: "Kepatuhan Statuter Perusahaan • Mesin Agroforestri In-Silico",
+            nav_home: "Beranda",
+            nav_home_title: "Dashboard Beranda Utama",
+            nav_stage1: "Permohonan",
+            nav_stage1_title: "Tahap 1: Direktori Permohonan & Hak Atas Tanah",
+            nav_stage2a: "Audit Spasial",
+            nav_stage2a_title: "Tahap 2A: Audit Spasial & Kliring Moratorium PIPPIB",
+            nav_stage2b: "Komputasi In-Silico",
+            nav_stage2b_title: "Tahap 2B: Biofisika In-Silico & Rekomendasi Tanaman Sela",
+            nav_stage3: "Surveilans",
+            nav_stage3_title: "Tahap 3: Siklus Surveilans Lapangan Berkala & Penegakan SLA 180 Hari",
+            nav_stage4: "Tata Kelola Kepatuhan",
+            nav_stage4_title: "Tahap 4: Tata Kelola Kepatuhan, Berkas All-Report & Sertifikat Akhir",
+            nav_topology: "Topologi Siklus",
+            nav_topology_title: "Topologi Siklus Node 4-Warna & AI Tergrounding",
+            nav_technology: "Arsitektur Teknologi",
+            nav_technology_title: "Arsitektur Enterprise & Google Cloud AI Stack",
+            nav_node_pwa: "Node Lapangan",
+            nav_node_pwa_title: "PWA Node Lapangan Mandor Offline",
+            nav_more: "Lainnya",
+            nav_more_title: "Menu Navigasi Lainnya",
+            nav_qr: "Validasi Publik QR Code",
+            nav_guide: "Panduan Ilmiah & SOP",
+            nav_moratorium: "Inspeksi PIPPIB",
+            nav_slides: "Slide Presentasi",
+            nav_about: "Tentang & Lisensi HAKI"
+        }
+    };
+
+    function setAppLanguage(lang) {
+        const targetLang = (lang === 'id' || lang === 'en') ? lang : 'en';
+
+        // Simpan ke localStorage dengan sinkronisasi seluruh kunci cache
+        try {
+            localStorage.setItem('precision_palm_lang', targetLang);
+            localStorage.setItem('precision_palm_language', targetLang);
+            localStorage.setItem('precision_palm_mobile_lang', targetLang);
+        } catch (_) {}
+
+        document.documentElement.lang = targetLang;
+
+        // Sinkronisasi tombol UI (Aktif = Hijau, Tidak Aktif = Meredup)
+        const btnEN = document.getElementById('btnLangEN');
+        const btnID = document.getElementById('btnLangID');
+        const activeCls = "px-2 py-1 rounded-lg transition-all bg-emerald-600 text-white font-bold shadow-xs cursor-pointer text-[10px]";
+        const inactiveCls = "px-2 py-1 rounded-lg transition-all text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer font-bold text-[10px]";
+
+        if (btnEN && btnID) {
+            if (targetLang === 'en') {
+                btnEN.className = activeCls;
+                btnID.className = inactiveCls;
+            } else {
+                btnID.className = activeCls;
+                btnEN.className = inactiveCls;
+            }
+        }
+
+        // Terapkan terjemahan ke seluruh elemen header & dokumen yang memiliki [data-i18n]
+        const dict = HEADER_I18N_DICT[targetLang] || HEADER_I18N_DICT['en'];
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (dict && dict[key] !== undefined) {
+                el.innerHTML = dict[key];
+            }
+        });
+
+        // Terapkan terjemahan tooltip atribut title [data-i18n-title]
+        document.querySelectorAll('[data-i18n-title]').forEach(el => {
+            const key = el.getAttribute('data-i18n-title');
+            if (dict && dict[key] !== undefined) {
+                el.setAttribute('title', dict[key]);
+            }
+        });
+
+        // Panggil mesin terpusat i18n.js jika tersedia
+        if (window.PRECISION_PALM_I18N && typeof window.PRECISION_PALM_I18N.set === 'function') {
+            try { window.PRECISION_PALM_I18N.set(targetLang); } catch (_) {}
+        } else if (typeof window.applyTranslations === 'function') {
+            try { window.applyTranslations(); } catch (_) {}
+        }
+
+        // Pancarkan event global
+        window.dispatchEvent(new CustomEvent('languagechanged', { detail: { lang: targetLang } }));
+    }
+
+    /* =========================================================================
+       5. SINKRONISASI CAKUPAN DOSSIER ESTATE / DUAL-SCOPE PIPELINE
+       ========================================================================= */
+    const ESTATE_TOKEN_MAP = {
+        'EST-MDN-010': '9hdjjs8',
+        'EST-MDN-001': 'a8f92b1',
+        'EST-MDN-002': 'b1c83d2',
+        'EST-MDN-003': 'c2d74e3',
+        'EST-MDN-004': 'd3e65f4',
+        'EST-MDN-005': 'e4f56a5',
+        'EST-MDN-006': 'f5a47b6',
+        'EST-MDN-007': 'g6b38c7',
+        'EST-MDN-008': 'h7c29d8',
+        'EST-MDN-009': 'i4a29d9',
+        '9hdjjs8': '9hdjjs8',
+        'a8f92b1': 'a8f92b1',
+        'b1c83d2': 'b1c83d2',
+        'c2d74e3': 'c2d74e3',
+        'd3e65f4': 'd3e65f4',
+        'e4f56a5': 'e4f56a5',
+        'f5a47b6': 'f5a47b6',
+        'g6b38c7': 'g6b38c7',
+        'h7c29d8': 'h7c29d8',
+        'i4a29d9': 'i4a29d9'
+    };
+
+    function getActiveScopeParam() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('kode') || urlParams.get('estate') || '';
+    }
+
+    function syncNavLinksWithScope(scopeVal) {
+        const scopedPaths = ['/pendaftaran', '/spatial', '/proses', '/timelines', '/roadmap', '/topologi', '/mobile'];
+        const navLinks = document.querySelectorAll('nav a, #primaryNavMenu a, a[data-scoped-link="true"]');
+        
+        navLinks.forEach(link => {
+            try {
+                const href = link.getAttribute('href');
+                if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+                const url = new URL(href, window.location.origin);
+                if (scopedPaths.includes(url.pathname)) {
+                    if (scopeVal) {
+                        url.searchParams.set('kode', scopeVal);
+                    } else {
+                        url.searchParams.delete('kode');
+                        url.searchParams.delete('estate');
+                    }
+                    link.setAttribute('href', url.pathname + (url.search ? url.search : ''));
+                }
+            } catch (_) {}
+        });
+    }
+
+    function onHeaderEstateScopeChanged(val) {
+        const currentUrl = new URL(window.location.href);
+        if (val) {
+            currentUrl.searchParams.set('kode', val);
+        } else {
+            currentUrl.searchParams.delete('kode');
+            currentUrl.searchParams.delete('estate');
+        }
+        window.location.href = currentUrl.toString();
+    }
+
+    function initHeaderEstateScope() {
+        const select = document.getElementById('headerEstateScopeSelect');
+        const container = document.getElementById('headerEstateScopeContainer');
+        const currentPath = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
+
+        // Fitur Mode Global HANYA tampil di 6 halaman:
+        // 1. Pendaftaran (/pendaftaran, /permohonan)
+        // 2. Spatial (/spatial)
+        // 3. Simulator (/simulator, /proses, /proses_bisnis)
+        // 4. Timelines (/timelines)
+        // 5. Roadmap (/roadmap)
+        // 6. Topologi (/topologi)
+        const allowedPatterns = [
+            /^\/(pendaftaran|permohonan)(\.html)?$/,
+            /^\/spatial(\.html)?$/,
+            /^\/(simulator|proses|proses_bisnis)(\.html)?$/,
+            /^\/timelines(\.html)?$/,
+            /^\/roadmap(\.html)?$/,
+            /^\/topologi(\.html)?$/
+        ];
+
+        const isAllowed = allowedPatterns.some(pattern => pattern.test(currentPath));
+
+        if (!isAllowed) {
+            if (container) {
+                container.style.display = 'none';
+                container.classList.add('hidden');
+                container.classList.remove('inline-flex');
+            }
+            return;
+        }
+
+        // Tampilkan kontainer jika termasuk halaman yang diizinkan
+        if (container) {
+            container.style.display = 'inline-flex';
+            container.classList.remove('hidden');
+            container.classList.add('inline-flex');
+        }
+
+        const activeScope = getActiveScopeParam();
+        if (select) {
+            if (activeScope) {
+                const mappedToken = ESTATE_TOKEN_MAP[activeScope] || activeScope;
+                let found = false;
+                for (let i = 0; i < select.options.length; i++) {
+                    if (select.options[i].value === mappedToken || select.options[i].value === activeScope) {
+                        select.selectedIndex = i;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found && activeScope) {
+                    const opt = document.createElement('option');
+                    opt.value = activeScope;
+                    opt.textContent = `Estate (${activeScope})`;
+                    select.appendChild(opt);
+                    select.value = activeScope;
+                }
+            } else {
+                select.value = '';
+            }
+        }
+        syncNavLinksWithScope(activeScope);
+    }
+
+    /* =========================================================================
+       4. INISIALISASI OTOMATIS SAAT DOKUMEN DIMUAT (DEFAULT: ENGLISH 'en')
+       ========================================================================= */
+    (function () {
+        // 0. Pasang icon.png sebagai favicon web di <head>
+        try {
+            let fav = document.querySelector("link[rel*='icon']");
+            if (!fav) {
+                fav = document.createElement('link');
+                fav.rel = 'icon';
+                fav.type = 'image/png';
+                fav.href = '/static/icon.png';
+                document.head.appendChild(fav);
+            } else {
+                fav.href = '/static/icon.png';
+            }
+            let apple = document.querySelector("link[rel='apple-touch-icon']");
+            if (!apple) {
+                apple = document.createElement('link');
+                apple.rel = 'apple-touch-icon';
+                apple.href = '/static/icon.png';
+                document.head.appendChild(apple);
+            }
+        } catch (_) {}
+
+        // 1. Eksekusi Inisialisasi Tema dari Cache
+        try {
+            const savedTheme = localStorage.getItem('precision_palm_theme') || 'dark';
+            applyThemeMode(savedTheme);
+        } catch (_) {
+            applyThemeMode('dark');
+        }
+
+        // 2. Eksekusi Inisialisasi Bahasa dari Cache (Default: English 'en')
+        try {
+            const savedLang = localStorage.getItem('precision_palm_lang') || 
+                              localStorage.getItem('precision_palm_language') || 
+                              localStorage.getItem('precision_palm_mobile_lang') || 
+                              'en';
+            setAppLanguage(savedLang);
+        } catch (_) {
+            setAppLanguage('en');
+        }
+
+        // 3. Eksekusi Inisialisasi Estate Scope
+        try {
+            initHeaderEstateScope();
+        } catch (_) {}
+    })();
+
+    // Pasang ke namespace window global agar dapat dipanggil dari skrip mana pun
+    window.toggleMobileNavMenu = toggleMobileNavMenu;
+    window.applyThemeMode = applyThemeMode;
+    window.toggleThemeMode = toggleThemeMode;
+    window.toggleTheme = toggleThemeMode;
+    window.setAppLanguage = setAppLanguage;
+    window.onHeaderEstateScopeChanged = onHeaderEstateScopeChanged;
+    window.initHeaderEstateScope = initHeaderEstateScope;
+    window.syncNavLinksWithScope = syncNavLinksWithScope;
+</script>
+
+<!-- Precision Palm Floating Workflow Stepper Menu -->
+{% include 'partials/floating_stepper.html' ignore missing %}
+
+<!-- Mobile Adaptive Override: Floating Stepper, AI Live Logs, and AI Terminal Sync -->
+<style>
+  /* 1. Posisi seimbang & kompres ukuran elemen Floating Stepper lebih dekat ke AI Live Logs */
+  #ppFloatingStepper {
+    top: calc(50% - 20px) !important;
+    transform: translateY(-50%) !important;
+  }
+  #ppFloatingStepper .pp-step-label {
+    font-size: 11px !important;
+    padding: 4px 10px !important;
+    font-weight: 600 !important;
+  }
+  #ppFloatingStepper .pp-step-circle {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 12px !important;
+  }
+  #ppFloatingStepper .pp-stepper-track {
+    right: 15px !important;
+  }
+  #ppFloatingStepper .pp-stepper-logo-btn {
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  /* 2. Samakan font, ukuran, tinggi, dan padding tombol AI Live Logs & AI Terminal */
+  #floatingAiWidget button,
+  #floatingTerminalBtn,
+  button[onclick="toggleTerminalWindow()"] {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
+    height: 38px !important;
+    line-height: 1 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    border-radius: 14px !important;
+    padding: 0 14px !important;
+  }
+
+  /* Posisi Desktop (>= 768px): Tertumpuk rapi di kanan bawah */
+  @media (min-width: 768px) {
+    #floatingTerminalBtn,
+    button[onclick="toggleTerminalWindow()"] {
+      bottom: 18px !important;
+      right: 20px !important;
+    }
+    #floatingAiWidget {
+      bottom: 64px !important;
+      right: 20px !important;
+    }
+  }
+
+  /* Khusus Layar Mobile (< 768px): Keduanya Menjadi Tombol Bulat Mini (FAB) & Hanya Tampil Logo */
+  @media (max-width: 767px) {
+    /* Floating Stepper: hanya logo bulat pasif */
+    #ppFloatingStepper {
+      right: 10px !important;
+      pointer-events: none !important;
+    }
+    #ppFloatingStepper .pp-stepper-list,
+    #ppFloatingStepper .pp-stepper-track,
+    #ppFloatingStepper .pp-stepper-toggle-hint,
+    #ppFloatingStepper .pp-stepper-mini-tooltip {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    #ppFloatingStepper .pp-stepper-logo-btn {
+      margin-bottom: 0 !important;
+      width: 34px !important;
+      height: 34px !important;
+      opacity: 0.88 !important;
+      pointer-events: none !important;
+      cursor: default !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45) !important;
+      border: 1.5px solid #38bdf8 !important;
+    }
+
+    /* AI Terminal di Mobile: tombol bulat mini (hanya ikon ⚡) */
+    #floatingTerminalBtn,
+    button[onclick="toggleTerminalWindow()"] {
+      bottom: 16px !important;
+      right: 12px !important;
+      width: 38px !important;
+      height: 38px !important;
+      padding: 0 !important;
+      border-radius: 9999px !important;
+      justify-content: center !important;
+      align-items: center !important;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.6) !important;
+      z-index: 44 !important;
+    }
+    #floatingTerminalBtn span:not(:first-child),
+    button[onclick="toggleTerminalWindow()"] span:not(:first-child),
+    .terminal-text-label {
+      display: none !important;
+    }
+
+    /* AI Live Logs di Mobile: tombol bulat mini tepat di atas AI Terminal */
+    #floatingAiWidget {
+      bottom: 62px !important;
+      right: 12px !important;
+      z-index: 44 !important;
+    }
+    #floatingAiWidget button {
+      width: 38px !important;
+      height: 38px !important;
+      padding: 0 !important;
+      border-radius: 9999px !important;
+      justify-content: center !important;
+      align-items: center !important;
+      box-shadow: 0 4px 16px rgba(5, 150, 105, 0.5) !important;
+    }
+    #floatingAiWidget .ai-log-label {
+      display: none !important;
+    }
+  }
+</style>

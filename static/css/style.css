@@ -1,0 +1,24 @@
+/* Precision Palm Enterprise - Stylesheet */
+:root {
+    --primary-emerald: #059669;
+    --primary-dark: #0f172a;
+    --surface-light: #f8fafc;
+}
+/* Custom Smooth Scrolling & Modern Scrollbars */
+html {
+    scroll-behavior: smooth;
+}
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.4);
+    border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.7);
+}

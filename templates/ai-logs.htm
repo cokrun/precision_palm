@@ -1,0 +1,764 @@
+<!-- templates/log_ai.html -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Cloud AI Live Execution Telemetry • Precision Palm</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- jsPDF & AutoTable for High-Fidelity Client-Side PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #020617; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-3 sm:p-6 md:p-8 font-sans">
+    <div class="max-w-7xl mx-auto space-y-6">
+
+        <!-- Header Partial -->
+        {% include 'partials/header.html' ignore missing %}
+
+        <!-- BANNER TELEMETRI UTAMA -->
+        <div class="bg-gradient-to-r from-emerald-950 via-slate-900 to-cyan-950 p-6 sm:p-8 rounded-3xl border border-emerald-500/40 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="space-y-2 relative z-10">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span class="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400">
+                        100% Real-Time Google AI Execution Engine &bull; us-central1
+                    </span>
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                    Google Cloud AI Audit Ledger &amp; Telemetry
+                </h1>
+                <p class="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                    Machine transaction audit logs verify that every legal inference (GR 24/2021, EUDR), canopy analysis, and regulatory citation is executed directly by the official <strong>Google Gemini 3.8 Flash</strong> model on Google Cloud Run infrastructure.
+                </p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2.5 relative z-10">
+                <button type="button" onclick="exportLogsToPdf()" id="btnExportPdf" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono font-bold text-xs shadow-lg transition flex items-center gap-2 cursor-pointer active:scale-95" title="Download PDF Official AI Audit Report">
+                    <span>📄</span> <span>Download PDF</span>
+                </button>
+                <button type="button" onclick="triggerLiveAiPing()" id="btnLivePing" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono font-bold text-xs shadow-lg transition flex items-center gap-2 cursor-pointer active:scale-95">
+                    <span>⚡</span> <span>Run Live AI Test</span>
+                </button>
+                <button type="button" onclick="loadLiveAiLogs()" class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-mono text-xs font-bold transition flex items-center gap-2 cursor-pointer active:scale-95">
+                    <span>🔄</span> <span>Refresh</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- STATISTIK KARTU METRIK -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+            <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1 shadow-sm">
+                <span class="text-slate-400 text-[10px] uppercase font-bold block">Total AI Inferences</span>
+                <strong id="statTotalLogs" class="text-2xl font-black text-white">-</strong>
+                <span class="text-[10px] text-emerald-400 block font-sans">Recorded in SQLite Ledger</span>
+            </div>
+            <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1 shadow-sm">
+                <span class="text-slate-400 text-[10px] uppercase font-bold block">Average Latency</span>
+                <strong id="statAvgLatency" class="text-2xl font-black text-cyan-400">- ms</strong>
+                <span class="text-[10px] text-slate-400 block font-sans">Cloud Run &rarr; Gemini Engine</span>
+            </div>
+            <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1 shadow-sm">
+                <span class="text-slate-400 text-[10px] uppercase font-bold block">Execution Success Rate</span>
+                <strong id="statSuccessRate" class="text-2xl font-black text-emerald-400">100%</strong>
+                <span class="text-[10px] text-slate-400 block font-sans">Zero Failure Tolerance</span>
+            </div>
+            <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1 shadow-sm">
+                <span class="text-slate-400 text-[10px] uppercase font-bold block">Core AI Model</span>
+                <strong class="text-base font-black text-purple-400 block pt-1">gemini-3.8-flash</strong>
+                <span class="text-[10px] text-slate-400 block font-sans">Google GenAI Official SDK</span>
+            </div>
+        </div>
+
+        <!-- PANEL FILTER & KONTROL PENCARIAN -->
+        <div class="bg-slate-900/90 rounded-3xl border border-slate-800 p-4 sm:p-5 shadow-sm space-y-3 font-mono">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <!-- Search Input Box -->
+                <div class="relative flex-1">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 text-sm">
+                        🔍
+                    </span>
+                    <input 
+                        type="text" 
+                        id="aiLogSearchInput" 
+                        oninput="onSearchInputChanged()" 
+                        placeholder="Cari transaksi, fitur, model, latency, SHA-256 hash, prompt..." 
+                        class="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:outline-none text-xs text-white placeholder-slate-500 font-mono transition"
+                    >
+                    <button 
+                        type="button" 
+                        id="btnSearchClear" 
+                        onclick="clearSearchInput()" 
+                        class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 text-xs hidden cursor-pointer"
+                        title="Clear search"
+                    >
+                        ✕
+                    </button>
+                </div>
+
+                <!-- Dropdown Status Filter -->
+                <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300">
+                        <span class="text-slate-500">Status:</span>
+                        <select id="aiLogStatusFilter" onchange="onFilterChanged()" class="bg-transparent text-white font-bold focus:outline-none cursor-pointer">
+                            <option value="ALL" class="bg-slate-900 text-white">Semua Status</option>
+                            <option value="SUCCESS" class="bg-slate-900 text-emerald-400">✓ SUCCESS Only</option>
+                            <option value="FAILED" class="bg-slate-900 text-rose-400">✗ FAILED Only</option>
+                        </select>
+                    </div>
+
+                    <!-- Items Per Page Selector -->
+                    <div class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300">
+                        <span class="text-slate-500">Baris:</span>
+                        <select id="aiLogPageSizeSelect" onchange="onPageSizeChanged(this.value)" class="bg-transparent text-white font-bold focus:outline-none cursor-pointer">
+                            <option value="10" class="bg-slate-900 text-white">10</option>
+                            <option value="25" class="bg-slate-900 text-white">25</option>
+                            <option value="50" class="bg-slate-900 text-white" selected>50</option>
+                            <option value="100" class="bg-slate-900 text-white">100</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Status & Result Count Info -->
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80 text-[11px] text-slate-400">
+                <div class="flex items-center gap-2">
+                    <span id="filterSummaryText">Memuat data log transaksi...</span>
+                    <span id="activeFilterBadge" class="hidden px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 text-[10px] font-bold"></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="paginationInfoTop" class="text-slate-400"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABEL LOG AUDIT MESIN -->
+        <div class="bg-slate-900 rounded-3xl border border-slate-800 p-5 sm:p-6 shadow-sm space-y-4 font-mono">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3 text-xs">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-slate-200">📋 Real-Time Machine Transaction Stream</span>
+                    <span id="tableBadgeCount" class="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] font-bold">0 records</span>
+                </div>
+                <span class="text-[10px] text-slate-500 hidden sm:inline">Auto-refresh ready &bull; SHA-256 Tamper Proof</span>
+            </div>
+
+            <div class="overflow-x-auto rounded-2xl border border-slate-800">
+                <table class="w-full text-left text-xs font-mono whitespace-nowrap">
+                    <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] font-bold border-b border-slate-800">
+                        <tr>
+                            <th class="px-3.5 py-3 text-center">ID</th>
+                            <th class="px-4 py-3">Timestamp (WIB)</th>
+                            <th class="px-4 py-3">Feature Name</th>
+                            <th class="px-4 py-3">Engine Model</th>
+                            <th class="px-4 py-3 text-center">Latency</th>
+                            <th class="px-4 py-3 text-center">Status</th>
+                            <th class="px-4 py-3 text-center">Detail Raw Response</th>
+                        </tr>
+                    </thead>
+                    <tbody id="aiLogsTableBody" class="divide-y divide-slate-800 bg-slate-900/60 text-xs">
+                        <tr>
+                            <td colspan="7" class="py-12 text-center text-slate-500">
+                                Loading AI transaction log telemetry from server...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- FOOTER PAGINATION CONTROLS -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3 border-t border-slate-800 text-xs font-mono">
+                <div class="text-slate-400 text-xs" id="paginationInfoBottom">
+                    Menampilkan 0 - 0 dari 0 transaksi
+                </div>
+                
+                <div class="flex items-center gap-1.5 self-center sm:self-auto" id="paginationButtons">
+                    <!-- Pagination buttons dynamically rendered -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODAL DETAIL RAW JSON RESPONSE -->
+    <div id="rawDetailModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 hidden">
+        <div class="bg-slate-900 border border-cyan-500/60 rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden font-mono text-xs animate-in fade-in zoom-in-95 duration-150">
+            <div class="p-4 border-b border-slate-800 bg-slate-950 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-base">🤖</span>
+                    <strong id="modalLogTitle" class="text-white text-sm font-sans">Raw Machine Execution Detail</strong>
+                </div>
+                <button type="button" onclick="closeRawModal()" class="text-slate-400 hover:text-white p-1 text-base cursor-pointer">✕</button>
+            </div>
+            <div class="p-5 overflow-y-auto space-y-3.5">
+                <div>
+                    <span class="text-slate-400 text-[10px] block font-bold">SHA-256 DIGITAL INTEGRITY SEAL:</span>
+                    <strong id="modalLogHash" class="text-emerald-400 text-[11px] select-all break-all">-</strong>
+                </div>
+                <div>
+                    <span class="text-slate-400 text-[10px] block font-bold">PROMPT INPUT / CONTEXT:</span>
+                    <pre id="modalLogPrompt" class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 text-[11px] whitespace-pre-wrap max-h-40 overflow-y-auto font-mono"></pre>
+                </div>
+                <div>
+                    <div class="flex items-center justify-between pb-1">
+                        <span class="text-cyan-400 text-[10px] block font-bold">RAW GOOGLE GEMINI RESPONSE:</span>
+                        <button type="button" onclick="copyModalResponse()" class="text-[10px] text-slate-400 hover:text-emerald-300 transition flex items-center gap-1 cursor-pointer">
+                            <span>📋</span> <span id="copyResponseLabel">Salin JSON</span>
+                        </button>
+                    </div>
+                    <pre id="modalLogResponse" class="p-3 rounded-xl bg-slate-950 border border-cyan-900/60 text-emerald-300 text-[11px] whitespace-pre-wrap max-h-64 overflow-y-auto select-all font-mono"></pre>
+                </div>
+            </div>
+            <div class="p-3.5 border-t border-slate-800 bg-slate-950 flex flex-wrap items-center justify-between gap-2">
+                <button type="button" onclick="exportSingleLogPdf()" class="px-3.5 py-1.5 rounded-xl bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/80 font-bold flex items-center gap-1.5 text-xs transition cursor-pointer">
+                    <span>📄</span> <span>Download Bukti Transaksi PDF</span>
+                </button>
+                <button type="button" onclick="closeRawModal()" class="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold cursor-pointer text-xs">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFIKASI -->
+    <div id="aiToast" class="fixed bottom-6 right-6 z-50 hidden px-4 py-2.5 rounded-2xl bg-emerald-900/90 border border-emerald-500 text-white text-xs font-mono shadow-2xl backdrop-blur-md flex items-center gap-2">
+        <span id="aiToastIcon">✓</span>
+        <span id="aiToastMsg">Operasi berhasil</span>
+    </div>
+
+    <script>
+        // State Global
+        let cachedLogs = [];
+        let filteredLogs = [];
+        let currentPage = 1;
+        let pageSize = 50;
+        let activeModalLog = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadLiveAiLogs();
+        });
+
+        // 1. Fetch data dari server
+        async function loadLiveAiLogs() {
+            try {
+                const res = await fetch('/api/ai/logs?limit=500');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success) {
+                        cachedLogs = data.logs || [];
+                        document.getElementById('statTotalLogs').textContent = data.total;
+                        document.getElementById('statAvgLatency').textContent = `${data.avg_latency_ms} ms`;
+                        document.getElementById('statSuccessRate').textContent = `${data.success_rate_pct}%`;
+                        applyFiltersAndPagination();
+                    }
+                }
+            } catch (err) {
+                console.error("Gagal mengambil log:", err);
+            }
+        }
+
+        // 2. Filter & Pencarian
+        function onSearchInputChanged() {
+            const query = (document.getElementById('aiLogSearchInput').value || '').trim();
+            const btnClear = document.getElementById('btnSearchClear');
+            if (btnClear) {
+                if (query.length > 0) {
+                    btnClear.classList.remove('hidden');
+                } else {
+                    btnClear.classList.add('hidden');
+                }
+            }
+            currentPage = 1;
+            applyFiltersAndPagination();
+        }
+
+        function clearSearchInput() {
+            const input = document.getElementById('aiLogSearchInput');
+            if (input) input.value = '';
+            const btnClear = document.getElementById('btnSearchClear');
+            if (btnClear) btnClear.classList.add('hidden');
+            currentPage = 1;
+            applyFiltersAndPagination();
+        }
+
+        function onFilterChanged() {
+            currentPage = 1;
+            applyFiltersAndPagination();
+        }
+
+        function onPageSizeChanged(val) {
+            pageSize = parseInt(val, 10) || 50;
+            currentPage = 1;
+            applyFiltersAndPagination();
+        }
+
+        function applyFiltersAndPagination() {
+            const query = (document.getElementById('aiLogSearchInput')?.value || '').toLowerCase().trim();
+            const statusFilter = document.getElementById('aiLogStatusFilter')?.value || 'ALL';
+
+            // Filter data
+            filteredLogs = cachedLogs.filter(log => {
+                // Status match
+                if (statusFilter !== 'ALL' && log.status !== statusFilter) {
+                    return false;
+                }
+
+                // Query search match
+                if (query) {
+                    const idStr = String(log.id || '');
+                    const featStr = String(log.feature_name || '').toLowerCase();
+                    const modelStr = String(log.model_engine || '').toLowerCase();
+                    const hashStr = String(log.sha256_hash || '').toLowerCase();
+                    const timeStr = String(log.timestamp || '').toLowerCase();
+                    const promptStr = String(log.prompt_input || '').toLowerCase();
+                    const respStr = String(log.raw_response || '').toLowerCase();
+
+                    const matches = idStr.includes(query) ||
+                                    featStr.includes(query) ||
+                                    modelStr.includes(query) ||
+                                    hashStr.includes(query) ||
+                                    timeStr.includes(query) ||
+                                    promptStr.includes(query) ||
+                                    respStr.includes(query);
+
+                    if (!matches) return false;
+                }
+
+                return true;
+            });
+
+            // Update info counter
+            const totalFiltered = filteredLogs.length;
+            const totalCached = cachedLogs.length;
+            const badgeCount = document.getElementById('tableBadgeCount');
+            if (badgeCount) badgeCount.textContent = `${totalFiltered} records`;
+
+            const summaryEl = document.getElementById('filterSummaryText');
+            const activeFilterBadge = document.getElementById('activeFilterBadge');
+            
+            if (query || statusFilter !== 'ALL') {
+                if (summaryEl) summaryEl.textContent = `Menampilkan ${totalFiltered} dari total ${totalCached} transaksi`;
+                if (activeFilterBadge) {
+                    activeFilterBadge.classList.remove('hidden');
+                    activeFilterBadge.textContent = `Filter Aktif: ${statusFilter !== 'ALL' ? statusFilter : ''} ${query ? `"${query}"` : ''}`.trim();
+                }
+            } else {
+                if (summaryEl) summaryEl.textContent = `Total ${totalCached} transaksi tercatat pada buku besar AI`;
+                if (activeFilterBadge) activeFilterBadge.classList.add('hidden');
+            }
+
+            // Hitung halaman
+            const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = Math.min(startIndex + pageSize, totalFiltered);
+            const pageData = filteredLogs.slice(startIndex, endIndex);
+
+            renderLogsTable(pageData);
+            renderPaginationControls(totalPages, startIndex, endIndex, totalFiltered);
+        }
+
+        // 3. Render Baris Tabel
+        function renderLogsTable(logs) {
+            const tbody = document.getElementById('aiLogsTableBody');
+            if (!tbody) return;
+
+            const isId = (localStorage.getItem('precision_palm_lang') || 'id') === 'id';
+
+            if (logs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="py-12 text-center text-slate-500 font-mono">
+                            ${isId 
+                                ? 'Tidak ada data transaksi yang cocok dengan kriteria pencarian / filter Anda.'
+                                : 'No transaction records match your search or filter criteria.'}
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = logs.map(l => {
+                const statusBadge = l.status === 'SUCCESS' 
+                    ? `<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-600">✓ SUCCESS</span>`
+                    : `<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-rose-950 text-rose-300 border border-rose-600">✗ FAILED</span>`;
+
+                return `
+                    <tr class="hover:bg-slate-800/50 transition border-b border-slate-800/80">
+                        <td class="px-3.5 py-3 text-center text-slate-400 font-bold">${l.id}</td>
+                        <td class="px-4 py-3 text-slate-300 text-[11px]">${l.timestamp}</td>
+                        <td class="px-4 py-3 font-bold text-white">${l.feature_name}</td>
+                        <td class="px-4 py-3 text-cyan-400 text-[11px]">${l.model_engine}</td>
+                        <td class="px-4 py-3 text-center text-emerald-400 font-bold">${l.latency_ms} ms</td>
+                        <td class="px-4 py-3 text-center">${statusBadge}</td>
+                        <td class="px-4 py-3 text-center">
+                            <button onclick="openRawModal(${l.id})" class="px-2.5 py-1 rounded-lg bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-700 text-[10px] font-bold transition cursor-pointer active:scale-95">
+                                🔍 Inspect JSON
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 4. Render Tombol Navigasi Pagination
+        function renderPaginationControls(totalPages, startIndex, endIndex, totalCount) {
+            const infoBottom = document.getElementById('paginationInfoBottom');
+            const infoTop = document.getElementById('paginationInfoTop');
+            
+            const startDisplay = totalCount === 0 ? 0 : startIndex + 1;
+            const endDisplay = endIndex;
+            const infoText = `Menampilkan ${startDisplay} - ${endDisplay} dari ${totalCount} transaksi (Halaman ${currentPage}/${totalPages})`;
+
+            if (infoBottom) infoBottom.textContent = infoText;
+            if (infoTop) infoTop.textContent = infoText;
+
+            const container = document.getElementById('paginationButtons');
+            if (!container) return;
+
+            if (totalCount === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+
+            // First & Prev Button
+            const prevDisabled = currentPage <= 1 ? 'opacity-40 cursor-not-allowed pointer-events-none' : 'hover:bg-slate-800 text-slate-300 cursor-pointer';
+            html += `
+                <button type="button" onclick="goToPage(1)" class="px-2.5 py-1 rounded-lg border border-slate-800 text-xs font-bold ${prevDisabled}" title="Halaman Pertama">
+                    «
+                </button>
+                <button type="button" onclick="goToPage(${currentPage - 1})" class="px-2.5 py-1 rounded-lg border border-slate-800 text-xs font-bold ${prevDisabled}" title="Sebelumnya">
+                    ‹
+                </button>
+            `;
+
+            // Hitung nomor halaman yang ditampilkan
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+            if (endPage - startPage < 4) {
+                startPage = Math.max(1, endPage - 4);
+            }
+
+            for (let p = startPage; p <= endPage; p++) {
+                if (p === currentPage) {
+                    html += `
+                        <button type="button" class="px-3 py-1 rounded-lg bg-emerald-600 text-white font-black text-xs shadow-xs border border-emerald-500">
+                            ${p}
+                        </button>
+                    `;
+                } else {
+                    html += `
+                        <button type="button" onclick="goToPage(${p})" class="px-3 py-1 rounded-lg border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-bold transition cursor-pointer">
+                            ${p}
+                        </button>
+                    `;
+                }
+            }
+
+            // Next & Last Button
+            const nextDisabled = currentPage >= totalPages ? 'opacity-40 cursor-not-allowed pointer-events-none' : 'hover:bg-slate-800 text-slate-300 cursor-pointer';
+            html += `
+                <button type="button" onclick="goToPage(${currentPage + 1})" class="px-2.5 py-1 rounded-lg border border-slate-800 text-xs font-bold ${nextDisabled}" title="Selanjutnya">
+                    ›
+                </button>
+                <button type="button" onclick="goToPage(${totalPages})" class="px-2.5 py-1 rounded-lg border border-slate-800 text-xs font-bold ${nextDisabled}" title="Halaman Terakhir">
+                    »
+                </button>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function goToPage(p) {
+            currentPage = p;
+            applyFiltersAndPagination();
+            // Scroll sedikit ke atas tabel agar nyaman
+            document.querySelector('.bg-slate-900')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // 5. Ekspor Laporan Telemetri Lengkap ke PDF
+        function exportLogsToPdf() {
+            if (!window.jspdf || !window.jspdf.jsPDF) {
+                showToast("Pustaka PDF belum selesai dimuat, mohon coba sesaat lagi.", "⚠️");
+                return;
+            }
+
+            const dataToExport = filteredLogs.length > 0 ? filteredLogs : cachedLogs;
+            if (dataToExport.length === 0) {
+                showToast("Tidak ada data transaksi AI untuk diekspor ke PDF.", "⚠️");
+                return;
+            }
+
+            showToast("Menyusun dokumen PDF laporan audit...", "⏳");
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const now = new Date();
+            const dateStr = now.toISOString().replace('T', ' ').substring(0, 19) + ' WIB';
+            const totalCount = dataToExport.length;
+            const avgLat = document.getElementById('statAvgLatency')?.textContent || '0 ms';
+            const succRate = document.getElementById('statSuccessRate')?.textContent || '100%';
+
+            // Header Dokumen
+            doc.setFillColor(6, 78, 59); // Emerald-900
+            doc.rect(0, 0, 297, 24, 'F');
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.setTextColor(255, 255, 255);
+            doc.text('PRECISION PALM ENTERPRISE • GOOGLE CLOUD AI AUDIT & TELEMETRY LEDGER', 14, 11);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8.5);
+            doc.setTextColor(167, 243, 208); // Emerald-200
+            doc.text('Statutory Compliance Verification Engine &bull; Official Google Gemini 3.8 Flash &bull; Cloud Run (us-central1)', 14, 17);
+
+            // Metadata Box
+            doc.setFillColor(248, 250, 252);
+            doc.setDrawColor(203, 213, 225);
+            doc.roundedRect(14, 28, 269, 14, 2, 2, 'FD');
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            doc.setTextColor(15, 23, 42);
+            doc.text(`Waktu Cetak: ${dateStr}`, 18, 34);
+            doc.text(`Total Transaksi: ${totalCount} Record`, 95, 34);
+            doc.text(`Rata-rata Latensi: ${avgLat}`, 170, 34);
+            doc.text(`Tingkat Keberhasilan: ${succRate}`, 230, 34);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7.5);
+            doc.setTextColor(71, 85, 105);
+            doc.text('Integritas Kriptografi: SHA-256 Tamper-Proof Audit Trail terintegrasi dengan EUDR Deforestation Clearance & PP 24/2021', 18, 39);
+
+            // Data Tabel AutoTable
+            const tableRows = dataToExport.map(l => [
+                l.id,
+                l.timestamp || '-',
+                l.feature_name || '-',
+                l.model_engine || 'gemini-3.8-flash',
+                `${l.latency_ms || 0} ms`,
+                l.status || 'SUCCESS',
+                (l.sha256_hash || '').substring(0, 24) + '...'
+            ]);
+
+            doc.autoTable({
+                startY: 46,
+                head: [['ID', 'Timestamp (WIB)', 'Feature Name', 'Engine Model', 'Latency', 'Status', 'SHA-256 Hash']],
+                body: tableRows,
+                theme: 'striped',
+                headStyles: {
+                    fillColor: [15, 23, 42],
+                    textColor: [248, 250, 252],
+                    fontStyle: 'bold',
+                    fontSize: 8,
+                    halign: 'left'
+                },
+                styles: {
+                    fontSize: 7.5,
+                    cellPadding: 2.2,
+                    font: 'courier'
+                },
+                columnStyles: {
+                    0: { halign: 'center', cellWidth: 14 },
+                    1: { cellWidth: 42 },
+                    2: { cellWidth: 62, fontStyle: 'bold' },
+                    3: { cellWidth: 38 },
+                    4: { halign: 'center', cellWidth: 22 },
+                    5: { halign: 'center', cellWidth: 24 },
+                    6: { cellWidth: 67 }
+                },
+                didDrawPage: function (data) {
+                    // Footer Halaman
+                    const pageCount = doc.internal.getNumberOfPages();
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(7);
+                    doc.setTextColor(148, 163, 184);
+                    doc.text('Precision Palm Cloud RegTech • PT Sawit Madina Enterprise • Dokumen Audit Resmi', 14, 203);
+                    doc.text(`Halaman ${data.pageNumber} dari ${pageCount}`, 265, 203);
+                }
+            });
+
+            const filename = `PrecisionPalm_AI_Telemetry_Ledger_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}.pdf`;
+            doc.save(filename);
+            showToast("Dokumen PDF berhasil diunduh!", "✓");
+        }
+
+        // 6. Ekspor Bukti Transaksi Individual (Single Log) ke PDF
+        function exportSingleLogPdf() {
+            if (!activeModalLog) return;
+            if (!window.jspdf || !window.jspdf.jsPDF) {
+                showToast("Pustaka PDF belum siap", "⚠️");
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const l = activeModalLog;
+
+            // Header Banner
+            doc.setFillColor(6, 78, 59);
+            doc.rect(0, 0, 210, 25, 'F');
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(13);
+            doc.setTextColor(255, 255, 255);
+            doc.text('PRECISION PALM • SERTIFIKAT AUDIT TRANSAKSI AI', 14, 12);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            doc.setTextColor(167, 243, 208);
+            doc.text('Official Machine Transaction Proof &bull; Google Cloud Gemini 3.8 Flash &bull; EUDR Verifiable', 14, 18);
+
+            // Metadata Detail Table
+            doc.autoTable({
+                startY: 32,
+                body: [
+                    ['Nomor Transaksi Log (ID)', String(l.id)],
+                    ['Waktu Eksekusi (Timestamp)', l.timestamp || '-'],
+                    ['Nama Fitur / Modul', l.feature_name || '-'],
+                    ['Mesin AI / Model Engine', l.model_engine || 'gemini-3.8-flash'],
+                    ['Latensi Komputasi', `${l.latency_ms || 0} ms`],
+                    ['Status Eksekusi', l.status || 'SUCCESS'],
+                    ['Segel Integritas Kriptografis (SHA-256)', l.sha256_hash || '-']
+                ],
+                theme: 'plain',
+                styles: { fontSize: 8.5, cellPadding: 2.5 },
+                columnStyles: {
+                    0: { fontStyle: 'bold', cellWidth: 70, textColor: [30, 41, 59] },
+                    1: { cellWidth: 120, textColor: [15, 23, 42] }
+                }
+            });
+
+            // Prompt Section
+            let currY = doc.lastAutoTable.finalY + 8;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(9);
+            doc.setTextColor(15, 23, 42);
+            doc.text('KONTEKS INPUT / PROMPT MESIN:', 14, currY);
+
+            doc.setFont('courier', 'normal');
+            doc.setFontSize(7.5);
+            doc.setTextColor(51, 65, 85);
+            const promptLines = doc.splitTextToSize(l.prompt_input || 'N/A', 182);
+            doc.text(promptLines, 14, currY + 5);
+
+            // Response Section
+            currY = currY + 8 + (promptLines.length * 3.5);
+            if (currY > 230) {
+                doc.addPage();
+                currY = 20;
+            }
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(9);
+            doc.setTextColor(15, 23, 42);
+            doc.text('HASIL KELUARAN GOOGLE GEMINI (RAW RESPONSE):', 14, currY);
+
+            doc.setFont('courier', 'normal');
+            doc.setFontSize(7.5);
+            doc.setTextColor(4, 120, 87);
+            const respLines = doc.splitTextToSize(l.raw_response || 'N/A', 182);
+            doc.text(respLines, 14, currY + 5);
+
+            doc.save(`PrecisionPalm_AI_Transaction_${l.id}_Receipt.pdf`);
+            showToast(`Bukti Transaksi #${l.id} berhasil diunduh!`, "✓");
+        }
+
+        // 7. Trigger Live AI Ping
+        async function triggerLiveAiPing() {
+            const btn = document.getElementById('btnLivePing');
+            btn.disabled = true;
+            btn.innerHTML = `<span class="animate-spin">🌀</span> <span>Contacting Google Gemini...</span>`;
+
+            try {
+                const res = await fetch('/api/ai/test-ping', { method: 'POST' });
+                const json = await res.json();
+                if (json.status === 'success') {
+                    showToast("Pemanggilan live ke Google Gemini berhasil!", "⚡");
+                    await loadLiveAiLogs();
+                } else {
+                    alert("Error: " + json.message);
+                }
+            } catch (err) {
+                alert("Connection failed: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<span>⚡</span> <span>Run Live AI Test</span>`;
+            }
+        }
+
+        // 8. Modal Detail Raw JSON
+        function openRawModal(logId) {
+            const log = cachedLogs.find(l => l.id === logId);
+            if (!log) return;
+
+            activeModalLog = log;
+            document.getElementById('modalLogTitle').textContent = `${log.feature_name} (${log.timestamp})`;
+            document.getElementById('modalLogHash').textContent = log.sha256_hash;
+            document.getElementById('modalLogPrompt').textContent = log.prompt_input || '-';
+            document.getElementById('modalLogResponse').textContent = log.raw_response || '-';
+
+            document.getElementById('rawDetailModal').classList.remove('hidden');
+        }
+
+        function closeRawModal() {
+            document.getElementById('rawDetailModal').classList.add('hidden');
+            activeModalLog = null;
+        }
+
+        function copyModalResponse() {
+            if (!activeModalLog) return;
+            const content = activeModalLog.raw_response || '';
+            navigator.clipboard.writeText(content).then(() => {
+                const lbl = document.getElementById('copyResponseLabel');
+                if (lbl) lbl.textContent = "✓ Tersalin!";
+                setTimeout(() => {
+                    if (lbl) lbl.textContent = "Salin JSON";
+                }, 2000);
+                showToast("Response JSON tersalin ke clipboard", "📋");
+            }).catch(() => {
+                showToast("Gagal menyalin ke clipboard", "✗");
+            });
+        }
+
+        // 9. Toast Notification Helper
+        function showToast(msg, icon = "✓") {
+            const toast = document.getElementById('aiToast');
+            const msgEl = document.getElementById('aiToastMsg');
+            const iconEl = document.getElementById('aiToastIcon');
+            if (!toast) return;
+
+            msgEl.textContent = msg;
+            iconEl.textContent = icon;
+            toast.classList.remove('hidden');
+
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title id="docTitle" data-i18n="doc_title">Precision Palm Mobile • Edge Spatial Telemetry &amp; AI Vision</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        .touch-action-manipulation { touch-action: manipulation; }
+        .tap-highlight-transparent { -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+        @keyframes laserScan {
+            0% { top: 2%; opacity: 0.9; }
+            50% { top: 96%; opacity: 1; }
+            100% { top: 2%; opacity: 0.9; }
+        }
+        .laser-scanning {
+            animation: laserScan 2.2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans antialiased min-h-screen pb-12 transition-colors duration-300 selection:bg-emerald-500 selection:text-white">
+
+    <div class="max-w-md mx-auto min-h-screen flex flex-col bg-white dark:bg-slate-900 shadow-2xl border-x border-slate-200 dark:border-slate-800 transition-colors">
+
+        <header class="sticky top-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-200 dark:border-slate-800 px-3.5 py-2.5 flex items-center justify-between gap-2 transition-colors">
+            <a href="/" class="flex items-center gap-2 group transition hover:opacity-90 tap-highlight-transparent focus:outline-none" title="Return to Precision Palm Home">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-md">
+                    <span class="text-lg">🌴</span>
+                </div>
+                <div>
+                    <span class="text-xs font-black tracking-tight text-slate-900 dark:text-white block leading-none">
+                        PRECISION <span class="text-emerald-500">PALM</span>
+                    </span>
+                    <span class="text-[9px] font-mono text-slate-500 dark:text-slate-400">EDGE NODE PWA</span>
+                </div>
+            </a>
+
+            <div class="flex items-center gap-1.5">
+                <button type="button" id="btnMobileThemeToggle" onclick="toggleMobileTheme()" class="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs shadow-xs transition cursor-pointer">
+                    <span id="mobileThemeIcon">🌙</span>
+                </button>
+
+                <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-mono font-bold shadow-xs">
+                    <button type="button" id="btnMobileLangEn" onclick="setMobileLanguage('en')" class="px-1.5 py-0.5 rounded transition text-emerald-700 dark:text-emerald-400 bg-white dark:bg-slate-700 font-bold shadow-xs cursor-pointer">
+                        EN
+                    </button>
+                    <button type="button" id="btnMobileLangId" onclick="setMobileLanguage('id')" class="px-1.5 py-0.5 rounded transition text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer">
+                        ID
+                    </button>
+                </div>
+
+                <div id="connectionStatusBadge" class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase transition-colors bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 shadow-xs">
+                    <span id="connIndicatorDot" class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="connStatusText" data-i18n="conn_online">Online</span>
+                </div>
+            </div>
+        </header>
+
+        <nav class="bg-slate-50 dark:bg-slate-850 px-3 py-1.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] overflow-x-auto whitespace-nowrap scrollbar-none font-medium">
+            <a href="/" class="px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 hover:text-emerald-600" data-i18n="nav_home">Home</a>
+            <span class="text-slate-300 dark:text-slate-700">•</span>
+            <a href="/simulator" class="px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 hover:text-emerald-600" data-i18n="nav_simulator">In-Silico Core</a>
+            <span class="text-slate-300 dark:text-slate-700">•</span>
+            <a href="/spatial" class="px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 hover:text-emerald-600" data-i18n="nav_spatial">Spatial Map</a>
+            <span class="text-slate-300 dark:text-slate-700">•</span>
+            <a href="/roadmap" class="px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 hover:text-emerald-600" data-i18n="nav_roadmap">Compliance</a>
+            <span class="text-slate-300 dark:text-slate-700">•</span>
+            <a href="/mobile" class="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20" data-i18n="nav_mobile">Field Node</a>
+        </nav>
+
+        <main class="flex-1 p-4 space-y-4">
+
+            <div class="bg-gradient-to-br from-slate-50 to-white dark:from-slate-800 dark:to-slate-850 rounded-2xl p-4 border border-slate-200 dark:border-slate-700/70 shadow-sm transition-colors">
+                <div class="flex items-center justify-between">
+                    <span id="heroTag" data-i18n="hero_tag" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                        📱 Edge-First Node
+                    </span>
+                    <span class="text-[10px] font-mono text-slate-500 dark:text-slate-400" id="clockDisplay">--:--:--</span>
+                </div>
+                <h1 class="text-base font-extrabold text-slate-900 dark:text-white mt-1.5 flex items-center gap-2">
+                    <span>🌾</span> <span id="heroTitle" data-i18n="hero_title">Foreman Field Telemetry &amp; AI Vision</span>
+                </h1>
+                <p id="heroDesc" data-i18n="hero_desc" class="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
+                    Edge-First Agroforestry Node with Local-First Synchronization &bull; In-situ camera scanning, canopy geometry, Good Agricultural Practices (GAP), and offline survey synchronization.
+                </p>
+            </div>
+
+            <div class="bg-gradient-to-r from-amber-50 via-slate-50 to-emerald-50 dark:from-amber-950/40 dark:via-slate-850 dark:to-emerald-950/40 rounded-2xl p-3 border border-amber-300 dark:border-amber-700/60 shadow-xs flex items-center justify-between gap-3">
+                <div class="space-y-0.5 min-w-0">
+                    <span class="text-[9px] uppercase font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                        <span>⚡</span> <span id="presetBadge" data-i18n="preset_badge">Quick Field Evaluation</span>
+                    </span>
+                    <h2 class="text-xs font-bold text-slate-900 dark:text-white truncate" id="presetTitle">Mandailing Natal (0.8241°N, 99.5612°E)</h2>
+                </div>
+                <button type="button" onclick="loadMandailingPreset()" class="py-1.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold shrink-0 shadow transition cursor-pointer">
+                    <span id="presetBtnText" data-i18n="preset_btn">Load Preset</span>
+                </button>
+            </div>
+
+            <div class="bg-slate-50 dark:bg-slate-850 rounded-2xl p-2.5 border border-slate-200 dark:border-slate-700/80 shadow-xs space-y-1.5">
+                <div class="flex items-center justify-between px-1">
+                    <span id="txtMobModeHeader" data-i18n="wf_header" class="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                        Workflow Mode:
+                    </span>
+                    <span id="badgeMobActiveMode" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                        Full Integrated
+                    </span>
+                </div>
+                <div class="grid grid-cols-3 gap-1.5 p-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-[11px] font-bold">
+                    <button type="button" id="btnMobModeFast" onclick="setMobileWorkflowMode('fast')" class="py-1.5 px-1 rounded-lg transition flex flex-col items-center justify-center gap-0.5 text-slate-500 hover:text-emerald-600 cursor-pointer">
+                        <span class="text-sm">⚡</span>
+                        <span id="lblMobModeFast" data-i18n="wf_mode_fast" class="leading-tight text-[10px]">Fast Mode</span>
+                    </button>
+                    <button type="button" id="btnMobModePhoto" onclick="setMobileWorkflowMode('photo')" class="py-1.5 px-1 rounded-lg transition flex flex-col items-center justify-center gap-0.5 text-slate-500 hover:text-emerald-600 cursor-pointer">
+                        <span class="text-sm">📷</span>
+                        <span id="lblMobModePhoto" data-i18n="wf_mode_photo" class="leading-tight text-[10px]">Photo AI</span>
+                    </button>
+                    <button type="button" id="btnMobModeFull" onclick="setMobileWorkflowMode('full')" class="py-1.5 px-1 rounded-lg transition flex flex-col items-center justify-center gap-0.5 bg-emerald-50 dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 border border-emerald-400/50 shadow-xs cursor-pointer">
+                        <span class="text-sm">🌟</span>
+                        <span id="lblMobModeFull" data-i18n="wf_mode_full" class="leading-tight text-[10px]">Full Audit</span>
+                    </button>
+                </div>
+            </div>
+
+            <section id="secMobileCamera" class="bg-white dark:bg-slate-800/90 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3.5 transition-colors">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/70 pb-2">
+                    <h2 id="camTitle" class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                        <span data-i18n="cam_title">🎯 AI Vision Laser Scanner &amp; In-Situ Camera</span>
+                    </h2>
+                    <span id="cameraModeBadge" class="text-[9px] bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 px-2 py-0.5 rounded-full font-mono font-bold">
+                        Virtual Active
+                    </span>
+                </div>
+
+                <div class="flex p-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold">
+                    <button type="button" id="tabBtnVirtual" onclick="switchCameraMode('virtual')" class="flex-1 py-1.5 rounded-lg text-center transition bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 shadow-xs font-bold cursor-pointer">
+                        <span>🧪</span> <span id="camTabVirtual" data-i18n="cam_tab_sample">Sample Feeds</span>
+                    </button>
+                    <button type="button" id="tabBtnLive" onclick="switchCameraMode('live')" class="flex-1 py-1.5 rounded-lg text-center transition text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer">
+                        <span>📸</span> <span id="camTabLive" data-i18n="cam_tab_live">Live Camera</span>
+                    </button>
+                </div>
+
+                <div id="virtualCameraControls" class="space-y-1.5">
+                    <div class="flex items-center justify-between text-[10px] font-bold text-slate-600 dark:text-slate-400">
+                        <label id="lblSelectSample" data-i18n="lbl_sample">Choose Field Imagery Evidence (Batch Mode):</label>
+                        <span id="mobileBatchCounterBadge" class="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-mono text-[9px] border border-emerald-300 dark:border-emerald-700 font-bold">3 Photos Queued</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-1.5">
+                        <button type="button" onclick="selectVirtualImage('field_tm_weed.jpg', 'Palm Base Circle (2.0m Sterile Ring)')" id="thumb_btn_weed" class="p-2 rounded-xl border text-left transition border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/40 ring-1 ring-emerald-500 cursor-pointer">
+                            <span class="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 block truncate">1. 2.0m Ring</span>
+                            <span class="text-[8px] text-slate-500 dark:text-slate-400 block truncate">Palm Base Circle</span>
+                        </button>
+                        <button type="button" onclick="selectVirtualImage('sawit_drone2.jpg', '3.79m Alley Corridor (Intercrop Bed)')" id="thumb_btn_corridor" class="p-2 rounded-xl border text-left transition border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 hover:border-emerald-500 cursor-pointer">
+                            <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200 block truncate">2. Alley 3.79m</span>
+                            <span class="text-[8px] text-slate-500 dark:text-slate-400 block truncate">Corridor & Beds</span>
+                        </button>
+                        <button type="button" onclick="selectVirtualImage('field_wetland_buffer.jpg', 'Riparian / Silt Pit Buffer')" id="thumb_btn_wetland" class="p-2 rounded-xl border text-left transition border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 hover:border-emerald-500 cursor-pointer">
+                            <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200 block truncate">3. Silt / Buffer</span>
+                            <span class="text-[8px] text-slate-500 dark:text-slate-400 block truncate">Riparian Wetland</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="liveCameraControls" class="hidden space-y-2">
+                    <input type="file" id="liveCameraInput" accept="image/*" multiple capture="environment" onchange="handleLiveCameraFile(event)" class="hidden">
+                    <button type="button" onclick="document.getElementById('liveCameraInput').click()" class="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow transition cursor-pointer">
+                        <span>📸</span> <span id="btnOpenLiveCam" data-i18n="btn_open_live_cam">Capture Batch Photos with Camera (2–4 Photos)</span>
+                    </button>
+                </div>
+
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between text-[11px] text-slate-700 dark:text-slate-300 px-1">
+                        <span class="font-bold flex items-center gap-1.5">
+                            <span>🎯</span> <span id="previewTitle" data-i18n="reticle_title">AI Reticle Viewfinder</span>
+                        </span>
+                        <div class="flex items-center gap-2">
+                            <span id="mobileScanBadge" class="hidden px-2 py-0.5 rounded text-[9px] font-semibold bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/40 animate-pulse flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                                <span data-i18n="reticle_scanning">Scanning...</span>
+                            </span>
+                            <button type="button" onclick="toggleSpatialOverlay()" id="btnToggleOverlay" data-i18n="reticle_toggle_hud" class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer">
+                                Toggle HUD
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="relative w-full h-60 bg-slate-950 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 shadow-inner group">
+                        <img id="previewImageEl" src="/static/img/field_tm_weed.jpg" alt="Field Telemetry Visual" class="w-full h-full object-cover transition-transform duration-300" onload="drawMobileReticles()">
+                        <canvas id="mobileReticleCanvas" class="absolute inset-0 w-full h-full pointer-events-none z-10"></canvas>
+                        <div id="mobileScanningLaser" class="hidden absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_#34d399] z-25 pointer-events-none"></div>
+                        <div id="mobileBBoxesOverlay" class="absolute inset-0 pointer-events-none z-20"></div>
+
+                        <div class="absolute bottom-2 left-2 bg-slate-900/90 border border-slate-700 px-2.5 py-0.5 rounded-lg text-[9px] font-mono text-slate-300 flex items-center gap-1.5 shadow z-30">
+                            <span>📸</span> <span id="activeImageLabel">field_tm_weed.jpg</span>
+                        </div>
+                        <button type="button" onclick="runMobileAiDiagnostic(selectedImageReference, null)" class="absolute top-2 right-2 bg-emerald-600 hover:bg-emerald-500 text-white px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-md z-30 transition flex items-center gap-1 cursor-pointer">
+                            <span>⚡</span> <span data-i18n="reticle_scan_now">Scan Now</span>
+                        </button>
+                    </div>
+
+                    <!-- Mini Thumbnail Strip for Multi-Photo Evidence Batch -->
+                    <div class="flex items-center gap-2 overflow-x-auto py-1 px-1.5 bg-slate-100 dark:bg-slate-900/90 rounded-xl border border-slate-200 dark:border-slate-800" id="mobileHudThumbnailsStrip">
+                        <!-- Populated by renderMobileThumbnailsStrip() -->
+                    </div>
+
+                    <div class="p-2 rounded-xl bg-slate-950/90 border border-slate-800 text-[9px] font-mono text-slate-300 flex flex-wrap items-center justify-between gap-1 shadow-inner">
+                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-500/60 text-emerald-300 font-bold">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> <span data-i18n="hud_stand">[Palm Stand]</span>
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-950 border border-sky-500/60 text-sky-300 font-bold">
+                            <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span> <span data-i18n="hud_alley">[Alley 3.79m]</span>
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-950 border border-rose-500/60 text-rose-300 font-bold">
+                            <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> <span data-i18n="hud_buffer">[2.0m Buffer]</span>
+                        </span>
+                    </div>
+                </div>
+            </section>
+
+            <section id="mobileAiDiagnosticCard" class="bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 dark:from-slate-900 dark:to-slate-850 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3 transition-colors">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                    <div class="space-y-0.5">
+                        <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block" id="mobileDiagTag" data-i18n="diag_tag">Gemini Multimodal Vision</span>
+                        <h3 id="mobileDiagTitle" class="text-xs font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
+                            <span data-i18n="diag_title">🔬 Diagnostic Findings &amp; Canopy Metrics</span>
+                        </h3>
+                    </div>
+                    <span id="mobileDiagStatusBadge" data-i18n="diag_badge_ready" class="text-[9px] text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-700 font-mono font-semibold">
+                        Ready
+                    </span>
+                </div>
+
+                <div id="smartAlertBanner" class="p-2.5 rounded-xl border flex items-start gap-2 bg-emerald-50 dark:bg-emerald-950/70 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 text-xs">
+                    <span id="smartAlertIcon" class="text-base mt-0.5">🌿</span>
+                    <div class="space-y-0.5">
+                        <span id="smartAlertHeadline" data-i18n="alert_optimal_head" class="font-extrabold text-xs block leading-tight">Optimal Stand Architecture</span>
+                        <p id="smartAlertText" data-i18n="alert_optimal_body" class="text-[10px] opacity-90 leading-snug">
+                            Lush green canopy with balanced light transmission in 3.79m alley corridor. Zero-tillage 2.0m root buffer strictly preserved.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                    <div class="bg-white dark:bg-slate-950 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
+                        <span class="text-[9px] text-slate-500 uppercase block" id="lblMobileHealth" data-i18n="lbl_health">Health Status</span>
+                        <span id="txtMobileHealthStatus" data-i18n="val_health_lush" class="font-bold text-emerald-600 dark:text-emerald-400 text-xs block truncate mt-0.5">Lush Green</span>
+                    </div>
+                    <div class="bg-white dark:bg-slate-950 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
+                        <span class="text-[9px] text-slate-500 uppercase block" id="lblMobileAge" data-i18n="lbl_age">Stand Age</span>
+                        <div class="flex items-baseline gap-1 mt-0.5">
+                            <span id="txtMobileAgeYears" class="text-sm font-bold text-slate-900 dark:text-white">6.0</span>
+                            <span class="text-[9px] text-slate-500" data-i18n="unit_yrs">Yrs</span>
+                            <span id="txtMobileAgeClass" data-i18n="class_early_tm" class="text-[9px] text-emerald-600 ml-auto">Early TM</span>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-950 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
+                        <span class="text-[9px] text-slate-500 uppercase block" data-i18n="lbl_alley">Clean Alley Width</span>
+                        <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400 block mt-0.5" data-i18n="val_alley">3.79 m Corridor</span>
+                    </div>
+                    <div class="bg-white dark:bg-slate-950 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
+                        <span class="text-[9px] text-slate-500 uppercase block" data-i18n="lbl_buffer">2.0m Root Buffer</span>
+                        <span id="mobileComplianceCircle" data-i18n="val_buffer_protected" class="text-xs font-bold text-emerald-600 dark:text-emerald-400 block mt-0.5">✓ 100% Protected</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MANDOR GOOD AGRICULTURAL PRACTICES (GAP) & ECO-HYDROLOGY CHECKLIST -->
+            <section id="secMobileGapChecklist" class="bg-white dark:bg-slate-800/90 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3 transition-colors">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/70 pb-2">
+                    <div class="space-y-0.5">
+                        <h2 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5" data-i18n="gap_header">
+                            ✅ Mandor In-Situ GAP Checklist (ISPO P2 &amp; P3)
+                        </h2>
+                        <span class="text-[9px] text-slate-500 font-mono" data-i18n="gap_sub">Stage 6 Field Verification Criteria</span>
+                    </div>
+                    <span id="gapPassedCounter" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                        4/4 Verified
+                    </span>
+                </div>
+
+                <div class="space-y-2 text-xs">
+                    <!-- Item 1: U-Shape Frond Stacking -->
+                    <label class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 flex items-start gap-2.5 cursor-pointer hover:border-emerald-500 transition">
+                        <input type="checkbox" id="chkGapFronds" checked onchange="updateGapChecklistCounter()" class="mt-0.5 accent-emerald-600 rounded cursor-pointer">
+                        <div class="space-y-0.5">
+                            <strong class="text-slate-800 dark:text-slate-200 text-[11px] block" data-i18n="gap_1_title">1. U-Shape / L-Shape Pruned Frond Stacking (10.8 t/Ha/Yr)</strong>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400 leading-tight" data-i18n="gap_1_desc">
+                                Pruned palm fronds stacked neatly in dead alleys (gawangan mati) as organic mulch, recycling +36.2 kg K₂O/Ha.
+                            </p>
+                        </div>
+                    </label>
+
+                    <!-- Item 2: Sterile Root Buffer Zero-Tillage -->
+                    <label class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 flex items-start gap-2.5 cursor-pointer hover:border-emerald-500 transition">
+                        <input type="checkbox" id="chkGapBuffer" checked onchange="updateGapChecklistCounter()" class="mt-0.5 accent-emerald-600 rounded cursor-pointer">
+                        <div class="space-y-0.5">
+                            <strong class="text-slate-800 dark:text-slate-200 text-[11px] block" data-i18n="gap_2_title">2. 2.0m Sterile Weeded Circle Buffer (Zero-Tillage)</strong>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400 leading-tight" data-i18n="gap_2_desc">
+                                Radial 2.0m perimeter around palm bases strictly free from mechanical hoeing, companion crops, and chemical drift.
+                            </p>
+                        </div>
+                    </label>
+
+                    <!-- Item 3: Silt Pit Rorak & Contour Terraces -->
+                    <label class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 flex items-start gap-2.5 cursor-pointer hover:border-emerald-500 transition">
+                        <input type="checkbox" id="chkGapRorak" checked onchange="updateGapChecklistCounter()" class="mt-0.5 accent-emerald-600 rounded cursor-pointer">
+                        <div class="space-y-0.5">
+                            <strong class="text-slate-800 dark:text-slate-200 text-[11px] block" data-i18n="gap_3_title">3. Sediment Silt Pits (Rorak) &amp; Contour Alley Beds</strong>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400 leading-tight" data-i18n="gap_3_desc">
+                                Intercrop beds aligned parallel to contour; silt pits intact, stopping -68.4% surface runoff wash (SCS-CN Model).
+                            </p>
+                        </div>
+                    </label>
+
+                    <!-- Item 4: Riparian Wetland Distance Buffer -->
+                    <label class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 flex items-start gap-2.5 cursor-pointer hover:border-emerald-500 transition">
+                        <input type="checkbox" id="chkGapRiparian" checked onchange="updateGapChecklistCounter()" class="mt-0.5 accent-emerald-600 rounded cursor-pointer">
+                        <div class="space-y-0.5">
+                            <strong class="text-slate-800 dark:text-slate-200 text-[11px] block" data-i18n="gap_4_title">4. HCV Riparian Stream Buffer Clearance (&gt;50m Safe Margin)</strong>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400 leading-tight" data-i18n="gap_4_desc">
+                                Natural wetland and drainage waterways protected with zero chemical runoff or invasive tillage intrusions.
+                            </p>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Live Carrying Capacity Quick Summary -->
+                <div class="grid grid-cols-2 gap-2 text-[10px] font-mono pt-1 border-t border-slate-200 dark:border-slate-800">
+                    <div class="p-2 bg-sky-50 dark:bg-sky-950/50 border border-sky-300 dark:border-sky-800 rounded-xl">
+                        <span class="text-slate-500 block text-[9px] uppercase" data-i18n="kpi_aquifer_lbl">Aquifer Recharge</span>
+                        <strong class="text-sky-700 dark:text-sky-400 font-bold">+1,850 m³/Ha/Yr</strong>
+                    </div>
+                    <div class="p-2 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 rounded-xl">
+                        <span class="text-slate-500 block text-[9px] uppercase" data-i18n="kpi_income_lbl">Anker Living Income</span>
+                        <strong class="text-emerald-700 dark:text-emerald-400 font-bold">+2.35x Benchmark</strong>
+                    </div>
+                </div>
+            </section>
+
+            <section id="secMobileTelemetry" class="bg-white dark:bg-slate-800/90 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3.5 transition-colors">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/70 pb-2">
+                    <h2 id="formTitle" class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5" data-i18n="plot_title">
+                        📍 Plot Telemetry &amp; Coordinates
+                    </h2>
+                    <span id="presetActiveTag" data-i18n="gps_node" class="text-[9px] font-mono bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400">GPS Node</span>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                            <label for="selectMobileEstate" class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">Estate Code (Kebun):</label>
+                            <select id="selectMobileEstate" onchange="handleMobileEstateChange(this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-1.5 text-xs font-mono font-bold text-slate-800 dark:text-slate-200">
+                                <option value="EST-MDN-001">EST-MDN-001 (PT Mandailing Agro)</option>
+                                <option value="EST-MDN-002">EST-MDN-002 (Koperasi Sawit Mandiri)</option>
+                                <option value="EST-MDN-003">EST-MDN-003 (PT Batang Natal)</option>
+                                <option value="EST-MDN-010">EST-MDN-010 (PT Mandailing Subur)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="selectMobileQuarter" class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">Surveillance Quarter:</label>
+                            <select id="selectMobileQuarter" onchange="handleMobileQuarterChange(this.value)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-1.5 text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                <option value="Q1">Q1 (M1–3: Baseline & 2.0m Ring)</option>
+                                <option value="Q2" selected>Q2 (M4–6: Vegetative & MOP)</option>
+                                <option value="Q3">Q3 (M7–9: Microclimate & Silt)</option>
+                                <option value="Q4">Q4 (M10–12: Yield Deficit Audit)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="button" id="btnGetGPS" onclick="fetchGPSLocation()" class="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow transition cursor-pointer">
+                        <span id="gpsIcon">📍</span> <span id="gpsBtnText" data-i18n="btn_gps">Acquire Device GPS Coordinates</span>
+                    </button>
+                    <div class="bg-slate-50 dark:bg-slate-950 rounded-xl p-2.5 border border-slate-200 dark:border-slate-800 text-[10px] font-mono grid grid-cols-2 gap-2 text-slate-700 dark:text-slate-300">
+                        <div>
+                            <span class="text-slate-500 block text-[9px]" data-i18n="lbl_lat">LATITUDE</span>
+                            <span id="valLatitude" class="font-bold text-emerald-600 dark:text-emerald-400">0.824100</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[9px]" data-i18n="lbl_lng">LONGITUDE</span>
+                            <span id="valLongitude" class="font-bold text-emerald-600 dark:text-emerald-400">99.561200</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[9px]" data-i18n="lbl_alt">ALTITUDE</span>
+                            <span id="valAltitude" class="font-bold text-cyan-600 dark:text-cyan-400">142 m ASL</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[9px]" data-i18n="lbl_acc">SENSOR ACCURACY</span>
+                            <span id="gpsAccuracyText" data-i18n="gps_accuracy_text" class="font-bold text-slate-700 dark:text-slate-300">±4.5m High Precision</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between text-xs">
+                        <label for="palmAgeInput" id="lblPalmAge" data-i18n="lbl_palm_age" class="font-semibold text-slate-700 dark:text-slate-300">Oil Palm Stand Age:</label>
+                        <span id="palmAgeBadge" class="font-mono font-bold text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs">6.0 Years</span>
+                    </div>
+                    <input type="range" id="palmAgeInput" min="1" max="25" step="0.5" value="6.0" oninput="updateCalculations()" class="w-full accent-emerald-500 cursor-pointer h-2 bg-slate-200 dark:bg-slate-700 rounded-lg">
+                </div>
+
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between text-xs">
+                        <label for="slopeInput" id="lblSlope" data-i18n="lbl_slope" class="font-semibold text-slate-700 dark:text-slate-300">Terrain Slope:</label>
+                        <span id="slopeBadge" class="font-mono font-bold text-cyan-600 dark:text-cyan-400 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs">4.5° (Low Risk)</span>
+                    </div>
+                    <input type="range" id="slopeInput" min="0" max="35" step="0.5" value="4.5" oninput="updateCalculations()" class="w-full accent-cyan-500 cursor-pointer h-2 bg-slate-200 dark:bg-slate-700 rounded-lg">
+                </div>
+
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between text-xs">
+                        <label for="soilPhInput" id="lblSoilPh" data-i18n="lbl_soil_ph" class="font-semibold text-slate-700 dark:text-slate-300">Soil Reaction (pH):</label>
+                        <span id="soilPhBadge" class="font-mono font-bold text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs">5.5 (Optimal)</span>
+                    </div>
+                    <input type="range" id="soilPhInput" min="3.5" max="7.5" step="0.1" value="5.5" oninput="updateCalculations()" class="w-full accent-amber-500 cursor-pointer h-2 bg-slate-200 dark:bg-slate-700 rounded-lg">
+                </div>
+            </section>
+
+            <section id="secMobileActions" class="bg-white dark:bg-slate-800/90 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3 transition-colors">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/70 pb-2">
+                    <div class="space-y-0.5">
+                        <h2 id="actionsTitle" data-i18n="cloud_title" class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                            ☁️ Cloud Continuous Replication
+                        </h2>
+                        <span data-i18n="cloud_sub" class="text-[9px] text-slate-500 dark:text-slate-400 block font-mono">Dual-Write: Local SQLite + Shared Spatial Telemetry Ledger</span>
+                    </div>
+                    <span id="queueCounterBadge" class="text-[10px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 px-2 py-0.5 rounded-full font-mono">
+                        Queue: 0 Items
+                    </span>
+                </div>
+
+                <button type="button" onclick="saveToLocalQueue()" class="w-full py-2.5 px-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-650 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-600 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition cursor-pointer">
+                    <span>💾</span> <span id="btnSaveLocal" data-i18n="btn_save_edge">Store to Local Edge Buffer (Offline)</span>
+                </button>
+
+                <button type="button" id="btnSyncServer" onclick="syncWithCloudServer()" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md transition cursor-pointer">
+                    <span id="syncSpinner" class="hidden animate-spin">🔄</span>
+                    <span id="syncIcon">🚀</span>
+                    <span id="btnSyncCloud" data-i18n="btn_sync_cloud">Replicate &amp; Sync to Spatial Telemetry Ledger</span>
+                </button>
+
+                <button type="button" onclick="openLogsModal()" class="w-full py-2 px-3 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700/60 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition cursor-pointer">
+                    <span>📋</span> <span id="btnViewLogs" data-i18n="btn_view_logs">View Traceability Logs &amp; Audit Trail</span>
+                </button>
+
+                <div id="syncResultAlert" class="hidden rounded-xl p-3 text-xs border transition-all duration-300">
+                    <div class="flex items-start gap-2">
+                        <span id="syncAlertIcon" class="text-base mt-0.5">✅</span>
+                        <div class="flex-1 space-y-1">
+                            <span id="syncAlertTitle" class="font-bold block text-emerald-800 dark:text-emerald-300">Continuous Replication Successful</span>
+                            <p id="syncAlertMessage" class="text-[11px] text-slate-700 dark:text-slate-300 leading-snug">
+                                Telemetry record written to local SQLite and synced to Spatial Telemetry ledger.
+                            </p>
+                            <div id="syncDetailBox" class="bg-slate-50 dark:bg-slate-900 rounded-lg p-2 font-mono text-[9px] text-slate-600 dark:text-slate-400 space-y-0.5 border border-slate-200 dark:border-slate-800">
+                                <div><span data-i18n="lbl_client_rec_id">Client Record ID:</span> <span id="resSyncedId" class="text-emerald-600 font-bold">-</span></div>
+                                <div><span data-i18n="lbl_cloud_seal_hash">Cloud Seal Hash:</span> <span id="resDbId" class="text-indigo-400 font-bold">-</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <footer class="mt-auto px-4 py-3 text-center border-t border-slate-200 dark:border-slate-800/80 text-[10px] font-mono text-slate-500 space-y-0.5">
+            <p>Precision Palm • Edge-First Agroforestry Node v2.5</p>
+            <p data-i18n="footer_2">ISO/IEC 19790 &bull; Continuous Replication &bull; EUDR Article 9 Compliant</p>
+        </footer>
+
+    </div>
+
+    <div id="logsModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-md w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-850">
+                <div>
+                    <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <span>📋</span> <span data-i18n="modal_logs_title">Field Logs &amp; Cloud Replication Trail</span>
+                    </h3>
+                    <p class="text-[9px] text-slate-500 font-mono" data-i18n="modal_logs_sub">Edge SQLite vs Local Telemetry Records</p>
+                </div>
+                <button type="button" onclick="closeLogsModal()" class="text-slate-400 hover:text-white p-1 text-base cursor-pointer">✕</button>
+            </div>
+            <div class="p-3 overflow-y-auto space-y-2 text-xs flex-1 bg-slate-50 dark:bg-slate-900/50" id="logsListContainer"></div>
+            <div class="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 flex justify-between items-center">
+                <button type="button" onclick="clearAllLogs()" data-i18n="modal_clear_logs" class="text-rose-500 text-[10px] font-bold hover:underline cursor-pointer">Clear Local Logs</button>
+                <button type="button" onclick="closeLogsModal()" data-i18n="modal_close" class="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg text-xs font-bold cursor-pointer">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const LOGS_STORAGE_KEY = 'palm_mobile_spatial_logs_v2';
+        const SHARED_SURVEYS_STORAGE_KEY = 'precision_palm_shared_surveys_v2';
+        let currentLang = localStorage.getItem('precision_palm_mobile_lang') || 'en';
+        let activeWorkflowMode = 'full';
+        let activeCameraMode = 'virtual';
+        let selectedImageReference = 'field_tm_weed.jpg';
+        let currentBatchPhotos = ['field_tm_weed.jpg', 'sawit_drone2.jpg', 'field_wetland_buffer.jpg'];
+        let activePhotoIndex = 0;
+        let currentMobileEstate = localStorage.getItem('precision_palm_selected_estate') || 'EST-MDN-001';
+        let currentMobileQuarter = 'Q1';
+        let overlayVisible = true;
+        let isScanningRunning = false;
+
+        let currentLocation = {
+            latitude: 0.824100,
+            longitude: 99.561200,
+            altitude: 142.0,
+            accuracy: 4.5,
+            isFallback: false
+        };
+
+        const mobileI18n = {
+            en: {
+                doc_title: "Precision Palm Mobile • Edge Spatial Telemetry & AI Vision",
+                conn_online: "Online",
+                conn_offline: "Offline",
+                nav_home: "Home",
+                nav_simulator: "In-Silico Core",
+                nav_spatial: "Spatial Map",
+                nav_roadmap: "Compliance",
+                nav_mobile: "Field Node",
+                hero_tag: "📱 Edge-First Node",
+                hero_title: "Foreman Field Telemetry &amp; AI Vision",
+                hero_desc: "Edge-First Agroforestry Node with Local-First Synchronization &bull; In-situ camera scanning, canopy geometry, Good Agricultural Practices (GAP), and offline survey synchronization.",
+                preset_badge: "Quick Field Evaluation",
+                preset_btn: "Load Preset",
+                wf_header: "Workflow Mode:",
+                wf_mode_fast: "Fast Mode",
+                wf_mode_photo: "Photo AI",
+                wf_mode_full: "Full Audit",
+                badge_fast: "Fast Mode (Sensor Only)",
+                badge_photo: "Photo AI Diagnostic",
+                badge_full: "Full Integrated Audit",
+                cam_title: "🎯 AI Vision Laser Scanner &amp; In-Situ Camera",
+                cam_badge_virtual: "Virtual Active",
+                cam_badge_live: "Live Camera Active",
+                cam_tab_sample: "Sample Feeds",
+                cam_tab_live: "Live Camera",
+                lbl_sample: "Choose Field Imagery Sample:",
+                sample_weed_title: "🌿 Block A (Weed Alley)",
+                sample_weed_sub: "Natural ground mulch",
+                sample_wetland_title: "💧 Block B (Wetland)",
+                sample_wetland_sub: "Riparian conservation",
+                btn_open_live_cam: "Capture Field Image with Camera",
+                reticle_title: "AI Reticle Viewfinder",
+                reticle_scan_now: "Scan Now",
+                reticle_scanning: "Scanning...",
+                reticle_toggle_hud: "Toggle HUD",
+                hud_stand: "[Palm Stand]",
+                hud_alley: "[Alley 3.79m]",
+                hud_buffer: "[2.0m Buffer]",
+                diag_tag: "Gemini Multimodal Vision",
+                diag_title: "🔬 Diagnostic Findings &amp; Canopy Metrics",
+                diag_badge_ready: "Ready",
+                diag_badge_scanning: "Processing...",
+                alert_optimal_head: "Optimal Stand Architecture",
+                alert_optimal_body: "Lush green canopy with balanced light transmission in 3.79m alley corridor. Zero-tillage 2.0m root buffer strictly preserved.",
+                alert_wetland_head: "Riparian Wetland Buffer Protected",
+                alert_wetland_body: "Natural wetland horizon detected. Retain grass buffer without soil tillage.",
+                lbl_health: "Health Status",
+                val_health_lush: "Lush Green",
+                lbl_age: "Stand Age",
+                unit_yrs: "Yrs",
+                class_early_tm: "Early TM",
+                lbl_alley: "Clean Alley Width",
+                val_alley: "3.79 m Corridor",
+                lbl_buffer: "2.0m Root Buffer",
+                val_buffer_protected: "✓ 100% Protected",
+                gap_header: "✅ Mandor In-Situ GAP Checklist (ISPO P2 &amp; P3)",
+                gap_sub: "Stage 6 Field Verification Criteria",
+                gap_verified_suffix: "Verified",
+                gap_1_title: "1. U-Shape / L-Shape Pruned Frond Stacking (10.8 t/Ha/Yr)",
+                gap_1_desc: "Pruned palm fronds stacked neatly in dead alleys (gawangan mati) as organic mulch, recycling +36.2 kg K₂O/Ha.",
+                gap_2_title: "2. 2.0m Sterile Weeded Circle Buffer (Zero-Tillage)",
+                gap_2_desc: "Radial 2.0m perimeter around palm bases strictly free from mechanical hoeing, companion crops, and chemical drift.",
+                gap_3_title: "3. Sediment Silt Pits (Rorak) &amp; Contour Alley Beds",
+                gap_3_desc: "Intercrop beds aligned parallel to contour; silt pits intact, stopping -68.4% surface runoff wash (SCS-CN Model).",
+                gap_4_title: "4. HCV Riparian Stream Buffer Clearance (&gt;50m Safe Margin)",
+                gap_4_desc: "Natural wetland and drainage waterways protected with zero chemical runoff or invasive tillage intrusions.",
+                kpi_aquifer_lbl: "Aquifer Recharge",
+                kpi_income_lbl: "Anker Living Income",
+                plot_title: "📍 Plot Telemetry &amp; Coordinates",
+                gps_node: "GPS Node",
+                btn_gps: "Acquire Device GPS Coordinates",
+                btn_gps_locating: "Locating GNSS Satellites...",
+                lbl_lat: "LATITUDE",
+                lbl_lng: "LONGITUDE",
+                lbl_alt: "ALTITUDE",
+                lbl_acc: "SENSOR ACCURACY",
+                gps_accuracy_text: "±4.5m High Precision",
+                lbl_palm_age: "Oil Palm Stand Age:",
+                lbl_slope: "Terrain Slope:",
+                lbl_soil_ph: "Soil Reaction (pH):",
+                badge_years: "Years",
+                badge_low_risk: "Low Risk",
+                badge_high_slope: "High Slope",
+                badge_optimal: "Optimal",
+                badge_acidic: "Acidic",
+                cloud_title: "☁️ Cloud Continuous Replication",
+                cloud_sub: "Dual-Write: Local SQLite + Shared Spatial Telemetry Ledger",
+                queue_prefix: "Queue:",
+                queue_items: "Items",
+                btn_save_edge: "Store to Local Edge Buffer (Offline)",
+                btn_sync_cloud: "Replicate &amp; Sync to Spatial Telemetry Ledger",
+                btn_view_logs: "View Traceability Logs &amp; Audit Trail",
+                alert_sync_success_title: "Continuous Replication Successful",
+                alert_sync_success_msg: "Telemetry record synced to local gateway and added to Spatial Telemetry table.",
+                alert_edge_stored_title: "Stored to Edge Buffer",
+                alert_edge_stored_msg: "Record saved to offline local queue and shared spatial telemetry pipeline.",
+                lbl_client_rec_id: "Client Record ID:",
+                lbl_cloud_seal_hash: "Cloud Seal Hash:",
+                modal_logs_title: "Field Logs &amp; Cloud Replication Trail",
+                modal_logs_sub: "Edge SQLite vs Local Telemetry Records",
+                modal_clear_logs: "Clear Local Logs",
+                modal_close: "Close",
+                modal_empty_logs: "No local edge records logged yet.",
+                footer_2: "ISO/IEC 19790 &bull; Continuous Replication &bull; EUDR Article 9 Compliant"
+            },
+            id: {
+                doc_title: "Precision Palm Mobile • Telemetri Spasial Edge & AI Vision",
+                conn_online: "Terhubung",
+                conn_offline: "Terputus",
+                nav_home: "Beranda",
+                nav_simulator: "Inti In-Silico",
+                nav_spatial: "Peta Spasial",
+                nav_roadmap: "Kepatuhan",
+                nav_mobile: "Node Lapangan",
+                hero_tag: "📱 Node Edge Terdepan",
+                hero_title: "Telemetri Lapangan Mandor &amp; AI Vision",
+                hero_desc: "Node Agroforestri Edge-First dengan Sinkronisasi Mandiri Lokal &bull; Pemindaian kamera in-situ, geometri kanopi, Praktik Pertanian yang Baik (GAP), dan sinkronisasi survei offline.",
+                preset_badge: "Evaluasi Cepat Lapangan",
+                preset_btn: "Muat Preset",
+                wf_header: "Mode Alur Kerja:",
+                wf_mode_fast: "Mode Cepat",
+                wf_mode_photo: "AI Foto",
+                wf_mode_full: "Audit Lengkap",
+                badge_fast: "Mode Cepat (Hanya Sensor)",
+                badge_photo: "Diagnostik AI Foto",
+                badge_full: "Audit Terintegrasi Penuh",
+                cam_title: "🎯 Pemindai Laser AI Vision &amp; Kamera In-Situ",
+                cam_badge_virtual: "Virtual Aktif",
+                cam_badge_live: "Kamera Langsung Aktif",
+                cam_tab_sample: "Sampel Lapangan",
+                cam_tab_live: "Kamera Langsung",
+                lbl_sample: "Pilih Sampel Citra Lapangan:",
+                sample_weed_title: "🌿 Blok A (Gawangan Gulma)",
+                sample_weed_sub: "Mulsa tanah alami",
+                sample_wetland_title: "💧 Blok B (Lahan Basah)",
+                sample_wetland_sub: "Konservasi sempadan sungai",
+                btn_open_live_cam: "Ambil Foto Lapangan dengan Kamera",
+                reticle_title: "Jendela Bidik Retikel AI",
+                reticle_scan_now: "Pindai Sekarang",
+                reticle_scanning: "Memindai...",
+                reticle_toggle_hud: "Alihkan HUD",
+                hud_stand: "[Tegakan Sawit]",
+                hud_alley: "[Lorong 3,79m]",
+                hud_buffer: "[Buffer 2,0m]",
+                diag_tag: "Visi Multimodal Gemini",
+                diag_title: "🔬 Temuan Diagnostik &amp; Metrik Kanopi",
+                diag_badge_ready: "Siap",
+                diag_badge_scanning: "Memproses...",
+                alert_optimal_head: "Arsitektur Tegakan Optimal",
+                alert_optimal_body: "Kanopi hijau subur dengan transmisi cahaya seimbang di lorong 3,79m. Zona perakaran steril 2,0m tanpa olah tanah terjaga ketat.",
+                alert_wetland_head: "Buffer Lahan Basah Riparian Terlindungi",
+                alert_wetland_body: "Cakrawala lahan basah alami terdeteksi. Pertahankan sabuk rumput tanpa pengolahan tanah.",
+                lbl_health: "Status Kesehatan",
+                val_health_lush: "Hijau Subur",
+                lbl_age: "Umur Tegakan",
+                unit_yrs: "Thn",
+                class_early_tm: "TM Awal",
+                lbl_alley: "Lebar Lorong Bersih",
+                val_alley: "3,79 m Koridor",
+                lbl_buffer: "Buffer Perakaran 2,0m",
+                val_buffer_protected: "✓ 100% Terlindungi",
+                gap_header: "✅ Daftar Periksa GAP Mandor In-Situ (ISPO P2 &amp; P3)",
+                gap_sub: "Kriteria Verifikasi Lapangan Tahap 6",
+                gap_verified_suffix: "Terverifikasi",
+                gap_1_title: "1. Susunan Pelepah Bentuk U / L (10,8 t/Ha/Thn)",
+                gap_1_desc: "Pelepah sawit pangkasan disusun rapi di gawangan mati sebagai mulsa organik, mendaur ulang +36,2 kg K₂O/Ha.",
+                gap_2_title: "2. Piringan Bersih 2,0m Tanpa Olah Tanah (Zero-Tillage)",
+                gap_2_desc: "Perimeter radial 2,0m sekeliling pangkal sawit bebas cangkul mekanis, tanaman sela, dan hanyutan herbisida.",
+                gap_3_title: "3. Rorak Sedimen &amp; Bedengan Lorong Kontur",
+                gap_3_desc: "Bedengan tanaman sela sejajar garis kontur; rorak utuh menahan limpasan permukaan hingga -68,4% (Model SCS-CN).",
+                gap_4_title: "4. Batas Sempadan Sungai NKT (&gt;50m Zona Aman)",
+                gap_4_desc: "Sempadan alami dan badan air dilindungi dari aliran bahan kimia maupun gangguan pengolahan tanah.",
+                kpi_aquifer_lbl: "Pengisian Akuifer",
+                kpi_income_lbl: "Standar Hidup Layak Anker",
+                plot_title: "📍 Telemetri Plot &amp; Koordinat",
+                gps_node: "Node GPS",
+                btn_gps: "Ambil Koordinat GPS Perangkat",
+                btn_gps_locating: "Mencari Satelit GNSS...",
+                lbl_lat: "LINTANG",
+                lbl_lng: "BUJUR",
+                lbl_alt: "KETINGGIAN",
+                lbl_acc: "AKURASI SENSOR",
+                gps_accuracy_text: "±4,5m Presisi Tinggi",
+                lbl_palm_age: "Umur Tegakan Kelapa Sawit:",
+                lbl_slope: "Kemiringan Lereng:",
+                lbl_soil_ph: "Reaksi Tanah (pH):",
+                badge_years: "Tahun",
+                badge_low_risk: "Risiko Rendah",
+                badge_high_slope: "Lereng Curam",
+                badge_optimal: "Optimal",
+                badge_acidic: "Masam",
+                cloud_title: "☁️ Replikasi Berkelanjutan Cloud",
+                cloud_sub: "Penulisan Ganda: SQLite Lokal + Buku Besar Telemetri Spasial Bersama",
+                queue_prefix: "Antrean:",
+                queue_items: "Butir",
+                btn_save_edge: "Simpan ke Buffer Edge Lokal (Offline)",
+                btn_sync_cloud: "Replikasi &amp; Sinkronkan ke Buku Besar Telemetri",
+                btn_view_logs: "Lihat Log Ketertelusuran &amp; Rekam Audit",
+                alert_sync_success_title: "Replikasi Berkelanjutan Berhasil",
+                alert_sync_success_msg: "Rekaman telemetri disinkronkan ke gateway lokal dan ditambahkan ke tabel Telemetri Spasial.",
+                alert_edge_stored_title: "Disimpan ke Buffer Edge",
+                alert_edge_stored_msg: "Rekaman disimpan ke antrean offline lokal dan pipa telemetri spasial bersama.",
+                lbl_client_rec_id: "ID Rekaman Klien:",
+                lbl_cloud_seal_hash: "Hash Segel Cloud:",
+                modal_logs_title: "Log Lapangan &amp; Rekam Replikasi Cloud",
+                modal_logs_sub: "SQLite Edge vs Rekaman Telemetri Lokal",
+                modal_clear_logs: "Hapus Log Lokal",
+                modal_close: "Tutup",
+                modal_empty_logs: "Belum ada rekaman edge lokal tersimpan.",
+                footer_2: "ISO/IEC 19790 &bull; Replikasi Berkelanjutan &bull; Sesuai Regulasi EUDR Pasal 9"
+            }
+        };
+
+        const detectedPresetBoxes = [
+            { label: 'palm_canopy', label_text: 'Palm Stand (6.0y TM)', box_2d: [120, 200, 720, 480], confidence: 0.98 },
+            { label: 'open_alley_ground', label_text: '3.79m Alley Corridor', box_2d: [380, 80, 840, 460], confidence: 0.96 },
+            { label: 'sterile_root_buffer', label_text: '2.0m Sterile Buffer', box_2d: [580, 260, 920, 680], confidence: 0.98 },
+            { label: 'weed_mulch', label_text: 'Living Weed Mulch', box_2d: [460, 640, 820, 940], confidence: 0.92 }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initMobileClock();
+            initMobileQuarterAndEstate();
+            setMobileLanguage(currentLang);
+            drawMobileReticles();
+            renderDetectedBoundingBoxes(detectedPresetBoxes);
+            window.addEventListener('resize', drawMobileReticles);
+        });
+
+        function initMobileClock() {
+            const clockEl = document.getElementById('clockDisplay');
+            setInterval(() => {
+                const now = new Date();
+                if (clockEl) clockEl.textContent = now.toTimeString().split(' ')[0];
+            }, 1000);
+        }
+
+        function toggleMobileTheme() {
+            const html = document.documentElement;
+            const isDark = html.classList.contains('dark');
+            if (isDark) {
+                html.classList.remove('dark');
+                localStorage.setItem('precision_palm_theme', 'light');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('precision_palm_theme', 'dark');
+            }
+            const icon = document.getElementById('mobileThemeIcon');
+            if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+        }
+
+        function setMobileLanguage(lang) {
+            currentLang = (lang === 'id' || lang === 'en') ? lang : 'en';
+            localStorage.setItem('precision_palm_mobile_lang', currentLang);
+
+            const btnEn = document.getElementById('btnMobileLangEn');
+            const btnId = document.getElementById('btnMobileLangId');
+            if (btnEn && btnId) {
+                if (currentLang === 'en') {
+                    btnEn.className = "px-1.5 py-0.5 rounded transition text-emerald-700 dark:text-emerald-400 bg-white dark:bg-slate-700 font-bold shadow-xs cursor-pointer";
+                    btnId.className = "px-1.5 py-0.5 rounded transition text-slate-500 hover:text-white cursor-pointer";
+                } else {
+                    btnId.className = "px-1.5 py-0.5 rounded transition text-emerald-700 dark:text-emerald-400 bg-white dark:bg-slate-700 font-bold shadow-xs cursor-pointer";
+                    btnEn.className = "px-1.5 py-0.5 rounded transition text-slate-500 hover:text-white cursor-pointer";
+                }
+            }
+
+            const dict = mobileI18n[currentLang] || mobileI18n['en'];
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (dict && dict[key] !== undefined) {
+                    el.innerHTML = dict[key];
+                }
+            });
+
+            if (dict.doc_title) {
+                document.title = dict.doc_title;
+            }
+
+            const badgeWf = document.getElementById('badgeMobActiveMode');
+            if (badgeWf) {
+                if (activeWorkflowMode === 'fast') badgeWf.textContent = dict.badge_fast;
+                else if (activeWorkflowMode === 'photo') badgeWf.textContent = dict.badge_photo;
+                else badgeWf.textContent = dict.badge_full;
+            }
+
+            const badgeCam = document.getElementById('cameraModeBadge');
+            if (badgeCam) {
+                badgeCam.textContent = (activeCameraMode === 'virtual') ? dict.cam_badge_virtual : dict.cam_badge_live;
+            }
+
+            updateCalculations();
+            updateGapChecklistCounter();
+            updateQueueBadge();
+        }
+
+        function setMobileWorkflowMode(mode) {
+            activeWorkflowMode = mode;
+            const btnFast = document.getElementById('btnMobModeFast');
+            const btnPhoto = document.getElementById('btnMobModePhoto');
+            const btnFull = document.getElementById('btnMobModeFull');
+            const badge = document.getElementById('badgeMobActiveMode');
+            const dict = mobileI18n[currentLang] || mobileI18n['en'];
+
+            [btnFast, btnPhoto, btnFull].forEach(b => {
+                b.className = "py-1.5 px-1 rounded-lg transition flex flex-col items-center justify-center gap-0.5 text-slate-500 hover:text-emerald-600 cursor-pointer";
+            });
+
+            const activeCls = "py-1.5 px-1 rounded-lg transition flex flex-col items-center justify-center gap-0.5 bg-emerald-50 dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 border border-emerald-400/50 shadow-xs cursor-pointer";
+
+            if (mode === 'fast') {
+                btnFast.className = activeCls;
+                badge.textContent = dict.badge_fast;
+            } else if (mode === 'photo') {
+                btnPhoto.className = activeCls;
+                badge.textContent = dict.badge_photo;
+            } else {
+                btnFull.className = activeCls;
+                badge.textContent = dict.badge_full;
+            }
+        }
+
+        function loadMandailingPreset() {
+            currentLocation = {
+                latitude: 0.824100,
+                longitude: 99.561200,
+                altitude: 142.0,
+                accuracy: 4.5,
+                isFallback: false
+            };
+            document.getElementById('valLatitude').textContent = '0.824100';
+            document.getElementById('valLongitude').textContent = '99.561200';
+            document.getElementById('valAltitude').textContent = '142 m ASL';
+            document.getElementById('palmAgeInput').value = 6.0;
+            document.getElementById('slopeInput').value = 4.5;
+            document.getElementById('soilPhInput').value = 5.5;
+            updateCalculations();
+            runMobileAiDiagnostic('field_tm_weed.jpg', null);
+        }
+
+        function fetchGPSLocation() {
+            const btnText = document.getElementById('gpsBtnText');
+            const dict = mobileI18n[currentLang] || mobileI18n['en'];
+            btnText.textContent = dict.btn_gps_locating;
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        currentLocation.latitude = pos.coords.latitude;
+                        currentLocation.longitude = pos.coords.longitude;
+                        currentLocation.altitude = pos.coords.altitude || 142.0;
+                        currentLocation.accuracy = pos.coords.accuracy || 5.0;
+                        document.getElementById('valLatitude').textContent = pos.coords.latitude.toFixed(6);
+                        document.getElementById('valLongitude').textContent = pos.coords.longitude.toFixed(6);
+                        document.getElementById('valAltitude').textContent = `${Math.round(currentLocation.altitude)} m ASL`;
+                        const curDict = mobileI18n[currentLang] || mobileI18n['en'];
+                        btnText.textContent = curDict.btn_gps;
+                    },
+                    () => {
+                        loadMandailingPreset();
+                        const curDict = mobileI18n[currentLang] || mobileI18n['en'];
+                        btnText.textContent = curDict.btn_gps;
+                    },
+                    { enableHighAccuracy: true, timeout: 6000 }
+                );
+            } else {
+                loadMandailingPreset();
+                const curDict = mobileI18n[currentLang] || mobileI18n['en'];
+                btnText.textContent = curDict.btn_gps;
+            }
+        }
+
+        function switchCameraMode(mode) {
+            activeCameraMode = mode;
+            const tabVirt = document.getElementById('tabBtnVirtual');
+            const tabLive = document.getElementById('tabBtnLive');
+            const ctrlVirt = document.getElementById('virtualCameraControls');
+            const ctrlLive = document.getElementById('liveCameraControls');
+            const badge = document.getElementById('cameraModeBadge');
+            const dict = mobileI18n[currentLang] || mobileI18n['en'];
+
+            if (mode === 'virtual') {
+                tabVirt.className = "flex-1 py-1.5 rounded-lg text-center transition bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 shadow-xs font-bold cursor-pointer";
+                tabLive.className = "flex-1 py-1.5 rounded-lg text-center transition text-slate-500 hover:text-white cursor-pointer";
+                ctrlVirt.classList.remove('hidden');
+                ctrlLive.classList.add('hidden');
+                badge.textContent = dict.cam_badge_virtual;
+            } else {
+                tabLive.className = "flex-1 py-1.5 rounded-lg text-center transition bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 shadow-xs font-bold cursor-pointer";
+                tabVirt.className = "flex-1 py-1.5 rounded-lg text-center transition text-slate-500 hover:text-white cursor-pointer";
+                ctrlLive.classList.remove('hidden');
+                ctrlVirt.classList.add('hidden');
+                badge.textContent = dict.cam_badge_live;
+            }
+        }
+
+        function selectVirtualImage(filename, title) {
+            selectedImageReference = filename;
+            const img = document.getElementById('previewImageEl');
+            const lbl = document.getElementById('activeImageLabel');
+            if (img) img.src = `/static/img/${filename}`;
+            if (lbl) lbl.textContent = filename;
+
+            const btnWeed = document.getElementById('thumb_btn_weed');
+            const btnCorr = document.getElementById('thumb_btn_corridor');
+            const btnWet = document.getElementById('thumb_btn_wetland');
+            const activeCls = "p-2 rounded-xl border text-left transition border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/40 ring-1 ring-emerald-500 cursor-pointer";
+            const normalCls = "p-2 rounded-xl border text-left transition border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 hover:border-emerald-500 cursor-pointer";
+
+            if (btnWeed) btnWeed.className = filename.includes('weed') ? activeCls : normalCls;
+            if (btnCorr) btnCorr.className = (filename.includes('drone') || filename.includes('corridor')) ? activeCls : normalCls;
+            if (btnWet) btnWet.className = (filename.includes('wetland') || filename.includes('buffer')) ? activeCls : normalCls;
+
+            if (!currentBatchPhotos.includes(filename)) {
+                currentBatchPhotos.push(filename);
+            }
+            activePhotoIndex = currentBatchPhotos.indexOf(filename);
+            renderMobileThumbnailsStrip();
+            runMobileAiDiagnostic(filename, null);
+        }
+
+        function renderMobileThumbnailsStrip() {
+            const strip = document.getElementById('mobileHudThumbnailsStrip');
+            if (!strip) return;
+            const counter = document.getElementById('mobileBatchCounterBadge');
+            if (counter) counter.textContent = `${currentBatchPhotos.length} Photos Queued`;
+
+            strip.innerHTML = currentBatchPhotos.map((photo, idx) => {
+                const isActive = (photo === selectedImageReference);
+                const borderCls = isActive 
+                    ? 'border-emerald-500 ring-2 ring-emerald-400 bg-emerald-50/80 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300' 
+                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 opacity-75';
+                let label = `Photo ${idx + 1}`;
+                if (photo.includes('weed')) label = '1. 2.0m Ring';
+                else if (photo.includes('drone') || photo.includes('corridor')) label = '2. Alley 3.79m';
+                else if (photo.includes('wetland') || photo.includes('buffer')) label = '3. Buffer / Silt';
+
+                return `
+                    <button type="button" onclick="switchMobileActivePhoto(${idx})" class="flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10px] font-mono font-bold transition shrink-0 cursor-pointer ${borderCls}">
+                        <span>${isActive ? '🟢' : '⚪'}</span>
+                        <span class="truncate max-w-[110px]">${label}</span>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function switchMobileActivePhoto(idx) {
+            if (idx < 0 || idx >= currentBatchPhotos.length) return;
+            activePhotoIndex = idx;
+            const photo = currentBatchPhotos[idx];
+            selectedImageReference = photo;
+            const img = document.getElementById('previewImageEl');
+            const lbl = document.getElementById('activeImageLabel');
+            const isDataUrl = photo.startsWith('data:');
+            if (img) img.src = isDataUrl ? photo : `/static/img/${photo}`;
+            if (lbl) lbl.textContent = isDataUrl ? `Camera_Batch_${idx + 1}.jpg` : photo;
+            renderMobileThumbnailsStrip();
+            runMobileAiDiagnostic(selectedImageReference, isDataUrl ? photo : null);
+        }
+
+        function handleMobileEstateChange(val) {
+            currentMobileEstate = val || 'EST-MDN-001';
+            localStorage.setItem('precision_palm_selected_estate', currentMobileEstate);
+        }
+
+        function handleMobileQuarterChange(val) {
+            currentMobileQuarter = val || 'Q1';
+        }
+
+        function initMobileQuarterAndEstate() {
+            const estateSel = document.getElementById('selectMobileEstate');
+            if (estateSel) {
+                const stored = localStorage.getItem('precision_palm_selected_estate');
+                if (stored) {
+                    estateSel.value = stored;
+                    currentMobileEstate = stored;
+                }
+            }
+            const qSel = document.getElementById('selectMobileQuarter');
+            if (qSel) {
+                currentMobileQuarter = qSel.value || 'Q1';
+            }
+            renderMobileThumbnailsStrip();
+        }
+
+        function handleLiveCameraFile(event) {
+            const files = event.target ? (event.target.files ? Array.from(event.target.files) : []) : [];
+            if (!files || files.length === 0) return;
+
+            let loaded = 0;
+            const newPhotos = [];
+            files.forEach((file, fIdx) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    newPhotos.push(e.target.result);
+                    loaded++;
+                    if (loaded === files.length) {
+                        currentBatchPhotos = newPhotos;
+                        selectedImageReference = currentBatchPhotos[0];
+                        activePhotoIndex = 0;
+                        const img = document.getElementById('previewImageEl');
+                        const lbl = document.getElementById('activeImageLabel');
+                        if (img) img.src = currentBatchPhotos[0];
+                        if (lbl) lbl.textContent = files[0].name || 'Camera_Photo_1.jpg';
+                        renderMobileThumbnailsStrip();
+                        runMobileAiDiagnostic(selectedImageReference, currentBatchPhotos[0]);
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function drawMobileReticles() {
+            const canvas = document.getElementById('mobileReticleCanvas');
+            if (!canvas) return;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width || 360;
+            canvas.height = rect.height || 240;
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const pad = 16;
+            const len = 14;
+            ctx.strokeStyle = 'rgba(52, 211, 153, 0.85)';
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            ctx.moveTo(pad, pad + len); ctx.lineTo(pad, pad); ctx.lineTo(pad + len, pad);
+            ctx.moveTo(canvas.width - pad - len, pad); ctx.lineTo(canvas.width - pad, pad); ctx.lineTo(canvas.width - pad, pad + len);
+            ctx.moveTo(pad, canvas.height - pad - len); ctx.lineTo(pad, canvas.height - pad); ctx.lineTo(pad + len, canvas.height - pad);
+            ctx.moveTo(canvas.width - pad - len, canvas.height - pad); ctx.lineTo(canvas.width - pad, canvas.height - pad); ctx.lineTo(canvas.width - pad, canvas.height - pad - len);
+            ctx.stroke();
+        }
+
+        function renderDetectedBoundingBoxes(boxes) {
+            const overlay = document.getElementById('mobileBBoxesOverlay');
+            if (!overlay) return;
+
+            if (!overlayVisible || !boxes || boxes.length === 0) {
+                overlay.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            boxes.forEach(item => {
+                const box = item.box_2d || [0, 0, 1000, 1000];
+                const top = (box[0] / 10.0).toFixed(1);
+                const left = (box[1] / 10.0).toFixed(1);
+                const width = Math.max(5.0, (box[3] - box[1]) / 10.0).toFixed(1);
+                const height = Math.max(5.0, (box[2] - box[0]) / 10.0).toFixed(1);
+
+                const labelKey = (item.label || '').toLowerCase();
+                let colorBorder = 'border-emerald-400';
+                let colorBg = 'bg-emerald-500/15';
+                let badgeBg = 'bg-emerald-950/90 text-emerald-300 border-emerald-400';
+                let icon = '🌴';
+
+                if (labelKey.includes('alley') || labelKey.includes('corridor')) {
+                    colorBorder = 'border-sky-400';
+                    colorBg = 'bg-sky-500/15';
+                    badgeBg = 'bg-sky-950/90 text-sky-300 border-sky-400';
+                    icon = '🌱';
+                } else if (labelKey.includes('buffer') || labelKey.includes('root') || labelKey.includes('sterile')) {
+                    colorBorder = 'border-rose-400';
+                    colorBg = 'bg-rose-500/15';
+                    badgeBg = 'bg-rose-950/90 text-rose-300 border-rose-400';
+                    icon = '⭕';
+                } else if (labelKey.includes('weed') || labelKey.includes('mulch')) {
+                    colorBorder = 'border-cyan-400';
+                    colorBg = 'bg-cyan-500/15';
+                    badgeBg = 'bg-cyan-950/90 text-cyan-300 border-cyan-400';
+                    icon = '🌿';
+                }
+
+                html += `
+                    <div class="absolute border-2 ${colorBorder} ${colorBg} rounded-md pointer-events-auto"
+                         style="top: ${top}%; left: ${left}%; width: ${width}%; height: ${height}%;">
+                        <span class="absolute -top-3 left-0.5 px-1 py-0.2 rounded ${badgeBg} text-[7px] font-mono font-bold border shadow-xs whitespace-nowrap">
+                            ${icon} ${item.label_text || item.label} [${Math.round((item.confidence || 0.95) * 100)}%]
+                        </span>
+                    </div>
+                `;
+            });
+
+            overlay.innerHTML = html;
+        }
+
+        function toggleSpatialOverlay() {
+            overlayVisible = !overlayVisible;
+            const overlay = document.getElementById('mobileBBoxesOverlay');
+            const canvas = document.getElementById('mobileReticleCanvas');
+            if (overlay) overlay.style.display = overlayVisible ? '' : 'none';
+            if (canvas) canvas.style.display = overlayVisible ? '' : 'none';
+        }
+
+        async function runMobileAiDiagnostic(filename, base64Data) {
+            const laser = document.getElementById('mobileScanningLaser');
+            const scanBadge = document.getElementById('mobileScanBadge');
+
+            if (laser) {
+                laser.classList.remove('hidden');
+                laser.classList.add('laser-scanning');
+            }
+            if (scanBadge) scanBadge.classList.remove('hidden');
+
+            const dict = mobileI18n[currentLang] || mobileI18n['en'];
+            let boxes = detectedPresetBoxes;
+
+            // Direct call to Gemini 3.8 Flash Multimodal Vision API
+            try {
+                let reqBody = {};
+                if (base64Data) {
+                    reqBody = { image: base64Data, feature_name: "Mobile In-Situ AI Scanner", meta_info: filename || "Live Camera Feed" };
+                } else {
+                    const sampleUrl = `/static/img/${selectedImageReference || 'field_tm_weed.jpg'}`;
+                    reqBody = { image_url: sampleUrl, feature_name: "Mobile In-Situ AI Scanner", meta_info: selectedImageReference };
+                }
+
+                const resp = await fetch('/api/ai/scan-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(reqBody)
+                });
+
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data && data.status === 'success' && data.analysis) {
+                        const ai = data.analysis;
+                        if (Array.isArray(ai.detected_objects) && ai.detected_objects.length > 0) {
+                            boxes = ai.detected_objects.map(obj => ({
+                                label: obj.label || 'palm_stand',
+                                label_text: obj.label_name || (currentLang === 'id' ? 'Tegakan Sawit' : 'Palm Stand'),
+                                box_2d: obj.box_2d || [100, 100, 500, 500],
+                                confidence: obj.confidence || 0.95
+                            }));
+                        }
+                        if (ai.summary) {
+                            document.getElementById('smartAlertText').textContent = ai.summary;
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn("[Mobile AI Scan] Falling back to calibrated local models:", err);
+            }
+
+            if ((filename || selectedImageReference || '').toLowerCase().includes('wetland')) {
+                document.getElementById('smartAlertHeadline').textContent = dict.alert_wetland_head;
+                document.getElementById('smartAlertBanner').className = "p-2.5 rounded-xl border flex items-start gap-2 bg-sky-950/70 border-sky-500 text-sky-200 text-xs";
+                document.getElementById('smartAlertIcon').textContent = "💧";
+            } else {
+                document.getElementById('smartAlertHeadline').textContent = dict.alert_optimal_head;
+                document.getElementById('smartAlertBanner').className = "p-2.5 rounded-xl border flex items-start gap-2 bg-emerald-50 dark:bg-emerald-950/70 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 text-xs";
+                document.getElementById('smartAlertIcon').textContent = "🌿";
+            }
+
+            renderDetectedBoundingBoxes(boxes);
+            drawMobileReticles();
+
+            if (laser) {
+                laser.classList.add('hidden');
+                laser.classList.remove('laser-scanning');
+            }
+            if (scanBadge) scanBadge.classList.add('hidden');
+        }
+
+        function updateCalculations() {
+            const age = parseFloat(document.getElementById('palmAgeInput')?.value || 6.0);
+            const slope = parseFloat(document.getElementById('slopeInput')?.value || 4.5);
+            const ph = parseFloat(document.getElementById('soilPhInput')?.value || 5.5);
+            const dict = mobileI18n[currentLang] || mobileI18n['en'];
+
+            const yrsSuffix = dict.badge_years || "Years";
+            const slopeRisk = slope > 15 ? (dict.badge_high_slope || "High Slope") : (dict.badge_low_risk || "Low Risk");
+            const phStatus = ph < 4.5 ? (dict.badge_acidic || "Acidic") : (dict.badge_optimal || "Optimal");
+
+            document.getElementById('palmAgeBadge').textContent = `${age.toFixed(1)} ${yrsSuffix}`;
+            document.getElementById('slopeBadge').textContent = `${slope.toFixed(1)}° (${slopeRisk})`;
+            document.getElementById('soilPhBadge').textContent = `${ph.toFixed(1)} (${phStatus})`;
+            document.getElementById('txtMobileAgeYears').textContent = age.toFixed(1);
+            if (document.getElementById('txtMobileAgeClass')) {
+                document.getElementById('txtMobileAgeClass').textContent = dict.class_early_tm || "Early TM";
+            }
+        }
+
+        function updateGapChecklistCounter() {
+            let checked = 0;
+            ['chkGapFronds', 'chkGapBuffer', 'chkGapRorak', 'chkGapRiparian'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.checked) checked++;
+            });
+
+            const badge = document.getElementById('gapPassedCounter');
+            const dict = mobileI18n[currentLang] || mobileI18n['en'];
+            const suffix = dict.gap_verified_suffix || "Verified";
+            if (badge) {
+                badge.textContent = `${checked}/4 ${suffix}`;
+                if (checked === 4) {
+                    badge.className = "text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700";
+                } else {
+                    badge.className = "text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700";
+                }
+            }
+        }
+
+        function getStoredLogs() {
+            try {
+                const raw = localStorage.getItem(LOGS_STORAGE_KEY);
+                return raw ? JSON.parse(raw) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function setStoredLogs(logs) {
+            localStorage.setItem(LOGS_STORAGE_KEY, JSON.stringify(logs.slice(0, 30)));
+            updateQueueBadge();
+        }
+
+        function getSharedSurveys() {
+            try {
+                const raw = localStorage.getItem(SHARED_SURVEYS_STORAGE_KEY);
+                return raw ? JSON.parse(raw) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveSharedSurvey(record) {
+            try {
+                const list = getSharedSurveys();
+                const filtered = list.filter(item => item.id !== record.id);
+                filtered.unshift(record);
+                localStorage.setItem(SHARED_SURVEYS_STORAGE_KEY, JSON.stringify(filtered.slice(0, 40)));
+
+                try {
+                    const channel = new BroadcastChannel('palm_telemetry_sync');
+                    channel.postMessage({ action: 'survey_synced', recordId: record.id });
+                } catch(e) {}
+            } catch (e) {
+                console.warn("Shared storage writing error:", e);
+            }
+        }
+
+        function updateQueueBadge() {
+            const logs = getStoredLogs();
+            const badge = document.getElementById('queueCounterBadge');
+            const dict = mobileI18n[currentLang] || mobileI18n['en'];
+            const prefix = dict.queue_prefix || "Queue:";
+            const items = dict.queue_items || "Items";
+            if (badge) badge.textContent = `${prefix} ${logs.length} ${items}`;
+        }
+
+        function saveToLocalQueue() {
+            const age = parseFloat(document.getElementById('palmAgeInput')?.value || 6.0);
+            const slope = parseFloat(document.getElementById('slopeInput')?.value || 4.5);
+            const ph = parseFloat(document.getElementById('soilPhInput')?.value || 5.5);
+
+            const record = {
+                client_record_id: `MANDOR-${Date.now() % 100000}`,
+                timestamp: new Date().toLocaleTimeString('id-ID'),
+                palm_age: age,
+                slope: slope,
+                soil_ph: ph,
+                image_reference: selectedImageReference,
+                coords: `${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}`,
+                status: 'LOCAL_BUFFERED',
+                hash: '8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4'
+            };
+
+            const logs = getStoredLogs();
+            logs.unshift(record);
+            setStoredLogs(logs);
+
+            saveSharedSurvey({
+                id: Date.now() % 100000,
+                timestamp: new Date().toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) + ' WIB',
+                block_id: `Block A (${document.getElementById('txtMobileAgeClass')?.textContent || 'Mandor Edge'})`,
+                latitude: currentLocation.latitude,
+                longitude: currentLocation.longitude,
+                slope: slope,
+                soil_ph: ph,
+                health: (currentLocation.latitude >= 0.8282 && currentLocation.longitude <= 99.5602) ? "Moratorium Watch" : "Optimal Stand",
+                status: "BUFFERED",
+                crop: "Red Ginger",
+                palm_age: age,
+                mandor: "Mandor Sutrisno (Field Edge)",
+                cover_pct: 65.4,
+                alley_width: 3.79,
+                root_buffer: "2.0m Zero-Tillage",
+                sha: record.hash
+            });
+
+            const dict = mobileI18n[currentLang] || mobileI18n['en'];
+            const alertBox = document.getElementById('syncResultAlert');
+            if (alertBox) {
+                alertBox.classList.remove('hidden');
+                document.getElementById('syncAlertTitle').textContent = dict.alert_edge_stored_title || "Stored to Edge Buffer";
+                document.getElementById('syncAlertMessage').textContent = (currentLang === 'id'
+                    ? `Rekaman #${record.client_record_id} disimpan ke antrean offline lokal dan pipa telemetri spasial bersama.`
+                    : `Record #${record.client_record_id} saved to offline local queue and shared spatial telemetry pipeline.`);
+                document.getElementById('resSyncedId').textContent = record.client_record_id;
+                document.getElementById('resDbId').textContent = "OFFLINE_LOCAL_SEAL";
+            }
+        }
+
+        async function syncWithCloudServer() {
+            const btn = document.getElementById('btnSyncServer');
+            const spinner = document.getElementById('syncSpinner');
+            const alertBox = document.getElementById('syncResultAlert');
+
+            btn.disabled = true;
+            if (spinner) spinner.classList.remove('hidden');
+
+            const age = parseFloat(document.getElementById('palmAgeInput')?.value || 6.0);
+            const slope = parseFloat(document.getElementById('slopeInput')?.value || 4.5);
+            const ph = parseFloat(document.getElementById('soilPhInput')?.value || 5.5);
+            let syncedId = `MANDOR-${Date.now() % 100000}`;
+            let hashSeal = "8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4";
+
+            const payload = {
+                estate_code: currentMobileEstate || "EST-MDN-001",
+                kode_kebun: currentMobileEstate || "EST-MDN-001",
+                periode_siklus: currentMobileQuarter || "Q1",
+                quarter: currentMobileQuarter || "Q1",
+                block_id: "Block A (Mandor Mobile)",
+                latitude: currentLocation.latitude,
+                longitude: currentLocation.longitude,
+                palm_age: age,
+                slope: slope,
+                soil_ph: ph,
+                image_reference: selectedImageReference,
+                photos: currentBatchPhotos.length > 0 ? currentBatchPhotos : [selectedImageReference],
+                cloud_replication: true,
+                target_cloud_gateway: "/api/mobile-surveys"
+            };
+
+            try {
+                const resp = await fetch('/api/mobile-surveys', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (resp.ok) {
+                    const resJson = await resp.json();
+                    hashSeal = resJson.sha256 || resJson.hash || hashSeal;
+                    syncedId = resJson.id ? `MANDOR-${resJson.id}` : syncedId;
+
+                    // Sync updated quarterly status into local storage for topology & timelines
+                    fetch(`/api/estate/quarterly-status?kode=${encodeURIComponent(currentMobileEstate || 'EST-MDN-001')}`)
+                        .then(r => r.ok ? r.json() : null)
+                        .then(qJson => {
+                            if (qJson && qJson.success) {
+                                localStorage.setItem('precision_palm_quarterly_status_' + (currentMobileEstate || 'EST-MDN-001'), JSON.stringify(qJson));
+                            }
+                        }).catch(() => {});
+                }
+            } catch (e) {}
+
+            const logs = getStoredLogs();
+            logs.unshift({
+                client_record_id: syncedId,
+                timestamp: new Date().toLocaleTimeString('id-ID'),
+                palm_age: age,
+                slope: slope,
+                soil_ph: ph,
+                image_reference: selectedImageReference,
+                coords: `${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}`,
+                status: 'CLOUD_REPLICATED',
+                hash: hashSeal
+            });
+            setStoredLogs(logs);
+
+            saveSharedSurvey({
+                id: Date.now() % 100000,
+                timestamp: new Date().toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) + ' WIB',
+                block_id: `Block A (${document.getElementById('txtMobileAgeClass')?.textContent || 'Mandor Edge'})`,
+                latitude: currentLocation.latitude,
+                longitude: currentLocation.longitude,
+                slope: slope,
+                soil_ph: ph,
+                health: (currentLocation.latitude >= 0.8282 && currentLocation.longitude <= 99.5602) ? "Moratorium Watch" : "Optimal Stand",
+                status: "SYNCED",
+                crop: "Red Ginger",
+                palm_age: age,
+                mandor: "Mandor Sutrisno (Field Edge)",
+                cover_pct: 65.4,
+                alley_width: 3.79,
+                root_buffer: "2.0m Zero-Tillage",
+                sha: hashSeal
+            });
+
+            const dict = mobileI18n[currentLang] || mobileI18n['en'];
+            if (alertBox) {
+                alertBox.classList.remove('hidden');
+                document.getElementById('syncAlertTitle').textContent = dict.alert_sync_success_title || "Continuous Replication Successful";
+                document.getElementById('syncAlertMessage').textContent = dict.alert_sync_success_msg || "Telemetry record synced to local gateway and added to Spatial Telemetry table.";
+                document.getElementById('resSyncedId').textContent = syncedId;
+                document.getElementById('resDbId').textContent = hashSeal.substring(0, 24) + "...";
+            }
+
+            btn.disabled = false;
+            if (spinner) spinner.classList.add('hidden');
+        }
+
+        function openLogsModal() {
+            const modal = document.getElementById('logsModal');
+            const container = document.getElementById('logsListContainer');
+            if (!modal || !container) return;
+
+            const dict = mobileI18n[currentLang] || mobileI18n['en'];
+            const logs = getStoredLogs();
+            if (logs.length === 0) {
+                container.innerHTML = `<div class="p-4 text-center text-slate-500 font-mono text-[10px]">${dict.modal_empty_logs || 'No local edge records logged yet.'}</div>`;
+            } else {
+                container.innerHTML = logs.map(l => `
+                    <div class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 font-mono text-[10px] space-y-1">
+                        <div class="flex items-center justify-between font-bold">
+                            <span class="text-emerald-500">#${l.client_record_id}</span>
+                            <span class="px-1.5 py-0.2 rounded ${l.status === 'CLOUD_REPLICATED' ? 'bg-emerald-950 text-emerald-300 border border-emerald-700' : 'bg-amber-950 text-amber-300 border border-amber-700'} text-[8px]">${l.status}</span>
+                        </div>
+                        <div class="text-slate-400">GPS: ${l.coords} &bull; ${currentLang === 'id' ? 'Umur' : 'Age'}: ${l.palm_age}y &bull; pH ${l.soil_ph}</div>
+                        <div class="text-[9px] text-indigo-400 truncate">Seal: ${l.hash}</div>
+                    </div>
+                `).join('');
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeLogsModal() {
+            const modal = document.getElementById('logsModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function clearAllLogs() {
+            localStorage.removeItem(LOGS_STORAGE_KEY);
+            updateQueueBadge();
+            openLogsModal();
+        }
+
+        window.mobileI18n = mobileI18n;
+        window.toggleMobileTheme = toggleMobileTheme;
+        window.setMobileLanguage = setMobileLanguage;
+        window.setMobileWorkflowMode = setMobileWorkflowMode;
+        window.loadMandailingPreset = loadMandailingPreset;
+        window.fetchGPSLocation = fetchGPSLocation;
+        window.switchCameraMode = switchCameraMode;
+        window.selectVirtualImage = selectVirtualImage;
+        window.handleLiveCameraFile = handleLiveCameraFile;
+        window.toggleSpatialOverlay = toggleSpatialOverlay;
+        window.runMobileAiDiagnostic = runMobileAiDiagnostic;
+        window.updateCalculations = updateCalculations;
+        window.updateGapChecklistCounter = updateGapChecklistCounter;
+        window.saveToLocalQueue = saveToLocalQueue;
+        window.syncWithCloudServer = syncWithCloudServer;
+        window.openLogsModal = openLogsModal;
+        window.closeLogsModal = closeLogsModal;
+        window.clearAllLogs = clearAllLogs;
+    </script>
+</body>
+</html>

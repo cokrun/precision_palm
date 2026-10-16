@@ -1,0 +1,466 @@
+<!-- templates/partials/floating_stepper.html -->
+<!-- 
+  Precision Palm - Floating Workflow Stepper & Quick HUD Navigation
+  Features:
+  1. Top Logo Toggle: Click logo icon.png at the apex to collapse/hide or expand the stepper.
+  2. Active Focus: Default view only shows circular numbers (1-7), with only the currently active stage showing its label.
+  3. Full Expand on Hover: Hovering reveals all labels (Add Application -> Lifecycle Topology).
+  4. Auto-Hide: Automatically collapses to just the floating logo if user is outside the 7 workflow pages.
+-->
+
+<style>
+  /* Container Floating Stepper */
+  #ppFloatingStepper {
+    position: fixed;
+    right: 18px;
+    top: calc(50% - 20px);
+    transform: translateY(-50%);
+    z-index: 45;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    user-select: none;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Connecting Track Line */
+  .pp-stepper-track {
+    position: absolute;
+    right: 15px;
+    top: 40px;
+    bottom: 24px;
+    width: 3px;
+    background: linear-gradient(180deg, rgba(47, 111, 159, 0.4) 0%, rgba(77, 124, 42, 0.6) 50%, rgba(47, 111, 159, 0.4) 100%);
+    border-radius: 9999px;
+    z-index: 1;
+    transition: opacity 0.3s ease;
+  }
+
+  /* Logo Toggle Button at the top */
+  .pp-stepper-logo-btn {
+    position: relative;
+    z-index: 10;
+    width: 34px;
+    height: 34px;
+    border-radius: 9999px;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border: 2px solid #38bdf8;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35), 0 0 12px rgba(56, 189, 248, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    margin-bottom: 8px;
+    padding: 3px;
+  }
+
+  .pp-stepper-logo-btn:hover {
+    transform: scale(1.1);
+    border-color: #4ade80;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 16px rgba(74, 222, 128, 0.45);
+  }
+
+  .pp-stepper-logo-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 9999px;
+    pointer-events: none;
+  }
+
+  /* Mini toggle badge on the logo */
+  .pp-stepper-toggle-hint {
+    position: absolute;
+    bottom: -3px;
+    right: -3px;
+    width: 15px;
+    height: 15px;
+    border-radius: 9999px;
+    background: #0284c7;
+    border: 1.5px solid #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    color: #ffffff;
+    font-weight: 900;
+    transition: all 0.25s ease;
+  }
+
+  .pp-stepper-logo-btn:hover .pp-stepper-toggle-hint {
+    background: #16a34a;
+    transform: scale(1.15);
+  }
+
+  /* List of Steps */
+  .pp-stepper-list {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Single Step Item */
+  .pp-step-item {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    text-decoration: none;
+    position: relative;
+    cursor: pointer;
+    gap: 8px;
+  }
+
+  /* Circle Badge (Number) */
+  .pp-step-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #ffffff;
+    background-color: #2f6f9f; /* Warna biru sesuai gambar */
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    flex-shrink: 0;
+    z-index: 3;
+  }
+
+  .pp-step-item:hover .pp-step-circle {
+    transform: scale(1.12);
+    box-shadow: 0 5px 14px rgba(47, 111, 159, 0.5);
+    border-color: #ffffff;
+  }
+
+  /* Active Circle (Warna Hijau sesuai gambar) */
+  .pp-step-item.is-active .pp-step-circle {
+    background-color: #4d7c2a !important; /* Hijau persis gambar */
+    border: 2px solid #a3e635;
+    box-shadow: 0 4px 15px rgba(77, 124, 42, 0.5), 0 0 10px rgba(163, 230, 53, 0.35);
+    transform: scale(1.08);
+  }
+
+  /* Label Box (Kotak teks di kiri bulatan) */
+  .pp-step-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #ffffff;
+    white-space: nowrap;
+    border-radius: 4px;
+    background-color: #2f6f9f; /* Biru default */
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(12px) scale(0.95);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  /* Label Active (Warna Hijau default tampak) */
+  .pp-step-item.is-active .pp-step-label {
+    background-color: #4d7c2a !important; /* Hijau aktif */
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0) scale(1);
+    box-shadow: 0 4px 14px rgba(77, 124, 42, 0.4);
+    border-color: rgba(255, 255, 255, 0.35);
+  }
+
+  /* Saat Hover Container Stepper: Semua Label Terbuka (Full Expanded) */
+  #ppFloatingStepper:hover .pp-step-label,
+  #ppFloatingStepper.force-expanded .pp-step-label {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0) scale(1);
+  }
+
+  /* Hover efek pada label individual */
+  .pp-step-item:hover .pp-step-label {
+    filter: brightness(1.12);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  /* STATE: MINIMIZED / HIDDEN / AUTO-HIDE DI LUAR WORKFLOW */
+  #ppFloatingStepper.is-minimized .pp-stepper-list,
+  #ppFloatingStepper.is-minimized .pp-stepper-track {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.8) translateY(-10px);
+    max-height: 0;
+    overflow: hidden;
+  }
+
+  #ppFloatingStepper.is-minimized .pp-stepper-logo-btn {
+    margin-bottom: 0;
+    border-color: #e2e8f0;
+    background: #0f172a;
+    animation: ppPulseSoft 3s infinite ease-in-out;
+  }
+
+  #ppFloatingStepper.is-minimized .pp-stepper-toggle-hint {
+    background: #475569;
+  }
+
+  #ppFloatingStepper.is-minimized:hover .pp-stepper-logo-btn {
+    border-color: #38bdf8;
+    transform: scale(1.15);
+  }
+
+  /* Tooltip mini saat minimized */
+  .pp-stepper-mini-tooltip {
+    position: absolute;
+    right: 52px;
+    top: 50%;
+    transform: translateY(-50%) translateX(10px);
+    background: #0f172a;
+    color: #38bdf8;
+    border: 1px solid #0284c7;
+    padding: 5px 11px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  }
+
+  #ppFloatingStepper.is-minimized:hover .pp-stepper-mini-tooltip {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+
+  @keyframes ppPulseSoft {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(56, 189, 248, 0); }
+  }
+
+  /* Responsif Mobile (< 640px) */
+  @media (max-width: 640px) {
+    #ppFloatingStepper {
+      right: 10px;
+    }
+    .pp-step-circle {
+      width: 34px;
+      height: 34px;
+      font-size: 13px;
+    }
+    .pp-stepper-track {
+      right: 16px;
+    }
+    .pp-stepper-logo-btn {
+      width: 36px;
+      height: 36px;
+    }
+    .pp-step-label {
+      padding: 5px 10px;
+      font-size: 11px;
+    }
+  }
+</style>
+
+<!-- Floating Stepper Wrapper -->
+<aside id="ppFloatingStepper" aria-label="Workflow Floating Stepper" class="is-autohidden">
+  
+  <!-- 1. Logo Paling Atas (Sekaligus Tombol Sembunyikan / Tampilkan) -->
+  <button type="button" id="ppStepperLogoBtn" class="pp-stepper-logo-btn" onclick="togglePpStepper()" title="Precision Palm Workflow Menu (Click to Hide/Show)" data-i18n-title="stepper_toggle_title">
+    <img src="/icon.png" alt="Precision Palm Logo" onerror="this.onerror=null; this.src='/static/icon.png';" />
+    <span class="pp-stepper-toggle-hint" id="ppStepperHintIcon">▲</span>
+    <span class="pp-stepper-mini-tooltip" id="ppMiniTooltip" data-i18n="stepper_mini_tooltip">Open 7-Stage Workflow Menu</span>
+  </button>
+
+  <!-- Track Line Garis Penghubung Vertikal -->
+  <div class="pp-stepper-track" aria-hidden="true"></div>
+
+  <!-- 2. Daftar 7 Langkah Alur Kerja Sesuai Gambar -->
+  <ul class="pp-stepper-list" id="ppStepperList" role="list">
+    
+    <!-- Step 1: Add Application -->
+    <li role="listitem">
+      <a href="/permohonan" class="pp-step-item" data-step="1" data-paths='["/permohonan"]' title="Stage 1: Add Application (/permohonan)">
+        <span class="pp-step-label" id="ppStepLabel1" data-i18n="stepper_nav_step1">Add Application</span>
+        <span class="pp-step-circle">1</span>
+      </a>
+    </li>
+
+    <!-- Step 2: List Application -->
+    <li role="listitem">
+      <a href="/pendaftaran" class="pp-step-item" data-step="2" data-paths='["/pendaftaran"]' title="Stage 2: List Application (/pendaftaran)">
+        <span class="pp-step-label" data-i18n="stepper_nav_step2">List Application</span>
+        <span class="pp-step-circle">2</span>
+      </a>
+    </li>
+
+    <!-- Step 3: Spatial Audit -->
+    <li role="listitem">
+      <a href="/spatial" class="pp-step-item" data-step="3" data-paths='["/spatial"]' title="Stage 3: Spatial Audit (/spatial)">
+        <span class="pp-step-label" data-i18n="stepper_nav_step3">Spatial Audit</span>
+        <span class="pp-step-circle">3</span>
+      </a>
+    </li>
+
+    <!-- Step 4: In Silico Engine -->
+    <li role="listitem">
+      <a href="/proses" class="pp-step-item" data-step="4" data-paths='["/proses", "/simulator"]' title="Stage 4: In Silico Engine (/proses, /simulator)">
+        <span class="pp-step-label" data-i18n="stepper_nav_step4">In Silico Engine</span>
+        <span class="pp-step-circle">4</span>
+      </a>
+    </li>
+
+    <!-- Step 5: Surveillance -->
+    <li role="listitem">
+      <a href="/timelines" class="pp-step-item" data-step="5" data-paths='["/timelines"]' title="Stage 5: Surveillance (/timelines)">
+        <span class="pp-step-label" data-i18n="stepper_nav_step5">Surveillance</span>
+        <span class="pp-step-circle">5</span>
+      </a>
+    </li>
+
+    <!-- Step 6: Compliance -->
+    <li role="listitem">
+      <a href="/roadmap" class="pp-step-item" data-step="6" data-paths='["/roadmap"]' title="Stage 6: Compliance (/roadmap)">
+        <span class="pp-step-label" data-i18n="stepper_nav_step6">Compliance</span>
+        <span class="pp-step-circle">6</span>
+      </a>
+    </li>
+
+    <!-- Step 7: Lifecycle Topology -->
+    <li role="listitem">
+      <a href="/topologi" class="pp-step-item" data-step="7" data-paths='["/topologi"]' title="Stage 7: Lifecycle Topology (/topologi)">
+        <span class="pp-step-label" data-i18n="stepper_nav_step7">Lifecycle Topology</span>
+        <span class="pp-step-circle">7</span>
+      </a>
+    </li>
+
+    <!-- Step G: Guide & Walkthrough -->
+    <li role="listitem">
+      <a href="/guide" class="pp-step-item" data-step="G" data-paths='["/guide"]' title="Interactive Process Guide (/guide)">
+        <span class="pp-step-label" data-i18n="stepper_nav_guide">Guide</span>
+        <span class="pp-step-circle" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); font-weight: 800; border-color: #38bdf8;">G</span>
+      </a>
+    </li>
+
+  </ul>
+</aside>
+
+<script>
+  (function () {
+    const stepper = document.getElementById('ppFloatingStepper');
+    const hintIcon = document.getElementById('ppStepperHintIcon');
+    const miniTooltip = document.getElementById('ppMiniTooltip');
+    const stepLabel1 = document.getElementById('ppStepLabel1');
+
+    if (!stepper) return;
+
+    // Normalisasi pathname
+    const currentPath = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
+
+    // Periksa apakah halaman aktif adalah salah satu dari 7 halaman alur kerja
+    const stepItems = stepper.querySelectorAll('.pp-step-item');
+    let matchedStep = null;
+
+    stepItems.forEach(item => {
+      try {
+        const paths = JSON.parse(item.getAttribute('data-paths') || '[]');
+        const isMatched = paths.some(p => {
+          const normP = p.toLowerCase().replace(/\/$/, '') || '/';
+          if (normP === '/' && currentPath === '/') return true;
+          if (normP !== '/' && (currentPath === normP || currentPath.startsWith(normP + '/'))) return true;
+          return false;
+        });
+
+        if (isMatched && !matchedStep) {
+          matchedStep = item;
+          item.classList.add('is-active');
+        } else {
+          item.classList.remove('is-active');
+        }
+      } catch (err) {
+        console.error('Error parsing step paths:', err);
+      }
+    });
+
+    // Pertahankan parameter kode/id dossier saat navigasi antar-step
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeKode = urlParams.get('kode');
+    const activeId = urlParams.get('id');
+    if ((activeKode && activeKode !== 'undefined') || (activeId && activeId !== 'undefined')) {
+      stepItems.forEach(item => {
+        let baseHref = item.getAttribute('href');
+        if (baseHref && !baseHref.startsWith('#')) {
+          const sep = baseHref.includes('?') ? '&' : '?';
+          const param = (activeKode && activeKode !== 'undefined') 
+            ? `kode=${encodeURIComponent(activeKode)}` 
+            : `id=${encodeURIComponent(activeId)}`;
+          item.setAttribute('href', `${baseHref}${sep}${param}`);
+        }
+      });
+    }
+
+    // Auto-hide behavior: Halaman index.html (/) selalu tampil HANYA ICON secara default
+    const isHomePage = (currentPath === '/' || currentPath === '/index' || currentPath === '/index.html');
+    const isInWorkflow = Boolean(matchedStep) && !isHomePage;
+    const savedManualHide = localStorage.getItem('pp_stepper_user_hidden');
+
+    function updateTooltipText() {
+      if (!miniTooltip) return;
+      const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+      const activeStepNum = matchedStep ? matchedStep.getAttribute('data-step') : '';
+      if (activeStepNum === 'G') {
+        miniTooltip.textContent = isId ? 'Panduan Interaktif • Buka Menu' : 'Interactive Guide • Open Menu';
+      } else if (activeStepNum) {
+        miniTooltip.textContent = isId ? `Tahap ${activeStepNum} • Buka Menu Alur` : `Stage ${activeStepNum} • Open Workflow Menu`;
+      } else {
+        miniTooltip.textContent = isId ? 'Buka Menu Alur Sistem' : 'Open System Workflow Menu';
+      }
+    }
+
+    if (isHomePage) {
+      setStepperMinimized(true);
+      updateTooltipText();
+    } else if (savedManualHide === 'true') {
+      setStepperMinimized(true);
+    } else if (isInWorkflow) {
+      setStepperMinimized(false);
+    } else {
+      setStepperMinimized(true);
+      updateTooltipText();
+    }
+
+    // Helper toggle minimize / expand
+    window.togglePpStepper = function () {
+      const isCurrentlyMinimized = stepper.classList.contains('is-minimized');
+      const newState = !isCurrentlyMinimized;
+      setStepperMinimized(newState);
+      localStorage.setItem('pp_stepper_user_hidden', newState ? 'true' : 'false');
+    };
+
+    function setStepperMinimized(minimized) {
+      if (minimized) {
+        stepper.classList.add('is-minimized');
+        if (hintIcon) hintIcon.textContent = '▼';
+        updateTooltipText();
+      } else {
+        stepper.classList.remove('is-minimized');
+        if (hintIcon) hintIcon.textContent = '▲';
+      }
+    }
+
+    window.addEventListener('languagechanged', updateTooltipText);
+  })();
+</script>

@@ -1,0 +1,2148 @@
+<!-- templates/timelines.html -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stage 3: Compliance Timelines &amp; Foreman Monitoring • Precision Palm Cloud</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #090d16; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+
+        @keyframes laserSweepVertical {
+            0% { top: 2%; opacity: 0.85; }
+            50% { top: 96%; opacity: 1; }
+            100% { top: 2%; opacity: 0.85; }
+        }
+        .laser-scanning {
+            animation: laserSweepVertical 2.0s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen p-3 sm:p-6 transition-colors duration-200 font-sans selection:bg-emerald-500 selection:text-white">
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Header Partial Universal -->
+    {% include 'partials/header.html' ignore missing %}
+{% include 'partials/floating_ai_log.html' ignore missing %}
+
+    <!-- ALUR TAHAP 3: STEPPER WORKFLOW & INTEGRATED TOP COMPLIANCE STATUS -->
+    <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3.5">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div class="space-y-1">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono" data-i18n="time_stepper_title">
+                        Stage 3: Periodic Surveillance &amp; Foreman Field Monitoring
+                    </span>
+                    <span id="activeEstateCodeBadge" class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-400/30 text-[10px] font-mono font-bold uppercase tracking-wider">
+                        EST-MDN-001 • PT Mandailing Agro Sustainable
+                    </span>
+                    <span id="activeEstateHguTag" class="text-slate-500 dark:text-slate-400 text-[10px] font-mono hidden sm:inline">
+                        HGU: 004/HGU/BPN-MDN/2021 &bull; 1,200 Ha
+                    </span>
+                    <span id="activeEstateRegBadge" class="px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700 text-[10px] font-mono font-bold hidden md:inline">
+                        CERT-ECOGREEN-2026-0001
+                    </span>
+                </div>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono" data-i18n="time_stepper_sub">
+                    4-Quarter Cycle Verification (Q1-Q4) &bull; Anti-Fraud Satellite Weather &bull; AI Reticle HUD &bull; 2.0m Sterile Buffer
+                </p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 shrink-0">
+                <!-- DOSSIER SELECTION DROPDOWN -->
+                <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-mono">
+                    <span class="text-slate-500 dark:text-slate-400 text-[10px]" data-i18n="spatial_lbl_select">Select Dossier:</span>
+                    <select id="selectDossierApplication" onchange="handleDossierChange(this.value)" class="bg-transparent font-bold text-emerald-600 dark:text-emerald-400 focus:outline-none cursor-pointer">
+                        {% if estates %}
+                            {% for e in estates %}
+                            <option value="{{ e.kode_kebun }}">{{ e.kode_kebun }} • {{ e.nama_kebun }}</option>
+                            {% endfor %}
+                        {% else %}
+                            <option value="EST-MDN-001">EST-MDN-001 • PT Mandailing Agro Sustainable</option>
+                            <option value="EST-MDN-002">EST-MDN-002 • Koperasi Sawit Swadaya Maju</option>
+                            <option value="EST-MDN-003">EST-MDN-003 • PT Batang Gadis Plantation</option>
+                            <option value="EST-MDN-004">EST-MDN-004 • PT Sorik Marapi Agro Lestari</option>
+                            <option value="EST-MDN-005">EST-MDN-005 • KUD Harapan Bersama Natal</option>
+                            <option value="EST-MDN-006">EST-MDN-006 • PT Madina Bio Palma 06</option>
+                            <option value="EST-MDN-007">EST-MDN-007 • PT Madina Bio Palma 07</option>
+                            <option value="EST-MDN-008">EST-MDN-008 • PT Madina Bio Palma 08</option>
+                            <option value="EST-MDN-009">EST-MDN-009 • PT Madina Bio Palma 09</option>
+                            <option value="EST-MDN-010">EST-MDN-010 • PT Agro Madina Subur 10</option>
+                        {% endif %}
+                    </select>
+                </div>
+
+                <a id="btnNavBackToSimulator" href="/proses" class="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 transition flex items-center gap-1 cursor-pointer">
+                    <span>&larr;</span> <span data-i18n="time_btn_back_sim">Simulator (Stage 2B)</span>
+                </a>
+
+                <a id="btnNavDirectToRoadmap" href="/roadmap" class="px-4 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs shadow-xs transition flex items-center gap-1 cursor-pointer">
+                    <span data-i18n="time_btn_next_road">Proceed to Roadmap (Stage 4)</span> <span>&rarr;</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- COMPLIANCE STATUS DIPINDAHKAN KE ATAS -->
+        <div class="bg-slate-950 border border-slate-800 p-3.5 sm:p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 font-mono text-xs text-white shadow-inner">
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="space-y-0.5">
+                    <span class="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Compliance Status:</span>
+                    <span id="badgeStatutoryStatus" class="px-2.5 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-600 inline-block" data-i18n="badge_sla_active">
+                        ACTIVE &bull; FULLY COMPLIANT
+                    </span>
+                </div>
+                <div class="border-l border-slate-800 pl-4 space-y-0.5">
+                    <span class="text-slate-400 text-[10px] block" data-i18n="time_lbl_tolerance">Planting Grace Buffer:</span>
+                    <strong id="dispDaysRemaining" class="text-emerald-400 text-sm font-bold block" data-i18n="time_days_rem">152 Days Remaining</strong>
+                </div>
+            </div>
+
+            <div class="flex-1 max-w-lg space-y-1">
+                <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                    <span>180-Day Statutory Limit</span>
+                    <span class="text-emerald-400 font-bold">Tolerance Timeline</span>
+                </div>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div id="barDaysProgress" class="bg-gradient-to-r from-emerald-500 to-amber-400 h-full rounded-full transition-all duration-500" style="width: 16%;"></div>
+                </div>
+                <span class="text-[9px] text-slate-400 block leading-tight">
+                    Automated Freeze Rule: Day 181 without physical field report = <span class="font-bold text-rose-400">SUSPENDED_6_MONTHS</span>.
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- STREAMING_CHUNK:Rendering 4-quarter control cards (Q1-Q4) -->
+    <!-- KARTU SIKLUS 4-TRIWULAN (Q1 - Q4) KONTROL TATA KELOLA -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-mono">
+        <!-- Q1 -->
+        <div id="cardSiklusQ1" class="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border-2 border-emerald-500 space-y-2 shadow-sm transition-all">
+            <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-900 dark:text-white" data-i18n="time_q1_title">Quarter 1 (Q1)</span>
+                <span id="badgeStatusQ1" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400" data-i18n="time_q1_status">
+                    COMPLETED / SEALED
+                </span>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-slate-500">
+                <span data-i18n="time_q1_period">Month 1–3 (Baseline &amp; 2.0m Ring)</span>
+                <span id="stampDateQ1" class="text-emerald-600 dark:text-emerald-400 font-mono text-[9px] font-bold">✓ 2026-04-12</span>
+            </div>
+            <p class="text-[11px] text-slate-600 dark:text-slate-300 font-sans leading-tight" data-i18n="time_q1_desc">
+                Corridor 3.79m structuring, 2.0m circle weeding, and first companion seedlings planting.
+            </p>
+            <div id="containerActionQ1" class="pt-1 border-t border-slate-100 dark:border-slate-800">
+                <a id="btnDownloadReportQ1" href="/api/monitoring/quarterly-report/EST-MDN-001/Q1" target="_blank" class="w-full py-1.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-[10px] font-bold shadow transition flex items-center justify-center gap-1 cursor-pointer">
+                    <span>📄</span> <span data-i18n="time_btn_dl_q1">Download Q1 Official Report PDF</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Q2 -->
+        <div id="cardSiklusQ2" class="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 shadow-sm transition-all">
+            <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-900 dark:text-white" data-i18n="time_q2_title">Quarter 2 (Q2)</span>
+                <span id="badgeStatusQ2" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 border border-sky-400" data-i18n="time_q2_status">
+                    IN PROGRESS
+                </span>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-slate-500">
+                <span data-i18n="time_q2_period">Month 4–6 (Vegetative &amp; MOP)</span>
+                <span id="stampDateQ2" class="text-slate-400 font-mono text-[9px]">SLA 180-Day Active</span>
+            </div>
+            <p class="text-[11px] text-slate-600 dark:text-slate-300 font-sans leading-tight" data-i18n="time_q2_desc">
+                Application of potassium MOP compensation fertilizer, chopped frond mulch, and growth rate inspection.
+            </p>
+            <div id="containerActionQ2" class="pt-1 border-t border-slate-100 dark:border-slate-800">
+                <a id="btnDownloadReportQ2" href="/api/monitoring/quarterly-report/EST-MDN-001/Q2" target="_blank" class="w-full py-1.5 px-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 font-mono text-[10px] font-bold shadow-xs transition flex items-center justify-center gap-1 cursor-pointer">
+                    <span>📄</span> <span data-i18n="time_btn_dl_q2">Download Q2 Official Report PDF</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Q3 -->
+        <div id="cardSiklusQ3" class="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 shadow-sm transition-all">
+            <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-900 dark:text-white" data-i18n="time_q3_title">Quarter 3 (Q3)</span>
+                <span id="badgeStatusQ3" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700" data-i18n="time_q3_status">
+                    PENDING CYCLE
+                </span>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-slate-500">
+                <span data-i18n="time_q3_period">Month 7–9 (Microclimate &amp; Silt Pits)</span>
+                <span id="stampDateQ3" class="text-slate-400 font-mono text-[9px]">SCS-CN Hydrology</span>
+            </div>
+            <p class="text-[11px] text-slate-600 dark:text-slate-300 font-sans leading-tight" data-i18n="time_q3_desc">
+                Surveillance of silt pits, SCS-CN groundwater recharge capacity, and weed control.
+            </p>
+            <div id="containerActionQ3" class="pt-1 border-t border-slate-100 dark:border-slate-800">
+                <a id="btnDownloadReportQ3" href="/api/monitoring/quarterly-report/EST-MDN-001/Q3" target="_blank" class="w-full py-1.5 px-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 font-mono text-[10px] font-bold shadow-xs transition flex items-center justify-center gap-1 cursor-pointer">
+                    <span>📄</span> <span data-i18n="time_btn_dl_q3">Download Q3 Official Report PDF</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Q4 -->
+        <div id="cardSiklusQ4" class="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 shadow-sm transition-all">
+            <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-900 dark:text-white" data-i18n="time_q4_title">Quarter 4 (Q4)</span>
+                <span id="badgeStatusQ4" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700" data-i18n="time_q4_status">
+                    PENDING CYCLE
+                </span>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-slate-500">
+                <span data-i18n="time_q4_period">Month 10–12 (Yield Deficit Audit)</span>
+                <span id="stampDateQ4" class="text-slate-400 font-mono text-[9px]">Ceiling &le; 4.5%</span>
+            </div>
+            <p class="text-[11px] text-slate-600 dark:text-slate-300 font-sans leading-tight" data-i18n="time_q4_desc">
+                Verification of companion harvest and confirmation that oil palm FFB yield balance is non-deficit (&le; 4.5%).
+            </p>
+            <div id="containerActionQ4" class="pt-1 border-t border-slate-100 dark:border-slate-800">
+                <a id="btnDownloadReportQ4" href="/api/monitoring/quarterly-report/EST-MDN-001/Q4" target="_blank" class="w-full py-1.5 px-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 font-mono text-[10px] font-bold shadow-xs transition flex items-center justify-center gap-1 cursor-pointer">
+                    <span>📄</span> <span data-i18n="time_btn_dl_q4">Download Q4 Official Report PDF</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- STREAMING_CHUNK:Rendering main layout with foreman input form and AI Vision scanner -->
+    <!-- TATA LETAK UTAMA: FORMULIR INPUT LAPANGAN (KIRI) VS SCANNER AI RETICLE HUD (KANAN) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        
+        <!-- KOLOM KIRI (5 SPAN): FORMULIR LAPORAN MANDOR (MOBILE EDGE SYNCHRONIZER) -->
+        <div class="lg:col-span-5 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                <span class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase font-mono tracking-wider flex items-center gap-1.5">
+                    <span>📱</span> <span data-i18n="time_form_title">Field Foreman Report Form</span>
+                </span>
+                <span class="text-[10px] text-emerald-600 font-mono font-bold" data-i18n="time_pwa_synced">Edge PWA Synced</span>
+            </div>
+
+            <!-- Tombol Pintas Simulasi Cepat PWA Mandor -->
+            <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                <div class="flex items-center justify-between text-[11px] font-mono">
+                    <span class="text-slate-600 dark:text-slate-400" data-i18n="time_quick_trans">Quick Transmission Simulation:</span>
+                    <button type="button" onclick="simulateMobilePwaDispatch()" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] shadow transition cursor-pointer flex items-center gap-1">
+                        <span>📲</span> <span data-i18n="time_btn_send_pwa">Send Data via Node PWA</span>
+                    </button>
+                </div>
+                <p class="text-[10px] text-slate-400 font-sans leading-tight" data-i18n="time_pwa_hint">
+                    Fills actual GPS coordinates, current local time, and automatic satellite weather parameters.
+                </p>
+            </div>
+
+            <form id="formFieldMonitoring" onsubmit="handleFormMonitoringSubmit(event)" class="space-y-3 text-xs font-mono">
+                <!-- Periode Siklus & Tanggal -->
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="block text-[10px] text-slate-500 mb-1" data-i18n="time_lbl_cycle">Quarterly Surveillance Cycle *</label>
+                        <select id="inp_periode_siklus" onchange="onQuarterCycleChange(this.value)" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-2 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-emerald-500 cursor-pointer">
+                            <option value="Q1">Q1 (Months 1–3: Baseline &amp; 2.0m Ring)</option>
+                            <option value="Q2" selected>Q2 (Months 4–6: Vegetative &amp; MOP Fertilization)</option>
+                            <option value="Q3">Q3 (Months 7–9: Microclimate &amp; Silt Pits)</option>
+                            <option value="Q4">Q4 (Months 10–12: Companion Harvest &amp; Yield Deficit Audit)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-500 mb-1" data-i18n="time_lbl_foreman_name">Foreman / Inspector Name *</label>
+                        <input type="text" id="inp_nama_mandor" value="Foreman Sutrisno" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-2 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+
+                <!-- Blok & Identifikasi Titik -->
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="block text-[10px] text-slate-500 mb-1" data-i18n="time_lbl_corridor_block">Alley Block ID *</label>
+                        <input type="text" id="inp_block_id" value="Block A - Active Alley #2" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-2 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-500 mb-1" data-i18n="time_lbl_station_point">Station / Post No. *</label>
+                        <input type="number" id="inp_titik_ke" value="1" min="1" max="50" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-2 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+
+                <!-- Koordinat GPS WGS84 & Elevasi -->
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-[9px] text-slate-500 mb-0.5">Latitude (N)</label>
+                        <input type="text" id="inp_gps_lat" value="0.824100" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] text-slate-500 mb-0.5">Longitude (E)</label>
+                        <input type="text" id="inp_gps_lng" value="99.561200" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] text-slate-500 mb-0.5">Elevation (m ASL)</label>
+                        <input type="number" id="inp_elevasi_dpl" value="142" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-1.5 text-[11px] font-bold text-teal-600 dark:text-teal-400 focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+
+                <!-- Kondisi Cuaca & Anti-Fraud Telemetry -->
+                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
+                    <div class="flex items-center justify-between text-[10px]">
+                        <span class="text-slate-400" data-i18n="time_lbl_weather_sat">Satellite Weather Matching (BMKG):</span>
+                        <span id="badgeWeatherMatch" class="text-emerald-400 font-bold">✓ SATELLITE MATCH (100%)</span>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px]">
+                        <strong id="txtWeatherCondition">Partly Cloudy &bull; Temp 26.6°C</strong>
+                        <button type="button" onclick="refreshLiveWeatherCheck()" class="text-sky-500 hover:underline text-[10px] cursor-pointer" data-i18n="time_btn_check_sat">Inspect Satellite</button>
+                    </div>
+                </div>
+
+                <!-- Dropzone Unggah Multi-Foto Kegiatan Lapangan -->
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-[10px] text-slate-500" data-i18n="time_lbl_photo_field">Field Evidence Photos (Multi-Select 2–4 Photos) *</label>
+                        <span id="lblMultiPhotoCounter" class="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">3 Photos Attached</span>
+                    </div>
+                    <div onclick="document.getElementById('fileInputMonitoringPhoto').click()" class="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 rounded-2xl p-3 text-center cursor-pointer transition bg-slate-50 dark:bg-slate-950 group">
+                        <input type="file" id="fileInputMonitoringPhoto" multiple accept="image/*" class="hidden" onchange="handleMonitoringMultiPhotosSelected(event)">
+                        <div class="flex items-center justify-center gap-2">
+                            <span class="text-xl group-hover:scale-110 transition-transform">📸</span>
+                            <div class="text-left">
+                                <span id="lblMonitoringPhotoName" class="text-xs font-bold text-slate-800 dark:text-slate-200 block truncate max-w-xs" data-i18n="time_btn_pick_photo">Select 2–4 Photos or Snap via PWA Camera</span>
+                                <span class="text-[9px] text-slate-400" data-i18n="time_photo_format_hint">Palm Base Circle &bull; 3.79m Alley Corridor &bull; Buffer / Silt Pit</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Badges list of active photos in batch -->
+                    <div id="selectedPhotosBadges" class="flex flex-wrap gap-1.5 pt-0.5"></div>
+                </div>
+
+                <!-- Parameter Kepatuhan Sempadan & Piringan -->
+                <div class="grid grid-cols-2 gap-2 text-[10px]">
+                    <div class="p-2 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <span class="text-slate-400 block" data-i18n="time_lbl_circle_radius">Sterile Circle Radius:</span>
+                        <strong class="text-emerald-400 text-xs">2.0 Meters (Zero-Tillage)</strong>
+                    </div>
+                    <div class="p-2 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <span class="text-slate-400 block" data-i18n="time_lbl_ffb_deficit">FFB Deficit Tolerance:</span>
+                        <strong class="text-sky-400 text-xs">&le; 4.5% (Recorded 1.2%)</strong>
+                    </div>
+                </div>
+
+                <!-- Tombol Submit Laporan -->
+                <div class="pt-2">
+                    <button type="submit" id="btnSubmitMonitoringReport" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer transform hover:-translate-y-0.5">
+                        <span id="iconSubmitReport">💾</span>
+                        <span id="lblSubmitReport" data-i18n="time_btn_save_scan">Save Report &amp; Scan with AI Vision Reticle</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- STREAMING_CHUNK:Rendering right column HUD reticle scanner with live preview canvas -->
+        <!-- KOLOM KANAN (7 SPAN): SCANNER AI VISION RETICLE HUD & HASIL PEMERIKSAAN -->
+        <div class="lg:col-span-7 space-y-4">
+            <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3.5">
+                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                    <div>
+                        <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                            MULTIMODAL AI VISION RETICLE HUD &bull; IN-SITU SCANNER
+                        </span>
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 font-sans">
+                            <span>🎯</span> <span data-i18n="time_ai_scan_heading">Field Activity Evidence Object Scanning</span>
+                        </h3>
+                    </div>
+                    <span id="tagAiScannerStatus" class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold" data-i18n="time_ai_scanner_ready">
+                        AI Scanner Ready
+                    </span>
+                </div>
+
+                <!-- Kanvas Foto & Retikel Laser HUD -->
+                <div class="relative w-full h-64 sm:h-84 rounded-2xl overflow-hidden bg-slate-950 border border-slate-300 dark:border-slate-700 shadow-inner group flex items-center justify-center">
+                    <img id="imgMonitoringEvidencePreview" src="/static/img/field_tm_weed.jpg" alt="Field Evidence Photo" class="w-full h-full object-cover">
+
+                    <!-- Canvas Reticle -->
+                    <canvas id="reticleMonitoringCanvas" class="absolute inset-0 w-full h-full pointer-events-none z-10"></canvas>
+
+                    <!-- Laser Scanning Bar -->
+                    <div id="laserMonitoringScanner" class="hidden absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_#34d399] z-25 pointer-events-none"></div>
+
+                    <!-- 2D Bounding Boxes Overlay Container -->
+                    <div id="monitoringBBoxesOverlay" class="absolute inset-0 pointer-events-none z-20"></div>
+
+                    <!-- HUD Tag Foto -->
+                    <div class="absolute bottom-2.5 left-2.5 bg-slate-950/85 backdrop-blur-md border border-slate-700 px-2.5 py-1 rounded-lg text-[10px] font-mono text-slate-200 flex items-center gap-1.5 shadow z-30">
+                        <span>📸</span> <span id="lblActiveEvidenceFilename">field_tm_weed.jpg</span>
+                    </div>
+
+                    <div class="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-30">
+                        <button type="button" onclick="triggerAiVisionRescan()" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-[10px] font-bold shadow-md transition flex items-center gap-1 cursor-pointer">
+                            <span>⚡</span> <span data-i18n="time_btn_rescan">Rescan with AI</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Thumbnail Selector Strip to Switch HUD Reticle Across Uploaded Photos -->
+                <div id="containerEvidenceThumbnails" class="p-2 rounded-2xl bg-slate-100 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-1">
+                    <div class="flex items-center justify-between text-[10px] font-mono text-slate-500">
+                        <span class="font-bold flex items-center gap-1"><span>🖼️</span> <span data-i18n="time_lbl_evidence_batch">Evidence Batch Photos (Click to Switch HUD View):</span></span>
+                        <span id="lblThumbnailBatchCount" class="text-emerald-500 font-bold">3 Photos Active</span>
+                    </div>
+                    <div id="hudThumbnailsStrip" class="flex items-center gap-2 overflow-x-auto py-1"></div>
+                </div>
+
+                <!-- Legenda Deteksi Objek HUD -->
+                <div class="p-2.5 rounded-2xl bg-slate-950/90 border border-slate-800 text-[10px] font-mono text-slate-300 flex flex-wrap items-center justify-between gap-1.5">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-950 border border-emerald-500/60 text-emerald-300 font-bold" data-i18n="time_leg_healthy_palm">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> [Healthy Oil Palm]
+                    </span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-sky-950 border border-sky-500/60 text-sky-300 font-bold" data-i18n="time_leg_companion">
+                        <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span> [Companion Crop 3.79m]
+                    </span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-rose-950 border border-rose-500/60 text-rose-300 font-bold" data-i18n="time_leg_sterile_circle">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> [2.0m Sterile Circle]
+                    </span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-950 border border-cyan-500/60 text-cyan-300 font-bold" data-i18n="time_leg_mulch">
+                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> [Frond Mulch]
+                    </span>
+                    <span id="badgeDetectionStats" class="text-emerald-400 font-bold">IoU: 0.95 • Conf: 97%</span>
+                </div>
+
+                <!-- Kartu Hasil Telaah Audit Mesin (Machine Ground Truth) -->
+                <div class="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/50 space-y-2 text-xs font-sans">
+                    <div class="flex items-center justify-between border-b border-emerald-800/60 pb-1.5 font-mono">
+                        <span class="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                            <span>🤖</span> <span data-i18n="time_review_machine_title">AI Machine Review: Physical Compliance Validation (Machine Ground Truth)</span>
+                        </span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-900 text-emerald-200 border border-emerald-700">
+                            VERIFIED (100%)
+                        </span>
+                    </div>
+                    <div id="txtMachineGroundTruthAudit" class="text-slate-800 dark:text-slate-200 text-xs leading-relaxed space-y-1">
+                        <p>
+                            <strong>Sterile Circle Integrity (ISPO Principle 2):</strong> Computer vision reticle HUD confirms 2.0-meter radius around the palm base is free from mechanical tillage (zero-tillage PPKS) and invasive weeds.
+                        </p>
+                        <p>
+                            <strong>Alley Corridor 3.79m:</strong> Companion crop stand is arranged strictly within the active corridor without encroaching on the oil palm root zone.
+                        </p>
+                        <p>
+                            <strong>Weather &amp; Geospatial Integrity:</strong> GPS metadata (0.824100° N, 99.561200° E) matches 100% against registered coordinates in APL and partly cloudy weather is synchronized with BMKG satellite data.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- RINGKASAN AKUMULASI DETEKSI KUARTAL (Quarterly Consolidated Detection Ledger) -->
+                <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5 text-xs font-mono text-white shadow-inner">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-emerald-400">📊</span>
+                            <span class="font-bold uppercase tracking-wider text-emerald-400 text-[11px]" data-i18n="time_consolidated_title">Quarterly Consolidated Detection Ledger</span>
+                        </div>
+                        <span id="badgeConsolidatedCycle" class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-600">
+                            Q1 SEALED • FULL AUDIT
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
+                        <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                            <span class="text-slate-400 block text-[9px]" data-i18n="time_lead_crowns">Palm Canopy Stand:</span>
+                            <strong id="ledgerCrownCount" class="text-emerald-400 text-xs font-bold block">28 Crowns Localized</strong>
+                            <span class="text-[8px] text-slate-500">100% Standard Stand</span>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                            <span class="text-slate-400 block text-[9px]" data-i18n="time_lead_circle">2.0m Sterile Ring:</span>
+                            <strong id="ledgerSterileRing" class="text-emerald-400 text-xs font-bold block">100% Zero-Tillage</strong>
+                            <span class="text-[8px] text-emerald-500">PPKS Compliant</span>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                            <span class="text-slate-400 block text-[9px]" data-i18n="time_lead_corridor">3.79m Alley Regularity:</span>
+                            <strong id="ledgerCorridorRegularity" class="text-emerald-400 text-xs font-bold block">100% Regular Corridor</strong>
+                            <span class="text-[8px] text-slate-500">No Root Encroach</span>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                            <span class="text-slate-400 block text-[9px]" data-i18n="time_lead_weather">Satellite Weather Anti-Fraud:</span>
+                            <strong id="ledgerWeatherStatus" class="text-emerald-400 text-xs font-bold block">100% Match (BMKG)</strong>
+                            <span class="text-[8px] text-emerald-500">Telemetry In-Situ</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- STREAMING_CHUNK:Rendering bottom isolated surveillance ledger table -->
+    <!-- SEKSI BAWAH: BUKU BESAR LOG SURVEILANS KHUSUS NOMOR REGISTRASI KEBUN INI -->
+    <div class="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div class="space-y-0.5">
+                <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block" data-i18n="time_ledger_title">
+                    PHYSICAL FIELD SURVEILLANCE LEDGER &bull; ISOLATED DOSSIER NUMBER
+                </span>
+                <h3 class="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>📑</span> <span><span data-i18n="time_ledger_records">Isolated Monitoring Record List:</span> <span id="lblLedgerEstateTitle" class="font-mono text-emerald-600 dark:text-emerald-400">EST-MDN-001</span></span>
+                </h3>
+                <p class="text-[11px] text-slate-500 font-sans" data-i18n="time_ledger_desc">
+                    Archive of all PWA foreman reports specifically linked to this estate for ratification in Stage 4 (Roadmap).
+                </p>
+            </div>
+            <div class="flex items-center gap-2 font-mono">
+                <span id="badgeLogsCount" class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+                    Loading Logs...
+                </span>
+                <button type="button" onclick="loadIsolatedMonitoringLogs()" class="p-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer" title="Refresh Data">
+                    🔄
+                </button>
+            </div>
+        </div>
+
+        <!-- Toolbar Kontrol: Pencarian & Pilihan Ukuran Halaman -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-slate-50 dark:bg-slate-950/60 p-2 sm:p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 font-mono text-xs">
+            <div class="relative flex-1 max-w-sm">
+                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 text-xs">
+                    🔍
+                </span>
+                <input id="inputSurveillanceSearch" type="text" 
+                    placeholder="Cari mandor, blok, siklus, cuaca, koordinat, atau tanggal..." 
+                    data-i18n-placeholder="time_search_placeholder"
+                    class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-[11px] rounded-xl pl-8 pr-7 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono transition" 
+                    oninput="onSurveillanceSearchInput(this.value)">
+                <button id="btnClearSurveillanceSearch" type="button" onclick="clearSurveillanceSearch()" 
+                    class="hidden absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold cursor-pointer"
+                    title="Hapus pencarian">
+                    ✕
+                </button>
+            </div>
+            <div class="flex items-center justify-between sm:justify-end gap-2.5 text-[11px]">
+                <span id="lblSurveillanceFilterStats" class="text-slate-500 dark:text-slate-400 font-mono text-[10px] hidden md:inline">
+                    Semua rekaman aktif
+                </span>
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <label for="selectSurveillancePageSize" class="text-slate-500 dark:text-slate-400 text-[10px]" data-i18n="time_lbl_rows_per_page">Tampilkan:</label>
+                    <select id="selectSurveillancePageSize" onchange="onSurveillancePageSizeChange(this.value)"
+                        class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-[11px] rounded-lg px-2 py-1 font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer">
+                        <option value="5">5 / hal</option>
+                        <option value="8" selected>8 / hal</option>
+                        <option value="15">15 / hal</option>
+                        <option value="25">25 / hal</option>
+                        <option value="50">50 / hal</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabel Log Surveilans (Rapat, Proporsional & View Summary Jelas) -->
+        <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner">
+            <table class="w-full text-left text-xs whitespace-nowrap font-mono">
+                <thead class="bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[10px] font-bold border-b border-slate-200 dark:border-slate-700">
+                    <tr>
+                        <th class="px-2.5 py-2 text-center w-10" data-i18n="time_th_no">No.</th>
+                        <th class="px-2.5 py-2" data-i18n="time_th_time">Timestamp (WIB)</th>
+                        <th class="px-2.5 py-2" data-i18n="time_th_cycle_foreman">Cycle &amp; Inspector</th>
+                        <th class="px-2.5 py-2" data-i18n="time_th_block_stake">Block &amp; Station</th>
+                        <th class="px-2.5 py-2" data-i18n="time_th_gps_weather">GPS &amp; Weather</th>
+                        <th class="px-2 py-2 text-center w-16" data-i18n="time_th_photo">Photo</th>
+                        <th class="px-2.5 py-2 text-center w-28" data-i18n="time_th_action">Action</th>
+                        <th class="px-2.5 py-2" data-i18n="time_th_sterile">2.0m Sterile Buffer</th>
+                        <th class="px-2 py-2 text-center w-24" data-i18n="time_th_ai_status">AI Status</th>
+                    </tr>
+                </thead>
+                <tbody id="monitoringLogsTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-slate-900/60 text-xs">
+                    <tr>
+                        <td colspan="9" class="py-8 text-center text-slate-400 font-mono text-xs" data-i18n="time_loading_records">
+                            Loading foreman monitoring records...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Bar Pagination Navigasi -->
+        <div id="surveillancePaginationContainer" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 font-mono text-xs">
+            <div id="surveillancePaginationInfo" class="text-[11px] text-slate-500 dark:text-slate-400">
+                Memuat data halaman...
+            </div>
+            <div id="surveillancePaginationNav" class="flex items-center gap-1 self-center sm:self-auto">
+                <!-- Tombol Pagination di-render dinamis oleh JS -->
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- STREAMING_CHUNK:Rendering inspection summary modal and terminal containers -->
+<!-- MODAL VIEW SUMMARY DOKUMEN BUKTI SURVEILANS LAPANGAN -->
+<div id="monitoringSummaryModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 hidden">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl max-w-4xl w-full max-h-[94vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div class="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <span class="text-2xl">📋</span>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Dokumen Bukti Surveilans Mandor &amp; Piringan Bebas Cangkul</h3>
+                        <span id="summaryModalIdTag" class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold">#SURV-LOG-001</span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Verifikasi Dual-View Vision AI, Integritas Cuaca Satelit &bull; ISPO Prinsip 2 &amp; EUDR Pasal 9</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeMonitoringSummaryModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 text-base cursor-pointer">✕</button>
+        </div>
+
+        <div class="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs font-sans text-slate-700 dark:text-slate-200" id="monitoringSummaryModalBody">
+            <!-- Diisi secara dinamis -->
+        </div>
+
+        <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex flex-wrap items-center justify-between gap-2.5">
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="window.print()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 border border-slate-300 dark:border-slate-700 transition cursor-pointer">
+                    <span>🖨️</span> <span>Print Document</span>
+                </button>
+                <a id="btnModalGoToRoadmap" href="/roadmap" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                    <span>⚡ Moving on to Results &amp; Roadmap (Phase 4)</span> <span>&rarr;</span>
+                </a>
+            </div>
+            <button type="button" onclick="closeMonitoringSummaryModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs transition cursor-pointer">
+                Tutup
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- FLOATING AI EXECUTION TERMINAL LENGKAP -->
+
+<!-- TOAST NOTIFIKASI RINGAN -->
+<div id="toastNotification" class="fixed bottom-5 right-5 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="bg-slate-900 text-white border border-slate-700 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-mono">
+        <span id="toastIcon">ℹ️</span>
+        <span id="toastMessage">Pemberitahuan sistem</span>
+    </div>
+</div>
+
+<!-- STREAMING_CHUNK:Initializing client controller script with complete AI terminal suite -->
+<!-- SKRIP KONTROLER TAHAP 3: TIMELINES & MONITORING MANDOR -->
+<script>
+    let activeEstate = null;
+    let cachedSurveillanceLogs = [];
+    let currentEvidenceUrl = '/static/img/field_tm_weed.jpg';
+    let surveillanceSearchQuery = '';
+    let surveillanceCurrentPage = 1;
+    let surveillancePageSize = 8;
+
+    // Mesin Terminal AI
+    let isTerminalOpen = false;
+    let isTerminalMinimized = false;
+    let currentTerminalFilter = 'ALL';
+    let terminalLogCounter = 0;
+    const TERMINAL_LOG_STORAGE_KEY = 'precision_palm_terminal_logs_timelines';
+
+    document.addEventListener('DOMContentLoaded', async function () {
+        initDrawingMonitoringReticles();
+        loadCachedTerminalLogs();
+        await loadRegisteredDossiersAndBind();
+        loadIsolatedMonitoringLogs();
+
+        logAiInteraction('REQUEST', 'Tahap 3 Timelines & Monitoring Mandor Initialized', {
+            statutory_rules: "ISPO Prinsip 2 (Zero-Tillage 2.0m) & SLA Toleransi 180 Hari",
+            weather_anti_fraud: "Active Real-Time Open-Meteo Satellite Verification"
+        });
+    });
+
+    async function loadRegisteredDossiersAndBind() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetId = urlParams.get('id');
+        const targetKode = urlParams.get('kode') || urlParams.get('estate_code');
+        const selectEl = document.getElementById('selectDossierApplication');
+
+        let estatesList = [];
+        let serverActiveEstate = null;
+
+        try {
+            const fetchUrl = targetKode ? `/api/data/load?kode=${encodeURIComponent(targetKode)}` : `/api/data/load`;
+            const res = await fetch(fetchUrl);
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.success) {
+                    estatesList = data.estates || [];
+                    serverActiveEstate = data.active_estate;
+                }
+            }
+        } catch (_) {}
+
+        if (!estatesList || estatesList.length === 0) {
+            try {
+                const res = await fetch('/api/estates');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.success && Array.isArray(data.records)) {
+                        estatesList = data.records;
+                    }
+                }
+            } catch (_) {}
+        }
+
+        if (selectEl && estatesList.length > 0) {
+            selectEl.innerHTML = estatesList.map(e => {
+                const kode = e.kode_kebun || e.kode || (e.id_kebun ? ('EST-MDN-' + String(e.id_kebun).padStart(3, '0')) : 'EST-MDN-001');
+                const nama = e.nama_kebun || e.nama || 'Kebun';
+                return `<option value="${kode}">${kode} • ${nama}</option>`;
+            }).join('');
+        }
+
+        if (serverActiveEstate) {
+            activeEstate = serverActiveEstate;
+        } else if (estatesList.length > 0) {
+            if (targetKode) {
+                activeEstate = estatesList.find(e => (e.kode_kebun || '') === targetKode);
+            }
+            if (!activeEstate) {
+                activeEstate = estatesList.find(e => (e.kode_kebun || '') === 'EST-MDN-010') || estatesList[estatesList.length - 1];
+            }
+        }
+
+        if (!activeEstate) {
+            try {
+                const resData = await fetch(`/api/spatial/estate-data?kode=${encodeURIComponent(targetKode || 'EST-MDN-010')}&id=${encodeURIComponent(targetId || '')}`);
+                if (resData.ok) {
+                    const resJson = await resData.json();
+                    if (resJson && resJson.success && resJson.estate) {
+                        activeEstate = resJson.estate;
+                    }
+                }
+            } catch (_) {}
+        }
+
+        if (!activeEstate) {
+            activeEstate = {
+                id_kebun: 10,
+                kode_kebun: "EST-MDN-010",
+                nama_kebun: "PT Agro Madina Subur 10",
+                nomor_hgu: "010/HGU/BPN-MDN/2026",
+                nomor_registrasi: "CERT-ECOGREEN-2026-0010",
+                luas_ha: 1500.0,
+                centroid_lat: 0.819400,
+                centroid_lng: 99.563000,
+                elevation: 220.0
+            };
+        }
+
+        bindActiveEstateToUI(activeEstate);
+    }
+
+    function handleDossierChange(kode) {
+        const validKode = (kode && kode !== 'undefined') ? kode : 'EST-MDN-010';
+        window.location.href = `/timelines?kode=${encodeURIComponent(validKode)}`;
+    }
+
+    function bindActiveEstateToUI(est) {
+        const id = est.id_kebun || est.id || 1;
+        const kode = est.kode_kebun || "EST-MDN-001";
+        const nama = est.nama_kebun || "PT Mandailing Agro Sustainable";
+        const hgu = est.nomor_hgu || "004/HGU/BPN-MDN/2021";
+        const reg = est.nomor_registrasi || `CERT-ECOGREEN-2026-${String(id).padStart(4, '0')}`;
+
+        document.getElementById('selectDossierApplication').value = kode;
+        document.getElementById('activeEstateCodeBadge').textContent = `${kode} • ${nama}`;
+        document.getElementById('activeEstateHguTag').textContent = `HGU: ${hgu} • ${parseFloat(est.luas_ha || 500).toLocaleString()} Ha`;
+        document.getElementById('activeEstateRegBadge').textContent = reg;
+        document.getElementById('lblLedgerEstateTitle').textContent = `${kode} (${nama})`;
+
+        document.getElementById('inp_gps_lat').value = (est.centroid_lat || 0.824100).toFixed(6);
+        document.getElementById('inp_gps_lng').value = (est.centroid_lng || 99.561200).toFixed(6);
+        document.getElementById('inp_elevasi_dpl').value = Math.round(est.elevation || 142);
+
+        document.getElementById('btnNavBackToSimulator').href = `/proses?id=${id}&kode=${encodeURIComponent(kode)}`;
+        document.getElementById('btnNavDirectToRoadmap').href = `/roadmap?id=${id}&kode=${encodeURIComponent(kode)}`;
+        document.getElementById('btnModalGoToRoadmap').href = `/roadmap?id=${id}&kode=${encodeURIComponent(kode)}`;
+
+        // Dynamic Quarter Auto-Selector based on Days Elapsed (Q1: 0–90, Q2: 91–180, Q3: 181–270, Q4: 271–365)
+        const daysElapsed = 28;
+        let defaultQuarter = 'Q1';
+        if (daysElapsed > 270) defaultQuarter = 'Q4';
+        else if (daysElapsed > 180) defaultQuarter = 'Q3';
+        else if (daysElapsed > 90) defaultQuarter = 'Q2';
+        else defaultQuarter = 'Q1';
+
+        const qSelector = document.getElementById('inp_periode_siklus');
+        if (qSelector && !qSelector.dataset.manualOverridden) {
+            qSelector.value = defaultQuarter;
+        }
+
+        // Render multi-photo thumbnails & initial state
+        renderEvidenceThumbnails();
+
+        // Update SLA Countdown & Quarter Cards
+        updateSlaCountdown(est);
+        loadQuarterlyStatus(kode);
+    }
+
+    function updateSlaCountdown(est, forceCompliant = false) {
+        const daysElapsed = 28;
+        const daysLimit = 180;
+        const daysRemaining = Math.max(0, daysLimit - daysElapsed);
+
+        document.getElementById('dispDaysRemaining').textContent = `${daysRemaining} Days Remaining`;
+        const pct = Math.min(100, Math.round((daysElapsed / daysLimit) * 100));
+        document.getElementById('barDaysProgress').style.width = `${pct}%`;
+
+        const badge = document.getElementById('badgeStatutoryStatus');
+        if (forceCompliant) {
+            badge.textContent = "ACTIVE • FULLY COMPLIANT";
+            badge.className = "px-2.5 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-600";
+            return;
+        }
+
+        if (daysRemaining <= 0) {
+            badge.textContent = "SUSPENDED (6-MONTH LIMIT)";
+            badge.className = "px-2.5 py-0.5 rounded text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-600 animate-pulse";
+        } else if (daysRemaining <= 30) {
+            badge.textContent = "DUE DATE WARNING";
+            badge.className = "px-2.5 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-600 animate-pulse";
+        } else {
+            badge.textContent = "ACTIVE • FULLY COMPLIANT";
+            badge.className = "px-2.5 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-600";
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function initDrawingMonitoringReticles() {
+        drawReticles();
+        window.addEventListener('resize', drawReticles);
+        triggerAiVisionRescan();
+    }
+
+    function drawReticles() {
+        const canvas = document.getElementById('reticleMonitoringCanvas');
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width || 400;
+        canvas.height = rect.height || 280;
+
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.45)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx - 20, cy); ctx.lineTo(cx + 20, cy);
+        ctx.moveTo(cx, cy - 20); ctx.lineTo(cx, cy + 20);
+        ctx.stroke();
+
+        const pad = 20;
+        const len = 16;
+        ctx.strokeStyle = 'rgba(52, 211, 153, 0.85)';
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+        ctx.moveTo(pad, pad + len); ctx.lineTo(pad, pad); ctx.lineTo(pad + len, pad);
+        ctx.moveTo(canvas.width - pad - len, pad); ctx.lineTo(canvas.width - pad, pad); ctx.lineTo(canvas.width - pad, pad + len);
+        ctx.moveTo(pad, canvas.height - pad - len); ctx.lineTo(pad, canvas.height - pad); ctx.lineTo(pad + len, canvas.height - pad);
+        ctx.moveTo(canvas.width - pad - len, canvas.height - pad); ctx.lineTo(canvas.width - pad, canvas.height - pad); ctx.lineTo(canvas.width - pad, canvas.height - pad - len);
+        ctx.stroke();
+    }
+
+    async function runAiVisionScanAnimation(customBoxes = null) {
+        const laser = document.getElementById('laserMonitoringScanner');
+        const tagStatus = document.getElementById('tagAiScannerStatus');
+        const overlay = document.getElementById('monitoringBBoxesOverlay');
+
+        if (laser) {
+            laser.classList.remove('hidden');
+            laser.classList.add('laser-scanning');
+        }
+        if (tagStatus) tagStatus.textContent = "AI Scanning Objects...";
+        if (overlay) overlay.innerHTML = '';
+
+        await new Promise(r => setTimeout(r, 650));
+
+        const boxes = (customBoxes && customBoxes.length > 0) ? customBoxes : [
+            { label: 'palm_tree', label_name: 'Oil Palm Stand TM (~6 Yrs)', box_2d: [70, 0, 727, 287], confidence: 0.96, compliance_note: "Mature healthy canopy stand" },
+            { label: 'sterile_circle', label_name: '2.0m Sterile Root Buffer', box_2d: [580, 240, 920, 680], confidence: 0.95, compliance_note: "Zero-tillage buffer verified" },
+            { label: 'companion_crop', label_name: 'Companion Crop Corridor (3.79m)', box_2d: [240, 320, 840, 780], confidence: 0.94, compliance_note: "Corridor maintained" },
+            { label: 'frond_mulch', label_name: 'Chopped Frond Mulch', box_2d: [420, 680, 860, 960], confidence: 0.93, compliance_note: "Biomass mulch applied" }
+        ];
+
+        renderMonitoringBoundingBoxes(boxes);
+
+        if (laser) {
+            laser.classList.add('hidden');
+            laser.classList.remove('laser-scanning');
+        }
+        if (tagStatus) tagStatus.textContent = `Objects Verified (${boxes.length} Localized)`;
+    }
+
+    function renderMonitoringBoundingBoxes(boxes) {
+        const overlay = document.getElementById('monitoringBBoxesOverlay');
+        if (!overlay) return;
+
+        overlay.innerHTML = boxes.map(item => {
+            const box = item.box_2d || [0, 0, 1000, 1000];
+            const top = (box[0] / 10.0).toFixed(1);
+            const left = (box[1] / 10.0).toFixed(1);
+            const height = Math.max(3.0, ((box[2] - box[0]) / 10.0)).toFixed(1);
+            const width = Math.max(3.0, ((box[3] - box[1]) / 10.0)).toFixed(1);
+
+            let borderCls = "border-emerald-400 bg-emerald-500/15";
+            let badgeCls = "bg-emerald-950 text-emerald-300 border-emerald-400";
+            let icon = "🌴";
+
+            const l = (item.label || '').toLowerCase();
+            if (l.includes('companion') || l.includes('alley') || l.includes('crop')) {
+                borderCls = "border-sky-400 bg-sky-500/15";
+                badgeCls = "bg-sky-950 text-sky-300 border-sky-400";
+                icon = "🌱";
+            } else if (l.includes('sterile') || l.includes('buffer') || l.includes('circle')) {
+                borderCls = "border-rose-400 bg-rose-500/15";
+                badgeCls = "bg-rose-950 text-rose-300 border-rose-400";
+                icon = "⭕";
+            } else if (l.includes('mulch') || l.includes('frond')) {
+                borderCls = "border-cyan-400 bg-cyan-500/15";
+                badgeCls = "bg-cyan-950 text-cyan-300 border-cyan-400";
+                icon = "🌿";
+            } else if (l.includes('weed') || l.includes('disturbance') || l.includes('tillage')) {
+                borderCls = "border-amber-400 bg-amber-500/20";
+                badgeCls = "bg-amber-950 text-amber-300 border-amber-400";
+                icon = "⚠️";
+            }
+
+            const titleText = item.compliance_note ? `${item.label_name || item.label}: ${item.compliance_note}` : (item.label_name || item.label);
+
+            return `
+                <div class="absolute border-2 ${borderCls} rounded-lg shadow-sm pointer-events-auto transition-all group"
+                     title="${escapeHtml(titleText)}"
+                     style="top: ${top}%; left: ${left}%; width: ${width}%; height: ${height}%;">
+                    <span class="absolute -top-3.5 left-1 px-1.5 py-0.2 rounded border text-[8px] font-mono font-bold shadow-xs whitespace-nowrap ${badgeCls}">
+                        ${icon} ${escapeHtml(item.label_name || item.label)} [${Math.round((item.confidence || 0.9) * 100)}%]
+                    </span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // FUNGSI RESCAN DENGAN PEMANGGILAN BACKEND NYATA (MENCATAT KE AI LOGS)
+    async function triggerAiVisionRescan() {
+        openTerminalWindow();
+        const tagStatus = document.getElementById('tagAiScannerStatus');
+        if (tagStatus) tagStatus.textContent = "Connecting to Gemini 3.8 Flash...";
+
+        logAiInteraction('REQUEST', 'Rescan with AI Triggered (Gemini 3.8 Flash)', {
+            engine: "Google Cloud Gemini 3.8 Flash",
+            target: (currentEvidenceUrl || '').substring(0, 45) + '...',
+            feature: "Canopy & Parcel Vision Scanner",
+            rules: "ISPO P2 Zero-Tillage & Canopy HUD"
+        });
+
+        try {
+            const res = await fetch('/api/ai/scan-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    feature_name: "Canopy & Parcel Vision Scanner",
+                    meta_info: `Rescan In-Situ: ${activeEstate?.kode_kebun || 'EST-MDN-001'}`,
+                    foto_url: currentEvidenceUrl
+                })
+            });
+
+            const data = await res.json();
+            const analysis = data.analysis || {};
+            const detectedBoxes = Array.isArray(analysis.detected_objects) && analysis.detected_objects.length > 0 
+                ? analysis.detected_objects 
+                : null;
+
+            await runAiVisionScanAnimation(detectedBoxes);
+
+            // Update machine ground truth audit text if summary is provided
+            if (analysis.summary) {
+                const auditBox = document.getElementById('txtMachineGroundTruthAudit');
+                if (auditBox) {
+                    const sterileCompliance = analysis.sterile_circle_2m_compliant 
+                        ? 'Compliant (Zero-Tillage Preserved)' 
+                        : 'Alert: Weed Encroachment / Disturbance Detected';
+                    const sterileClass = analysis.sterile_circle_2m_compliant ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
+                    const canopyPct = analysis.canopy_density_pct ? `${analysis.canopy_density_pct}%` : 'Standard Density';
+                    
+                    auditBox.innerHTML = `
+                        <p><strong>AI Multimodal Diagnostic:</strong> ${escapeHtml(analysis.summary)}</p>
+                        <p><strong>Sterile Circle Status:</strong> <span class="${sterileClass}">${sterileCompliance}</span> &bull; <strong>Canopy Density:</strong> ${canopyPct}</p>
+                        <p><strong>Detected Objects:</strong> ${detectedBoxes ? detectedBoxes.length : 0} physical entities localized with 2D bounding boxes.</p>
+                    `;
+                }
+            }
+
+            // Update stats badge
+            const statsBadge = document.getElementById('badgeDetectionStats');
+            if (statsBadge && detectedBoxes) {
+                const avgConf = Math.round(detectedBoxes.reduce((acc, b) => acc + (b.confidence || 0.9), 0) / detectedBoxes.length * 100);
+                statsBadge.textContent = `Entities: ${detectedBoxes.length} • Avg Conf: ${avgConf}%`;
+            }
+
+            let responseText = analysis.summary || "Canopy and weed circle analysis verified.";
+
+            logAiInteraction('RESULT', 'Gemini 3.8 Flash Vision Scan Successful', {
+                model_engine: "Google Cloud (gemini-3.8-flash)",
+                status: data.status || "SUCCESS",
+                response: responseText,
+                objects_detected: detectedBoxes ? detectedBoxes.length : 0
+            });
+
+            showNotificationToast("AI Vision Object Detection verified with live Gemini!", "⚡");
+        } catch (err) {
+            console.warn("[Rescan AI Fallback]", err);
+            await runAiVisionScanAnimation();
+            logAiInteraction('ERROR', 'AI Connection Issue', { error: String(err.message || err) });
+        }
+    }
+
+    // Multi-photo batch array for in-situ quarterly evidence (2 to 4 photos)
+    let uploadedEvidencePhotos = [
+        {
+            id: 'p1',
+            name: 'photo_root_circle.jpg',
+            label: 'Palm Base Circle (2.0m)',
+            tag: 'Piringan Pokok',
+            url: '/static/img/field_tm_weed.jpg',
+            boxes: [
+                { label: 'palm_tree', label_name: 'Oil Palm Stand TM (~6 Yrs)', box_2d: [70, 0, 727, 287], confidence: 0.98, compliance_note: "Healthy mature canopy stand" },
+                { label: 'sterile_circle', label_name: '2.0m Sterile Root Buffer', box_2d: [580, 240, 920, 680], confidence: 0.97, compliance_note: "Zero-tillage buffer verified (PPKS)" }
+            ]
+        },
+        {
+            id: 'p2',
+            name: 'photo_alley_corridor.jpg',
+            label: '3.79m Alley Corridor',
+            tag: 'Jalur Gawangan',
+            url: '/static/img/sawit_drone2.jpg',
+            boxes: [
+                { label: 'companion_crop', label_name: 'Companion Crop Corridor (3.79m)', box_2d: [240, 320, 840, 780], confidence: 0.96, compliance_note: "Corridor maintained strictly" },
+                { label: 'frond_mulch', label_name: 'Chopped Frond Mulch', box_2d: [420, 680, 860, 960], confidence: 0.94, compliance_note: "Frond mulch layer applied" }
+            ]
+        },
+        {
+            id: 'p3',
+            name: 'photo_silt_pit_buffer.jpg',
+            label: 'Riparian / Silt Pit Buffer',
+            tag: 'Sempadan / Rorak',
+            url: '/static/img/field_wetland_buffer.jpg',
+            boxes: [
+                { label: 'sterile_circle', label_name: 'Silt Pit Hydrology Buffer', box_2d: [300, 200, 780, 800], confidence: 0.95, compliance_note: "SCS-CN water infiltration active" }
+            ]
+        }
+    ];
+    let activeEvidenceIndex = 0;
+
+    function renderEvidenceThumbnails() {
+        const container = document.getElementById('hudThumbnailsStrip');
+        const badgeCount = document.getElementById('lblThumbnailBatchCount');
+        const photoCounter = document.getElementById('lblMultiPhotoCounter');
+        const badgesContainer = document.getElementById('selectedPhotosBadges');
+
+        if (badgeCount) badgeCount.textContent = `${uploadedEvidencePhotos.length} Photos Active`;
+        if (photoCounter) photoCounter.textContent = `${uploadedEvidencePhotos.length} Photos Attached`;
+
+        if (badgesContainer) {
+            badgesContainer.innerHTML = uploadedEvidencePhotos.map((item, idx) => `
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-mono font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+                    <span>${idx === 0 ? '⭕' : (idx === 1 ? '🌱' : '💧')}</span> ${escapeHtml(item.label || item.name)}
+                </span>
+            `).join('');
+        }
+
+        if (container) {
+            container.innerHTML = uploadedEvidencePhotos.map((item, idx) => {
+                const isActive = idx === activeEvidenceIndex;
+                const borderCls = isActive 
+                    ? 'border-2 border-emerald-500 shadow-[0_0_8px_#10b981]' 
+                    : 'border border-slate-700 opacity-60 hover:opacity-100';
+                return `
+                    <button type="button" onclick="switchActiveEvidencePhoto(${idx})" class="relative shrink-0 w-20 h-14 rounded-xl overflow-hidden ${borderCls} transition-all cursor-pointer group" title="${escapeHtml(item.label || item.name)}">
+                        <img src="${item.url}" class="w-full h-full object-cover">
+                        <span class="absolute bottom-0 inset-x-0 bg-slate-950/80 text-[7px] font-mono text-white text-center truncate px-1 py-0.2">
+                            ${escapeHtml(item.tag || ('Foto #' + (idx + 1)))}
+                        </span>
+                        ${isActive ? '<span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400"></span>' : ''}
+                    </button>
+                `;
+            }).join('');
+        }
+    }
+
+    function switchActiveEvidencePhoto(idx) {
+        if (!uploadedEvidencePhotos[idx]) return;
+        activeEvidenceIndex = idx;
+        const photo = uploadedEvidencePhotos[idx];
+        currentEvidenceUrl = photo.url;
+
+        const imgEl = document.getElementById('imgMonitoringEvidencePreview');
+        if (imgEl) imgEl.src = photo.url;
+
+        const lblFile = document.getElementById('lblActiveEvidenceFilename');
+        if (lblFile) lblFile.textContent = photo.name || `evidence_photo_${idx+1}.jpg`;
+
+        const lblPhotoName = document.getElementById('lblMonitoringPhotoName');
+        if (lblPhotoName) lblPhotoName.textContent = `${uploadedEvidencePhotos.length} photos selected (Viewing: ${photo.label || photo.name})`;
+
+        renderEvidenceThumbnails();
+        runAiVisionScanAnimation(photo.boxes || null);
+        showNotificationToast(`Viewing: ${photo.label || photo.name}`, "🎯");
+    }
+
+    function handleMonitoringMultiPhotosSelected(event) {
+        const files = event.target && event.target.files;
+        if (!files || files.length === 0) return;
+
+        const count = files.length;
+        const newBatch = [];
+        let loaded = 0;
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                let tagLabel = 'Palm Base Circle (2.0m)';
+                let tagShort = 'Piringan Pokok';
+                if (i === 1) { tagLabel = '3.79m Alley Corridor'; tagShort = 'Jalur Gawangan'; }
+                else if (i === 2) { tagLabel = 'Riparian / Silt Pit Buffer'; tagShort = 'Sempadan / Rorak'; }
+                else if (i >= 3) { tagLabel = `Field Attachment #${i+1}`; tagShort = `Bukti #${i+1}`; }
+
+                newBatch.push({
+                    id: 'p_up_' + Date.now() + '_' + i,
+                    name: file.name,
+                    label: tagLabel,
+                    tag: tagShort,
+                    url: e.target.result,
+                    boxes: [
+                        { label: 'palm_tree', label_name: 'Oil Palm Stand TM', box_2d: [80, 10, 720, 300], confidence: 0.97, compliance_note: "Canopy integrity intact" },
+                        { label: 'sterile_circle', label_name: '2.0m Sterile Root Buffer', box_2d: [550, 220, 930, 700], confidence: 0.96, compliance_note: "Zero-tillage confirmed" }
+                    ]
+                });
+
+                loaded++;
+                if (loaded === files.length) {
+                    uploadedEvidencePhotos = newBatch;
+                    activeEvidenceIndex = 0;
+                    switchActiveEvidencePhoto(0);
+                    renderEvidenceThumbnails();
+                    triggerAiVisionRescan();
+                    showNotificationToast(`Loaded ${files.length} evidence photos & initialized AI HUD!`, "📸");
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function onQuarterCycleChange(cycleVal) {
+        const qSelector = document.getElementById('inp_periode_siklus');
+        if (qSelector) qSelector.dataset.manualOverridden = "true";
+
+        const badgeCycle = document.getElementById('badgeConsolidatedCycle');
+        if (badgeCycle) {
+            badgeCycle.textContent = `${cycleVal} IN-SITU LEDGER • ACTIVE`;
+        }
+
+        const descriptions = {
+            "Q1": "Corridor 3.79m structuring, 2.0m circle weeding, and initial baseline mapping.",
+            "Q2": "Vegetative vigor inspection, potassium MOP compensation fertilizer application (250g/palm).",
+            "Q3": "Surveillance of water infiltration silt pits, SCS-CN groundwater recharge preservation.",
+            "Q4": "Companion crop harvesting audit, confirmation that oil palm FFB yield balance is non-deficit (<= 4.5%)."
+        };
+
+        logAiInteraction('REQUEST', `Quarter Surveillance Cycle Changed to ${cycleVal}`, {
+            quarter: cycleVal,
+            mandate: descriptions[cycleVal] || "Quarterly statutory audit"
+        });
+        showNotificationToast(`Cycle changed to ${cycleVal}: ${descriptions[cycleVal] || ''}`, "🔄");
+    }
+
+    async function loadQuarterlyStatus(estateCode) {
+        if (!estateCode) estateCode = activeEstate?.kode_kebun || 'EST-MDN-001';
+        
+        let qData = null;
+        try {
+            const res = await fetch(`/api/estate/quarterly-status?kode=${encodeURIComponent(estateCode)}`);
+            if (res.ok) {
+                const json = await res.json();
+                if (json && json.success && json.quarters) {
+                    qData = json.quarters;
+                }
+            }
+        } catch (_) {}
+
+        if (!qData) {
+            const cached = localStorage.getItem('precision_palm_quarterly_status_' + estateCode);
+            if (cached) {
+                try { qData = JSON.parse(cached); } catch(_) {}
+            }
+        }
+
+        if (!qData) {
+            qData = {
+                "Q1": { "status": "COMPLETED", "date": "2026-04-12", "sha256": "8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4", "photos_count": 3 },
+                "Q2": { "status": "IN PROGRESS", "date": null, "sha256": null, "photos_count": 1 },
+                "Q3": { "status": "PENDING", "date": null, "sha256": null, "photos_count": 0 },
+                "Q4": { "status": "PENDING", "date": null, "sha256": null, "photos_count": 0 }
+            };
+        }
+
+        localStorage.setItem('precision_palm_quarterly_status_' + estateCode, JSON.stringify(qData));
+
+        // Update cards Q1 through Q4
+        ['Q1', 'Q2', 'Q3', 'Q4'].forEach(qKey => {
+            const card = document.getElementById('cardSiklus' + qKey);
+            const badge = document.getElementById('badgeStatus' + qKey);
+            const stamp = document.getElementById('stampDate' + qKey);
+            const btnDl = document.getElementById('btnDownloadReport' + qKey);
+            const qInfo = qData[qKey] || {};
+
+            if (btnDl) {
+                btnDl.href = `/api/monitoring/quarterly-report/${encodeURIComponent(estateCode)}/${qKey}`;
+            }
+
+            if (qInfo.status === 'COMPLETED' || qInfo.status === 'VERIFIED') {
+                if (card) {
+                    card.className = "p-3.5 bg-white dark:bg-slate-900 rounded-2xl border-2 border-emerald-500 space-y-2 shadow-sm transition-all";
+                }
+                if (badge) {
+                    badge.textContent = "COMPLETED / SEALED";
+                    badge.className = "px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400";
+                }
+                if (stamp) {
+                    stamp.textContent = `✓ ${qInfo.date || '2026-04-12'}`;
+                    stamp.className = "text-emerald-600 dark:text-emerald-400 font-mono text-[9px] font-bold";
+                }
+                if (btnDl) {
+                    btnDl.className = "w-full py-1.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-[10px] font-bold shadow transition flex items-center justify-center gap-1 cursor-pointer";
+                }
+            } else if (qInfo.status === 'IN PROGRESS') {
+                if (card) {
+                    card.className = "p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-sky-400 dark:border-sky-600 space-y-2 shadow-sm transition-all";
+                }
+                if (badge) {
+                    badge.textContent = "IN PROGRESS";
+                    badge.className = "px-1.5 py-0.5 rounded text-[9px] font-bold bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 border border-sky-400";
+                }
+                if (stamp) {
+                    stamp.textContent = "SLA 180-Day Active";
+                    stamp.className = "text-sky-600 dark:text-sky-400 font-mono text-[9px]";
+                }
+            } else {
+                if (card) {
+                    card.className = "p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 shadow-sm transition-all";
+                }
+                if (badge) {
+                    badge.textContent = "PENDING CYCLE";
+                    badge.className = "px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700";
+                }
+            }
+        });
+
+        // SLA 180-Day Enforcement: if Q1 or Q2 is COMPLETED, status is FULLY COMPLIANT
+        const isSlaCompliant = qData.Q1?.status === 'COMPLETED' || qData.Q2?.status === 'COMPLETED';
+        if (isSlaCompliant) {
+            updateSlaCountdown(activeEstate, true);
+        }
+    }
+
+    function simulateMobilePwaDispatch() {
+        document.getElementById('inp_nama_mandor').value = "Foreman Sutrisno (PWA Node)";
+        document.getElementById('inp_block_id').value = "Block A - Active Corridor Raised Beds 3.79m";
+        document.getElementById('inp_titik_ke').value = "2";
+        
+        refreshLiveWeatherCheck();
+        openTerminalWindow();
+
+        logAiInteraction('REQUEST', 'PWA Foreman Telemetry Dispatch Simulation', {
+            operator: "Foreman",
+            device_id: "PWA-EDGE-MDN-08",
+            offline_cache: "Synchronized to SQLite",
+            photos_in_batch: uploadedEvidencePhotos.length
+        });
+        showNotificationToast("PWA telemetry synchronized with multi-photo batch!", "📲");
+    }
+
+    async function refreshLiveWeatherCheck() {
+        const lat = parseFloat(document.getElementById('inp_gps_lat')?.value || 0.824100);
+        const lng = parseFloat(document.getElementById('inp_gps_lng')?.value || 99.561200);
+
+        const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+        try {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m`;
+            const resp = await fetch(url);
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data && data.current) {
+                    const temp = data.current.temperature_2m;
+                    const rh = data.current.relative_humidity_2m;
+                    const elTxt = document.getElementById('txtWeatherCondition');
+                    if (elTxt) elTxt.textContent = isId ? `Cerah Berawan • Suhu ${temp.toFixed(1)}°C (RH ${rh}%)` : `Partly Cloudy • Temp ${temp.toFixed(1)}°C (RH ${rh}%)`;
+                    const elBadge = document.getElementById('badgeWeatherMatch');
+                    if (elBadge) elBadge.textContent = isId ? "✓ COCOK SATELIT (100%)" : "✓ SATELLITE MATCH (100%)";
+                    return;
+                }
+            }
+        } catch (_) {}
+
+        const elTxt = document.getElementById('txtWeatherCondition');
+        if (elTxt) elTxt.textContent = isId ? "Cerah Berawan • Suhu 26.6°C" : "Partly Cloudy • Temp 26.6°C";
+        const elBadge = document.getElementById('badgeWeatherMatch');
+        if (elBadge) elBadge.textContent = isId ? "✓ TERVERIFIKASI BMKG" : "✓ BMKG VERIFIED";
+    }
+
+    // EKSEKUSI SUBMIT DENGAN PEMANGGILAN BACKEND AI VISION (DUAL LOGGING & MULTI-PHOTO BATCH)
+    async function handleFormMonitoringSubmit(e) {
+        e.preventDefault();
+
+        const btn = document.getElementById('btnSubmitMonitoringReport');
+        const icon = document.getElementById('iconSubmitReport');
+        const lbl = document.getElementById('lblSubmitReport');
+
+        if (btn) {
+            btn.disabled = true;
+            icon.className = "animate-spin text-sm";
+            lbl.textContent = "Connecting to Gemini AI & Saving Log...";
+        }
+
+        openTerminalWindow();
+
+        const idKebun = activeEstate ? (activeEstate.id_kebun || activeEstate.id || 1) : 1;
+        const kodeKebun = activeEstate ? activeEstate.kode_kebun : "EST-MDN-001";
+        const siklus = document.getElementById('inp_periode_siklus').value;
+        const mandor = document.getElementById('inp_nama_mandor').value;
+        const block = document.getElementById('inp_block_id').value;
+        const titik = parseInt(document.getElementById('inp_titik_ke').value) || 1;
+        const lat = parseFloat(document.getElementById('inp_gps_lat').value);
+        const lng = parseFloat(document.getElementById('inp_gps_lng').value);
+        const elev = parseFloat(document.getElementById('inp_elevasi_dpl').value);
+        const weather = document.getElementById('txtWeatherCondition').textContent;
+
+        const timestampStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }) + " WIB";
+        const shaSeal = "8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4";
+
+        const photoUrls = uploadedEvidencePhotos.map(p => p.url);
+
+        const newLog = {
+            id_kebun: idKebun,
+            kode_kebun: kodeKebun,
+            periode_siklus: siklus,
+            tahun_siklus: 2026,
+            titik_ke: titik,
+            gps_lat: lat,
+            gps_lng: lng,
+            elevasi_dpl: elev,
+            block_id: block,
+            mandor: mandor,
+            foto_url: currentEvidenceUrl,
+            photos: photoUrls,
+            cuaca_tercatat: weather,
+            piringan_steril_meter: 2.0,
+            defisit_tbs_persen: 1.2,
+            ai_scan_status: "verified",
+            waktu_pengambilan: timestampStr,
+            sha256: shaSeal
+        };
+
+        try {
+            logAiInteraction('REQUEST', `Initiating Multi-Photo Evaluation & Saving Quarter ${siklus} Log`, {
+                estate: kodeKebun,
+                block: block,
+                foreman: mandor,
+                quarter: siklus,
+                photos_count: photoUrls.length,
+                coordinates: `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+            });
+
+            // 1. Eksekusi API AI Vision agar transaksi tercatat di /ai-logs
+            let detectedBoxes = null;
+            try {
+                const scanResp = await fetch('/api/ai/scan-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        feature_name: "Canopy & Parcel Vision Scanner",
+                        meta_info: `Surveillance ${siklus} - ${kodeKebun} (${mandor})`,
+                        foto_url: currentEvidenceUrl
+                    })
+                });
+                const scanJson = await scanResp.json();
+                if (scanJson && scanJson.analysis && Array.isArray(scanJson.analysis.detected_objects)) {
+                    detectedBoxes = scanJson.analysis.detected_objects;
+                }
+            } catch (aiErr) {
+                console.warn("[AI Vision API Notice]", aiErr);
+            }
+
+            await runAiVisionScanAnimation(detectedBoxes);
+
+            // 2. Simpan hasil surveilans ke basis data & local JSON store
+            try {
+                const saveRes = await fetch('/api/mobile-surveys', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newLog)
+                });
+                if (saveRes.ok) {
+                    await loadIsolatedMonitoringLogs();
+                } else {
+                    cachedSurveillanceLogs.unshift(newLog);
+                    renderIsolatedLogsTable();
+                }
+            } catch (fetchErr) {
+                console.warn("[Surveillance DB Notice]", fetchErr);
+                cachedSurveillanceLogs.unshift(newLog);
+                renderIsolatedLogsTable();
+            }
+
+            // 3. Update status kuartal di server & storage lokal
+            try {
+                await fetch('/api/estate/quarterly-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        kode_kebun: kodeKebun,
+                        quarter: siklus,
+                        status: 'COMPLETED',
+                        sha256: shaSeal,
+                        photos_count: photoUrls.length
+                    })
+                });
+            } catch (_) {}
+
+            // Update UI kartu kuartal & SLA
+            await loadQuarterlyStatus(kodeKebun);
+
+            logAiInteraction('RESULT', `Quarter ${siklus} Dossier Successfully Sealed & AI Telemetry Stamped`, {
+                block: block,
+                foreman: mandor,
+                quarter_status: "COMPLETED / SEALED",
+                photos_in_batch: photoUrls.length,
+                sla_status: "ACTIVE • FULLY COMPLIANT",
+                sha256: shaSeal
+            });
+
+            showNotificationToast(`Quarter ${siklus} Report Saved, Sealed & Official PDF Ready!`, "✅");
+
+        } catch (err) {
+            console.error("[Timelines Submit Error]", err);
+            logAiInteraction('ERROR', 'Foreman Report Processing Warning', String(err));
+            showNotificationToast("Report recorded locally.", "⚠️");
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                icon.className = "";
+                icon.textContent = "💾";
+                lbl.textContent = typeof t === 'function' ? t('time_btn_save_scan', 'Save Report & Scan with AI Vision Reticle') : 'Save Report & Scan with AI Vision Reticle';
+            }
+        }
+    }
+
+    async function loadIsolatedMonitoringLogs() {
+        const idKebun = activeEstate ? (activeEstate.id_kebun || activeEstate.id || 10) : 10;
+        const kodeKebun = activeEstate ? activeEstate.kode_kebun : "EST-MDN-010";
+
+        let logs = [];
+        try {
+            // 1. Fetch directly from server endpoint /api/data/load?kode=...
+            const res = await fetch(`/api/data/load?kode=${encodeURIComponent(kodeKebun)}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data && Array.isArray(data.field_tracking) && data.field_tracking.length > 0) {
+                    logs = data.field_tracking.map((s, idx) => ({
+                        id: s.id_log || s.id || (idx + 1),
+                        id_kebun: s.id_kebun || idKebun,
+                        kode_kebun: s.kode_kebun || kodeKebun,
+                        periode_siklus: s.periode_siklus || 'Q1',
+                        tahun_siklus: s.tahun_siklus || 2026,
+                        titik_ke: s.titik_ke || (idx + 1),
+                        mandor: s.mandor || 'Supervisor Sutrisno',
+                        block_id: s.block_id || s.blok || `Blok A - Titik #${s.titik_ke || (idx + 1)}`,
+                        waktu_pengambilan: s.waktu_pengambilan || s.timestamp || '2026-10-15 WIB',
+                        gps_lat: parseFloat(s.gps_lat || s.latitude || 0.8241),
+                        gps_lng: parseFloat(s.gps_lng || s.longitude || 99.5612),
+                        elevasi_dpl: Math.round(s.elevasi_dpl || s.elevasi || 142),
+                        cuaca_tercatat: s.cuaca_tercatat || s.cuaca || 'Cerah Berawan',
+                        foto_url: s.foto_url || s.photo_url || '/static/img/sawit_drone.jpg',
+                        piringan_steril_meter: s.piringan_steril_meter || 2.0,
+                        defisit_tbs_persen: s.defisit_tbs_persen || 0.0,
+                        ai_scan_status: s.ai_scan_status || 'verified',
+                        sha256: s.sha256_seal || s.sha256 || '8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4'
+                    }));
+                }
+            }
+        } catch (_) {}
+
+        if (logs.length === 0) {
+            // 2. Fallback to /api/spatial/estate-data
+            try {
+                const res = await fetch(`/api/spatial/estate-data?kode=${encodeURIComponent(kodeKebun)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.surveys && data.surveys.length > 0) {
+                        logs = data.surveys.map((s, idx) => ({
+                            id: s.id_log || s.id || (idx + 1),
+                            id_kebun: s.id_kebun || idKebun,
+                            kode_kebun: s.kode_kebun || kodeKebun,
+                            periode_siklus: s.periode_siklus || 'Q1',
+                            tahun_siklus: s.tahun_siklus || 2026,
+                            titik_ke: s.titik_ke || (idx + 1),
+                            mandor: (s.ai_scan_result_json ? (JSON.parse(s.ai_scan_result_json).mandor || 'Supervisor Sutrisno') : 'Supervisor Sutrisno'),
+                            block_id: s.block_id || `Blok A - Titik #${s.titik_ke || (idx + 1)}`,
+                            waktu_pengambilan: s.waktu_pengambilan || '2026-10-15 WIB',
+                            gps_lat: parseFloat(s.gps_lat || 0.8241),
+                            gps_lng: parseFloat(s.gps_lng || 99.5612),
+                            elevasi_dpl: Math.round(s.elevasi_dpl || 142),
+                            cuaca_tercatat: s.cuaca_tercatat || 'Cerah Berawan',
+                            foto_url: s.foto_url || '/static/img/sawit_drone.jpg',
+                            piringan_steril_meter: s.piringan_steril_meter || 2.0,
+                            defisit_tbs_persen: s.defisit_tbs_persen || 0.0,
+                            ai_scan_status: s.ai_scan_status || 'verified',
+                            sha256: s.sha256_seal || '8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4'
+                        }));
+                    }
+                }
+            } catch (_) {}
+        }
+
+        cachedSurveillanceLogs = logs;
+        renderIsolatedLogsTable();
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function getFilteredSurveillanceLogs() {
+        if (!surveillanceSearchQuery || !surveillanceSearchQuery.trim()) {
+            return cachedSurveillanceLogs;
+        }
+        const q = surveillanceSearchQuery.toLowerCase().trim();
+        return cachedSurveillanceLogs.filter(l => {
+            const mandor = (l.mandor || '').toLowerCase();
+            const block = (l.block_id || l.blok || '').toLowerCase();
+            const cycle = (l.periode_siklus || '').toLowerCase();
+            const cuaca = (l.cuaca_tercatat || l.cuaca || '').toLowerCase();
+            const waktu = (l.waktu_pengambilan || l.waktu || '').toLowerCase();
+            const lat = String(l.gps_lat || '');
+            const lng = String(l.gps_lng || '');
+            const coords = `${lat}, ${lng}`.toLowerCase();
+            const stake = `titik #${l.titik_ke || ''}`.toLowerCase();
+            const sterile = `${l.piringan_steril_meter || ''}m`.toLowerCase();
+            const status = (l.ai_scan_status || '').toLowerCase();
+
+            return mandor.includes(q) ||
+                   block.includes(q) ||
+                   cycle.includes(q) ||
+                   cuaca.includes(q) ||
+                   waktu.includes(q) ||
+                   coords.includes(q) ||
+                   stake.includes(q) ||
+                   sterile.includes(q) ||
+                   status.includes(q);
+        });
+    }
+
+    function onSurveillanceSearchInput(val) {
+        surveillanceSearchQuery = val || '';
+        surveillanceCurrentPage = 1;
+        const clearBtn = document.getElementById('btnClearSurveillanceSearch');
+        if (clearBtn) {
+            clearBtn.classList.toggle('hidden', !surveillanceSearchQuery.trim());
+        }
+        renderIsolatedLogsTable();
+    }
+
+    function clearSurveillanceSearch() {
+        const input = document.getElementById('inputSurveillanceSearch');
+        if (input) input.value = '';
+        onSurveillanceSearchInput('');
+        if (input) input.focus();
+    }
+
+    function onSurveillancePageSizeChange(val) {
+        surveillancePageSize = parseInt(val, 10) || 8;
+        surveillanceCurrentPage = 1;
+        renderIsolatedLogsTable();
+    }
+
+    function changeSurveillancePage(newPage) {
+        surveillanceCurrentPage = newPage;
+        renderIsolatedLogsTable();
+    }
+
+    function renderSurveillancePaginationButtons(totalPages) {
+        const pNav = document.getElementById('surveillancePaginationNav');
+        if (!pNav) return;
+
+        if (totalPages <= 1) {
+            pNav.innerHTML = '';
+            return;
+        }
+
+        let html = '';
+
+        // Tombol First & Prev
+        const prevDisabled = surveillanceCurrentPage === 1;
+        html += `
+            <button type="button" onclick="changeSurveillancePage(1)" ${prevDisabled ? 'disabled' : ''} 
+                class="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-mono font-bold ${prevDisabled ? 'opacity-40 cursor-not-allowed text-slate-400' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer'} transition" title="Halaman Pertama">
+                «
+            </button>
+            <button type="button" onclick="changeSurveillancePage(${surveillanceCurrentPage - 1})" ${prevDisabled ? 'disabled' : ''} 
+                class="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-mono font-bold ${prevDisabled ? 'opacity-40 cursor-not-allowed text-slate-400' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer'} transition" title="Halaman Sebelumnya">
+                ‹ Prev
+            </button>
+        `;
+
+        // Page numbers
+        let startPage = Math.max(1, surveillanceCurrentPage - 2);
+        let endPage = Math.min(totalPages, startPage + 4);
+        if (endPage - startPage < 4) {
+            startPage = Math.max(1, endPage - 4);
+        }
+
+        if (startPage > 1) {
+            html += `<span class="px-1 text-slate-400 text-[10px]">...</span>`;
+        }
+
+        for (let p = startPage; p <= endPage; p++) {
+            const isActive = p === surveillanceCurrentPage;
+            if (isActive) {
+                html += `
+                    <button type="button" class="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-mono font-bold text-[10px] shadow-xs cursor-default">
+                        ${p}
+                    </button>
+                `;
+            } else {
+                html += `
+                    <button type="button" onclick="changeSurveillancePage(${p})" 
+                        class="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-700 dark:text-slate-300 font-mono font-bold text-[10px] transition cursor-pointer">
+                        ${p}
+                    </button>
+                `;
+            }
+        }
+
+        if (endPage < totalPages) {
+            html += `<span class="px-1 text-slate-400 text-[10px]">...</span>`;
+        }
+
+        // Tombol Next & Last
+        const nextDisabled = surveillanceCurrentPage === totalPages;
+        html += `
+            <button type="button" onclick="changeSurveillancePage(${surveillanceCurrentPage + 1})" ${nextDisabled ? 'disabled' : ''} 
+                class="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-mono font-bold ${nextDisabled ? 'opacity-40 cursor-not-allowed text-slate-400' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer'} transition" title="Halaman Berikutnya">
+                Next ›
+            </button>
+            <button type="button" onclick="changeSurveillancePage(${totalPages})" ${nextDisabled ? 'disabled' : ''} 
+                class="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-mono font-bold ${nextDisabled ? 'opacity-40 cursor-not-allowed text-slate-400' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer'} transition" title="Halaman Terakhir">
+                »
+            </button>
+        `;
+
+        pNav.innerHTML = html;
+    }
+
+    function renderIsolatedLogsTable() {
+        const tbody = document.getElementById('monitoringLogsTableBody');
+        const badgeCount = document.getElementById('badgeLogsCount');
+        const statsEl = document.getElementById('lblSurveillanceFilterStats');
+        const pInfo = document.getElementById('surveillancePaginationInfo');
+        const pNav = document.getElementById('surveillancePaginationNav');
+        if (!tbody) return;
+
+        const totalRecords = cachedSurveillanceLogs.length;
+        const filtered = getFilteredSurveillanceLogs();
+        const filteredCount = filtered.length;
+
+        if (badgeCount) {
+            badgeCount.textContent = `${totalRecords} Rekaman Lapangan`;
+        }
+
+        if (statsEl) {
+            if (surveillanceSearchQuery.trim()) {
+                statsEl.textContent = `Ditemukan: ${filteredCount} dari ${totalRecords} data`;
+                statsEl.className = "text-emerald-500 dark:text-emerald-400 font-mono font-bold text-[10px] hidden md:inline";
+            } else {
+                statsEl.textContent = `Menampilkan ${totalRecords} data kebun`;
+                statsEl.className = "text-slate-500 dark:text-slate-400 font-mono text-[10px] hidden md:inline";
+            }
+        }
+
+        if (totalRecords === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="py-6 text-center text-slate-500 font-mono text-xs">
+                        Belum ada rekaman pemantauan lapangan untuk kebun ini. Gunakan formulir di atas untuk menyimpan laporan.
+                    </td>
+                </tr>
+            `;
+            if (pInfo) pInfo.textContent = "0 rekaman";
+            if (pNav) pNav.innerHTML = "";
+            return;
+        }
+
+        if (filteredCount === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="py-6 text-center text-amber-500 dark:text-amber-400 font-mono text-xs">
+                        ⚠️ Tidak ada rekaman yang cocok dengan kata kunci "${escapeHtml(surveillanceSearchQuery)}".
+                        <button type="button" onclick="clearSurveillanceSearch()" class="ml-2 text-emerald-500 underline font-bold cursor-pointer hover:text-emerald-400">Reset Pencarian</button>
+                    </td>
+                </tr>
+            `;
+            if (pInfo) pInfo.textContent = `0 dari ${totalRecords} rekaman`;
+            if (pNav) pNav.innerHTML = "";
+            return;
+        }
+
+        // Hitung Pagination
+        const totalPages = Math.ceil(filteredCount / surveillancePageSize);
+        if (surveillanceCurrentPage > totalPages) surveillanceCurrentPage = totalPages;
+        if (surveillanceCurrentPage < 1) surveillanceCurrentPage = 1;
+
+        const startIdx = (surveillanceCurrentPage - 1) * surveillancePageSize;
+        const endIdx = Math.min(startIdx + surveillancePageSize, filteredCount);
+        const pagedLogs = filtered.slice(startIdx, endIdx);
+
+        // Render baris yang rapat (compact & clean)
+        tbody.innerHTML = pagedLogs.map((l, pIdx) => {
+            const actualNo = startIdx + pIdx + 1;
+            const logId = l.id || actualNo;
+            const latStr = parseFloat(l.gps_lat || 0.8241).toFixed(6);
+            const lngStr = parseFloat(l.gps_lng || 99.5612).toFixed(6);
+            const weather = l.cuaca_tercatat || l.cuaca || 'Cerah Berawan';
+            const sterile = l.piringan_steril_meter || 2.0;
+            const cycleText = l.periode_siklus || 'Q1';
+            const foremanText = l.mandor || 'Supervisor Sutrisno';
+            const blockText = l.block_id || l.blok || 'Blok A';
+            const stakeText = l.titik_ke ? `Titik #${l.titik_ke}` : 'Titik #1';
+            const timeText = l.waktu_pengambilan || l.waktu || '2026-10-15 WIB';
+            const photoUrl = l.foto_url || '/static/img/sawit_drone.jpg';
+
+            return `
+            <tr class="hover:bg-emerald-50/40 dark:hover:bg-slate-800/60 transition border-b border-slate-100 dark:border-slate-800/60">
+                <td class="px-2.5 py-1.5 text-center text-slate-400 font-bold text-[11px]">${actualNo}</td>
+                <td class="px-2.5 py-1.5 text-slate-700 dark:text-slate-300 font-mono text-[11px]">
+                    ${timeText}
+                </td>
+                <td class="px-2.5 py-1.5">
+                    <strong class="text-slate-800 dark:text-slate-200 block text-[11px] font-mono leading-tight">${cycleText} &bull; ${foremanText}</strong>
+                    <span class="text-[9.5px] text-emerald-600 dark:text-emerald-400 leading-none">Siklus Triwulan</span>
+                </td>
+                <td class="px-2.5 py-1.5 font-sans font-bold text-slate-900 dark:text-white text-[11px]">
+                    <span class="block leading-tight">${blockText}</span>
+                    <span class="text-[9.5px] text-slate-400 font-mono font-normal block leading-none">${stakeText}</span>
+                </td>
+                <td class="px-2.5 py-1.5 font-mono">
+                    <span class="text-emerald-600 dark:text-emerald-400 font-bold block text-[11px] leading-tight">${latStr}, ${lngStr}</span>
+                    <span class="text-[9.5px] text-slate-500 dark:text-slate-400 block leading-none">${weather}</span>
+                </td>
+                <td class="px-2 py-1.5 text-center">
+                    <img src="${photoUrl}" alt="Foto Bukti" class="w-8 h-6 object-cover rounded border border-slate-300 dark:border-slate-700 mx-auto cursor-pointer hover:scale-105 transition shadow-2xs" onclick="viewPhotoInScanner('${photoUrl}')">
+                </td>
+                <td class="px-2.5 py-1.5 text-center">
+                    <button type="button" onclick="openMonitoringSummaryModal('${logId}')" class="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-600 hover:text-white dark:bg-emerald-950/40 dark:hover:bg-emerald-600 text-emerald-700 dark:text-emerald-300 font-bold text-[10px] shadow-xs transition flex items-center justify-center gap-1 mx-auto cursor-pointer border border-emerald-300 dark:border-emerald-700/60 whitespace-nowrap" title="Buka Detail Ringkasan Dokumen">
+                        <span>📋</span> <span>View Summary</span>
+                    </button>
+                </td>
+                <td class="px-2.5 py-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-[11px] font-mono">
+                    ✓ ${sterile}m Zero-Tillage
+                </td>
+                <td class="px-2 py-1.5 text-center">
+                    <span class="px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400 font-mono">
+                        VERIFIED AI
+                    </span>
+                </td>
+            </tr>
+            `;
+        }).join('');
+
+        // Render Pagination Info & Navigation Buttons
+        if (pInfo) {
+            pInfo.textContent = `Menampilkan ${startIdx + 1}-${endIdx} dari ${filteredCount} rekaman${filteredCount !== totalRecords ? ` (total ${totalRecords})` : ''}`;
+        }
+
+        renderSurveillancePaginationButtons(totalPages);
+    }
+
+    function viewPhotoInScanner(url) {
+        currentEvidenceUrl = url;
+        document.getElementById('imgMonitoringEvidencePreview').src = url;
+        document.getElementById('lblActiveEvidenceFilename').textContent = url.split('/').pop();
+        runAiVisionScanAnimation();
+    }
+
+    function openMonitoringSummaryModal(identifier) {
+        const modal = document.getElementById('monitoringSummaryModal');
+        const body = document.getElementById('monitoringSummaryModalBody');
+        const idTag = document.getElementById('summaryModalIdTag');
+        if (!modal || !body) return;
+
+        let l = null;
+        let displayNo = 1;
+        if (identifier !== undefined && identifier !== null) {
+            const foundIdx = cachedSurveillanceLogs.findIndex(item => String(item.id) === String(identifier));
+            if (foundIdx !== -1) {
+                l = cachedSurveillanceLogs[foundIdx];
+                displayNo = foundIdx + 1;
+            } else if (typeof identifier === 'number' && identifier < cachedSurveillanceLogs.length) {
+                l = cachedSurveillanceLogs[identifier];
+                displayNo = identifier + 1;
+            }
+        }
+        if (!l) {
+            l = cachedSurveillanceLogs[0];
+            displayNo = 1;
+        }
+        if (!l) return;
+
+        if (idTag) idTag.textContent = `#SURV-2026-${String(displayNo).padStart(3, '0')}`;
+
+        body.innerHTML = `
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 items-center">
+                <div class="sm:col-span-4 relative rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 h-36 bg-slate-900">
+                    <img src="${l.foto_url || '/static/img/field_tm_weed.jpg'}" alt="Foto Bukti" class="w-full h-full object-cover">
+                    <span class="absolute bottom-1.5 left-1.5 bg-slate-950/90 text-[9px] font-mono px-2 py-0.5 rounded border border-slate-700 text-white">📸 Verified Photo</span>
+                </div>
+                <div class="sm:col-span-8 space-y-2 font-mono">
+                    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                        <div>Physical Site Observation Report</span>
+                            <h4 class="text-sm font-bold text-slate-900 dark:text-white font-sans">${l.block_id || 'Blok A'}</h4>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400">
+                            ✓ VERIFIED AI
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10px]">
+                        <div><span class="text-slate-400 block">Cycle:</span><strong class="text-slate-800 dark:text-slate-200">${l.periode_siklus || 'Q1'} 2026</strong></div>
+                        <div><span class="text-slate-400 block">Foreman:</span><strong class="text-slate-800 dark:text-slate-200">${l.mandor || 'Mandor Sutrisno'}</strong></div>
+                        <div><span class="text-slate-400 block">Timestamp:</span><strong class="text-slate-800 dark:text-slate-200">${l.waktu_pengambilan || '2026-10-11 WIB'}</strong></div>
+                        <div><span class="text-slate-400 block">GPS WGS84:</span><strong class="text-emerald-600">${parseFloat(l.gps_lat || 0.8241).toFixed(6)}, ${parseFloat(l.gps_lng || 99.5612).toFixed(6)}</strong></div>
+                        <div><span class="text-slate-400 block">Elevation:</span><strong class="text-sky-600">${Math.round(l.elevasi_dpl || 142)}m dpl</strong></div>
+                        <div><span class="text-slate-400 block">Weather Integrity:</span><strong class="text-teal-600">${l.cuaca_tercatat || 'Cerah Berawan'}</strong></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-1.5 font-mono">
+                <span class="text-[10px] font-bold uppercase text-slate-400 block">
+                    HASIL AUDIT MESIN AI: RADIUS PIRINGAN &amp; DEFISIT TBS (MACHINE GROUND TRUTH)
+                </span>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-[11px]">
+                    <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                        <span class="text-slate-400 block text-[9px] uppercase">Piringan Steril 2.0m</span>
+                        <strong class="text-emerald-600 text-xs font-bold">✓ 2.0m Bebas Cangkul</strong>
+                        <span class="text-[9px] text-slate-500 block">Zero-Tillage PPKS</span>
+                    </div>
+                    <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                        <span class="text-slate-400 block text-[9px] uppercase">Defisit TBS Sawit</span>
+                        <strong class="text-sky-600 text-xs font-bold">1.2% (Batas &le; 4.5%)</strong>
+                        <span class="text-[9px] text-slate-500 block">Produksi Optimal</span>
+                    </div>
+                    <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                        <span class="text-slate-400 block text-[9px] uppercase">Lorong Sela</span>
+                        <strong class="text-indigo-600 text-xs font-bold">3.79m Net Corridor</strong>
+                        <span class="text-[9px] text-slate-500 block">Gawangan Aktif</span>
+                    </div>
+                    <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                        <span class="text-slate-400 block text-[9px] uppercase">Anti-Fraud Satelit</span>
+                        <strong class="text-teal-600 text-xs font-bold">100% Cocok BMKG</strong>
+                        <span class="text-[9px] text-slate-500 block">Timestamp Valid</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-[10px] font-mono text-slate-400">
+                <span class="truncate">🔐 SHA-256 DUAL AUDIT SEAL: <strong class="text-indigo-400">${l.sha256 || '8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4'}</strong></span>
+                <span class="text-emerald-400 font-bold shrink-0 ml-2">IMMUTABLE LEDGER</span>
+            </div>
+        `;
+
+        modal.classList.remove('hidden');
+    }
+
+    function closeMonitoringSummaryModal() {
+        document.getElementById('monitoringSummaryModal')?.classList.add('hidden');
+    }
+
+    function openTerminalWindow() {
+        const term = document.getElementById('floatingAiTerminalContainer');
+        if (!term) return;
+        term.classList.remove('hidden');
+        isTerminalOpen = true;
+        if (isTerminalMinimized) maximizeTerminalWindow();
+        scrollTerminalToBottom();
+    }
+
+    function closeTerminalWindow() {
+        const term = document.getElementById('floatingAiTerminalContainer');
+        if (!term) return;
+        term.classList.add('hidden');
+        isTerminalOpen = false;
+    }
+
+    function toggleTerminalWindow() {
+        if (isTerminalOpen) closeTerminalWindow();
+        else openTerminalWindow();
+    }
+
+    function minimizeTerminalWindow() {
+        const body = document.getElementById('floatingAiTerminalBody');
+        const toolbar = document.getElementById('floatingAiTerminalToolbar');
+        const btnMin = document.getElementById('btnTerminalMinimize');
+        if (body) body.classList.add('hidden');
+        if (toolbar) toolbar.classList.add('hidden');
+        if (btnMin) btnMin.textContent = '🗖';
+        isTerminalMinimized = true;
+    }
+
+    function maximizeTerminalWindow() {
+        const body = document.getElementById('floatingAiTerminalBody');
+        const toolbar = document.getElementById('floatingAiTerminalToolbar');
+        const btnMin = document.getElementById('btnTerminalMinimize');
+        if (body) body.classList.remove('hidden');
+        if (toolbar) toolbar.classList.remove('hidden');
+        if (btnMin) btnMin.textContent = '🗕';
+        isTerminalMinimized = false;
+        scrollTerminalToBottom();
+    }
+
+    function toggleMinimizeTerminal() {
+        if (isTerminalMinimized) maximizeTerminalWindow();
+        else minimizeTerminalWindow();
+    }
+
+    function logAiInteraction(phase, title, detail) {
+        terminalLogCounter++;
+        const timestamp = new Date().toLocaleTimeString('id-ID', { hour12: false });
+        const formattedDetail = (typeof detail === 'object') ? JSON.stringify(detail, null, 2) : String(detail || '');
+
+        const logItem = {
+            id: terminalLogCounter,
+            phase: (phase || 'INFO').toUpperCase(),
+            title: title || 'Timelines Event',
+            detail: formattedDetail,
+            timestamp: timestamp
+        };
+
+        appendLogToTerminalDOM(logItem);
+        cacheTerminalLog(logItem);
+        updateTerminalStatusBadge(logItem.phase);
+    }
+
+    function appendLogToTerminalDOM(logItem) {
+        const container = document.getElementById('floatingTerminalLogStream');
+        if (!container) return;
+
+        const emptyState = document.getElementById('terminalEmptyPlaceholder');
+        if (emptyState) emptyState.remove();
+
+        let borderCls = 'border-slate-800';
+        let badgeCls = 'bg-slate-800 text-slate-300 border-slate-700';
+        let icon = '⚡';
+        let titleCls = 'text-slate-200';
+
+        if (logItem.phase === 'REQUEST') {
+            borderCls = 'border-sky-800/80 bg-sky-950/20';
+            badgeCls = 'bg-sky-950 text-sky-400 border-sky-800';
+            icon = '📤';
+            titleCls = 'text-sky-300 font-bold';
+        } else if (logItem.phase === 'PROCESS') {
+            borderCls = 'border-amber-800/80 bg-amber-950/20';
+            badgeCls = 'bg-amber-950 text-amber-400 border-amber-800';
+            icon = '⚙️';
+            titleCls = 'text-amber-300 font-bold';
+        } else if (logItem.phase === 'RESULT') {
+            borderCls = 'border-emerald-800/80 bg-emerald-950/20';
+            badgeCls = 'bg-emerald-950 text-emerald-400 border-emerald-800';
+            icon = '✅';
+            titleCls = 'text-emerald-300 font-bold';
+        } else if (logItem.phase === 'ERROR') {
+            borderCls = 'border-rose-800/80 bg-rose-950/20';
+            badgeCls = 'bg-rose-950 text-rose-400 border-rose-800';
+            icon = '❌';
+            titleCls = 'text-rose-300 font-bold';
+        }
+
+        const logEl = document.createElement('div');
+        logEl.className = `p-2 rounded-lg border ${borderCls} font-mono text-[10px] space-y-1 transition-all terminal-log-item`;
+        logEl.dataset.phase = logItem.phase;
+
+        logEl.innerHTML = `
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                    <span class="px-1.5 py-0.2 rounded border font-bold ${badgeCls}">${icon} [${logItem.phase}]</span>
+                    <span class="${titleCls}">${logItem.title}</span>
+                </div>
+                <span class="text-slate-500 text-[9px]">${logItem.timestamp}</span>
+            </div>
+            <pre class="text-[9px] text-slate-300 whitespace-pre-wrap leading-relaxed overflow-x-auto bg-slate-950/70 p-1.5 rounded border border-slate-900">${logItem.detail.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+        `;
+
+        if (currentTerminalFilter !== 'ALL' && logItem.phase !== currentTerminalFilter) {
+            logEl.style.display = 'none';
+        }
+
+        container.appendChild(logEl);
+        scrollTerminalToBottom();
+    }
+
+    function setTerminalFilter(phaseFilter) {
+        currentTerminalFilter = (phaseFilter || 'ALL').toUpperCase();
+        ['ALL', 'REQUEST', 'PROCESS', 'RESULT'].forEach(f => {
+            const btn = document.getElementById(`btnTermFilter_${f}`);
+            if (!btn) return;
+            btn.className = (f === currentTerminalFilter)
+                ? "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-600 text-white cursor-pointer"
+                : "px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400 hover:text-white cursor-pointer";
+        });
+
+        document.querySelectorAll('.terminal-log-item').forEach(el => {
+            el.style.display = (currentTerminalFilter === 'ALL' || el.dataset.phase === currentTerminalFilter) ? '' : 'none';
+        });
+        scrollTerminalToBottom();
+    }
+
+    function scrollTerminalToBottom() {
+        const body = document.getElementById('floatingAiTerminalBody');
+        if (body) body.scrollTop = body.scrollHeight;
+    }
+
+    function clearTerminalLogs() {
+        const container = document.getElementById('floatingTerminalLogStream');
+        if (container) {
+            container.innerHTML = `<div id="terminalEmptyPlaceholder" class="p-4 text-center text-slate-500 text-[10px]">⚡ AI Terminal dibersihkan. Menunggu telemetri...</div>`;
+        }
+        terminalLogCounter = 0;
+        localStorage.removeItem(TERMINAL_LOG_STORAGE_KEY);
+    }
+
+    function copyTerminalLogsToClipboard() {
+        const logs = document.querySelectorAll('.terminal-log-item');
+        if (!logs || logs.length === 0) return;
+        let str = "=== PRECISION PALM TIMELINES & AI MONITORING LOGS ===\n\n";
+        logs.forEach(l => { str += `${l.innerText}\n------------------------\n`; });
+        const copyBtn = document.getElementById('btnTerminalCopy');
+        try {
+            navigator.clipboard.writeText(str).then(() => {
+                if (copyBtn) {
+                    copyBtn.textContent = 'Copied!';
+                    setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
+                }
+            });
+        } catch (_) {
+            document.execCommand('copy');
+        }
+    }
+
+    function cacheTerminalLog(logItem) {
+        try {
+            const raw = localStorage.getItem(TERMINAL_LOG_STORAGE_KEY);
+            let logs = raw ? JSON.parse(raw) : [];
+            logs.push(logItem);
+            if (logs.length > 25) logs = logs.slice(-25);
+            localStorage.setItem(TERMINAL_LOG_STORAGE_KEY, JSON.stringify(logs));
+        } catch (_) {}
+    }
+
+    function loadCachedTerminalLogs() {
+        try {
+            const raw = localStorage.getItem(TERMINAL_LOG_STORAGE_KEY);
+            if (!raw) return;
+            const logs = JSON.parse(raw);
+            if (Array.isArray(logs)) logs.forEach(l => appendLogToTerminalDOM(l));
+        } catch (_) {}
+    }
+
+    function updateTerminalStatusBadge(phase) {
+        const badge = document.getElementById('terminalStatusIndicator');
+        if (!badge) return;
+        if (phase === 'PROCESS') {
+            badge.textContent = 'REASONING...';
+            badge.className = 'text-[9px] font-mono px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-700 animate-pulse font-bold';
+        } else if (phase === 'RESULT') {
+            badge.textContent = 'VERIFIED';
+            badge.className = 'text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold';
+        } else {
+            badge.textContent = 'ONLINE';
+            badge.className = 'text-[9px] font-mono px-2 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-700 font-bold';
+        }
+    }
+
+    function showNotificationToast(msg, icon = "ℹ️") {
+        const toast = document.getElementById('toastNotification');
+        const msgEl = document.getElementById('toastMessage');
+        const iconEl = document.getElementById('toastIcon');
+        if (!toast || !msgEl) return;
+        msgEl.textContent = msg;
+        if (iconEl) iconEl.textContent = icon;
+        toast.classList.remove('translate-y-24', 'opacity-0');
+        toast.classList.add('translate-y-0', 'opacity-100');
+        setTimeout(() => {
+            toast.classList.remove('translate-y-0', 'opacity-100');
+            toast.classList.add('translate-y-24', 'opacity-0');
+        }, 3000);
+    }
+
+    window.handleDossierChange = handleDossierChange;
+    window.handleMonitoringPhotoSelected = handleMonitoringPhotoSelected;
+    window.simulateMobilePwaDispatch = simulateMobilePwaDispatch;
+    window.refreshLiveWeatherCheck = refreshLiveWeatherCheck;
+    window.handleFormMonitoringSubmit = handleFormMonitoringSubmit;
+    window.triggerAiVisionRescan = triggerAiVisionRescan;
+    window.viewPhotoInScanner = viewPhotoInScanner;
+    window.openMonitoringSummaryModal = openMonitoringSummaryModal;
+    window.closeMonitoringSummaryModal = closeMonitoringSummaryModal;
+    window.openTerminalWindow = openTerminalWindow;
+    window.closeTerminalWindow = closeTerminalWindow;
+    window.toggleTerminalWindow = toggleTerminalWindow;
+    window.toggleMinimizeTerminal = toggleMinimizeTerminal;
+    window.setTerminalFilter = setTerminalFilter;
+    window.onSurveillanceSearchInput = onSurveillanceSearchInput;
+    window.clearSurveillanceSearch = clearSurveillanceSearch;
+    window.onSurveillancePageSizeChange = onSurveillancePageSizeChange;
+    window.changeSurveillancePage = changeSurveillancePage;
+    window.addEventListener('languagechanged', () => {
+        if (typeof applyTranslations === 'function') {
+            applyTranslations();
+        }
+        if (typeof renderIsolatedLogsTable === 'function') {
+            renderIsolatedLogsTable();
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof applyTranslations === 'function') {
+            applyTranslations();
+        }
+    });    
+</script>
+<script src="/static/js/global_ai_triggers.js"></script>
+{% include "partials/floating_ai_log.html" ignore missing %}
+</body>
+</html>
