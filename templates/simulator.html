@@ -121,6 +121,13 @@
                     </p>
                 </div>
                 <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                    <!-- Button: Ambil Data Lapangan & Spasial Terkini -->
+                    <button type="button" 
+                            id="btnPullLiveTelemetry" 
+                            onclick="pullLiveFieldAndSpatialTelemetry()" 
+                            class="text-xs font-mono font-bold px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 border border-amber-400 shadow-md flex items-center gap-1.5 cursor-pointer transition active:scale-95">
+                        <span>⚡</span> <span>[Ambil Data Lapangan &amp; Spasial Terkini]</span>
+                    </button>
                     <!-- Dynamic Aggregated Drone Photos Badge -->
                     <span id="badge_aggregated_photos_indicator" class="text-xs font-mono font-bold px-3 py-1.5 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-500 shadow-xs flex items-center gap-1.5">
                         <span>📸</span> <span id="lbl_aggregated_photos_indicator">[1 Drone Orthophoto Aggregated]</span>
@@ -133,6 +140,22 @@
                 <input type="hidden" id="inference_mode_active" value="hybrid">
                 <input type="hidden" id="image_sample" value="sawit_drone.jpg">
                 <input type="hidden" id="selected_image_url" value="/static/img/sawit_drone.jpg">
+            </div>
+
+            <!-- Live Biophysical Ground-Truth Banner (/spatial + /mobile -> /proses) -->
+            <div id="liveBiophysicalSyncBanner" class="p-3.5 rounded-xl bg-slate-950 border border-emerald-500/50 flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-slate-200 shadow-sm">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span class="font-bold text-emerald-400">GROUND-TRUTH STATE (/spatial + /mobile):</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-3 sm:gap-4 text-[11px]">
+                    <span>📐 Kelerengan: <strong id="val_site_slope" class="text-white">4.5°</strong></span>
+                    <span>🍃 Klorofil Daun P-17: <strong id="val_leaf_spad" class="text-emerald-300">82.4 SPAD</strong></span>
+                    <span>⭕ Piringan Steril: <strong id="val_sterile_circle" class="text-teal-300">2.0m (Zero-Tillage)</strong></span>
+                    <span>🛡️ Ganoderma: <strong id="val_ganoderma" class="text-emerald-400">0.0% (Nihil)</strong></span>
+                    <span>⚖️ Pupuk MOP: <strong id="val_mop_comp" class="text-amber-300">+75 kg/Ha</strong></span>
+                    <span>📈 LER Terkunci: <strong id="val_ler_total" class="text-emerald-400 font-black">1.48x (+48%)</strong></span>
+                </div>
             </div>
 
             <!-- SECTION 1: Orthophoto & Drone Canopy Telemetry Zone (MATCHING EXACT TARGET BENCHMARK LAYOUT) -->

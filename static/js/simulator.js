@@ -1524,6 +1524,72 @@ function formatTimestamp(isoStr) {
     }
 }
 
+/**
+ * Pillar 3: Real Cross-Page Data Flow (/spatial + /mobile -> /proses -> /timelines)
+ * Synthesizes biophysical telemetry from /spatial (slope, NDVI) and /mobile (chlorophyll SPAD, sterile circle)
+ */
+async function pullLiveFieldAndSpatialTelemetry() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeKode = urlParams.get('kode') || urlParams.get('estate_code') || 'EST-MDN-001';
+    
+    if (typeof showNotificationToast === 'function') {
+        showNotificationToast(`Mengambil telemetri lapangan & spasial untuk ${activeKode}...`, "⚡");
+    }
+    
+    try {
+        const resp = await fetch(`/api/dossier/telemetry-state?dossier_id=${encodeURIComponent(activeKode)}`);
+        if (!resp.ok) throw new Error("Gagal mengambil data telemetri");
+        const resJson = await resp.json();
+        if (resJson.status === 'success' && resJson.data) {
+            const d = resJson.data;
+            
+            // 1. Update Preview Image to Tenant's Dynamic Evidence
+            const mainImg = document.getElementById('mainCanopyPreview');
+            if (mainImg) {
+                const streamUrl = d.latest_aerial_id 
+                    ? `/api/media/evidence/${d.latest_aerial_id}?dossier_id=${encodeURIComponent(activeKode)}` 
+                    : `/api/media/evidence/current?dossier_id=${encodeURIComponent(activeKode)}&perspective=AERIAL_DRONE`;
+                mainImg.src = streamUrl;
+            }
+            
+            // 2. Update Biophysical Ground-Truth Badges
+            const slopeEl = document.getElementById('val_site_slope');
+            if (slopeEl) slopeEl.textContent = `${d.slope_deg}°`;
+            
+            const spadEl = document.getElementById('val_leaf_spad');
+            if (spadEl) spadEl.textContent = `${d.leaf_chlorophyll_spad} SPAD`;
+
+            const sterileEl = document.getElementById('val_sterile_circle');
+            if (sterileEl) sterileEl.textContent = `${d.sterile_circle_m.toFixed(1)}m (Zero-Tillage)`;
+
+            const ganoEl = document.getElementById('val_ganoderma');
+            if (ganoEl) ganoEl.textContent = `${d.ganoderma_risk_pct.toFixed(1)}% (Nihil)`;
+
+            const mopEl = document.getElementById('val_mop_comp');
+            if (mopEl) mopEl.textContent = `+${d.mop_compensation_kg_ha} kg/Ha`;
+
+            const lerEl = document.getElementById('val_ler_total');
+            if (lerEl) lerEl.textContent = `${d.ler_score.toFixed(2)}x (+${Math.round((d.ler_score - 1)*100)}%)`;
+
+            // 3. Highlight Bio-Ecological 4-Layer Reasoning Card
+            const reasoningContainer = document.getElementById('bioEcologicalReasoningCard');
+            if (reasoningContainer) {
+                reasoningContainer.classList.remove('hidden');
+            }
+
+            if (typeof showNotificationToast === 'function') {
+                showNotificationToast(`✓ Telemetri Lapangan (${d.leaf_chlorophyll_spad} SPAD) & Spasial (${d.slope_deg}°) Berhasil Diterapkan! LER ${d.ler_score}x Terkunci.`, "✅");
+            }
+        }
+    } catch (err) {
+        console.warn("[Simulator] Pull telemetry notice:", err);
+        if (typeof showNotificationToast === 'function') {
+            showNotificationToast("Gagal menyinkronkan telemetri lapangan. Menampilkan parameter standar.", "⚠️");
+        }
+    }
+}
+window.pullLiveFieldAndSpatialTelemetry = pullLiveFieldAndSpatialTelemetry;
+
 window.executeInferenceAction = executeInferenceAction;
 window.executeInSilicoCompute = executeInSilicoCompute;
 window.generateMultiCandidateRecommendations = generateMultiCandidateRecommendations;

@@ -105,7 +105,10 @@ from database import (
     save_inspection_evidence,
     get_inspection_evidence,
     get_latest_inspection_evidence,
-    list_inspection_evidence
+    list_inspection_evidence,
+    check_photo_hash_used,
+    record_photo_hash,
+    get_dossier_biophysical_telemetry
 )
 
 try:
@@ -533,7 +536,7 @@ init_local_store()
 def get_media_evidence_stream(evidence_id):
     """
     Streams binary image Blob directly from SQLite inspection_evidence table.
-    Eliminates static camouflage.
+    Enforces strict multi-tenancy: returns 404 empty-state if no evidence exists for the tenant.
     """
     dossier_id = request.args.get('dossier_id')
     block_id = request.args.get('block_id')
@@ -543,12 +546,16 @@ def get_media_evidence_stream(evidence_id):
         ev = get_latest_inspection_evidence(dossier_id=dossier_id, block_id=block_id, perspective_mode=perspective)
     else:
         ev = get_inspection_evidence(evidence_id)
-        if not ev and dossier_id:
-            # Fallback if specific evidence_id not found
-            ev = get_latest_inspection_evidence(dossier_id=dossier_id, block_id=block_id, perspective_mode=perspective)
+        # Strict tenant boundary check: prevent cross-company leakage
+        if ev and dossier_id and ev.get('dossier_id') != dossier_id:
+            return jsonify({"error": "Unauthorized cross-tenant access", "status": 403}), 403
 
     if not ev or not ev.get('image_base64'):
-        return jsonify({"error": "Evidence not found in pure storage", "status": 404}), 404
+        return jsonify({
+            "error": f"No evidence found in pure storage for dossier '{dossier_id or 'unknown'}'",
+            "status": 404,
+            "dossier_id": dossier_id
+        }), 404
 
     try:
         raw_b64 = ev['image_base64']
@@ -561,6 +568,7 @@ def get_media_evidence_stream(evidence_id):
         resp.headers['Cache-Control'] = 'public, max-age=86400'
         resp.headers['X-Evidence-ID'] = ev.get('id', '')
         resp.headers['X-Evidence-SHA256'] = ev.get('sha256_hash', '')
+        resp.headers['X-Dossier-ID'] = ev.get('dossier_id', '')
         resp.headers['X-Perspective-Mode'] = ev.get('perspective_mode', '')
         return resp
     except Exception as ex:
@@ -571,6 +579,7 @@ def get_media_evidence_stream(evidence_id):
 def upload_inspection_evidence():
     """
     Receives binary image (IndexedDB sync payload or multipart upload),
+    enforces Anti-Fraud (Zero Re-use) verification against SHA-256 registry,
     stores in SQLite WAL, and triggers async BigQuery streaming.
     """
     try:
@@ -602,6 +611,26 @@ def upload_inspection_evidence():
             raw_bytes = base64.b64decode(raw_b64)
             payload['sha256_hash'] = hashlib.sha256(raw_bytes).hexdigest().upper()
 
+        sha_hash = payload.get('sha256_hash')
+
+        # -------------------------------------------------------------
+        # ANTI-FRAUD AUDIT GATE (Permentan No. 33 Tahun 2025 Mandate):
+        # Prevent photo recycling across past audits or other concessions
+        # -------------------------------------------------------------
+        existing_usage = check_photo_hash_used(sha_hash)
+        if existing_usage:
+            return jsonify({
+                "status": "error",
+                "code": "FRAUD_PHOTO_REUSED",
+                "message": "Bukti foto ini telah terdaftar pada audit sebelumnya. Sesuai Permentan No. 33 Tahun 2025, wajib mengambil foto fisik baru di lapangan. Pemakaian ulang foto dilarang.",
+                "duplicate_details": {
+                    "sha256_hash": sha_hash,
+                    "registered_dossier": existing_usage.get("dossier_id"),
+                    "registered_at": existing_usage.get("registered_at"),
+                    "used_in_module": existing_usage.get("used_in_module")
+                }
+            }), 409
+
         # 1. Save to SQLite WAL
         evidence_id = save_inspection_evidence(payload)
         payload['id'] = evidence_id
@@ -613,7 +642,8 @@ def upload_inspection_evidence():
             "success": True,
             "evidence_id": evidence_id,
             "stream_url": f"/api/media/evidence/{evidence_id}",
-            "sha256_hash": payload.get('sha256_hash')
+            "sha256_hash": sha_hash,
+            "dossier_id": payload.get('dossier_id', 'EST-MDN-001')
         })
     except Exception as ex:
         return jsonify({"success": False, "error": str(ex)}), 500
@@ -621,11 +651,30 @@ def upload_inspection_evidence():
 
 @app.route('/api/media/evidence/list', methods=['GET'])
 def list_media_evidence():
-    """Returns list of evidence metadata and stream URLs without huge base64."""
+    """Returns list of evidence metadata and stream URLs strictly scoped to tenant dossier."""
     dossier_id = request.args.get('dossier_id')
     limit = int(request.args.get('limit', 20))
     records = list_inspection_evidence(dossier_id=dossier_id, limit=limit)
-    return jsonify({"success": True, "count": len(records), "evidence": records})
+    return jsonify({
+        "status": "success",
+        "dossier_id": dossier_id,
+        "count": len(records),
+        "evidence": records
+    })
+
+
+@app.route('/api/dossier/telemetry-state', methods=['GET'])
+def get_dossier_telemetry_state():
+    """
+    Synthesizes ground-truth biophysical telemetry from /spatial and /mobile
+    for a specific tenant dossier, powering the Simulator (/proses) and Timelines (/timelines).
+    """
+    dossier_id = request.args.get('dossier_id') or request.args.get('kode') or 'EST-MDN-001'
+    data = get_dossier_biophysical_telemetry(dossier_id)
+    return jsonify({
+        "status": "success",
+        "data": data
+    })
 
 
 @app.route('/api/data/load', methods=['GET'])
@@ -645,10 +694,8 @@ def api_data_load():
     active_estate = None
     if kode:
         active_estate = next((e for e in estates if e.get('kode_kebun') == kode), None)
-        if not active_estate and estates:
-            active_estate = estates[0]
-        active_kode = active_estate.get('kode_kebun', 'EST-MDN-010') if active_estate else 'EST-MDN-010'
-        active_token = get_estate_token(active_kode)
+        active_kode = kode
+        active_token = get_estate_token(active_kode) if active_estate else kode.lower()
     else:
         active_kode = "GLOBAL"
         active_token = "global"
@@ -696,7 +743,7 @@ def api_data_load():
     if is_global:
         photos = get_all_estate_photos_list(store)
     else:
-        photos = get_estate_photos_list(active_estate, store)
+        photos = get_estate_photos_list(active_estate, store) if active_estate else []
 
     # 5. Milestones & Simulator history filtering
     sim_history = store.get("simulator_history", [])

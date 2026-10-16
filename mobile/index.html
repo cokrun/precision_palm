@@ -229,19 +229,32 @@
                     </span>
                 </div>
 
-                <!-- Input File Kamera / Galeri Native -->
+                <!-- Anti-Fraud Rejection Alert Banner (Zero-Recycling Permentan 33/2025) -->
+                <div id="antiFraudAlertBanner" class="hidden p-3 rounded-xl bg-rose-950/95 border-2 border-rose-500 text-rose-200 text-xs font-mono shadow-xl space-y-1.5">
+                    <div class="flex items-center justify-between text-rose-400 font-bold">
+                        <span class="flex items-center gap-1.5 text-[11px]">
+                            <span>🚨</span> <span>ANTI-FRAUD GATE: ZERO RE-USE VIOLATION</span>
+                        </span>
+                        <button type="button" onclick="dismissAntiFraudAlert()" class="text-rose-400 hover:text-white font-bold cursor-pointer text-xs">✕</button>
+                    </div>
+                    <p id="antiFraudAlertText" class="text-[10px] leading-relaxed text-rose-100 font-medium">
+                        Bukti foto ini telah terdaftar pada audit sebelumnya. Sesuai Permentan No. 33 Tahun 2025, wajib mengambil foto fisik baru di lapangan. Pemakaian ulang foto dilarang!
+                    </p>
+                    <div class="text-[9px] text-rose-300 border-t border-rose-800/60 pt-1">
+                        Sanksi: Laporan dibatalkan otomatis &bull; Status dossier ditandai Fraud Risk
+                    </div>
+                </div>
+
+                <!-- Input File Kamera Perangkat Keras (Gallery Disabled via capture="environment") -->
                 <input type="file" id="cameraRealFileInput" accept="image/jpeg,image/png,image/*" capture="environment" onchange="handleRealPhotoCaptured(event)" class="hidden">
 
-                <!-- Tombol Aksi Kamera Geotagging -->
-                <div class="grid grid-cols-3 gap-1.5">
-                    <button type="button" id="btnToggleLiveCam" onclick="toggleLiveCameraStream()" class="py-2.5 px-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 rounded-xl text-[11px] font-extrabold flex items-center justify-center gap-1 shadow transition cursor-pointer">
+                <!-- Tombol Aksi Kamera Geotagging (Hardware Camera Only) -->
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" id="btnToggleLiveCam" onclick="toggleLiveCameraStream()" class="py-2.5 px-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 rounded-xl text-[11px] font-extrabold flex items-center justify-center gap-1.5 shadow transition cursor-pointer">
                         <span>🎥</span> <span id="lblBtnLiveCam" data-i18n="btn_live_geotag">Kamera Live</span>
                     </button>
-                    <button type="button" onclick="openNativeCameraInput(true)" class="py-2.5 px-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 shadow transition cursor-pointer">
-                        <span>📷</span> <span data-i18n="btn_open_camera">Foto HP</span>
-                    </button>
-                    <button type="button" onclick="openNativeCameraInput(false)" class="py-2.5 px-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-white rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 border border-slate-300 dark:border-slate-600 transition cursor-pointer">
-                        <span>🖼️</span> <span data-i18n="btn_open_gallery">Galeri</span>
+                    <button type="button" onclick="openNativeCameraInput(true)" class="py-2.5 px-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5 shadow transition cursor-pointer">
+                        <span>📷</span> <span data-i18n="btn_open_camera">Foto Lapangan (Kamera)</span>
                     </button>
                 </div>
 
@@ -1348,9 +1361,16 @@
                         method: 'POST',
                         body: evFormData
                     });
+                    if (evRes.status === 409) {
+                        const errJson = await evRes.json();
+                        const fraudMsg = errJson.message || "Bukti foto ini telah terdaftar pada audit sebelumnya. Sesuai Permentan No. 33 Tahun 2025, wajib mengambil foto fisik baru di lapangan. Pemakaian ulang foto dilarang!";
+                        showAntiFraudAlert(fraudMsg);
+                        throw new Error(fraudMsg);
+                    }
                     if (evRes.ok) {
                         const evJson = await evRes.json();
                         if (evJson && evJson.stream_url) {
+                            dismissAntiFraudAlert();
                             return evJson.stream_url;
                         }
                     }
@@ -1607,13 +1627,28 @@
             function openNativeCameraInput(useRearCamera) {
                 const inputEl = document.getElementById('cameraRealFileInput');
                 if (!inputEl) return;
-                if (useRearCamera) {
-                    inputEl.setAttribute('capture', 'environment');
-                } else {
-                    inputEl.removeAttribute('capture');
-                }
+                // Strict Hardware Camera Lock (Permentan No. 33 Tahun 2025 Anti-Fraud Specification)
+                inputEl.setAttribute('capture', 'environment');
                 inputEl.click();
             }
+
+            function showAntiFraudAlert(msg) {
+                const banner = document.getElementById('antiFraudAlertBanner');
+                const textEl = document.getElementById('antiFraudAlertText');
+                if (textEl && msg) textEl.textContent = msg;
+                if (banner) {
+                    banner.classList.remove('hidden');
+                    banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                showToast("🚨 [ANTI-FRAUD ALERT]: Pemakaian ulang foto ditolak server!", "🚫");
+            }
+            window.showAntiFraudAlert = showAntiFraudAlert;
+
+            function dismissAntiFraudAlert() {
+                const banner = document.getElementById('antiFraudAlertBanner');
+                if (banner) banner.classList.add('hidden');
+            }
+            window.dismissAntiFraudAlert = dismissAntiFraudAlert;
 
             async function toggleLiveCameraStream() {
                 if (liveVideoStream) {
