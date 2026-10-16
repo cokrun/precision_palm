@@ -1579,15 +1579,17 @@ async function loadPhotosForActiveDossier(dossier) {
         console.warn("[Spatial Photos] Notice fetching estate photos:", err);
     }
 
-    // Default: Semua foto yang terdaftar dipilih otomatis
-    registeredPhotos.forEach(p => {
-        if (p.file_url) selectedPhotoUrls.add(p.file_url);
-    });
+    // Default: Multi-select default 1 foto saja sesuai permintaan user
+    selectedPhotoUrls.clear();
+    if (registeredPhotos.length > 0 && registeredPhotos[0].file_url) {
+        selectedPhotoUrls.add(registeredPhotos[0].file_url);
+    }
 
     renderGalleryThumbnails();
 
     // Kalkulasi dan render akumulasi bukti ledger (Consolidated Evidence Ledger)
     updateConsolidatedEvidenceLedger();
+    updateScanButtonLabel();
 
     if (registeredPhotos.length > 0) {
         selectGalleryPhoto(registeredPhotos[0].file_url, registeredPhotos[0].filename, false);

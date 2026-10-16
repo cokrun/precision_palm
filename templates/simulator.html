@@ -123,7 +123,7 @@
                 <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                     <!-- Dynamic Aggregated Drone Photos Badge -->
                     <span id="badge_aggregated_photos_indicator" class="text-xs font-mono font-bold px-3 py-1.5 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-500 shadow-xs flex items-center gap-1.5">
-                        <span>📸</span> <span id="lbl_aggregated_photos_indicator">[3 Drone Orthophotos Aggregated]</span>
+                        <span>📸</span> <span id="lbl_aggregated_photos_indicator">[1 Drone Orthophoto Aggregated]</span>
                     </span>
                     <!-- HANYA SATU METODE INFERENSI TERKUNCI -->
                     <span id="badge_active_mode_indicator" class="text-xs font-mono font-bold px-3.5 py-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400 shadow-xs flex items-center gap-1.5">
@@ -169,7 +169,7 @@
                                 </span>
                                 <div class="flex items-center gap-1.5">
                                     <span id="badge_selected_photos_status" class="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold">
-                                        [8 Selected]
+                                        [1 Selected]
                                     </span>
                                     <button type="button" onclick="toggleSelectAllPhotos()" class="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 transition cursor-pointer">
                                         ☑️ Select All
@@ -2382,9 +2382,9 @@
                 return;
             }
 
-            // Default select all registered photos if none selected yet
-            if (selectedPhotoUrls.size === 0) {
-                photos.forEach(p => selectedPhotoUrls.add(p.file_url));
+            // Default select 1 photo only if none selected yet (User requirement: default multi select 1 foto saja)
+            if (selectedPhotoUrls.size === 0 && photos.length > 0) {
+                if (photos[0].file_url) selectedPhotoUrls.add(photos[0].file_url);
             }
             updateAggregatedBadges();
 
