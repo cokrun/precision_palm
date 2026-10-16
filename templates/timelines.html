@@ -462,7 +462,20 @@
 
                 <!-- Kanvas Foto & Retikel Laser HUD -->
                 <div class="relative w-full h-64 sm:h-84 rounded-2xl overflow-hidden bg-slate-950 border border-slate-300 dark:border-slate-700 shadow-inner group flex items-center justify-center">
-                    <img id="imgMonitoringEvidencePreview" src="/static/img/field_tm_weed.jpg" alt="Field Evidence Photo" class="w-full h-full object-cover">
+                    <img id="imgMonitoringEvidencePreview" 
+                         src="/api/media/evidence/current?dossier_id=EST-MDN-001&perspective=TERRESTRIAL_IN_SITU" 
+                         alt="Field Evidence Dynamically Loaded from Database" 
+                         class="w-full h-full object-cover"
+                         onerror="handleEmptyEvidenceState(this)">
+
+                    <!-- Empty State Fallback -->
+                    <div id="emptyEvidenceStateTimelines" class="hidden absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 space-y-2 text-center z-15">
+                        <span class="text-3xl">📷</span>
+                        <p class="text-xs text-slate-300 font-mono" data-i18n="empty_evidence_text">No field evidence stored in database.</p>
+                        <button type="button" onclick="document.getElementById('fileMonitoringEvidenceInput').click()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow transition cursor-pointer">
+                            Upload Inspection Photo
+                        </button>
+                    </div>
 
                     <!-- Canvas Reticle -->
                     <canvas id="reticleMonitoringCanvas" class="absolute inset-0 w-full h-full pointer-events-none z-10"></canvas>
@@ -2208,7 +2221,7 @@
         body.innerHTML = `
             <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 items-center">
                 <div class="sm:col-span-4 relative rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 h-36 bg-slate-900">
-                    <img src="${l.foto_url || '/static/img/field_tm_weed.jpg'}" alt="Foto Bukti" class="w-full h-full object-cover">
+                    <img src="${l.foto_url || '/api/media/evidence/current?dossier_id=EST-MDN-001&perspective=TERRESTRIAL_IN_SITU'}" alt="Foto Bukti" class="w-full h-full object-cover">
                     <span class="absolute bottom-1.5 left-1.5 bg-slate-950/90 text-[9px] font-mono px-2 py-0.5 rounded border border-slate-700 text-white">📸 Verified Photo</span>
                 </div>
                 <div class="sm:col-span-8 space-y-2 font-mono">
@@ -2504,6 +2517,13 @@
     window.openTerminalWindow = openTerminalWindow;
     window.closeTerminalWindow = closeTerminalWindow;
     window.toggleTerminalWindow = toggleTerminalWindow;
+    function handleEmptyEvidenceState(imgEl) {
+        if (imgEl) imgEl.style.display = 'none';
+        const emptyEl = document.getElementById('emptyEvidenceStateTimelines');
+        if (emptyEl) emptyEl.classList.remove('hidden');
+    }
+    window.handleEmptyEvidenceState = handleEmptyEvidenceState;
+
     window.toggleMinimizeTerminal = toggleMinimizeTerminal;
     window.setTerminalFilter = setTerminalFilter;
     window.onSurveillanceSearchInput = onSurveillanceSearchInput;

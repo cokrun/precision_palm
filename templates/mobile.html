@@ -205,8 +205,19 @@
                         </div>
                     </div>
 
-                    <div class="relative w-full h-60 bg-slate-950 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 shadow-inner group">
-                        <img id="previewImageEl" src="/static/img/field_tm_weed.jpg" alt="Field Telemetry Visual" class="w-full h-full object-cover transition-transform duration-300" onload="drawMobileReticles()">
+                    <div class="relative w-full h-60 bg-slate-950 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 shadow-inner group flex items-center justify-center">
+                        <img id="previewImageEl" 
+                             src="/api/media/evidence/current?dossier_id=EST-MDN-001&perspective=TERRESTRIAL_IN_SITU" 
+                             alt="Field Telemetry Visual Dynamically Loaded from Database" 
+                             class="w-full h-full object-cover transition-transform duration-300" 
+                             onload="drawMobileReticles()" 
+                             onerror="if(this) { this.style.display='none'; const el=document.getElementById('emptyEvidenceStateMobileLegacy'); if(el) el.classList.remove('hidden'); }">
+                        
+                        <!-- Empty State Fallback -->
+                        <div id="emptyEvidenceStateMobileLegacy" class="hidden absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 space-y-2 text-center z-15">
+                            <span class="text-3xl">📷</span>
+                            <p class="text-xs text-slate-300 font-mono">No inspection evidence stored in database.</p>
+                        </div>
                         <canvas id="mobileReticleCanvas" class="absolute inset-0 w-full h-full pointer-events-none z-10"></canvas>
                         <div id="mobileScanningLaser" class="hidden absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_#34d399] z-25 pointer-events-none"></div>
                         <div id="mobileBBoxesOverlay" class="absolute inset-0 pointer-events-none z-20"></div>

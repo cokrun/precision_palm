@@ -27,6 +27,7 @@ import json
 import sqlite3
 import math
 import hashlib
+import base64
 import io
 import csv
 import time
@@ -35,7 +36,8 @@ from typing import Optional, List, Dict, Any, Tuple
 from cloud_services.bigquery_logger import (
     send_monitoring_log_to_bigquery_async,
     get_certificate_from_bigquery,
-    has_gcp_credentials
+    has_gcp_credentials,
+    send_block_evidence_to_bigquery_async
 )
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
@@ -99,7 +101,11 @@ from database import (
     OFFICIAL_TELEMETRY_SEEDS,
     resolve_token_or_code,
     get_estate_token,
-    get_cert_token
+    get_cert_token,
+    save_inspection_evidence,
+    get_inspection_evidence,
+    get_latest_inspection_evidence,
+    list_inspection_evidence
 )
 
 try:
@@ -517,6 +523,110 @@ def get_all_estate_photos_list(store: dict) -> list:
 
 # Initialize store on startup
 init_local_store()
+
+# =========================================================================
+# PURE STORAGE PIPELINE (IndexedDB -> SQLite WAL -> Google BigQuery)
+# Zero-Camouflage: Dynamic Image Binary Streaming & Dual-Write Ledger
+# =========================================================================
+
+@app.route('/api/media/evidence/<evidence_id>', methods=['GET'])
+def get_media_evidence_stream(evidence_id):
+    """
+    Streams binary image Blob directly from SQLite inspection_evidence table.
+    Eliminates static camouflage.
+    """
+    dossier_id = request.args.get('dossier_id')
+    block_id = request.args.get('block_id')
+    perspective = request.args.get('perspective') or request.args.get('perspective_mode')
+
+    if evidence_id.lower() in ('current', 'latest'):
+        ev = get_latest_inspection_evidence(dossier_id=dossier_id, block_id=block_id, perspective_mode=perspective)
+    else:
+        ev = get_inspection_evidence(evidence_id)
+        if not ev and dossier_id:
+            # Fallback if specific evidence_id not found
+            ev = get_latest_inspection_evidence(dossier_id=dossier_id, block_id=block_id, perspective_mode=perspective)
+
+    if not ev or not ev.get('image_base64'):
+        return jsonify({"error": "Evidence not found in pure storage", "status": 404}), 404
+
+    try:
+        raw_b64 = ev['image_base64']
+        if ',' in raw_b64:
+            raw_b64 = raw_b64.split(',', 1)[1]
+        img_bytes = base64.b64decode(raw_b64)
+        mime_type = ev.get('image_mime_type', 'image/jpeg')
+        
+        resp = Response(img_bytes, mimetype=mime_type)
+        resp.headers['Cache-Control'] = 'public, max-age=86400'
+        resp.headers['X-Evidence-ID'] = ev.get('id', '')
+        resp.headers['X-Evidence-SHA256'] = ev.get('sha256_hash', '')
+        resp.headers['X-Perspective-Mode'] = ev.get('perspective_mode', '')
+        return resp
+    except Exception as ex:
+        return jsonify({"error": f"Failed to decode binary evidence: {str(ex)}", "status": 500}), 500
+
+
+@app.route('/api/evidence/upload', methods=['POST'])
+def upload_inspection_evidence():
+    """
+    Receives binary image (IndexedDB sync payload or multipart upload),
+    stores in SQLite WAL, and triggers async BigQuery streaming.
+    """
+    try:
+        payload = {}
+        # Handle JSON payload
+        if request.is_json:
+            payload = request.get_json() or {}
+        # Handle multipart / form data
+        elif 'photo' in request.files or 'image' in request.files:
+            file_obj = request.files.get('photo') or request.files.get('image')
+            if file_obj:
+                img_bytes = file_obj.read()
+                payload['image_base64'] = base64.b64encode(img_bytes).decode('utf-8')
+                payload['image_mime_type'] = file_obj.mimetype or 'image/jpeg'
+                payload['sha256_hash'] = hashlib.sha256(img_bytes).hexdigest().upper()
+            for k, v in request.form.items():
+                payload[k] = v
+        
+        if not payload.get('image_base64'):
+            return jsonify({"success": False, "error": "No image payload received"}), 400
+
+        # Clean data URI prefix if needed
+        raw_b64 = payload['image_base64']
+        if ',' in raw_b64:
+            raw_b64 = raw_b64.split(',', 1)[1]
+            payload['image_base64'] = raw_b64
+
+        if not payload.get('sha256_hash'):
+            raw_bytes = base64.b64decode(raw_b64)
+            payload['sha256_hash'] = hashlib.sha256(raw_bytes).hexdigest().upper()
+
+        # 1. Save to SQLite WAL
+        evidence_id = save_inspection_evidence(payload)
+        payload['id'] = evidence_id
+
+        # 2. Async dual-write to BigQuery block_evidence_ledger
+        send_block_evidence_to_bigquery_async(payload)
+
+        return jsonify({
+            "success": True,
+            "evidence_id": evidence_id,
+            "stream_url": f"/api/media/evidence/{evidence_id}",
+            "sha256_hash": payload.get('sha256_hash')
+        })
+    except Exception as ex:
+        return jsonify({"success": False, "error": str(ex)}), 500
+
+
+@app.route('/api/media/evidence/list', methods=['GET'])
+def list_media_evidence():
+    """Returns list of evidence metadata and stream URLs without huge base64."""
+    dossier_id = request.args.get('dossier_id')
+    limit = int(request.args.get('limit', 20))
+    records = list_inspection_evidence(dossier_id=dossier_id, limit=limit)
+    return jsonify({"success": True, "count": len(records), "evidence": records})
+
 
 @app.route('/api/data/load', methods=['GET'])
 def api_data_load():

@@ -248,7 +248,20 @@
                 <!-- Viewfinder Kanvas, Video Stream & Retikel AI -->
                 <div class="relative w-full h-64 bg-slate-950 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 shadow-inner group flex items-center justify-center select-none">
                     
-                    <img id="viewfinderPhotoImg" src="/static/img/palm_7_year.jpeg" onerror="this.onerror=null; this.src='https://placehold.co/600x400/090d16/34d399?text=Palm+Canopy+Imagery';" alt="Field Evidence Photo" class="w-full h-full object-cover">
+                    <img id="viewfinderPhotoImg" 
+                         src="/api/media/evidence/current?dossier_id=EST-MDN-001&perspective=TERRESTRIAL_IN_SITU" 
+                         onerror="handleEmptyEvidenceStateMobile(this)" 
+                         alt="Field Evidence Photo" 
+                         class="w-full h-full object-cover">
+                    
+                    <!-- Empty State Fallback -->
+                    <div id="emptyEvidenceStateMobile" class="hidden absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 space-y-2 text-center z-15">
+                        <span class="text-3xl">📷</span>
+                        <p class="text-xs text-slate-300 font-mono" data-i18n="empty_evidence_mobile">No inspection evidence stored in database.</p>
+                        <button type="button" onclick="document.getElementById('fileUploadInput').click()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow transition cursor-pointer">
+                            Take or Pick Photo
+                        </button>
+                    </div>
                     
                     <video id="liveCameraVideoEl" autoplay playsinline muted class="hidden w-full h-full object-cover"></video>
 
@@ -704,10 +717,10 @@
             }
 
             // State Kamera & File Geotag
-            let activePhotoDataUrl = '/static/img/palm_7_year.jpeg';
-            let activePhotoFileName = 'palm_7_year.jpeg';
+            let activePhotoDataUrl = '/api/media/evidence/current?dossier_id=EST-MDN-001&perspective=TERRESTRIAL_IN_SITU';
+            let activePhotoFileName = 'evidence_terrestrial_live.jpg';
             let activeGeotaggedBlob = null;
-            let activeServerPhotoUrl = '/static/img/palm_7_year.jpeg';
+            let activeServerPhotoUrl = '/api/media/evidence/current?dossier_id=EST-MDN-001&perspective=TERRESTRIAL_IN_SITU';
             let liveVideoStream = null;
             let liveHudTimer = null;
             let isAiScanInProgress = false;
@@ -962,11 +975,12 @@
             /* ---------------------------------------------------------------------
                3. DATABASE LOKAL INDEXEDDB (ESTATES CACHE & OFFLINE SURVEYS QUEUE)
                --------------------------------------------------------------------- */
-            const IDB_NAME = 'precision_palm_mobile_db';
-            const IDB_VERSION = 2;
+            const IDB_NAME = 'precision_palm_offline';
+            const IDB_VERSION = 3;
             const STORE_SURVEYS = 'offline_surveys_queue';
             const STORE_ESTATES = 'estates_cache';
             const STORE_INSPECTIONS = 'inspection_reports';
+            const STORE_EVIDENCE_BLOBS = 'evidence_blobs';
             let idbConn = null;
 
             function openMobileIndexedDb() {
@@ -986,6 +1000,9 @@
                         if (!db.objectStoreNames.contains(STORE_INSPECTIONS)) {
                             db.createObjectStore(STORE_INSPECTIONS, { keyPath: 'id', autoIncrement: true });
                         }
+                        if (!db.objectStoreNames.contains(STORE_EVIDENCE_BLOBS)) {
+                            db.createObjectStore(STORE_EVIDENCE_BLOBS, { keyPath: 'id', autoIncrement: true });
+                        }
                     };
 
                     req.onsuccess = (e) => {
@@ -997,6 +1014,21 @@
                         reject(e.target.error);
                     };
                 });
+            }
+
+            async function saveEvidenceBlobToIdb(blobObj, meta) {
+                if (!blobObj) return;
+                try {
+                    const db = await openMobileIndexedDb();
+                    const tx = db.transaction(STORE_EVIDENCE_BLOBS, 'readwrite');
+                    tx.objectStore(STORE_EVIDENCE_BLOBS).add({
+                        blob: blobObj,
+                        meta: meta || {},
+                        timestamp: new Date().toISOString()
+                    });
+                } catch (e) {
+                    console.warn('[IDB Evidence Blob Notice]:', e);
+                }
             }
 
             async function saveInspectionReportToIdb(report) {
@@ -1301,6 +1333,29 @@
             async function uploadSinglePhotoBlobToBackend(blobObj, fileName, kodeKebun, idKebun, blockId, lat, lng) {
                 if (!blobObj || !navigator.onLine) return null;
                 try {
+                    // 1. Upload to Pure Storage Endpoint (/api/evidence/upload)
+                    const evFormData = new FormData();
+                    evFormData.append('photo', blobObj, fileName || `GEOTAG_${kodeKebun}.jpg`);
+                    evFormData.append('dossier_id', kodeKebun || 'EST-MDN-001');
+                    evFormData.append('block_id', blockId || 'Blok A');
+                    evFormData.append('perspective_mode', 'TERRESTRIAL_IN_SITU');
+                    evFormData.append('altitude_agl_m', '1.45');
+                    evFormData.append('camera_pitch_deg', '-12.4');
+                    evFormData.append('latitude', String(lat || 0.835000));
+                    evFormData.append('longitude', String(lng || 99.565000));
+
+                    const evRes = await fetch('/api/evidence/upload', {
+                        method: 'POST',
+                        body: evFormData
+                    });
+                    if (evRes.ok) {
+                        const evJson = await evRes.json();
+                        if (evJson && evJson.stream_url) {
+                            return evJson.stream_url;
+                        }
+                    }
+
+                    // Fallback to spatial upload route
                     const formData = new FormData();
                     formData.append('photo', blobObj, fileName || `GEOTAG_${kodeKebun}.jpg`);
                     formData.append('id_kebun', idKebun || 10);
@@ -2691,6 +2746,13 @@
                     triggerAiVisionAnalysis(false);
                 }, 500);
             });
+
+            function handleEmptyEvidenceStateMobile(imgEl) {
+                if (imgEl) imgEl.style.display = 'none';
+                const emptyEl = document.getElementById('emptyEvidenceStateMobile');
+                if (emptyEl) emptyEl.classList.remove('hidden');
+            }
+            window.handleEmptyEvidenceStateMobile = handleEmptyEvidenceStateMobile;
 
             // Ekspos ke global window
             window.setAppLanguage = setAppLanguage;

@@ -218,7 +218,21 @@
                         </div>
 
                         <div class="relative inline-block w-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 group min-h-[380px] max-h-[380px] bg-slate-950 flex items-center justify-center">
-                            <img id="mainCanopyPreview" src="/static/img/sawit_drone.jpg" alt="Field Telemetry Preview" onload="if(typeof drawReticles==='function') drawReticles();" class="w-full h-full min-h-[380px] object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" onerror="this.src='/static/img/sawit_drone.jpg'">
+                            <img id="mainCanopyPreview" 
+                                 src="/api/media/evidence/current?dossier_id=EST-MDN-001" 
+                                 alt="Field Telemetry Preview Dynamically Loaded from Database" 
+                                 onload="if(typeof drawReticles==='function') drawReticles();" 
+                                 class="w-full h-full min-h-[380px] object-cover rounded-xl transition-transform duration-500 group-hover:scale-105" 
+                                 onerror="handleEmptyEvidenceStateSimulator(this)">
+                            
+                            <!-- Empty State Fallback -->
+                            <div id="emptyEvidenceStateSimulator" class="hidden absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 space-y-2 text-center z-15">
+                                <span class="text-3xl">🌴</span>
+                                <p class="text-xs text-slate-300 font-mono" data-i18n="empty_evidence_simulator">No inspection evidence stored in database.</p>
+                                <button type="button" onclick="document.getElementById('file_input').click()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow transition cursor-pointer">
+                                    Upload Field Image
+                                </button>
+                            </div>
                             
                             <canvas id="reticleCanvas" class="absolute inset-0 w-full h-full pointer-events-none z-10"></canvas>
                             <div id="aiScanningLaser" class="hidden absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_#34d399] z-25 pointer-events-none transition-all duration-700"></div>
@@ -5062,6 +5076,13 @@ async function scanFieldImageWithGemini(fileOrBlob) {
         if (statusPill) statusPill.innerText = "Gemini Vision Audit Complete";
     }
 }
+
+function handleEmptyEvidenceStateSimulator(imgEl) {
+    if (imgEl) imgEl.style.display = 'none';
+    const emptyEl = document.getElementById('emptyEvidenceStateSimulator');
+    if (emptyEl) emptyEl.classList.remove('hidden');
+}
+window.handleEmptyEvidenceStateSimulator = handleEmptyEvidenceStateSimulator;
     </script>
 </body>
 </html>

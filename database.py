@@ -22,6 +22,7 @@ import sqlite3
 import json
 import hashlib
 import math
+import base64
 from datetime import datetime, date, timezone, timedelta
 from typing import List, Dict, Any, Optional, Tuple, Union
 
@@ -317,6 +318,29 @@ def init_db(db_path: Optional[str] = None) -> None:
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_agent_exp_block ON agent_experience(block_id, created_at DESC);")
 
+        # 8. Inspection Evidence Pure Storage (IndexedDB -> SQLite WAL -> BigQuery)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS inspection_evidence (
+                id TEXT PRIMARY KEY,
+                dossier_id TEXT NOT NULL DEFAULT 'EST-MDN-001',
+                block_id TEXT NOT NULL DEFAULT 'Blok A',
+                perspective_mode TEXT NOT NULL DEFAULT 'TERRESTRIAL_IN_SITU',
+                altitude_agl_m REAL DEFAULT 1.45,
+                camera_pitch_deg REAL DEFAULT -12.0,
+                latitude REAL DEFAULT 0.824100,
+                longitude REAL DEFAULT 99.561200,
+                image_mime_type TEXT NOT NULL DEFAULT 'image/jpeg',
+                image_base64 TEXT NOT NULL,
+                sha256_hash TEXT NOT NULL,
+                detected_entities_json TEXT,
+                diagnostic_matrix_json TEXT,
+                synced_to_bigquery INTEGER NOT NULL DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_evidence_block ON inspection_evidence(block_id, created_at DESC);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_evidence_dossier ON inspection_evidence(dossier_id, created_at DESC);")
+
         # Verify and add dynamic columns for canopy_uploads
         cursor.execute("PRAGMA table_info(canopy_uploads);")
         existing_canopy_cols = [row[1] for row in cursor.fetchall()]
@@ -405,6 +429,7 @@ def init_db(db_path: Optional[str] = None) -> None:
     try:
         seed_canonical_estates(path)
         seed_roadmap_milestones(path)
+        seed_canonical_inspection_evidence(path)
     except Exception as e_seed:
         print(f"[DB Notice] Seeding skipped/handled: {e_seed}")
 
@@ -1699,6 +1724,239 @@ def get_latest_agent_experience(block_id: Optional[str] = None) -> Optional[dict
     except Exception:
         item['diagnostic_matrix_44'] = {}
     return item
+
+
+def seed_canonical_inspection_evidence(db_path: Optional[str] = None) -> None:
+    """
+    Seeds canonical inspection evidence for demo concession EST-MDN-001 if table is empty.
+    Zero-camouflage: reads raw baseline images, converts to base64 with SHA-256 digest,
+    and inserts directly into the SQLite inspection_evidence table.
+    """
+    path = db_path or DEFAULT_DB_PATH
+    conn = get_db_connection(path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM inspection_evidence;")
+    count = cursor.fetchone()[0]
+    if count > 0:
+        conn.close()
+        return
+
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    seeds = [
+        {
+            "id": "EVID-EST-MDN-001-TERRESTRIAL-01",
+            "dossier_id": "EST-MDN-001",
+            "block_id": "Blok A",
+            "perspective_mode": "TERRESTRIAL_IN_SITU",
+            "altitude_agl_m": 1.45,
+            "camera_pitch_deg": -12.4,
+            "latitude": 0.835000,
+            "longitude": 99.565000,
+            "img_rel_path": os.path.join("static", "img", "field_tm_weed.jpg"),
+            "image_mime_type": "image/jpeg"
+        },
+        {
+            "id": "EVID-EST-MDN-001-AERIAL-01",
+            "dossier_id": "EST-MDN-001",
+            "block_id": "Blok A",
+            "perspective_mode": "AERIAL_DRONE",
+            "altitude_agl_m": 48.5,
+            "camera_pitch_deg": -88.0,
+            "latitude": 0.835000,
+            "longitude": 99.565000,
+            "img_rel_path": os.path.join("static", "img", "sawit_drone2.jpg"),
+            "image_mime_type": "image/jpeg"
+        },
+        {
+            "id": "EVID-EST-MDN-001-WETLAND-01",
+            "dossier_id": "EST-MDN-001",
+            "block_id": "Blok Riparian Buffer",
+            "perspective_mode": "TERRESTRIAL_IN_SITU",
+            "altitude_agl_m": 1.60,
+            "camera_pitch_deg": -5.0,
+            "latitude": 0.836200,
+            "longitude": 99.567800,
+            "img_rel_path": os.path.join("static", "img", "field_wetland_buffer.jpg"),
+            "image_mime_type": "image/jpeg"
+        }
+    ]
+
+    for s in seeds:
+        full_img_path = os.path.join(base_dir, s["img_rel_path"])
+        if os.path.exists(full_img_path):
+            with open(full_img_path, "rb") as f:
+                img_bytes = f.read()
+            b64_str = base64.b64encode(img_bytes).decode("utf-8")
+            sha_digest = hashlib.sha256(img_bytes).hexdigest().upper()
+        else:
+            b64_str = ""
+            sha_digest = hashlib.sha256(s["id"].encode("utf-8")).hexdigest().upper()
+
+        if s["perspective_mode"] == "AERIAL_DRONE":
+            entities = [
+                {"id": f"crown_{i+1:02d}", "label": f"Palm Crown #{i+1:02d}", "cluster": "palm_canopy", "box_2d": [50 + (i//4)*210, 40 + (i%4)*230, 240 + (i//4)*210, 210 + (i%4)*230], "confidence": 0.98}
+                for i in range(16)
+            ]
+            entities.append({"id": "road_01", "label": "Haul Road (Collection Track 4.0m)", "cluster": "infrastructure", "box_2d": [10, 460, 990, 520], "confidence": 0.97})
+            entities.append({"id": "canal_01", "label": "Drainage Canal (SCS-CN Harvesting)", "cluster": "infrastructure", "box_2d": [10, 930, 990, 985], "confidence": 0.96})
+            entities.append({"id": "gap_01", "label": "Missing Stand Canopy Gap", "cluster": "empty_gap", "box_2d": [260, 780, 420, 850], "confidence": 0.93})
+        else:
+            entities = [
+                {"id": "trunk_l", "label": "Palm Trunk Left", "cluster": "palm_anatomy", "box_2d": [210, 110, 890, 310], "confidence": 0.98},
+                {"id": "trunk_r", "label": "Palm Trunk Right", "cluster": "palm_anatomy", "box_2d": [230, 710, 880, 910], "confidence": 0.97},
+                {"id": "ffb_1", "label": "FFB Ripe Bunch #1", "cluster": "fruit_organs", "box_2d": [340, 240, 480, 320], "confidence": 0.95},
+                {"id": "ffb_2", "label": "FFB Mature Bunch #2", "cluster": "fruit_organs", "box_2d": [360, 700, 490, 770], "confidence": 0.94},
+                {"id": "circle_l", "label": "Clean Root Buffer (2.0m)", "cluster": "root_circle", "box_2d": [750, 120, 950, 410], "confidence": 0.99},
+                {"id": "circle_r", "label": "Clean Root Buffer (2.0m)", "cluster": "root_circle", "box_2d": [760, 680, 960, 930], "confidence": 0.98},
+                {"id": "mulch_pile", "label": "Pruned Frond Mulch Pile", "cluster": "floor_mulch", "box_2d": [680, 360, 910, 640], "confidence": 0.93},
+                {"id": "ginger_bed_1", "label": "Red Ginger Bed #1 (Zingiber)", "cluster": "floor_mulch", "box_2d": [530, 370, 710, 510], "confidence": 0.95}
+            ]
+
+        cursor.execute("""
+            INSERT OR REPLACE INTO inspection_evidence (
+                id, dossier_id, block_id, perspective_mode, altitude_agl_m, camera_pitch_deg,
+                latitude, longitude, image_mime_type, image_base64, sha256_hash,
+                detected_entities_json, diagnostic_matrix_json, synced_to_bigquery
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1);
+        """, (
+            s["id"], s["dossier_id"], s["block_id"], s["perspective_mode"], s["altitude_agl_m"],
+            s.get("camera_pitch_deg", -12.4), s["latitude"], s["longitude"], s["image_mime_type"],
+            b64_str, sha_digest, json.dumps(entities), "{}",
+        ))
+    conn.commit()
+    conn.close()
+    print(f"[Precision Palm] Seeded {len(seeds)} canonical inspection evidence records into SQLite.")
+
+
+def save_inspection_evidence(data: dict) -> str:
+    """Saves inspection evidence with Base64 image payload to SQLite WAL."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    evidence_id = data.get('id') or f"EVID-{data.get('dossier_id', 'EST-MDN-001')}-{int(datetime.now(timezone.utc).timestamp()*1000)}"
+    dossier_id = data.get('dossier_id', 'EST-MDN-001')
+    block_id = data.get('block_id', 'Blok A')
+    perspective_mode = data.get('perspective_mode', 'TERRESTRIAL_IN_SITU')
+    alt_val = float(data.get('altitude_agl_m', 1.45))
+    pitch_val = float(data.get('camera_pitch_deg', -12.4))
+    lat_val = float(data.get('latitude', 0.835000))
+    lng_val = float(data.get('longitude', 99.565000))
+    mime_type = data.get('image_mime_type', 'image/jpeg')
+    b64_payload = data.get('image_base64', '')
+    sha_hash = data.get('sha256_hash')
+    if not sha_hash and b64_payload:
+        try:
+            raw_bytes = base64.b64decode(b64_payload)
+            sha_hash = hashlib.sha256(raw_bytes).hexdigest().upper()
+        except Exception:
+            sha_hash = hashlib.sha256(evidence_id.encode('utf-8')).hexdigest().upper()
+    elif not sha_hash:
+        sha_hash = hashlib.sha256(evidence_id.encode('utf-8')).hexdigest().upper()
+        
+    entities = data.get('detected_entities', data.get('physical_entities', []))
+    entities_json = json.dumps(entities) if not isinstance(entities, str) else entities
+    matrix = data.get('diagnostic_matrix', data.get('diagnostic_matrix_44', {}))
+    matrix_json = json.dumps(matrix) if not isinstance(matrix, str) else matrix
+    
+    cursor.execute("""
+        INSERT OR REPLACE INTO inspection_evidence (
+            id, dossier_id, block_id, perspective_mode, altitude_agl_m, camera_pitch_deg,
+            latitude, longitude, image_mime_type, image_base64, sha256_hash,
+            detected_entities_json, diagnostic_matrix_json, synced_to_bigquery
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0);
+    """, (
+        evidence_id, dossier_id, block_id, perspective_mode, alt_val, pitch_val,
+        lat_val, lng_val, mime_type, b64_payload, sha_hash,
+        entities_json, matrix_json
+    ))
+    conn.commit()
+    conn.close()
+    return evidence_id
+
+
+def get_inspection_evidence(evidence_id: str) -> Optional[dict]:
+    """Retrieves an inspection evidence record by ID."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM inspection_evidence WHERE id = ?;", (evidence_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        return None
+    item = dict(row)
+    try:
+        item['detected_entities'] = json.loads(item.get('detected_entities_json') or '[]')
+    except Exception:
+        item['detected_entities'] = []
+    try:
+        item['diagnostic_matrix'] = json.loads(item.get('diagnostic_matrix_json') or '{}')
+    except Exception:
+        item['diagnostic_matrix'] = {}
+    return item
+
+
+def get_latest_inspection_evidence(dossier_id: Optional[str] = None, block_id: Optional[str] = None, perspective_mode: Optional[str] = None) -> Optional[dict]:
+    """Retrieves the most recent inspection evidence matching criteria."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = "SELECT * FROM inspection_evidence WHERE 1=1"
+    params = []
+    if dossier_id:
+        query += " AND dossier_id = ?"
+        params.append(dossier_id)
+    if block_id:
+        query += " AND block_id = ?"
+        params.append(block_id)
+    if perspective_mode:
+        query += " AND perspective_mode = ?"
+        params.append(perspective_mode)
+    query += " ORDER BY created_at DESC LIMIT 1;"
+    cursor.execute(query, tuple(params))
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        return None
+    item = dict(row)
+    try:
+        item['detected_entities'] = json.loads(item.get('detected_entities_json') or '[]')
+    except Exception:
+        item['detected_entities'] = []
+    try:
+        item['diagnostic_matrix'] = json.loads(item.get('diagnostic_matrix_json') or '{}')
+    except Exception:
+        item['diagnostic_matrix'] = {}
+    return item
+
+
+def list_inspection_evidence(dossier_id: Optional[str] = None, limit: int = 20) -> List[dict]:
+    """Lists inspection evidence records without the huge base64 payload."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = """
+        SELECT id, dossier_id, block_id, perspective_mode, altitude_agl_m, camera_pitch_deg,
+               latitude, longitude, image_mime_type, sha256_hash, detected_entities_json,
+               synced_to_bigquery, created_at
+        FROM inspection_evidence
+    """
+    params = []
+    if dossier_id:
+        query += " WHERE dossier_id = ?"
+        params.append(dossier_id)
+    query += " ORDER BY created_at DESC LIMIT ?;"
+    params.append(limit)
+    cursor.execute(query, tuple(params))
+    rows = cursor.fetchall()
+    conn.close()
+    results = []
+    for r in rows:
+        item = dict(r)
+        item['stream_url'] = f"/api/media/evidence/{item['id']}"
+        try:
+            item['detected_entities'] = json.loads(item.get('detected_entities_json') or '[]')
+        except Exception:
+            item['detected_entities'] = []
+        results.append(item)
+    return results
 
 
 if __name__ == '__main__':

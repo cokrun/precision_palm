@@ -248,6 +248,58 @@ def send_monitoring_log_to_bigquery_async(id_kebun, kode_kebun, periode, mandor,
 
     threading.Thread(target=_worker, daemon=True).start()
 
+def send_block_evidence_to_bigquery_async(evidence_data: dict):
+    """
+    Streaming citra inspeksi Base64 beserta Matriks 44 Variabel dan deteksi entitas fisik
+    ke Google BigQuery (precision_palm_dw.block_evidence_ledger).
+    """
+    def _worker():
+        client = _get_bq_client()
+        if not client:
+            return
+        try:
+            project_id = os.environ.get("GOOGLE_CLOUD_PROJECT") or "palm-project-511008"
+            table_ref = f"{project_id}.{DATASET_ID}.block_evidence_ledger"
+            
+            # Format according to docs/storage_pipeline_indexeddb_bigquery_spec.md
+            diag_matrix = evidence_data.get("diagnostic_matrix_json") or evidence_data.get("diagnostic_matrix") or {}
+            if isinstance(diag_matrix, str):
+                try:
+                    diag_matrix = json.loads(diag_matrix)
+                except Exception:
+                    diag_matrix = {}
+            
+            entities = evidence_data.get("detected_entities_json") or evidence_data.get("detected_entities") or []
+            if isinstance(entities, str):
+                try:
+                    entities = json.loads(entities)
+                except Exception:
+                    entities = []
+
+            row = [{
+                "evidence_id": str(evidence_data.get("id") or f"EVID-{int(time.time()*1000)}"),
+                "dossier_id": str(evidence_data.get("dossier_id") or "EST-MDN-001"),
+                "block_id": str(evidence_data.get("block_id") or "Blok A"),
+                "perspective_mode": str(evidence_data.get("perspective_mode") or "TERRESTRIAL_IN_SITU"),
+                "altitude_agl_m": float(evidence_data.get("altitude_agl_m") or 1.45),
+                "wgs84_latitude": float(evidence_data.get("latitude") or evidence_data.get("wgs84_latitude") or 0.824100),
+                "wgs84_longitude": float(evidence_data.get("longitude") or evidence_data.get("wgs84_longitude") or 99.561200),
+                "capture_timestamp": str(evidence_data.get("created_at") or datetime.now(timezone.utc).isoformat()),
+                "image_base64_payload": str(evidence_data.get("image_base64") or "")[:2000000],
+                "sha256_digest": str(evidence_data.get("sha256_hash") or evidence_data.get("sha256_digest") or ""),
+                "diagnostic_matrix_44": diag_matrix,
+                "detected_entities": entities
+            }]
+            errors = client.insert_rows_json(table_ref, row)
+            if errors:
+                logger.error(f"[BigQuery Stream Error block_evidence_ledger]: {errors}")
+            else:
+                logger.info(f"[✓ BigQuery Stream Success]: Block evidence '{evidence_data.get('id')}' streamed to block_evidence_ledger.")
+        except Exception as ex:
+            logger.error(f"[BigQuery Async Block Evidence Error]: {ex}")
+
+    threading.Thread(target=_worker, daemon=True).start()
+
 def get_certificate_from_bigquery(identifier):
     """
     Membaca data sertifikat secara dinamis dari BigQuery, SQLite, atau precision_store.json.
