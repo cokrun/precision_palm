@@ -209,6 +209,26 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Table Pagination Controls (Max 10 Rows per page) -->
+        <div id="dossiersPaginationBar" class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-xs font-mono text-slate-500 border-t border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-2">
+                <span>Showing</span>
+                <span id="dossierPageInfo" class="font-bold text-slate-800 dark:text-slate-200">1 - 10</span>
+                <span>of</span>
+                <span id="dossierTotalCount" class="font-bold text-emerald-600 dark:text-emerald-400">10</span>
+                <span>registered concessions</span>
+            </div>
+            <div class="flex items-center gap-1.5" id="dossierPaginationButtons">
+                <button type="button" onclick="changeDossierPage('prev')" id="btnDossierPrevPage" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                    &larr; Prev
+                </button>
+                <div id="dossierPageNumbers" class="flex items-center gap-1"></div>
+                <button type="button" onclick="changeDossierPage('next')" id="btnDossierNextPage" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                    Next &rarr;
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Footer Universal Partial -->
@@ -219,6 +239,8 @@
 <script>
     let allDossiers = [];
     let searchQuery = '';
+    let currentDossierPage = 1;
+    const DOSSIER_PAGE_SIZE = 10;
     let pendaftaranMap = null;
     let pendaftaranSatTile = null;
     let pendaftaranOsmTile = null;
@@ -553,6 +575,7 @@
 
     function handleSearchDossier() {
         searchQuery = (document.getElementById('inpSearchDossier')?.value || '').trim().toLowerCase();
+        currentDossierPage = 1;
         renderDossiersTable();
     }
 
@@ -752,7 +775,35 @@
         });
 
         // Re-render map polygons matching filtered list
-        renderPendaftaranMapPolygons(filtered);
+        const totalItems = filtered.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / DOSSIER_PAGE_SIZE));
+        if (currentDossierPage > totalPages) currentDossierPage = totalPages;
+        if (currentDossierPage < 1) currentDossierPage = 1;
+
+        const startIndex = (currentDossierPage - 1) * DOSSIER_PAGE_SIZE;
+        const endIndex = Math.min(startIndex + DOSSIER_PAGE_SIZE, totalItems);
+        const pagedData = filtered.slice(startIndex, endIndex);
+
+        // Update pagination controls
+        const pageInfoEl = document.getElementById('dossierPageInfo');
+        if (pageInfoEl) pageInfoEl.textContent = totalItems === 0 ? '0 - 0' : `${startIndex + 1} - ${endIndex}`;
+        const totalCountEl = document.getElementById('dossierTotalCount');
+        if (totalCountEl) totalCountEl.textContent = totalItems;
+
+        const btnPrev = document.getElementById('btnDossierPrevPage');
+        if (btnPrev) btnPrev.disabled = (currentDossierPage <= 1);
+        const btnNext = document.getElementById('btnDossierNextPage');
+        if (btnNext) btnNext.disabled = (currentDossierPage >= totalPages);
+
+        const pageNumbersContainer = document.getElementById('dossierPageNumbers');
+        if (pageNumbersContainer) {
+            let htmlPages = '';
+            for (let p = 1; p <= totalPages; p++) {
+                const isActive = (p === currentDossierPage);
+                htmlPages += `<button type="button" onclick="goToDossierPage(${p})" class="w-7 h-7 rounded-lg text-xs font-bold transition ${isActive ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer'}">${p}</button>`;
+            }
+            pageNumbersContainer.innerHTML = htmlPages;
+        }
 
         if (filtered.length === 0) {
             tbody.innerHTML = `
@@ -767,8 +818,9 @@
 
         const isID = (typeof getAppLanguage === 'function' ? getAppLanguage() : (localStorage.getItem('precision_palm_lang') || 'en')) === 'id';
 
-        tbody.innerHTML = filtered.map((d, idx) => {
-            const idKebun = d.id_kebun || d.id || (idx + 1);
+        tbody.innerHTML = pagedData.map((d, idx) => {
+            const displayNo = startIndex + idx + 1;
+            const idKebun = d.id_kebun || d.id || displayNo;
             const kode = d.kode_kebun || `EST-MDN-${String(idKebun).padStart(3, '0')}`;
             const regNo = d.nomor_registrasi || `CERT-ECOGREEN-2026-${String(idKebun).padStart(4, '0')}`;
             const luas = parseFloat(d.luas_ha || 0).toLocaleString();
@@ -795,7 +847,7 @@
                     onmouseleave="handleRowLeave('${kode}')" 
                     onclick="handleRowClick('${kode}')"
                     class="dossier-table-row hover:bg-slate-100 dark:hover:bg-slate-800/80 transition border-b border-slate-100 dark:border-slate-800/60 font-mono text-xs cursor-pointer">
-                    <td class="px-2 py-1.5 text-center text-slate-400 font-bold">${idx + 1}</td>
+                    <td class="px-2 py-1.5 text-center text-slate-400 font-bold">${displayNo}</td>
                     <td class="px-2.5 py-1.5 font-bold text-emerald-700 dark:text-emerald-400">
                         <span class="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700 text-[9.5px]">
                             ${regNo}
@@ -833,6 +885,21 @@
                 </tr>
             `;
         }).join('');
+    }
+
+    function changeDossierPage(dir) {
+        if (dir === 'prev' && currentDossierPage > 1) {
+            currentDossierPage--;
+            renderDossiersTable();
+        } else if (dir === 'next') {
+            currentDossierPage++;
+            renderDossiersTable();
+        }
+    }
+
+    function goToDossierPage(p) {
+        currentDossierPage = p;
+        renderDossiersTable();
     }
 
     function updateMetrics() {

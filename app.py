@@ -108,7 +108,15 @@ from database import (
     list_inspection_evidence,
     check_photo_hash_used,
     record_photo_hash,
-    get_dossier_biophysical_telemetry
+    get_dossier_biophysical_telemetry,
+    get_app_setting,
+    set_app_setting,
+    get_all_app_settings
+)
+
+from cloud_services.pricing_engine import (
+    hitung_harga_tbs_per_ton,
+    calculate_comprehensive_financials
 )
 
 try:
@@ -536,14 +544,15 @@ init_local_store()
 def get_media_evidence_stream(evidence_id):
     """
     Streams binary image Blob directly from SQLite inspection_evidence table.
-    Enforces strict multi-tenancy: returns 404 empty-state if no evidence exists for the tenant.
+    Enforces strict multi-tenancy and audit_year: returns 404 empty-state if no evidence exists for the tenant.
     """
     dossier_id = request.args.get('dossier_id')
     block_id = request.args.get('block_id')
     perspective = request.args.get('perspective') or request.args.get('perspective_mode')
+    audit_year = request.args.get('audit_year')
 
     if evidence_id.lower() in ('current', 'latest'):
-        ev = get_latest_inspection_evidence(dossier_id=dossier_id, block_id=block_id, perspective_mode=perspective)
+        ev = get_latest_inspection_evidence(dossier_id=dossier_id, block_id=block_id, perspective_mode=perspective, audit_year=audit_year)
     else:
         ev = get_inspection_evidence(evidence_id)
         # Strict tenant boundary check: prevent cross-company leakage
@@ -631,6 +640,10 @@ def upload_inspection_evidence():
                 }
             }), 409
 
+        # Ensure audit_year
+        if not payload.get('audit_year'):
+            payload['audit_year'] = int(get_app_setting('audit_year', '2026') or 2026)
+
         # 1. Save to SQLite WAL
         evidence_id = save_inspection_evidence(payload)
         payload['id'] = evidence_id
@@ -643,7 +656,8 @@ def upload_inspection_evidence():
             "evidence_id": evidence_id,
             "stream_url": f"/api/media/evidence/{evidence_id}",
             "sha256_hash": sha_hash,
-            "dossier_id": payload.get('dossier_id', 'EST-MDN-001')
+            "dossier_id": payload.get('dossier_id', 'EST-MDN-001'),
+            "audit_year": payload.get('audit_year')
         })
     except Exception as ex:
         return jsonify({"success": False, "error": str(ex)}), 500
@@ -651,14 +665,19 @@ def upload_inspection_evidence():
 
 @app.route('/api/media/evidence/list', methods=['GET'])
 def list_media_evidence():
-    """Returns list of evidence metadata and stream URLs strictly scoped to tenant dossier."""
+    """Returns list of evidence metadata and stream URLs strictly scoped to tenant dossier and audit year with pagination."""
     dossier_id = request.args.get('dossier_id')
-    limit = int(request.args.get('limit', 20))
-    records = list_inspection_evidence(dossier_id=dossier_id, limit=limit)
+    audit_year = request.args.get('audit_year')
+    limit = min(50, max(1, int(request.args.get('limit', 10))))
+    offset = max(0, int(request.args.get('offset', 0)))
+    records = list_inspection_evidence(dossier_id=dossier_id, audit_year=audit_year, limit=limit, offset=offset)
     return jsonify({
         "status": "success",
         "dossier_id": dossier_id,
+        "audit_year": audit_year,
         "count": len(records),
+        "limit": limit,
+        "offset": offset,
         "evidence": records
     })
 
@@ -667,10 +686,11 @@ def list_media_evidence():
 def get_dossier_telemetry_state():
     """
     Synthesizes ground-truth biophysical telemetry from /spatial and /mobile
-    for a specific tenant dossier, powering the Simulator (/proses) and Timelines (/timelines).
+    for a specific tenant dossier and audit year, powering the Simulator (/proses) and Timelines (/timelines).
     """
     dossier_id = request.args.get('dossier_id') or request.args.get('kode') or 'EST-MDN-001'
-    data = get_dossier_biophysical_telemetry(dossier_id)
+    audit_year = request.args.get('audit_year')
+    data = get_dossier_biophysical_telemetry(dossier_id, audit_year=audit_year)
     return jsonify({
         "status": "success",
         "data": data
@@ -810,6 +830,103 @@ def timelines_view():
     store = read_local_store()
     estates = store.get('estates', [])
     return render_template('timelines.html', estates=estates)
+
+@app.route('/pengaturan')
+@app.route('/settings')
+def pengaturan_view():
+    return render_template('pengaturan.html')
+
+@app.route('/api/settings', methods=['GET', 'POST'])
+def api_app_settings():
+    if request.method == 'GET':
+        settings = get_all_app_settings()
+        return jsonify({
+            "status": "success",
+            "settings": settings
+        })
+    elif request.method == 'POST':
+        data = request.get_json(silent=True) or request.form.to_dict() or {}
+        for k, v in data.items():
+            set_app_setting(k, v)
+        updated = get_all_app_settings()
+        return jsonify({
+            "status": "success",
+            "message": "Pengaturan berhasil disimpan ke SQLite dan sesi aktif",
+            "settings": updated
+        })
+
+@app.route('/api/pricing/tbs-calculation', methods=['GET', 'POST'])
+def api_pricing_tbs_calculation():
+    data = request.get_json(silent=True) if request.method == 'POST' else request.args.to_dict()
+    if not data:
+        data = {}
+
+    settings = get_all_app_settings()
+    p_int_usd_mt = float(data.get('cpo_global') or settings.get('cpo_global') or 1526.56)
+    kurs_usd_idr = float(data.get('kurs_usd') or settings.get('kurs_usd') or 17920.0)
+    bk_usd_mt = float(data.get('bea_keluar') or settings.get('bea_keluar') or 178.0)
+    pe_usd_mt = float(data.get('pe_bpdpks') or settings.get('pe_bpdpks') or 130.27)
+    logistik_usd_mt = float(data.get('logistik') or settings.get('logistik') or 50.0)
+    p_kernel_idr_kg = float(data.get('p_kernel') or settings.get('p_kernel') or 12700.0)
+    rendemen_cpo = float(data.get('rendemen_cpo') or settings.get('rendemen_cpo') or 21.0)
+    if rendemen_cpo > 1.0:
+        rendemen_cpo /= 100.0
+    indeks_k = float(data.get('indeks_k') or settings.get('indeks_k') or 91.0)
+    if indeks_k > 1.0:
+        indeks_k /= 100.0
+    biaya_olah_idr_kg = float(data.get('biaya_olah') or settings.get('biaya_olah') or 300.0)
+
+    pricing_params = {
+        'cpo_global': p_int_usd_mt,
+        'kurs_usd': kurs_usd_idr,
+        'bea_keluar': bk_usd_mt,
+        'pe_bpdpks': pe_usd_mt,
+        'logistik': logistik_usd_mt,
+        'p_kernel': p_kernel_idr_kg,
+        'rendemen_cpo': rendemen_cpo,
+        'indeks_k': indeks_k,
+        'biaya_olah': biaya_olah_idr_kg
+    }
+
+    financials = calculate_comprehensive_financials(
+        palm_fしく_ton_ha=float(data.get('palm_yield_ton_ha', 24.0)),
+        crop_type=data.get('crop_name', 'Red Ginger (Zingiber officinale)'),
+        intercrop_yield_ton_ha=float(data.get('intercrop_yield_ton_ha', 7.5)),
+        intercrop_price_idr_kg=float(data.get('intercrop_price_idr_kg', 18500.0)),
+        mop_compensation_kg_ha=float(data.get('mop_compensation_kg_ha', 75.0)),
+        mop_price_idr_kg=float(data.get('mop_price_idr_kg', 12000.0)),
+        pricing_params=pricing_params
+    )
+    tbs_kg = financials["harga_tbs_idr_kg"]
+    tbs_ton = financials["harga_tbs_idr_ton"]
+    cpo_dom = financials["harga_cpo_domestik_idr_kg"]
+    total_rev = financials["total_integrated_idr_ha"]
+
+    tbs_breakdown = {
+        "cpo_rotterdam_usd": p_int_usd_mt,
+        "kurs_usd_idr": kurs_usd_idr,
+        "cpo_domestik_idr_kg": cpo_dom,
+        "harga_tbs_per_kg": tbs_kg,
+        "harga_tbs_per_ton": tbs_ton,
+        "harga_tbs_per_kg_fmt": f"{tbs_kg:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        "harga_tbs_per_ton_fmt": f"{tbs_ton:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    }
+
+    comp_financials = {
+        "palm_revenue": financials["palm_revenue_idr_ha"],
+        "intercrop_revenue_net": financials["intercrop_net_idr_ha"],
+        "revenue_total": total_rev,
+        "revenue_total_fmt": f"{total_rev:,.0f}".replace(",", "."),
+        "financial_advantage_pct": f"+{financials['financial_gain_pct']}%"
+    }
+
+    return jsonify({
+        "status": "success",
+        "data": financials,
+        "tbs_breakdown": tbs_breakdown,
+        "comprehensive_financials": comp_financials,
+        "statutory_basis": "Permentan No. 33 Tahun 2025"
+    })
 
 @app.route('/mobile')
 @app.route('/mobile/')
@@ -1277,6 +1394,8 @@ def api_ai_scan_image():
     except (ValueError, TypeError):
         f_pitch = -12.4
 
+    raw_img_name = (file.filename if file else None) or json_data.get('image_name') or json_data.get('filename') or json_data.get('image_url') or ""
+
     telemetry_4d = {
         "latitude": f_lat,
         "longitude": f_lng,
@@ -1284,7 +1403,9 @@ def api_ai_scan_image():
         "camera_pitch_deg": f_pitch,
         "timestamp_iso": str(raw_ts),
         "block_id": str(raw_block_id),
-        "declared_crop": str(raw_declared_crop)
+        "declared_crop": str(raw_declared_crop),
+        "image_name": str(raw_img_name),
+        "filename": str(raw_img_name)
     }
 
     if file:
@@ -1331,6 +1452,13 @@ def api_ai_scan_image():
 
     if not image_bytes:
         return jsonify({"status": "error", "message": "Image file not found"}), 400
+
+    if file:
+        telemetry_4d["image_name"] = getattr(file, 'filename', '') or 'field_parcel_inspection.jpg'
+    elif json_data.get('image_name'):
+        telemetry_4d["image_name"] = str(json_data.get('image_name'))
+    elif 'clean_str' in locals() and clean_str:
+        telemetry_4d["image_name"] = os.path.basename(clean_str)
 
     try:
         if analyze_parcel_field_photo:
@@ -1618,19 +1746,56 @@ def api_get_estates():
     except Exception as e:
         return jsonify({"success": False, "total": 0, "records": [], "error": str(e)}), 500
 
+@app.route('/api/spatial/stats', methods=['GET'])
+def api_get_spatial_stats():
+    estate_id = request.args.get('estate_id') or request.args.get('kode') or request.args.get('kode_kebun') or 'EST-MDN-001'
+    audit_year = request.args.get('audit_year') or '2025'
+
+    data = get_estate_spatial_data(estate_id, DB_PATH)
+    if data and data.get('estate') and str(data.get('estate', {}).get('kode_kebun')) == str(estate_id):
+        blocks_count = len(data.get('surveys', []))
+        return jsonify({
+            "success": True,
+            "estate_id": estate_id,
+            "audit_year": audit_year,
+            "registered_blocks_count": blocks_count,
+            "is_empty_state": (blocks_count == 0),
+            "data": data
+        })
+    else:
+        return jsonify({
+            "success": True,
+            "estate_id": estate_id,
+            "audit_year": audit_year,
+            "registered_blocks_count": 0,
+            "is_empty_state": True,
+            "message": f"Dossier {estate_id} is in clean empty state."
+        })
+
 @app.route('/api/spatial/estate-data', methods=['GET'])
 def api_get_estate_spatial_data():
     kode = request.args.get('kode') or request.args.get('kode_kebun') or request.args.get('estate_code') or request.args.get('id')
     if not kode:
-        # Default to latest registered estate in database (EST-MDN-010)
         kode = 'EST-MDN-010'
     data = get_estate_spatial_data(kode, DB_PATH)
-    if data:
+    if data and data.get('estate') and str(data.get('estate', {}).get('kode_kebun')) == str(kode):
         return jsonify({"success": True, **data})
-    data_fallback = get_estate_spatial_data('EST-MDN-001', DB_PATH)
-    if data_fallback:
-        return jsonify({"success": True, **data_fallback})
-    return jsonify({"success": False, "error": "Estate spatial profile not found"}), 404
+
+    # Strict Multi-Tenancy: Unknown / newly registered dossier returns a clean Empty State
+    return jsonify({
+        "success": True,
+        "estate": {
+            "id": None,
+            "kode_kebun": kode,
+            "nama_kebun": f"Dossier {kode} (Pending Onboarding)",
+            "luas_ha": 0.0,
+            "status": "DRAFT_INTERNAL"
+        },
+        "registered_blocks_count": 0,
+        "surveys": [],
+        "poligon": None,
+        "is_empty_state": True
+    }), 200
 
 @app.route('/api/spatial/save-inspection', methods=['POST'])
 def api_save_spatial_inspection():
@@ -2684,7 +2849,7 @@ def api_monitoring_quarterly_report(kode, quarter):
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div class="border rounded-xl p-2 bg-slate-50 space-y-1 text-[10px] font-mono">
                     <div class="relative h-32 rounded-lg overflow-hidden bg-slate-900 border">
-                        <img src="/static/img/field_tm_weed.jpg" class="w-full h-full object-cover">
+                        <img src="/api/media/evidence/current?dossier_id={kode}&perspective=TERRESTRIAL_IN_SITU" onerror="this.onerror=null; this.src='/api/media/evidence/EVID-TERR-001';" class="w-full h-full object-cover">
                         <div class="absolute inset-2 border-2 border-rose-500 rounded flex items-start p-1">
                             <span class="bg-rose-950 text-rose-200 text-[8px] font-bold px-1 rounded">2.0m Sterile Ring [98%]</span>
                         </div>
@@ -2694,7 +2859,7 @@ def api_monitoring_quarterly_report(kode, quarter):
                 </div>
                 <div class="border rounded-xl p-2 bg-slate-50 space-y-1 text-[10px] font-mono">
                     <div class="relative h-32 rounded-lg overflow-hidden bg-slate-900 border">
-                        <img src="/static/img/field_alley_ginger.jpg" onerror="this.src='/static/img/field_tm_weed.jpg'" class="w-full h-full object-cover">
+                        <img src="/api/media/evidence/current?dossier_id={kode}&perspective=TERRESTRIAL_IN_SITU" onerror="this.onerror=null; this.src='/api/media/evidence/EVID-TERR-001';" class="w-full h-full object-cover">
                         <div class="absolute inset-2 border-2 border-sky-500 rounded flex items-start p-1">
                             <span class="bg-sky-950 text-sky-200 text-[8px] font-bold px-1 rounded">3.79m Alley Corridor [96%]</span>
                         </div>
@@ -2704,7 +2869,7 @@ def api_monitoring_quarterly_report(kode, quarter):
                 </div>
                 <div class="border rounded-xl p-2 bg-slate-50 space-y-1 text-[10px] font-mono">
                     <div class="relative h-32 rounded-lg overflow-hidden bg-slate-900 border">
-                        <img src="/static/img/field_silt_pit.jpg" onerror="this.src='/static/img/field_tm_weed.jpg'" class="w-full h-full object-cover">
+                        <img src="/api/media/evidence/current?dossier_id={kode}&perspective=AERIAL_DRONE" onerror="this.onerror=null; this.src='/api/media/evidence/EVID-AERIAL-001';" class="w-full h-full object-cover">
                         <div class="absolute inset-2 border-2 border-cyan-500 rounded flex items-start p-1">
                             <span class="bg-cyan-950 text-cyan-200 text-[8px] font-bold px-1 rounded">Hydrology Silt Pit [95%]</span>
                         </div>

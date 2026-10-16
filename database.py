@@ -367,6 +367,40 @@ def init_db(db_path: Optional[str] = None) -> None:
                 cursor.execute("ALTER TABLE inspection_evidence ADD COLUMN quarter_cycle TEXT DEFAULT 'Q1';")
             except Exception:
                 pass
+        if "audit_year" not in existing_ev_cols:
+            try:
+                cursor.execute("ALTER TABLE inspection_evidence ADD COLUMN audit_year INTEGER DEFAULT 2026;")
+            except Exception:
+                pass
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_evidence_dossier_year ON inspection_evidence(dossier_id, audit_year, created_at DESC);")
+
+        # 10. Application Global & Multi-Tenant Settings (Settings Engine)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS app_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+
+        default_settings = {
+            "market_mode": "IDR",
+            "audit_year": "2026",
+            "kurs_usd": "17920",
+            "cpo_global": "1526.56",
+            "bea_keluar": "178.0",
+            "pe_bpdpks": "130.27",
+            "logistik": "50.0",
+            "p_kernel": "12700",
+            "rendemen_cpo": "21.0",
+            "indeks_k": "91.0",
+            "biaya_olah": "300",
+            "is_published": "0",
+            "antifraud_active": "1",
+            "active_dossier": "EST-MDN-001"
+        }
+        for k, v in default_settings.items():
+            cursor.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?);", (k, str(v)))
 
         # Verify and add dynamic columns for canopy_uploads
         cursor.execute("PRAGMA table_info(canopy_uploads);")
@@ -1901,7 +1935,7 @@ def record_photo_hash(sha256_hash: str, dossier_id: str, company_name: str = "PT
 
 
 def save_inspection_evidence(data: dict) -> str:
-    """Saves inspection evidence with Base64 image payload to SQLite WAL with tenant scoping."""
+    """Saves inspection evidence with Base64 image payload to SQLite WAL with tenant and audit_year scoping."""
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -1909,6 +1943,7 @@ def save_inspection_evidence(data: dict) -> str:
     dossier_id = data.get('dossier_id', 'EST-MDN-001')
     company_name = data.get('company_name') or 'PT Mandailing Agro Sustainable'
     quarter_cycle = data.get('quarter_cycle') or 'Q1'
+    audit_year = int(data.get('audit_year') or 2026)
     block_id = data.get('block_id', 'Blok A')
     perspective_mode = data.get('perspective_mode', 'TERRESTRIAL_IN_SITU')
     alt_val = float(data.get('altitude_agl_m', 1.45))
@@ -1934,12 +1969,12 @@ def save_inspection_evidence(data: dict) -> str:
     
     cursor.execute("""
         INSERT OR REPLACE INTO inspection_evidence (
-            id, dossier_id, company_name, quarter_cycle, block_id, perspective_mode, altitude_agl_m, camera_pitch_deg,
+            id, dossier_id, company_name, quarter_cycle, audit_year, block_id, perspective_mode, altitude_agl_m, camera_pitch_deg,
             latitude, longitude, image_mime_type, image_base64, sha256_hash,
             detected_entities_json, diagnostic_matrix_json, synced_to_bigquery
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0);
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0);
     """, (
-        evidence_id, dossier_id, company_name, quarter_cycle, block_id, perspective_mode, alt_val, pitch_val,
+        evidence_id, dossier_id, company_name, quarter_cycle, audit_year, block_id, perspective_mode, alt_val, pitch_val,
         lat_val, lng_val, mime_type, b64_payload, sha_hash,
         entities_json, matrix_json
     ))
@@ -1977,9 +2012,9 @@ def get_inspection_evidence(evidence_id: str) -> Optional[dict]:
     return item
 
 
-def get_latest_inspection_evidence(dossier_id: Optional[str] = None, block_id: Optional[str] = None, perspective_mode: Optional[str] = None) -> Optional[dict]:
+def get_latest_inspection_evidence(dossier_id: Optional[str] = None, block_id: Optional[str] = None, perspective_mode: Optional[str] = None, audit_year: Optional[int] = None) -> Optional[dict]:
     """
-    Retrieves the most recent inspection evidence matching criteria with strict multi-tenancy.
+    Retrieves the most recent inspection evidence matching criteria with strict multi-tenancy and year scoping.
     Returns None if no evidence exists for this tenant (preventing cross-company leakage).
     """
     conn = get_db_connection()
@@ -1995,6 +2030,9 @@ def get_latest_inspection_evidence(dossier_id: Optional[str] = None, block_id: O
     if perspective_mode:
         query += " AND perspective_mode = ?"
         params.append(perspective_mode)
+    if audit_year:
+        query += " AND audit_year = ?"
+        params.append(int(audit_year))
     query += " ORDER BY created_at DESC LIMIT 1;"
     cursor.execute(query, tuple(params))
     row = cursor.fetchone()
@@ -2013,22 +2051,26 @@ def get_latest_inspection_evidence(dossier_id: Optional[str] = None, block_id: O
     return item
 
 
-def list_inspection_evidence(dossier_id: Optional[str] = None, limit: int = 20) -> List[dict]:
-    """Lists inspection evidence records strictly filtered by tenant without huge base64 payload."""
+def list_inspection_evidence(dossier_id: Optional[str] = None, audit_year: Optional[int] = None, limit: int = 10, offset: int = 0) -> List[dict]:
+    """Lists inspection evidence records strictly filtered by tenant and year without huge base64 payload."""
     conn = get_db_connection()
     cursor = conn.cursor()
     query = """
         SELECT id, dossier_id, block_id, perspective_mode, altitude_agl_m, camera_pitch_deg,
                latitude, longitude, image_mime_type, sha256_hash, detected_entities_json,
-               company_name, quarter_cycle, synced_to_bigquery, created_at
+               company_name, quarter_cycle, audit_year, synced_to_bigquery, created_at
         FROM inspection_evidence
+        WHERE 1=1
     """
     params = []
     if dossier_id:
-        query += " WHERE dossier_id = ?"
+        query += " AND dossier_id = ?"
         params.append(dossier_id)
-    query += " ORDER BY created_at DESC LIMIT ?;"
-    params.append(limit)
+    if audit_year:
+        query += " AND audit_year = ?"
+        params.append(int(audit_year))
+    query += " ORDER BY created_at DESC LIMIT ? OFFSET ?;"
+    params.extend([limit, offset])
     cursor.execute(query, tuple(params))
     rows = cursor.fetchall()
     conn.close()
@@ -2044,10 +2086,44 @@ def list_inspection_evidence(dossier_id: Optional[str] = None, limit: int = 20) 
     return results
 
 
-def get_dossier_biophysical_telemetry(dossier_id: str) -> dict:
+def get_app_setting(key: str, default: Optional[str] = None) -> Optional[str]:
+    """Reads a setting value from app_settings table."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT value FROM app_settings WHERE key = ?;", (key,))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else default
+
+
+def set_app_setting(key: str, value: Any) -> None:
+    """Sets or updates a setting in app_settings table."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    val_str = "1" if value is True else ("0" if value is False else str(value))
+    cursor.execute("""
+        INSERT INTO app_settings (key, value, updated_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP;
+    """, (key, val_str))
+    conn.commit()
+    conn.close()
+
+
+def get_all_app_settings() -> Dict[str, str]:
+    """Retrieves all application settings as a key-value dictionary."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT key, value FROM app_settings;")
+    rows = cursor.fetchall()
+    conn.close()
+    return {row[0]: row[1] for row in rows}
+
+
+def get_dossier_biophysical_telemetry(dossier_id: str, audit_year: Optional[int] = None) -> dict:
     """
     Synthesizes ground-truth biophysical state across /spatial (aerial/topography)
-    and /mobile (in-situ terrestrial) for a specific tenant dossier.
+    and /mobile (in-situ terrestrial) for a specific tenant dossier and audit year.
     Powers the /proses Simulator and /timelines audit cards with real data flow.
     """
     conn = get_db_connection()
@@ -2062,20 +2138,34 @@ def get_dossier_biophysical_telemetry(dossier_id: str) -> dict:
     """, (dossier_id,))
     prof_row = cursor.fetchone()
     
-    # 2. Check latest aerial evidence
-    cursor.execute("""
-        SELECT * FROM inspection_evidence
-        WHERE dossier_id = ? AND perspective_mode = 'AERIAL_DRONE'
-        ORDER BY created_at DESC LIMIT 1;
-    """, (dossier_id,))
+    # 2. Check latest aerial evidence (filtered by dossier_id and optionally audit_year)
+    if audit_year:
+        cursor.execute("""
+            SELECT * FROM inspection_evidence
+            WHERE dossier_id = ? AND perspective_mode = 'AERIAL_DRONE' AND audit_year = ?
+            ORDER BY created_at DESC LIMIT 1;
+        """, (dossier_id, int(audit_year)))
+    else:
+        cursor.execute("""
+            SELECT * FROM inspection_evidence
+            WHERE dossier_id = ? AND perspective_mode = 'AERIAL_DRONE'
+            ORDER BY created_at DESC LIMIT 1;
+        """, (dossier_id,))
     aerial_row = cursor.fetchone()
     
-    # 3. Check latest terrestrial evidence
-    cursor.execute("""
-        SELECT * FROM inspection_evidence
-        WHERE dossier_id = ? AND perspective_mode = 'TERRESTRIAL_IN_SITU'
-        ORDER BY created_at DESC LIMIT 1;
-    """, (dossier_id,))
+    # 3. Check latest terrestrial evidence (filtered by dossier_id and optionally audit_year)
+    if audit_year:
+        cursor.execute("""
+            SELECT * FROM inspection_evidence
+            WHERE dossier_id = ? AND perspective_mode = 'TERRESTRIAL_IN_SITU' AND audit_year = ?
+            ORDER BY created_at DESC LIMIT 1;
+        """, (dossier_id, int(audit_year)))
+    else:
+        cursor.execute("""
+            SELECT * FROM inspection_evidence
+            WHERE dossier_id = ? AND perspective_mode = 'TERRESTRIAL_IN_SITU'
+            ORDER BY created_at DESC LIMIT 1;
+        """, (dossier_id,))
     terr_row = cursor.fetchone()
     
     conn.close()
@@ -2132,6 +2222,60 @@ def get_dossier_biophysical_telemetry(dossier_id: str) -> dict:
         "latest_terrestrial_id": dict(terr_row).get('id') if terr_row else None,
         "statutory_basis": "Permentan No. 33 Tahun 2025"
     }
+
+
+# =========================================================================
+# APPLICATION SETTINGS & PARAMETERS ENGINE
+# =========================================================================
+def get_app_setting(key: str, default=None):
+    """Retrieve single setting key from app_settings."""
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT value FROM app_settings WHERE key = ?;", (key,))
+    row = c.fetchone()
+    conn.close()
+    return row[0] if row else default
+
+def set_app_setting(key: str, value: str):
+    """Upsert single setting key in app_settings."""
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO app_settings (key, value, updated_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP;
+    """, (str(key), str(value)))
+    conn.commit()
+    conn.close()
+
+def get_all_app_settings() -> dict:
+    """Retrieve all current application settings with fallback defaults."""
+    defaults = {
+        "market_mode": "IDR",
+        "audit_year": "2026",
+        "kurs_usd": "17920",
+        "cpo_global": "1526.56",
+        "bea_keluar": "178.0",
+        "pe_bpdpks": "130.27",
+        "logistik": "50.0",
+        "p_kernel": "12700",
+        "rendemen_cpo": "21.0",
+        "indeks_k": "91.0",
+        "biaya_olah": "300",
+        "is_published": "0",
+        "antifraud_active": "1",
+        "active_dossier": "EST-MDN-001"
+    }
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT key, value FROM app_settings;")
+    rows = c.fetchall()
+    conn.close()
+    
+    settings = dict(defaults)
+    for r in rows:
+        settings[r[0]] = r[1]
+    return settings
 
 
 if __name__ == '__main__':
