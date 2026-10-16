@@ -874,7 +874,7 @@ function updateExecutivePanels(code, estateData) {
     if (badgeBox && badgeText) {
         if (isCertified) {
             badgeBox.className = "px-3.5 py-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-400 dark:border-emerald-600 text-emerald-800 dark:text-emerald-300 text-xs font-mono font-bold flex items-center gap-2 shrink-0 shadow-sm";
-            badgeText.textContent = "100% STATUTORY COMPLIANT • READY FOR CERTIFICATE SEAL";
+            badgeText.textContent = "100% STATUTORY COMPLIANT";
         } else {
             badgeBox.className = "px-3.5 py-2 rounded-2xl bg-amber-50 dark:bg-amber-950/80 border border-amber-400 dark:border-amber-600 text-amber-800 dark:text-amber-300 text-xs font-mono font-bold flex items-center gap-2 shrink-0 shadow-sm";
             badgeText.textContent = "CONDITIONAL PASS • IN-REVIEW (" + (data.progress_pct || 75) + "%)";
