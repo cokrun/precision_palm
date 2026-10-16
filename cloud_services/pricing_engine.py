@@ -58,7 +58,7 @@ def hitung_harga_tbs_per_ton(
 
 
 def calculate_comprehensive_financials(
-    palm_fしく_ton_ha: float = 24.0,
+    palm_ffb_ton_ha: float = 24.0,
     crop_type: str = "Red Ginger (Zingiber officinale)",
     intercrop_yield_ton_ha: float = 7.5,
     intercrop_price_idr_kg: float = 18500.0,
@@ -85,7 +85,7 @@ def calculate_comprehensive_financials(
     )
 
     # 1. Pendapatan TBS Sawit Utama per Hektar
-    palm_revenue_idr = palm_fしく_ton_ha * tbs_per_ton
+    palm_revenue_idr = palm_ffb_ton_ha * tbs_per_ton
 
     # 2. Pendapatan Tanaman Sela per Hektar
     intercrop_gross_revenue_idr = (intercrop_yield_ton_ha * 1000.0) * intercrop_price_idr_kg
@@ -108,7 +108,7 @@ def calculate_comprehensive_financials(
         "harga_cpo_domestik_idr_kg": round(cpo_domestik, 2),
         "harga_tbs_idr_kg": round(tbs_per_kg, 2),
         "harga_tbs_idr_ton": round(tbs_per_ton, 2),
-        "palm_yield_ton_ha": palm_fしく_ton_ha,
+        "palm_yield_ton_ha": palm_ffb_ton_ha,
         "palm_revenue_idr_ha": round(palm_revenue_idr, 2),
         "intercrop_crop": crop_type,
         "intercrop_yield_ton_ha": intercrop_yield_ton_ha,

@@ -585,6 +585,8 @@ def get_media_evidence_stream(evidence_id):
 
 
 @app.route('/api/evidence/upload', methods=['POST'])
+@app.route('/api/mobile/insitu-evidence', methods=['POST'])
+@app.route('/api/spatial/evidence/upload', methods=['POST'])
 def upload_inspection_evidence():
     """
     Receives binary image (IndexedDB sync payload or multipart upload),
@@ -597,8 +599,8 @@ def upload_inspection_evidence():
         if request.is_json:
             payload = request.get_json() or {}
         # Handle multipart / form data
-        elif 'photo' in request.files or 'image' in request.files:
-            file_obj = request.files.get('photo') or request.files.get('image')
+        elif 'photo' in request.files or 'image' in request.files or 'file' in request.files:
+            file_obj = request.files.get('photo') or request.files.get('image') or request.files.get('file')
             if file_obj:
                 img_bytes = file_obj.read()
                 payload['image_base64'] = base64.b64encode(img_bytes).decode('utf-8')
@@ -607,11 +609,20 @@ def upload_inspection_evidence():
             for k, v in request.form.items():
                 payload[k] = v
         
+        # Support alternative JSON keys for photo
+        if not payload.get('image_base64'):
+            if payload.get('photo_data'):
+                payload['image_base64'] = payload['photo_data']
+            elif payload.get('photo'):
+                payload['image_base64'] = payload['photo']
+            elif payload.get('image'):
+                payload['image_base64'] = payload['image']
+
         if not payload.get('image_base64'):
             return jsonify({"success": False, "error": "No image payload received"}), 400
 
         # Clean data URI prefix if needed
-        raw_b64 = payload['image_base64']
+        raw_b64 = str(payload['image_base64'])
         if ',' in raw_b64:
             raw_b64 = raw_b64.split(',', 1)[1]
             payload['image_base64'] = raw_b64
@@ -630,7 +641,9 @@ def upload_inspection_evidence():
         if existing_usage:
             return jsonify({
                 "status": "error",
+                "error": "FRAUD_PHOTO_REUSED",
                 "code": "FRAUD_PHOTO_REUSED",
+                "legal_standard": "Permentan No. 33 Tahun 2025",
                 "message": "Bukti foto ini telah terdaftar pada audit sebelumnya. Sesuai Permentan No. 33 Tahun 2025, wajib mengambil foto fisik baru di lapangan. Pemakaian ulang foto dilarang.",
                 "duplicate_details": {
                     "sha256_hash": sha_hash,
@@ -889,7 +902,7 @@ def api_pricing_tbs_calculation():
     }
 
     financials = calculate_comprehensive_financials(
-        palm_fしく_ton_ha=float(data.get('palm_yield_ton_ha', 24.0)),
+        palm_ffb_ton_ha=float(data.get('palm_yield_ton_ha', 24.0)),
         crop_type=data.get('crop_name', 'Red Ginger (Zingiber officinale)'),
         intercrop_yield_ton_ha=float(data.get('intercrop_yield_ton_ha', 7.5)),
         intercrop_price_idr_kg=float(data.get('intercrop_price_idr_kg', 18500.0)),

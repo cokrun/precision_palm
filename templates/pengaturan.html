@@ -109,22 +109,22 @@
 
     <!-- Tab Navigation -->
     <div class="border-b border-slate-800 flex flex-wrap gap-1 font-mono text-xs">
-        <button type="button" onclick="switchControlTab('pricing')" id="tabBtn_pricing" class="px-4 py-3 rounded-t-xl transition flex items-center gap-2 cursor-pointer tab-btn-active">
-            <span>📊</span> <span>1. Formula Harga Pasar TBS (rumus_tb.py)</span>
+        <button type="button" onclick="switchControlTab('market')" id="tabBtn_market" class="px-4 py-3 rounded-t-xl transition flex items-center gap-2 cursor-pointer tab-btn-active">
+            <span>🌐</span> <span>1. Yurisdiksi Pasar (IDR Permentan No. 33 Tahun 2025 vs USD EUDR)</span>
         </button>
-        <button type="button" onclick="switchControlTab('tenancy')" id="tabBtn_tenancy" class="px-4 py-3 rounded-t-xl transition flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-200">
-            <span>🏢</span> <span>2. Konteks Perusahaan & Konsep Tahun</span>
-        </button>
-        <button type="button" onclick="switchControlTab('market')" id="tabBtn_market" class="px-4 py-3 rounded-t-xl transition flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-200">
-            <span>🌐</span> <span>3. Yurisdiksi Pasar (IDR vs USD)</span>
+        <button type="button" onclick="switchControlTab('pricing')" id="tabBtn_pricing" class="px-4 py-3 rounded-t-xl transition flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-200">
+            <span>📊</span> <span>2. Parameter Pasar TBS & CPO (rumus_tb.py)</span>
         </button>
         <button type="button" onclick="switchControlTab('privacy')" id="tabBtn_privacy" class="px-4 py-3 rounded-t-xl transition flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-200">
-            <span>🔒</span> <span>4. Privasi & Kunci Anti-Fraud Foto</span>
+            <span>🔒</span> <span>3. Kontrol Privasi & Publikasi (Draft vs Verifiable)</span>
+        </button>
+        <button type="button" onclick="switchControlTab('tenancy')" id="tabBtn_tenancy" class="px-4 py-3 rounded-t-xl transition flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-200">
+            <span>🏢</span> <span>4. Pemilih Tenant Perusahaan Aktif & BigQuery</span>
         </button>
     </div>
 
-    <!-- TAB 1: FORMULA HARGA PASAR TBS & CPO (rumus_tb.py Implementation) -->
-    <section id="panel_pricing" class="control-card rounded-3xl p-5 sm:p-7 border border-slate-800 space-y-6">
+    <!-- TAB 2: PARAMETER PASAR TBS & CPO (rumus_tb.py Implementation) -->
+    <section id="panel_pricing" class="control-card rounded-3xl p-5 sm:p-7 border border-slate-800 space-y-6 hidden">
         <div class="border-b border-slate-800 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
                 <span class="text-[10px] font-mono text-cyan-400 font-bold uppercase block tracking-wider">
@@ -310,15 +310,15 @@
         </div>
     </section>
 
-    <!-- TAB 3: YURISDIKSI PASAR (IDR vs USD Dual-Currency) -->
-    <section id="panel_market" class="control-card rounded-3xl p-5 sm:p-7 border border-slate-800 space-y-6 hidden">
+    <!-- TAB 1: YURISDIKSI PASAR (IDR Permentan No. 33 Tahun 2025 vs USD Ekspor EUDR) -->
+    <section id="panel_market" class="control-card rounded-3xl p-5 sm:p-7 border border-slate-800 space-y-6">
         <div class="border-b border-slate-800 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
                 <span class="text-[10px] font-mono text-emerald-400 font-bold uppercase block tracking-wider">
-                    MARKET JURISDICTION &bull; DUAL CURRENCY
+                    MARKET JURISDICTION &bull; DUAL CURRENCY &bull; PERMENTAN NO. 33 TAHUN 2025
                 </span>
                 <h2 class="text-base sm:text-lg font-bold text-white font-sans">
-                    Penetapan Mode Pasar & Standar Regulasi
+                    Penetapan Mode Pasar & Standar Regulasi (Permentan No. 33 Tahun 2025 vs EUDR)
                 </h2>
             </div>
             <span class="text-[10px] font-mono text-slate-400 bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-800">
@@ -610,9 +610,39 @@
         setTimeout(() => toast.classList.add('hidden'), 4000);
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         recalculateTbsLive();
         renderDossierTable(DOSSIERS_DATA.slice(0, 10));
+
+        // Load from backend first, fallback to localStorage
+        try {
+            const resp = await fetch('/api/settings');
+            if (resp.ok) {
+                const res = await resp.json();
+                if (res.status === 'success' && res.settings) {
+                    const cfg = res.settings;
+                    if (cfg.active_dossier) document.getElementById('cfg_active_dossier').value = cfg.active_dossier;
+                    if (cfg.kurs_usd) document.getElementById('cfg_kurs_usd').value = cfg.kurs_usd;
+                    if (cfg.cpo_global) document.getElementById('cfg_cpo_global').value = cfg.cpo_global;
+                    if (cfg.audit_year) document.getElementById('cfg_audit_year').value = cfg.audit_year;
+                    if (cfg.bea_keluar) document.getElementById('cfg_bea_keluar').value = cfg.bea_keluar;
+                    if (cfg.pe_bpdpks) document.getElementById('cfg_pe_bpdpks').value = cfg.pe_bpdpks;
+                    if (cfg.logistik) document.getElementById('cfg_logistik').value = cfg.logistik;
+                    if (cfg.p_kernel) document.getElementById('cfg_p_kernel').value = cfg.p_kernel;
+                    if (cfg.rendemen_cpo) document.getElementById('cfg_rendemen_cpo').value = cfg.rendemen_cpo;
+                    if (cfg.indeks_k) document.getElementById('cfg_indeks_k').value = cfg.indeks_k;
+                    if (cfg.biaya_olah) document.getElementById('cfg_biaya_olah').value = cfg.biaya_olah;
+                    if (cfg.market_mode) {
+                        const r = document.querySelector(`input[name="market_jurisdiction"][value="${cfg.market_mode}"]`);
+                        if (r) r.checked = true;
+                        updateJurisdictionSelection(cfg.market_mode);
+                    }
+                    recalculateTbsLive();
+                }
+            }
+        } catch (e) {
+            console.warn("Could not load backend settings:", e);
+        }
 
         const saved = localStorage.getItem('precision_palm_settings');
         if (saved) {

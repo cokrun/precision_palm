@@ -158,6 +158,65 @@
                 </div>
             </div>
 
+            <!-- Live TBS Pricing & Financial Advantage Engine (Rotterdam CPO Pricing Microservice) -->
+            <div id="liveTbsPricingFinancialCard" class="p-4 rounded-xl bg-gradient-to-r from-slate-900 via-slate-950 to-emerald-950 border border-emerald-500/40 shadow-md space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-500/20 pb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base">💰</span>
+                        <div>
+                            <h4 class="text-xs font-bold font-mono text-emerald-400 tracking-wide">
+                                FORMULA HARGA TBS REAL-TIME &amp; INTEGRATED ECONOMIC ADVANTAGE
+                            </h4>
+                            <p class="text-[10px] text-slate-400">
+                                Berdasarkan Indeks K (91%), CPO Rotterdam ($1.526,56/MT), Kurs Rp 17.920, &amp; Permentan No. 33 Tahun 2025
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                            Advantage +247% vs Monokultur
+                        </span>
+                        <button type="button" onclick="updateLiveTbsPricing()" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-mono border border-slate-700 transition cursor-pointer" title="Refresh Live Pricing">
+                            🔄 Sync Pasar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                    <div class="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800">
+                        <div class="text-[10px] text-slate-400 font-mono">Harga Pokok TBS</div>
+                        <div id="disp_tbs_kg" class="text-sm font-extrabold text-amber-400 font-mono mt-0.5">
+                            Rp 3.824,71 <span class="text-[10px] text-slate-400 font-normal">/kg</span>
+                        </div>
+                        <div class="text-[9px] text-slate-500 mt-0.5">Rp 3.824.710 /ton TBS</div>
+                    </div>
+
+                    <div class="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800">
+                        <div class="text-[10px] text-slate-400 font-mono">Pendapatan Sawit (24T)</div>
+                        <div id="disp_tbs_rev" class="text-sm font-extrabold text-emerald-400 font-mono mt-0.5">
+                            Rp 91,79 Jt <span class="text-[10px] text-slate-400 font-normal">/Ha</span>
+                        </div>
+                        <div class="text-[9px] text-slate-500 mt-0.5">Yield 24.0 Ton/Ha/Thn</div>
+                    </div>
+
+                    <div class="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800">
+                        <div class="text-[10px] text-slate-400 font-mono">Net Jahe Merah (7.5T)</div>
+                        <div id="disp_intercrop_rev" class="text-sm font-extrabold text-teal-300 font-mono mt-0.5">
+                            Rp 137,85 Jt <span class="text-[10px] text-slate-400 font-normal">/Ha</span>
+                        </div>
+                        <div class="text-[9px] text-slate-500 mt-0.5">Rp 18.500/kg - MOP Rp 900rb</div>
+                    </div>
+
+                    <div class="p-2.5 rounded-lg bg-emerald-950/50 border border-emerald-500/50 shadow-inner">
+                        <div class="text-[10px] text-emerald-300 font-mono font-bold">Total Gabungan Agroforestri</div>
+                        <div id="disp_total_integrated_rev" class="text-sm font-black text-emerald-200 font-mono mt-0.5">
+                            Rp 229,64 Jt <span class="text-[10px] text-emerald-300 font-normal">/Ha</span>
+                        </div>
+                        <div class="text-[9px] text-emerald-400 font-semibold mt-0.5">Keuntungan Monokultur: +247%</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- SECTION 1: Orthophoto & Drone Canopy Telemetry Zone (MATCHING EXACT TARGET BENCHMARK LAYOUT) -->
             <div id="sec_vision_upload" class="bg-slate-50 dark:bg-slate-950/70 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4 transition-all duration-300">
                 
@@ -1462,6 +1521,55 @@
                             <div class="text-base font-bold text-teal-600 dark:text-teal-400 mt-0.5 font-mono">32.6 kg/ha</div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- DYNAMIC TBS PRICING ENGINE & INTEGRATED HARVEST ADVANTAGE (Permentan 33/2025 & Rotterdam Formula) -->
+            <div class="bg-gradient-to-br from-amber-950/40 via-slate-900 to-emerald-950/40 p-4 rounded-xl border border-amber-500/40 shadow-lg space-y-3">
+                <div class="flex items-center justify-between border-b border-amber-500/20 pb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base">📈</span>
+                        <div>
+                            <h3 class="font-bold text-amber-300 text-xs sm:text-sm">Live TBS Pricing Engine &amp; Integrated Agroforestry Financial Advantage</h3>
+                            <p class="text-[9px] text-slate-400">Formula Resmi Penetapan Harga TBS Berbasis CPO Global Rotterdam &bull; Permentan No. 33 Tahun 2025</p>
+                        </div>
+                    </div>
+                    <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-500/40 font-mono font-bold">+247% Advantage</span>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+                    <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+                        <span class="text-[9px] text-slate-400 block">Harga TBS Sawit</span>
+                        <div id="disp_tbs_kg" class="text-base font-extrabold text-amber-400 mt-0.5">Rp 3.824,71 <span class="text-[10px] text-slate-400 font-normal">/kg</span></div>
+                        <span class="text-[8px] text-slate-400 block mt-0.5">Rp 3.824.713 /ton</span>
+                    </div>
+                    <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+                        <span class="text-[9px] text-slate-400 block">Hasil Panen TBS</span>
+                        <div id="disp_tbs_rev" class="text-base font-extrabold text-sky-400 mt-0.5">Rp 91,79 Jt <span class="text-[10px] text-slate-400 font-normal">/Ha</span></div>
+                        <span class="text-[8px] text-slate-400 block mt-0.5">24.0 Ton TBS / Ha / Thn</span>
+                    </div>
+                    <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+                        <span class="text-[9px] text-slate-400 block">Net Sela Jahe Merah</span>
+                        <div id="disp_intercrop_rev" class="text-base font-extrabold text-emerald-400 mt-0.5">Rp 137,85 Jt <span class="text-[10px] text-slate-400 font-normal">/Ha</span></div>
+                        <span class="text-[8px] text-emerald-500/80 block mt-0.5">Net Panen - Pupuk MOP</span>
+                    </div>
+                    <div class="bg-emerald-950/60 p-2.5 rounded-lg border border-emerald-600/50">
+                        <span class="text-[9px] text-emerald-300 block font-bold">Total Pendapatan Terpadu</span>
+                        <div id="disp_total_integrated_rev" class="text-base font-extrabold text-emerald-200 mt-0.5">Rp 229,64 Jt <span class="text-[10px] text-emerald-300 font-normal">/Ha</span></div>
+                        <span class="text-[8px] text-emerald-400 block font-bold mt-0.5">+247% vs Monokultur Biasa</span>
+                    </div>
+                </div>
+                
+                <div class="flex flex-wrap items-center justify-between text-[10px] text-slate-400 bg-black/30 p-2 rounded border border-slate-800/80 font-mono">
+                    <div class="flex items-center gap-3">
+                        <span>CPO Rotterdam: <strong class="text-slate-200">$1,526.56/MT</strong></span>
+                        <span>Kurs: <strong class="text-slate-200">Rp 17.920</strong></span>
+                        <span>BK: <strong class="text-slate-200">$178</strong> | PE: <strong class="text-slate-200">$130.27</strong></span>
+                        <span>Indeks K: <strong class="text-emerald-400">91.0%</strong> | Rendemen: <strong class="text-emerald-400">21.0%</strong></span>
+                    </div>
+                    <a href="/pengaturan" class="text-amber-400 hover:text-amber-300 underline font-sans text-[10px] flex items-center gap-1">
+                        ⚙️ Ubah Parameter di Pengaturan
+                    </a>
                 </div>
             </div>
 

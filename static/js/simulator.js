@@ -146,6 +146,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initSpatialTrackingControls();
     initDrawingReticles();
     fetchAdminHistory();
+    updateLiveTbsPricing();
 
     // Broadcast AI terminal ready state
     if (typeof logAiInteraction === 'function') {
@@ -1577,6 +1578,9 @@ async function pullLiveFieldAndSpatialTelemetry() {
                 reasoningContainer.classList.remove('hidden');
             }
 
+            // 4. Update Live TBS Pricing Engine
+            updateLiveTbsPricing();
+
             if (typeof showNotificationToast === 'function') {
                 showNotificationToast(`✓ Telemetri Lapangan (${d.leaf_chlorophyll_spad} SPAD) & Spasial (${d.slope_deg}°) Berhasil Diterapkan! LER ${d.ler_score}x Terkunci.`, "✅");
             }
@@ -1589,6 +1593,35 @@ async function pullLiveFieldAndSpatialTelemetry() {
     }
 }
 window.pullLiveFieldAndSpatialTelemetry = pullLiveFieldAndSpatialTelemetry;
+
+/**
+ * Pillar 6: Dynamic Live TBS Pricing Microservice Integration
+ * Fetches real-time Rotterdam-based TBS pricing and updates the Agroforestry Advantage card
+ */
+async function updateLiveTbsPricing() {
+    try {
+        const resp = await fetch('/api/pricing/tbs-calculation?palm_yield_ton_ha=24.0&intercrop_yield_ton_ha=7.5&intercrop_price_idr_kg=18500.0');
+        if (!resp.ok) return;
+        const resJson = await resp.json();
+        if (resJson.status === 'success' && resJson.data) {
+            const d = resJson.data;
+            const tbsKg = document.getElementById('disp_tbs_kg');
+            if (tbsKg) tbsKg.innerHTML = `Rp ${Number(d.harga_tbs_idr_kg).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span class="text-[10px] text-slate-400 font-normal">/kg</span>`;
+            
+            const tbsRev = document.getElementById('disp_tbs_rev');
+            if (tbsRev) tbsRev.innerHTML = `Rp ${(Number(d.palm_revenue_idr_ha) / 1000000).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Jt <span class="text-[10px] text-slate-400 font-normal">/Ha</span>`;
+            
+            const interRev = document.getElementById('disp_intercrop_rev');
+            if (interRev) interRev.innerHTML = `Rp ${(Number(d.intercrop_net_idr_ha) / 1000000).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Jt <span class="text-[10px] text-slate-400 font-normal">/Ha</span>`;
+            
+            const totalRev = document.getElementById('disp_total_integrated_rev');
+            if (totalRev) totalRev.innerHTML = `Rp ${(Number(d.total_integrated_idr_ha) / 1000000).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Jt <span class="text-[10px] text-emerald-300 font-normal">/Ha</span>`;
+        }
+    } catch (e) {
+        console.warn("[Simulator] TBS pricing fetch notice:", e);
+    }
+}
+window.updateLiveTbsPricing = updateLiveTbsPricing;
 
 window.executeInferenceAction = executeInferenceAction;
 window.executeInSilicoCompute = executeInSilicoCompute;

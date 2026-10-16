@@ -36,16 +36,13 @@ def get_wib_now() -> str:
 DEFAULT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'precision_palm.db')
 
 def get_db_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
-    # Timeout 30 detik untuk menangani antrean multi-worker Gunicorn
     target_path = db_path or DEFAULT_DB_PATH
     conn = sqlite3.connect(target_path, timeout=30.0, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     try:
-        cursor = conn.cursor()
-        cursor.execute("PRAGMA journal_mode=WAL;")
-        cursor.execute("PRAGMA busy_timeout=30000;")
-    except Exception as e_lock:
-        print(f"[DB Notice] Skip PRAGMA journal_mode: {e_lock}")
+        conn.execute("PRAGMA busy_timeout=30000;")
+    except Exception:
+        pass
     return conn
 
 def init_db(db_path: Optional[str] = None) -> None:
@@ -57,6 +54,10 @@ def init_db(db_path: Optional[str] = None) -> None:
     try:
         conn = get_db_connection(path)
         cursor = conn.cursor()
+        try:
+            cursor.execute("PRAGMA journal_mode=WAL;")
+        except Exception:
+            pass
 
         # 1. Master Estate Profiles Table (Pillar 1: Ingestion & Cadastral Tenure)
         cursor.execute("""
@@ -2106,41 +2107,6 @@ def list_inspection_evidence(dossier_id: Optional[str] = None, audit_year: Optio
             item['detected_entities'] = []
         results.append(item)
     return results
-
-
-def get_app_setting(key: str, default: Optional[str] = None) -> Optional[str]:
-    """Reads a setting value from app_settings table."""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT value FROM app_settings WHERE key = ?;", (key,))
-    row = cursor.fetchone()
-    conn.close()
-    return row[0] if row else default
-
-
-def set_app_setting(key: str, value: Any) -> None:
-    """Sets or updates a setting in app_settings table."""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    val_str = "1" if value is True else ("0" if value is False else str(value))
-    cursor.execute("""
-        INSERT INTO app_settings (key, value, updated_at)
-        VALUES (?, ?, CURRENT_TIMESTAMP)
-        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP;
-    """, (key, val_str))
-    conn.commit()
-    conn.close()
-
-
-def get_all_app_settings() -> Dict[str, str]:
-    """Retrieves all application settings as a key-value dictionary."""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT key, value FROM app_settings;")
-    rows = cursor.fetchall()
-    conn.close()
-    return {row[0]: row[1] for row in rows}
-
 
 def get_dossier_biophysical_telemetry(dossier_id: str, audit_year: Optional[int] = None) -> dict:
     """
