@@ -11,8 +11,9 @@
  */
 
 const IDB_DATABASE_NAME = 'precision_palm_mobile_db';
-const IDB_DATABASE_VERSION = 1;
+const IDB_DATABASE_VERSION = 2;
 const IDB_STORE_SURVEYS = 'offline_surveys_queue';
+const IDB_STORE_INSPECTIONS = 'inspection_reports';
 
 let idbConnection = null;
 let registeredEstatesList = [];
@@ -29,6 +30,10 @@ function openIndexedDb() {
             if (!db.objectStoreNames.contains(IDB_STORE_SURVEYS)) {
                 db.createObjectStore(IDB_STORE_SURVEYS, { keyPath: 'id', autoIncrement: true });
                 console.log('[MobileDB] Object store created:', IDB_STORE_SURVEYS);
+            }
+            if (!db.objectStoreNames.contains(IDB_STORE_INSPECTIONS)) {
+                db.createObjectStore(IDB_STORE_INSPECTIONS, { keyPath: 'id', autoIncrement: true });
+                console.log('[MobileDB] Object store created:', IDB_STORE_INSPECTIONS);
             }
         };
 
@@ -137,6 +142,14 @@ async function saveSurveyToIndexedDb() {
     const nowStr = new Date().toLocaleString('id-ID', { hour12: false }) + " WIB";
     const shaHash = "8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4";
 
+    const diagnostics = (window.MobileCamera && typeof window.MobileCamera.getActiveDiagnostics === 'function')
+        ? window.MobileCamera.getActiveDiagnostics()
+        : null;
+
+    const boxes = (window.MobileCamera && typeof window.MobileCamera.getActiveBoundingBoxes === 'function')
+        ? window.MobileCamera.getActiveBoundingBoxes()
+        : null;
+
     const surveyPayload = {
         id_kebun: estate.id_kebun || estate.id || 1,
         kode_kebun: estate.kode_kebun,
@@ -149,23 +162,33 @@ async function saveSurveyToIndexedDb() {
         cuaca_tercatat: gps.weather,
         foto_url: photoBase64,
         filename: photoName,
-        piringan_steril_meter: 2.0,
+        piringan_steril_meter: diagnostics?.spatial_alley_verification?.sterile_circle_radius_m || 2.0,
         defisit_tbs_persen: 1.2,
         waktu_pengambilan: nowStr,
         sha256: shaHash,
+        plant_diagnostics: diagnostics,
+        bounding_boxes: boxes,
         synced: 0
     };
 
     return new Promise((resolve, reject) => {
-        const tx = idbConnection.transaction(IDB_STORE_SURVEYS, 'readwrite');
-        const store = tx.objectStore(IDB_STORE_SURVEYS);
-        const req = store.add(surveyPayload);
+        const tx = idbConnection.transaction([IDB_STORE_SURVEYS, IDB_STORE_INSPECTIONS], 'readwrite');
+        const storeSurveys = tx.objectStore(IDB_STORE_SURVEYS);
+        const storeInspections = tx.objectStore(IDB_STORE_INSPECTIONS);
+        
+        const req = storeSurveys.add(surveyPayload);
+        try {
+            storeInspections.add(JSON.parse(JSON.stringify(surveyPayload)));
+        } catch (e) {
+            console.warn('[MobileDB] Note saving to inspection_reports:', e);
+        }
+
         const isId = (localStorage.getItem('precision_palm_mobile_lang') || localStorage.getItem('precision_palm_lang') || 'en') === 'id';
 
         req.onsuccess = () => {
             updateQueueCounter();
             if (window.showToast) {
-                window.showToast(isId ? `Laporan ${surveyPayload.kode_kebun} (${surveyPayload.block_id}) tersimpan di IndexedDB!` : `Report ${surveyPayload.kode_kebun} (${surveyPayload.block_id}) saved in IndexedDB!`, "💾");
+                window.showToast(isId ? `Laporan & Diagnostik ${surveyPayload.kode_kebun} (${surveyPayload.block_id}) tersimpan di IndexedDB!` : `Report & Diagnostics for ${surveyPayload.kode_kebun} (${surveyPayload.block_id}) stored in IndexedDB!`, "💾");
             }
             resolve(req.result);
         };
@@ -262,6 +285,14 @@ async function sendActiveSurveyDirect() {
 
     const estate = currentlySelectedEstate || { id_kebun: 1, kode_kebun: "EST-MDN-001" };
 
+    const diagnostics = (window.MobileCamera && typeof window.MobileCamera.getActiveDiagnostics === 'function')
+        ? window.MobileCamera.getActiveDiagnostics()
+        : null;
+
+    const boxes = (window.MobileCamera && typeof window.MobileCamera.getActiveBoundingBoxes === 'function')
+        ? window.MobileCamera.getActiveBoundingBoxes()
+        : null;
+
     const payload = {
         id_kebun: estate.id_kebun || estate.id || 1,
         kode_kebun: estate.kode_kebun,
@@ -272,8 +303,10 @@ async function sendActiveSurveyDirect() {
         elevation: gps.elev,
         cuaca: gps.weather,
         foto_url: photoBase64,
-        piringan_steril_meter: 2.0,
-        defisit_tbs_persen: 1.2
+        piringan_steril_meter: diagnostics?.spatial_alley_verification?.sterile_circle_radius_m || 2.0,
+        defisit_tbs_persen: 1.2,
+        plant_diagnostics: diagnostics,
+        bounding_boxes: boxes
     };
 
     await fetch('/api/mobile-surveys', {

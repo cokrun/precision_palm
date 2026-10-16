@@ -2,11 +2,14 @@
 // Service Worker untuk Precision Palm Mobile Edge PWA
 // Offline-First Caching Strategy (Termasuk Pustaka EXIF & Aset Kamera)
 
-const CACHE_NAME = 'precision-palm-mobile-v2.0';
+const CACHE_NAME = 'precision-palm-mobile-v2.1';
 const STATIC_ASSETS = [
   '/mobile/',
   '/mobile/index.html',
   '/mobile/manifest.json',
+  '/mobile/js/mobile_camera.js',
+  '/mobile/js/mobile_db.js',
+  '/mobile/js/mobile_gps.js',
   '/static/img/sawit_drone.jpg',
   'https://cdn.tailwindcss.com',
   'https://cdn.jsdelivr.net/npm/piexifjs@1.0.6/piexif.min.js',

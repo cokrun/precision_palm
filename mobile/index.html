@@ -282,6 +282,19 @@
                     <!-- AI Bounding Boxes Overlay Container -->
                     <div id="viewfinderBBoxesOverlay" class="absolute inset-0 pointer-events-none" style="z-index: 20;"></div>
 
+                    <!-- Live HUD Dynamic Telemetry Banner Atas Kamera -->
+                    <div id="cameraLiveHudBadge" class="absolute top-2 left-2 right-20 bg-slate-950/85 backdrop-blur border border-emerald-500/60 px-2.5 py-1 rounded-xl text-[9px] font-mono text-emerald-300 flex items-center justify-between shadow-lg pointer-events-none transition-all duration-300" style="z-index: 30;">
+                        <div class="flex items-center gap-1.5 truncate">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span id="hudTelemetrySummary" class="truncate font-bold tracking-tight">
+                                [ Umur: ~7.5 Thn (TM) ] • [ Klorofil: Sehat ] • [ Ganoderma: 0.0% ]
+                            </span>
+                        </div>
+                        <span class="text-[8px] bg-emerald-950/90 text-emerald-400 border border-emerald-700/60 px-1.5 py-0.2 rounded font-bold uppercase shrink-0">
+                            HUD 2.0m
+                        </span>
+                    </div>
+
                     <!-- Photo Filename Badge -->
                     <div id="badgePhotoFilename" class="absolute bottom-2 left-2 bg-slate-950/85 backdrop-blur border border-slate-700 px-2 py-0.5 rounded-lg text-[9px] font-mono text-slate-200 flex items-center gap-1.5" style="z-index: 30;">
                         <span>📸</span> <span id="lblCapturedFilename" class="truncate max-w-[180px]">sawit_drone.jpg</span>
@@ -306,29 +319,92 @@
                     <div id="geotagPropertyDetails" class="text-[9px] text-slate-300 grid grid-cols-1 gap-0.5 border-t border-emerald-800/50 pt-1"></div>
                 </div>
 
-                <!-- Ringkasan Hasil AI Vision -->
-                <div id="aiVisionBackendSummary" class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-300 space-y-1">
-                    <div class="flex items-center justify-between text-[9px] text-emerald-400 font-bold">
-                        <span id="lblAiClassification">Tegakan Produktif Prima (TM)</span>
-                        <span id="lblAiCanopyDensity">Kanopi: 76.5% • Skor: 95/100</span>
+                <!-- Kartu Hasil Deteksi (Inspection Telemetry Card - 4 Indikator Interaktif) -->
+                <div id="inspectionTelemetrySection" class="space-y-2">
+                    <div class="flex items-center justify-between text-[10px] font-mono font-bold text-slate-800 dark:text-slate-200">
+                        <span class="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                            <span>📡</span> <span>DIAGNOSTIK BIOFISIKA AGRONOMI (MULTIMODAL AI)</span>
+                        </span>
+                        <span id="aiTelemetryTimestamp" class="text-[9px] text-slate-400 font-normal">Ground Truth EST-MDN-001</span>
                     </div>
-                    <p id="lblAiAuditorSummary" class="text-[10px] text-slate-300 font-sans leading-relaxed">
-                        Kerapatan tajuk dan piringan steril 2.0m tanpa olah tanah (zero-tillage) terverifikasi patuh terhadap Prinsip 2 ISPO.
-                    </p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <!-- Kartu 1: Morfologi & Umur Kanopi -->
+                        <div class="p-2.5 rounded-xl bg-slate-900 border border-emerald-500/40 text-[10px] font-mono space-y-1 hover:border-emerald-400 transition cursor-pointer shadow-sm">
+                            <div class="flex items-center justify-between text-emerald-400 font-bold">
+                                <span class="flex items-center gap-1">🌴 <span>1. Morfologi &amp; Umur</span></span>
+                                <span class="text-[8px] px-1.5 py-0.2 bg-emerald-950 text-emerald-300 rounded border border-emerald-700">LAI 3.42</span>
+                            </div>
+                            <div id="telemetryCard1Age" class="text-xs font-black text-white">
+                                7.2 – 7.8 Tahun (TM)
+                            </div>
+                            <div id="telemetryCard1Density" class="text-[9px] text-slate-300">
+                                Kerapatan Tajuk: 138 Pokok/Ha (Kanopi: 82.4%)
+                            </div>
+                        </div>
+
+                        <!-- Kartu 2: Klorosis Daun & Defisiensi N-K -->
+                        <div class="p-2.5 rounded-xl bg-slate-900 border border-teal-500/40 text-[10px] font-mono space-y-1 hover:border-teal-400 transition cursor-pointer shadow-sm">
+                            <div class="flex items-center justify-between text-teal-400 font-bold">
+                                <span class="flex items-center gap-1">🍃 <span>2. Klorosis Daun</span></span>
+                                <span class="text-[8px] px-1.5 py-0.2 bg-teal-950 text-teal-300 rounded border border-teal-700">82.4 SPAD</span>
+                            </div>
+                            <div id="telemetryCard2Status" class="text-xs font-black text-emerald-300">
+                                Status: SEHAT (82.4 SPAD)
+                            </div>
+                            <div id="telemetryCard2Deficiency" class="text-[9px] text-slate-300">
+                                Defisiensi Hara: Nihil (Optimal N-K Balance)
+                            </div>
+                            <div id="telemetryCard2Fertilizer" class="text-[8.5px] text-teal-400 truncate">
+                                💡 Kompensasi MOP +75 kg/Ha di gawangan
+                            </div>
+                        </div>
+
+                        <!-- Kartu 3: Risiko Patologi (Ganoderma) -->
+                        <div class="p-2.5 rounded-xl bg-slate-900 border border-amber-500/40 text-[10px] font-mono space-y-1 hover:border-amber-400 transition cursor-pointer shadow-sm">
+                            <div class="flex items-center justify-between text-amber-400 font-bold">
+                                <span class="flex items-center gap-1">🛡️ <span>3. Risiko Patologi</span></span>
+                                <span class="text-[8px] px-1.5 py-0.2 bg-emerald-950 text-emerald-300 rounded border border-emerald-700">BSR 0.0%</span>
+                            </div>
+                            <div id="telemetryCard3Ganoderma" class="text-xs font-black text-emerald-300">
+                                Ganoderma: TIDAK TERDETEKSI
+                            </div>
+                            <div id="telemetryCard3Basal" class="text-[9px] text-slate-300">
+                                Pangkal Batang: Bersih • Daun Tombak: Tegak Sehat
+                            </div>
+                        </div>
+
+                        <!-- Kartu 4: Piringan & Lorong Sela -->
+                        <div class="p-2.5 rounded-xl bg-slate-900 border border-sky-500/40 text-[10px] font-mono space-y-1 hover:border-sky-400 transition cursor-pointer shadow-sm">
+                            <div class="flex items-center justify-between text-sky-400 font-bold">
+                                <span class="flex items-center gap-1">⭕ <span>4. Piringan &amp; Lorong</span></span>
+                                <span class="text-[8px] px-1.5 py-0.2 bg-sky-950 text-sky-300 rounded border border-sky-700">R: 2.0m Steril</span>
+                            </div>
+                            <div id="telemetryCard4Circle" class="text-xs font-black text-white">
+                                Piringan 2.0m: 100% STERIL (Zero-Tillage)
+                            </div>
+                            <div id="telemetryCard4Corridor" class="text-[9px] text-slate-300">
+                                Lorong 3.79m: Bersih Siap Tanam • Gulma Terkendali
+                            </div>
+                            <div id="telemetryCard4Hydrology" class="text-[8.5px] text-sky-400 truncate">
+                                💧 CN 82 -&gt; CN 64 (-21.95% Runoff)
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Detection Legend -->
                 <div class="p-2 rounded-xl bg-slate-950 border border-slate-800 text-[9px] font-mono text-slate-300 flex flex-wrap items-center justify-between gap-1">
                     <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-500/60 text-emerald-300 font-bold">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> <span data-i18n="hud_palm">[Pokok Sawit]</span>
-                    </span>
-                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-950 border border-sky-500/60 text-sky-300 font-bold">
-                        <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span> <span data-i18n="hud_alley">[Lorong 3.79m]</span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> <span>Palm Crown (TM 7.5th)</span>
                     </span>
                     <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-950 border border-rose-500/60 text-rose-300 font-bold">
-                        <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> <span data-i18n="hud_buffer">[Piringan 2.0m]</span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> <span>Zona Proteksi Akar (2.0m)</span>
                     </span>
-                    <span id="lblDetectionStats" class="text-emerald-400 font-bold ml-auto">IoU: 0.95 • Conf: 98%</span>
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-950 border border-sky-500/60 text-sky-300 font-bold">
+                        <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span> <span>Koridor Gawangan (3.79m)</span>
+                    </span>
+                    <span id="lblDetectionStats" class="text-emerald-400 font-bold ml-auto">IoU: 0.95 • Conf: 99%</span>
                 </div>
             </section>
 
@@ -578,10 +654,10 @@
             };
 
             // State Kamera & File Geotag
-            let activePhotoDataUrl = '/static/img/sawit_drone.jpg';
-            let activePhotoFileName = 'sawit_drone.jpg';
+            let activePhotoDataUrl = '/static/img/palm_7_year.jpeg';
+            let activePhotoFileName = 'palm_7_year.jpeg';
             let activeGeotaggedBlob = null;
-            let activeServerPhotoUrl = '/static/img/sawit_drone.jpg';
+            let activeServerPhotoUrl = '/static/img/palm_7_year.jpeg';
             let liveVideoStream = null;
             let liveHudTimer = null;
             let isAiScanInProgress = false;
@@ -905,7 +981,7 @@
                 const idKebun = currentlySelectedEstate?.id_kebun || currentlySelectedEstate?.id || 10;
                 const namaKebun = currentlySelectedEstate?.nama_kebun || "PT Mandailing Agro Sustainable";
                 const blockId = document.getElementById('inpBlockId')?.value || "Blok A - Gawangan #1";
-                const mandorName = document.getElementById('inpMandorName')?.value || "Mandor Sutrisno";
+                const mandorName = document.getElementById('inpMandorName')?.value || "Foreman Sutrisno";
                 const nowWib = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false }) + " WIB";
 
                 const gapChecklist = {
