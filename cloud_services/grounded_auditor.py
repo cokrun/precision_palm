@@ -5,7 +5,7 @@ Precision Palm Cloud - Vertex AI Search Grounding & Statutory Citation Engine.
 Fungsi Utama:
 1. Mengindeks korpus dokumen regulasi resmi perkebunan dan modul agronomi:
    - PP No. 23/2021 (Penyelenggaraan Kehutanan & Batas Sempadan 50m)
-   - Permentan No. 38/2020 (Pedoman Baku GAP ISPO Prinsip 1-7 & Piringan 2.0m)
+   - Permentan No. 33 Tahun 2025 (Sertifikasi Indonesian Sustainable Palm Oil / ISPO Mandatori & GAP Prinsip 1-7)
    - SOP-AGR-04 PPKS Medan (Manajemen Perakaran & Penyakit Busuk Pangkal Batang Ganoderma)
    - Regulasi EUDR (EU) 2023/1115 (Pasal 9 & 10 Uji Tuntas Deforestasi, Cut-off 31 Des 2020)
    - Verra VCS VM0007 / IPCC 2019 Refinement (450 tCO2e/ha Biomass Stock & SOC)
@@ -36,13 +36,63 @@ logger.setLevel(logging.INFO)
 STATUTORY_GROUNDING_CORPUS: List[Dict[str, Any]] = [
     {
         "id": "DOC-GAP-ISPO-P2",
-        "doc_title": "Pedoman Teknis Praktik Pertanian yang Baik (GAP ISPO)",
-        "legal_basis": "Permentan No. 38/2020, Lampiran II, Halaman 14",
+        "doc_title": "Pedoman Teknis Praktik Pertanian yang Baik (GAP ISPO Mandatori)",
+        "legal_basis": "Peraturan Menteri Pertanian Republik Indonesia Nomor 33 Tahun 2025 tentang Sertifikasi Indonesian Sustainable Palm Oil (ISPO), Lampiran II, Bab Prinsip 2",
         "category": "Agronomi & Proteksi Feeder Roots",
         "doc_url": "/static/uploads/legal_docs/hgu_est_001.pdf",
-        "triggers": ["piringan", "2.0", "steril", "cangkul", "akar", "feeder", "zero-tillage", "gulma", "till", "tillage", "prohibited", "ginger", "hoe", "radius"],
+        "triggers": ["piringan", "2.0", "steril", "cangkul", "akar", "feeder", "zero-tillage", "gulma", "till", "tillage", "prohibited", "ginger", "hoe", "radius", "permentan 33"],
         "exact_quote": "Piringan pokok kelapa sawit wajib dijaga bersih dengan radius 2.0 meter dari pangkal batang dan bebas dari gangguan perakaran tanaman lain maupun luka mekanis alat berat/cangkul guna menjamin penyerapan hara utama.",
-        "summary": "Radius 2.0m dari pangkal pokok kelapa sawit merupakan zona konsentrasi perakaran serabut aktif penyerap hara utama (>80% pupuk diserap di zona ini). Larangan olah tanah cangkul dan tanaman sela wajib ditegakkan."
+        "summary": "Radius 2.0m dari pangkal pokok kelapa sawit merupakan zona konsentrasi perakaran serabut aktif penyerap hara utama (>80% pupuk diserap di zona ini). Larangan olah tanah cangkul dan tanaman sela wajib ditegakkan berdasarkan Permentan No. 33 Tahun 2025."
+    },
+    {
+        "id": "DOC-ISPO-2025-SURVEILLANCE",
+        "doc_title": "Siklus Validitas 5 Tahun & Jadwal Audit Penilikan ISPO",
+        "legal_basis": "Peraturan Menteri Pertanian No. 33 Tahun 2025, Pasal 14 & Pasal 18",
+        "category": "Validitas Sertifikasi & Siklus Penilikan",
+        "doc_url": "/static/uploads/legal_docs/hgu_est_001.pdf",
+        "triggers": ["validitas", "5 tahun", "penilikan", "surveillance", "tahunan", "swadaya", "bulan 18", "bulan 36", "masa berlaku"],
+        "exact_quote": "Sertifikat ISPO berlaku selama 5 (lima) tahun sejak tanggal diterbitkan. Terhadap pemegang sertifikat korporasi dilakukan audit penilikan berkala setiap 1 (satu) tahun sekali. Bagi pekebun swadaya, penilikan dilakukan pada bulan ke-18 dan bulan ke-36 masa sertifikasi.",
+        "summary": "Regulasi Permentan 33/2025 menetapkan sertifikat ISPO berlaku 5 tahun dengan jadwal audit penilikan tahunan untuk perusahaan, atau penilikan khusus pada bulan ke-18 dan ke-36 bagi pekebun swadaya."
+    },
+    {
+        "id": "DOC-ISPO-2025-SUPPLYCHAIN",
+        "doc_title": "Model Rantai Pasok Mass Balance & Segregation ISPO",
+        "legal_basis": "Peraturan Menteri Pertanian No. 33 Tahun 2025, Bab Rantai Pasok Berkelanjutan",
+        "category": "Integritas Rantai Pasok & Keterlacakan TBS",
+        "doc_url": "/static/uploads/legal_docs/hgu_est_001.pdf",
+        "triggers": ["rantai pasok", "supply chain", "mass balance", "segregation", "30%", "serapan", "tbs bersertifikat", "pabrik", "pks"],
+        "exact_quote": "PKS dan rantai pasok hilir wajib menerapkan model rantai pasok Mass Balance atau Segregation. Untuk model Mass Balance, serapan minimum TBS bersertifikat ISPO ditetapkan minimal 30% pada tahun pertama operasional sertifikasi.",
+        "summary": "Kepatuhan rantai pasok mewajibkan model Mass Balance (kuota serapan awal minimum 30% TBS bersertifikat) atau Segregation penuh untuk mencegah percampuran TBS ilegal."
+    },
+    {
+        "id": "DOC-ISPO-2025-LABOR",
+        "doc_title": "Pakta Integritas Sosial: Nol Pekerja Anak & Nol Kerja Paksa",
+        "legal_basis": "Peraturan Menteri Pertanian No. 33 Tahun 2025, Prinsip 4 (Tanggung Jawab Ketenagakerjaan)",
+        "category": "Keadilan Sosial & Perlindungan Tenaga Kerja",
+        "doc_url": "/static/uploads/legal_docs/hgu_est_001.pdf",
+        "triggers": ["pekerja anak", "child labor", "kerja paksa", "forced labor", "integritas sosial", "k3", "upah", "buruh", "labor"],
+        "exact_quote": "Pelaku usaha perkebunan dan pekebun mitra wajib menjamin prinsip Zero Child Labor (Nol Pekerja Anak di bawah umur statuter) dan Zero Forced Labor (Nol Kerja Paksa), menyediakan fasilitas K3 prima, serta perlindungan hak pekerja perempuan.",
+        "summary": "Permentan 33/2025 menegakkan pakta integritas sosial tanpa toleransi: Nol Pekerja Anak (Zero Child Labor) dan Nol Kerja Paksa di seluruh areal kebun kelapa sawit."
+    },
+    {
+        "id": "DOC-ISPO-2025-PRICING",
+        "doc_title": "Keadilan Penetapan Harga TBS Pekebun Mitra (Transparansi Indeks K)",
+        "legal_basis": "Peraturan Menteri Pertanian No. 33 Tahun 2025 & Regulasi Penetapan Harga TBS, Pasal 22",
+        "category": "Kemitraan Usaha & Keadilan Ekonomi Petani",
+        "doc_url": "/static/uploads/legal_docs/hgu_est_001.pdf",
+        "triggers": ["harga tbs", "indeks k", "transparansi", "petani mitra", "pokja", "pembelian tbs", "keadilan"],
+        "exact_quote": "PKS penerima TBS wajib menerapkan rumus penetapan harga resmi pemerintah berbasis transparansi Indeks K yang ditetapkan Tim Pokja Provinsi untuk mencegah diskriminasi harga TBS petani mitra.",
+        "summary": "Perlindungan harga TBS petani swadaya dan mitra plasma dijamin melalui transparansi formula Indeks K yang diaudit secara berkala."
+    },
+    {
+        "id": "DOC-ISPO-2025-ESTDB",
+        "doc_title": "Validasi Alas Hak Pekebun Swadaya e-STDB & Pendanaan BPDPKS",
+        "legal_basis": "Peraturan Menteri Pertanian No. 33 Tahun 2025, Bab Fasilitasi Sertifikasi Pekebun",
+        "category": "Legalisasi Lahan & Dukungan Keuangan Swadaya",
+        "doc_url": "/static/uploads/legal_docs/hgu_est_001.pdf",
+        "triggers": ["e-stdb", "stdb", "pekebun swadaya", "bpdpks", "pendanaan", "alas hak", "bantuan dana", "fasilitasi"],
+        "exact_quote": "Pekebun swadaya wajib memiliki Surat Tanda Daftar Budidaya elektronik (e-STDB) yang terintegrasi secara digital. Pemenuhan standar ISPO pekebun swadaya didukung fasilitas pendanaan mandatori Badan Pengelola Dana Perkebunan Kelapa Sawit (BPDPKS).",
+        "summary": "Validasi alas hak pekebun swadaya berbasis e-STDB resmi yang didukung fasilitas pendanaan mandatori dari BPDPKS untuk sertifikasi dan pembinaan."
     },
     {
         "id": "DOC-PPKS-GANODERMA",
