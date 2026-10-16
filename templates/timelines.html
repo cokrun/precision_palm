@@ -1528,8 +1528,10 @@
                 if (scanJson && scanJson.analysis && Array.isArray(scanJson.analysis.detected_objects)) {
                     detectedBoxes = scanJson.analysis.detected_objects;
                 }
-                if (scanJson && scanJson.diagnostics) {
-                    renderTimelinesPlantDiagnostics(scanJson.diagnostics, scanJson.perspective);
+                const plantDiag = scanJson.plant_diagnostics || scanJson.diagnostics || (scanJson.analysis && scanJson.analysis.plant_diagnostics);
+                const perspecObj = scanJson.perspective_4d || scanJson.perspective || (scanJson.analysis && scanJson.analysis.perspective_4d);
+                if (plantDiag) {
+                    renderTimelinesPlantDiagnostics(plantDiag, perspecObj);
                 }
             } catch (aiErr) {
                 console.warn("[AI Vision API Notice]", aiErr);
