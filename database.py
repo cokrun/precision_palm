@@ -1732,6 +1732,28 @@ def save_agent_experience(data: dict) -> int:
     new_id = cursor.lastrowid
     conn.commit()
     conn.close()
+
+    # Stream agent experience to BigQuery asynchronously for global episodic memory
+    try:
+        from cloud_services.bigquery_logger import send_block_evidence_to_bigquery_async
+        send_block_evidence_to_bigquery_async({
+            "block_id": block_id,
+            "session_id": session_id,
+            "perspective_mode": perspective_mode,
+            "altitude_agl_m": alt_val,
+            "camera_pitch_deg": pitch_val,
+            "timestamp_iso": ts_iso,
+            "declared_crop": declared_crop,
+            "observed_taxon": observed_taxon,
+            "discrepancy_score": discrepancy_score,
+            "detected_entities_json": entities_json,
+            "diagnostic_matrix_json": matrix_json,
+            "learned_context_summary": learned_summary,
+            "sha256_hash": sha256_hash
+        })
+    except Exception as e_bq:
+        print(f"[Agent Experience BQ Stream Notice]: {e_bq}")
+
     return new_id
 
 

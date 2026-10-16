@@ -108,10 +108,10 @@ const DEFAULT_CALIBRATED_AI_REVIEWS = {
     },
     'field_wetland_buffer.jpg': {
         boxes: [
-            { label: 'palm_canopy', label_name: 'Riparian Palm Crown #1', box_2d: [40, 50, 420, 460], confidence: 0.98, status: 'Optimal' },
-            { label: 'palm_canopy', label_name: 'Riparian Palm Crown #2', box_2d: [70, 530, 410, 910], confidence: 0.97, status: 'Optimal' },
-            { label: 'riparian_buffer', label_name: 'Natural Riparian Buffer (HCV)', box_2d: [180, 110, 830, 890], confidence: 0.99 },
-            { label: 'root_buffer', label_name: 'Sterile Buffer 2.0m', box_2d: [660, 200, 920, 820], confidence: 0.97 }
+            { id: "obj_01", label: "water_riparian", label_name: "Water Body / Wetland Canal", cluster: "water_riparian", box_2d: [320, 100, 780, 890], confidence: 0.98, status: 'Protected' },
+            { id: "obj_02", label: "weed_cover", label_name: "Natural Shrub / Non-Crop Cover", cluster: "weed_cover", box_2d: [140, 20, 460, 360], confidence: 0.96, status: 'Natural' },
+            { id: "obj_03", label: "weed_cover", label_name: "Riparian Buffer Foliage", cluster: "weed_cover", box_2d: [150, 680, 520, 980], confidence: 0.95, status: 'Protected' },
+            { id: "obj_04", label: "weed_cover", label_name: "Vegetative Riparian Zone (50m)", cluster: "weed_cover", box_2d: [760, 40, 970, 960], confidence: 0.97, status: 'Protected' }
         ],
         reviewHtml: `
             <p class="font-bold text-white text-xs flex items-center gap-1.5">
@@ -1738,10 +1738,10 @@ function getCalibratedPhotoAnalysis(photoItem) {
     if (nameLower.includes('wetland') || nameLower.includes('buffer') || nameLower.includes('riparian') || nameLower.includes('sungai') || nameLower.includes('air')) {
         tagCategory = isEn ? "Riparian Buffer (HCV)" : "Foto Sempadan Riparian (HCV)";
         boxes = [
-            { label: 'palm_canopy', label_name: 'Riparian Palm Crown #1', box_2d: [40, 50, 420, 460], confidence: 0.98, status: 'Optimal' },
-            { label: 'palm_canopy', label_name: 'Riparian Palm Crown #2', box_2d: [70, 530, 410, 910], confidence: 0.97, status: 'Optimal' },
-            { label: 'riparian_buffer', label_name: 'Natural Riparian Buffer (HCV)', box_2d: [180, 110, 830, 890], confidence: 0.99 },
-            { label: 'root_buffer', label_name: 'Sterile Buffer 2.0m', box_2d: [660, 200, 920, 820], confidence: 0.97 }
+            { id: "obj_01", label: "water_riparian", label_name: "Water Body / Wetland Canal", cluster: "water_riparian", box_2d: [320, 100, 780, 890], confidence: 0.98, status: 'Protected' },
+            { id: "obj_02", label: "weed_cover", label_name: "Natural Shrub / Non-Crop Cover", cluster: "weed_cover", box_2d: [140, 20, 460, 360], confidence: 0.96, status: 'Natural' },
+            { id: "obj_03", label: "weed_cover", label_name: "Riparian Buffer Foliage", cluster: "weed_cover", box_2d: [150, 680, 520, 980], confidence: 0.95, status: 'Protected' },
+            { id: "obj_04", label: "weed_cover", label_name: "Vegetative Riparian Zone (50m)", cluster: "weed_cover", box_2d: [760, 40, 970, 960], confidence: 0.97, status: 'Protected' }
         ];
         metrics = {
             tajuk_total: 6,
@@ -2312,28 +2312,34 @@ async function executePhotoScanningAI(url, filename, forceRescan = false) {
             { label: 'root_buffer', label_name: 'Sterile Buffer 2.0m', box_2d: [620, 240, 890, 560], confidence: 0.98 },
             { label: 'weed_mulch', label_name: 'Living Weed Mulch', box_2d: [420, 40, 680, 320], confidence: 0.91 }
         ];
-    } else if (nameLower.includes('wetland') || nameLower.includes('buffer')) {
+    } else if (nameLower.includes('wetland') || nameLower.includes('buffer') || nameLower.includes('water') || nameLower.includes('rawa') || nameLower.includes('sungai')) {
         boxes = [
-            { id: "rip_01", label: 'palm_canopy', label_name: 'Riparian Palm Crown', cluster: 'palm_canopy', box_2d: [40, 40, 420, 460], confidence: 0.98 },
-            { id: "rip_02", label: 'canal', label_name: 'Natural Riparian Buffer Canal', cluster: 'infrastructure', box_2d: [160, 140, 820, 880], confidence: 0.97 },
-            { id: "rip_03", label: 'root_buffer', label_name: 'Sterile Buffer 2.0m', cluster: 'root_circle', box_2d: [680, 160, 940, 840], confidence: 0.96 }
+            { id: "obj_01", label: "water_riparian", label_name: "Water Body / Wetland Canal", cluster: "water_riparian", box_2d: [320, 100, 780, 890], confidence: 0.98, status: 'Protected' },
+            { id: "obj_02", label: "weed_cover", label_name: "Natural Shrub / Non-Crop Cover", cluster: "weed_cover", box_2d: [140, 20, 460, 360], confidence: 0.96, status: 'Natural' },
+            { id: "obj_03", label: "weed_cover", label_name: "Riparian Buffer Foliage", cluster: "weed_cover", box_2d: [150, 680, 520, 980], confidence: 0.95, status: 'Protected' },
+            { id: "obj_04", label: "weed_cover", label_name: "Vegetative Riparian Zone (50m)", cluster: "weed_cover", box_2d: [760, 40, 970, 960], confidence: 0.97, status: 'Protected' }
         ];
     } else {
         boxes = AERIAL_DRONE_PHYSICAL_ENTITIES;
     }
 
-    // Call live backend AI vision scanner
+    const isAerial = nameLower.includes('drone') || nameLower.includes('uav') || nameLower.includes('ortho') || nameLower.includes('aerial') || nameLower.includes('sawit_drone') || nameLower.includes('orthomosaic');
+    const altitude = isAerial ? 45.0 : 1.5;
+    const pitch = isAerial ? -90.0 : -12.4;
+
+    // Call live backend AI vision scanner with Gemini 3.8 Flash
     try {
         const resp = await fetch('/api/ai/scan-image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 image_url: url,
+                image_name: filename,
                 feature_name: "Spatial Orthophoto Reticle HUD",
                 block_id: activeDossier?.kode_kebun ? (activeDossier.kode_kebun + "-BLOK-A") : 'EST-MDN-001-BLOK-A',
-                declared_crop: 'Jagung',
-                altitude_agl_m: 45.0,
-                camera_pitch_deg: -90.0,
+                declared_crop: 'Jahe Merah (Zingiber officinale)',
+                altitude_agl_m: altitude,
+                camera_pitch_deg: pitch,
                 meta_info: `Stage 2A Verification • Estate ${activeDossier?.kode_kebun || 'EST-MDN-001'}`
             })
         });
@@ -2513,7 +2519,7 @@ function initDrawingReticles() {
 }
 
 let currentSpatialBoxes = [];
-let activeSpatialClusterFilters = new Set(['palm_canopy', 'infrastructure', 'root_circle', 'empty_gap', 'floor_mulch']);
+let activeSpatialClusterFilters = new Set(['palm_canopy', 'infrastructure', 'root_circle', 'empty_gap', 'floor_mulch', 'water_riparian', 'weed_cover', 'fruit_organs', 'palm_anatomy']);
 
 function toggleSpatialLayer(cluster) {
     if (activeSpatialClusterFilters.has(cluster)) {
@@ -2561,9 +2567,12 @@ function renderDetectedBoundingBoxes(boxes) {
 
     overlay.innerHTML = boxes.map(item => {
         const cluster = item.cluster || (
-            (item.label === 'canal' || item.label === 'haul_road' || item.label.includes('road')) ? 'infrastructure' :
-            (item.label === 'palm_canopy' || item.label.includes('crown')) ? 'palm_canopy' :
+            (item.label === 'canal' || item.label === 'water_riparian' || item.label === 'riparian_buffer' || (item.label && item.label.includes('water'))) ? 'water_riparian' :
+            (item.label === 'haul_road' || (item.label && item.label.includes('road'))) ? 'infrastructure' :
+            (item.label === 'palm_canopy' || (item.label && item.label.includes('crown')) || item.label === 'palm_anatomy') ? 'palm_canopy' :
             (item.label === 'root_buffer') ? 'root_circle' :
+            (item.label === 'weed_cover' || (item.label && item.label.includes('weed')) || (item.label && item.label.includes('shrub'))) ? 'weed_cover' :
+            (item.label === 'fruit_organs' || (item.label && item.label.includes('fruit')) || (item.label && item.label.includes('bunch'))) ? 'fruit_organs' :
             (item.label === 'missing_stand') ? 'empty_gap' : 'floor_mulch'
         );
 
@@ -2581,7 +2590,7 @@ function renderDetectedBoundingBoxes(boxes) {
         let badgeCls = "bg-emerald-950 text-emerald-300 border-emerald-400";
         let icon = "🌴";
 
-        if (item.label === 'canal' || item.label === 'riparian_buffer' || (item.label_name && item.label_name.toLowerCase().includes('canal'))) {
+        if (cluster === 'water_riparian' || item.label === 'canal' || item.label === 'riparian_buffer' || (item.label_name && (item.label_name.toLowerCase().includes('canal') || item.label_name.toLowerCase().includes('water')))) {
             // Riparian water body protection polygon
             borderCls = "border-cyan-400 bg-cyan-400/25";
             badgeCls = "bg-cyan-950 text-cyan-200 border-cyan-400";
@@ -2590,10 +2599,18 @@ function renderDetectedBoundingBoxes(boxes) {
                 <div class="absolute border-2 ${borderCls} rounded-lg shadow-sm pointer-events-auto transition-all"
                      style="top: ${top}%; left: ${left}%; width: ${width}%; height: ${height}%;">
                     <span class="absolute -top-3.5 left-1 px-1.5 py-0.2 rounded border text-[7.5px] font-mono font-bold shadow-xs whitespace-nowrap ${badgeCls}">
-                        ${icon} ${item.label_name || 'Drainage Canal'} &bull; [STATUS: DILARANG TANAM RIMPANG — SEMPADAN AIR DILINDUNGI]
+                        ${icon} ${item.label_name || 'Water Body / Wetland Canal'} &bull; [STATUS: DILARANG TANAM RIMPANG — SEMPADAN AIR DILINDUNGI]
                     </span>
                 </div>
             `;
+        } else if (cluster === 'weed_cover') {
+            borderCls = "border-rose-400 bg-rose-500/15";
+            badgeCls = "bg-rose-950 text-rose-300 border-rose-400";
+            icon = "🌿";
+        } else if (cluster === 'fruit_organs') {
+            borderCls = "border-amber-400 bg-amber-500/20";
+            badgeCls = "bg-amber-950 text-amber-300 border-amber-400";
+            icon = "🌾";
         } else if (cluster === 'infrastructure') {
             borderCls = "border-sky-400 bg-sky-500/15";
             badgeCls = "bg-sky-950 text-sky-300 border-sky-400";
