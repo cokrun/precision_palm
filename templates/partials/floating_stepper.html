@@ -171,17 +171,15 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
   }
 
-  /* Label Active (Warna Hijau default tampak) */
+  /* Label Active (Warna Hijau saat aktif) */
   .pp-step-item.is-active .pp-step-label {
     background-color: #4d7c2a !important; /* Hijau aktif */
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateX(0) scale(1);
     box-shadow: 0 4px 14px rgba(77, 124, 42, 0.4);
     border-color: rgba(255, 255, 255, 0.35);
   }
 
-  /* Saat Hover Container Stepper: Semua Label Terbuka (Full Expanded) */
+  /* Saat Hover Container Stepper atau Step Individual: Label Terbuka */
+  .pp-step-item:hover .pp-step-label,
   #ppFloatingStepper:hover .pp-step-label,
   #ppFloatingStepper.force-expanded .pp-step-label {
     opacity: 1;
@@ -430,11 +428,10 @@
       }
     }
 
-    if (isHomePage) {
+    const isNarrowViewport = (window.innerWidth < 1440);
+    if (isHomePage || savedManualHide === 'true' || isNarrowViewport) {
       setStepperMinimized(true);
       updateTooltipText();
-    } else if (savedManualHide === 'true') {
-      setStepperMinimized(true);
     } else if (isInWorkflow) {
       setStepperMinimized(false);
     } else {
