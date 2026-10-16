@@ -360,8 +360,6 @@ gcloud run deploy precision-palm `
 
 * **DJKI Indonesian Patent Application:**  
   *Nomor Permohonan / Judul Resmi:* **"Metode dan Sistem Komputasi In-Silico untuk Optimalisasi Koridor Agroforestri dan Verifikasi Kepatuhan Lingkungan Perkebunan Kelapa Sawit Berbasis Fusi Penginderaan Jauh Satelit dan Visi Multimodal"** (DJKI Kemenkumham RI).
-* **Academic Research Papers (Embedded in Engine):**
-  * International Manuscript (English / IEEE Format): `http://localhost:8080/manuscript`
-  * Naskah Riset Nasional (Bahasa Indonesia / SINTA-1 Dikti Format): `http://localhost:8080/naskah-ilmiah-id`
 
-**Copyright © 2026 Precision Palm Team / PT Mandailing Agro Sustainable. All Rights Reserved.**
+
+**Copyright © 2026 Precision Palm Team /Muhammad Rizki |+62 813 9719 1173 | cokrun@gmail.com . All Rights Reserved.**
