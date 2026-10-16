@@ -316,11 +316,26 @@ async function sendActiveSurveyDirect() {
     });
 }
 
+async function saveInspectionReportToIndexedDb(reportData) {
+    const db = await openIndexedDb();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE_INSPECTIONS, 'readwrite');
+        const store = tx.objectStore(IDB_STORE_INSPECTIONS);
+        const req = store.add({
+            ...reportData,
+            saved_at: new Date().toISOString()
+        });
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
 window.MobileDB = {
     init: openIndexedDb,
     loadEstatesFromBackend: loadEstatesFromBackend,
     handleEstateSelection: handleEstateSelection,
     saveSurveyToIndexedDb: saveSurveyToIndexedDb,
+    saveInspectionReport: saveInspectionReportToIndexedDb,
     syncAllOfflineSurveysToSqlite: syncAllOfflineSurveysToSqlite,
     updateQueueCounter: updateQueueCounter,
     getSelectedEstate: () => currentlySelectedEstate

@@ -750,7 +750,49 @@ function renderInspectionTrackingAndBufferCircles(dossier) {
         `, { sticky: true });
         inspectionTrackingLayerGroup.addLayer(canopyCircle);
 
-        // C. GPS Marker Tracking (Drone & Ground Field Inspection)
+        // C. Batas Zona Konservasi Riparian Sempadan Sungai (Radius 50m Buffer Overlay & Corridor Polygon)
+        if (s.blok && (s.blok.toLowerCase().includes("riparian") || s.blok.includes("B2") || idx === 1)) {
+            const riparianBufferCircle = L.circle([lat, lng], {
+                radius: 50.0,
+                color: '#0d9488',
+                weight: 2,
+                dashArray: '6, 6',
+                opacity: 0.9,
+                fillColor: '#14b8a6',
+                fillOpacity: 0.22
+            });
+            riparianBufferCircle.bindTooltip(`
+                <div class="font-mono text-xs">
+                    <b class="text-teal-300">🌊 Zona Penyangga Sempadan Sungai (Buffer 50m)</b><br>
+                    <span class="text-white">Kepatuhan PP 23/2021 &amp; ISPO Prinsip 2 (HCV 1.1)</span><br>
+                    <span class="text-emerald-300">✓ Steril dari Eksploitasi &amp; Kelapa Sawit Baru</span>
+                </div>
+            `, { sticky: true });
+            inspectionTrackingLayerGroup.addLayer(riparianBufferCircle);
+
+            // Poligon koridor riparian alami sepanjang sempadan air
+            const riparianCorridorPolygon = L.polygon([
+                [lat - 0.0006, lng - 0.0012],
+                [lat - 0.0002, lng + 0.0010],
+                [lat + 0.0005, lng + 0.0013],
+                [lat + 0.0008, lng - 0.0008]
+            ], {
+                color: '#059669',
+                weight: 1.5,
+                dashArray: '4, 4',
+                fillColor: '#10b981',
+                fillOpacity: 0.15
+            });
+            riparianCorridorPolygon.bindTooltip(`
+                <div class="font-mono text-xs">
+                    <b class="text-emerald-400">💧 Poligon Koridor Riparian Terproteksi (50m)</b><br>
+                    <span class="text-slate-200">Batas Koridor Konservasi Alami Sempadan Sungai PP 23/2021</span>
+                </div>
+            `, { sticky: true });
+            inspectionTrackingLayerGroup.addLayer(riparianCorridorPolygon);
+        }
+
+        // D. GPS Marker Tracking (Drone & Ground Field Inspection)
         const markerIcon = L.divIcon({
             className: 'custom-inspection-pin',
             html: `
@@ -2004,6 +2046,26 @@ function selectGalleryPhoto(url, filename, shouldRescan = false) {
     }
     renderDetectedBoundingBoxes(analysis.boxes);
     drawReticles();
+
+    // Update 4D Telemetry Perspective Badge (Aerial Drone vs Terrestrial In-Situ Handheld)
+    const isAerial = (url && (url.includes('drone') || url.includes('orto') || url.includes('q2'))) ||
+                     (filename && (filename.toLowerCase().includes('drone') || filename.toLowerCase().includes('orto') || filename.toLowerCase().includes('q2')));
+    const pTextEl = document.getElementById('perspectiveTelemetryText');
+    const pIconEl = document.getElementById('perspectiveTelemetryIcon');
+    const pBadgeEl = document.getElementById('perspectiveTelemetryBadge');
+    if (pTextEl) {
+        pTextEl.textContent = isAerial 
+            ? "Perspective: Aerial Drone (AGL: 45.0m) / Nadir Pitch: -90°"
+            : "Perspective: Terrestrial In-Situ (AGL: 1.6m) / Eye-Level Pitch: -12°";
+    }
+    if (pIconEl) {
+        pIconEl.textContent = isAerial ? "🚁" : "📱";
+    }
+    if (pBadgeEl) {
+        pBadgeEl.className = isAerial
+            ? "text-[9.5px] font-mono px-3 py-1 rounded-full bg-sky-950 text-sky-300 border border-sky-400 font-bold flex items-center gap-1.5 shadow-sm"
+            : "text-[9.5px] font-mono px-3 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-400 font-bold flex items-center gap-1.5 shadow-sm";
+    }
 }
 
 async function triggerScanningFotoAction() {

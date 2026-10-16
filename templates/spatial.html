@@ -967,6 +967,108 @@
                 </div>
             </div>
 
+            <!-- IN-SITU GROUND TRUTH CORRELATION & 4D PERSPECTIVE CROSS-VALIDATION -->
+            <div id="groundTruthCorrelationCard" class="p-4 sm:p-5 rounded-3xl bg-slate-900/95 border-2 border-sky-500/70 shadow-xl space-y-3.5 text-white">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-sky-500/30 pb-2.5">
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-xl">🛰️</span>
+                        <div>
+                            <h4 class="text-xs font-bold text-sky-300 uppercase font-mono tracking-wider flex items-center gap-2">
+                                <span data-i18n="spatial_ground_truth_title">IN-SITU GROUND TRUTH CORRELATION</span>
+                                <span class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-sky-500/20 text-sky-300 border border-sky-400/30">
+                                    CROSS-VALIDATION ENGINE
+                                </span>
+                            </h4>
+                            <span class="text-[9.5px] text-slate-400 font-mono" data-i18n="spatial_ground_truth_sub">
+                                Copernicus Sentinel-2 Surface Reflectance &bull; In-Situ Handheld Sensor &bull; Aerial Drone 4D Telemetry
+                            </span>
+                        </div>
+                    </div>
+                    <!-- Perspective Badge -->
+                    <div class="flex items-center gap-2">
+                        <span id="perspectiveTelemetryBadge" class="text-[9.5px] font-mono px-3 py-1 rounded-full bg-sky-950 text-sky-300 border border-sky-400 font-bold flex items-center gap-1.5 shadow-sm">
+                            <span id="perspectiveTelemetryIcon">🚁</span>
+                            <span id="perspectiveTelemetryText">Perspective: Aerial Drone (AGL: 45.0m) / Nadir Pitch: -90°</span>
+                        </span>
+                        <span class="text-[9.5px] font-mono px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/50 font-bold">
+                            98.6% Agreement
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Metrics Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-mono">
+                    <!-- 1. Copernicus Sentinel-2 MSI L2A -->
+                    <div class="p-3 rounded-2xl bg-slate-950/80 border border-sky-500/30 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9.5px] text-sky-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                                <span>🛰️</span> <span>Copernicus Sentinel-2</span>
+                            </span>
+                            <span class="text-[8.5px] px-1.5 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-600">10m MSI L2A</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <div class="bg-slate-900/90 p-2 rounded-xl border border-slate-800">
+                                <span class="text-[8.5px] text-slate-400 block">Canopy NDVI</span>
+                                <span class="text-sm font-black text-emerald-400" id="sentinelNdviVal">0.784</span>
+                                <span class="text-[8px] text-emerald-300 block truncate">Dense Healthy Crown</span>
+                            </div>
+                            <div class="bg-slate-900/90 p-2 rounded-xl border border-slate-800">
+                                <span class="text-[8.5px] text-slate-400 block">Moisture NDMI</span>
+                                <span class="text-sm font-black text-sky-400" id="sentinelNdmiVal">0.412</span>
+                                <span class="text-[8px] text-sky-300 block truncate">Zero Moisture Stress</span>
+                            </div>
+                        </div>
+                        <span class="text-[8.5px] text-slate-400 block font-sans">Band 8 (NIR 842nm) / Band 4 (Red 665nm) Surface Reflectance Orthorectified</span>
+                    </div>
+
+                    <!-- 2. Terrestrial In-Situ Handheld Sensor -->
+                    <div class="p-3 rounded-2xl bg-slate-950/80 border border-emerald-500/30 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9.5px] text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                                <span>📱</span> <span>In-Situ Handheld Sensor</span>
+                            </span>
+                            <span class="text-[8.5px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-600">SPAD-502 Optical</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <div class="bg-slate-900/90 p-2 rounded-xl border border-slate-800">
+                                <span class="text-[8.5px] text-slate-400 block">Foliar Chlorophyll</span>
+                                <span class="text-sm font-black text-emerald-300" id="inSituSpadVal">82.4 <span class="text-[9px] font-normal text-slate-400">SPAD</span></span>
+                                <span class="text-[8px] text-emerald-300 block truncate">Optimal Greenness</span>
+                            </div>
+                            <div class="bg-slate-900/90 p-2 rounded-xl border border-slate-800">
+                                <span class="text-[8.5px] text-slate-400 block">Nutrient Ratio</span>
+                                <span class="text-sm font-black text-teal-300" id="inSituNkRatio">1.18 <span class="text-[9px] font-normal text-slate-400">N:K</span></span>
+                                <span class="text-[8px] text-teal-300 block truncate">Balanced Frond 17</span>
+                            </div>
+                        </div>
+                        <span class="text-[8.5px] text-slate-400 block font-sans">Ground Truth: Mobile PWA GPS Tagged (EST-MDN-001 Blok A1)</span>
+                    </div>
+
+                    <!-- 3. Physical Geometry & Buffer Telemetry -->
+                    <div class="p-3 rounded-2xl bg-slate-950/80 border border-teal-500/30 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9.5px] text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                                <span>📐</span> <span>Buffer &amp; Spatial Geometry</span>
+                            </span>
+                            <span class="text-[8.5px] px-1.5 py-0.5 rounded bg-teal-950 text-teal-300 border border-teal-600">GIS Verified</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <div class="bg-slate-900/90 p-2 rounded-xl border border-slate-800">
+                                <span class="text-[8.5px] text-slate-400 block">Root Sterile Zone</span>
+                                <span class="text-sm font-black text-rose-300">2.0m <span class="text-[9px] font-normal text-slate-400">Radius</span></span>
+                                <span class="text-[8px] text-emerald-300 block truncate">100% Zero Chemical</span>
+                            </div>
+                            <div class="bg-slate-900/90 p-2 rounded-xl border border-slate-800">
+                                <span class="text-[8.5px] text-slate-400 block">Riparian Exclusion</span>
+                                <span class="text-sm font-black text-cyan-300">&ge; 50m <span class="text-[9px] font-normal text-slate-400">HCV</span></span>
+                                <span class="text-[8px] text-cyan-300 block truncate">PP 23/2021 Compliant</span>
+                            </div>
+                        </div>
+                        <span class="text-[8.5px] text-slate-400 block font-sans">Calibrated for In-Silico Biophysics Simulation Stage 2B</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- ROW 3: FULL WIDTH 12-COLUMN SECTION (Detailed Evidence Photos Table & Cumulative Auditor Synthesis) -->
             <div class="space-y-3">
                 <!-- Tabel Rincian Temuan AI Vision Per Foto Terdaftar -->

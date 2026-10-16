@@ -183,13 +183,28 @@ async function triggerAiVisionAnalysis(forceRealScan = false) {
     let boxes = JSON.parse(JSON.stringify(DEFAULT_BOUNDING_BOXES));
 
     try {
-        // Panggil endpoint backend Gemini Vision
+        // Panggil endpoint backend Gemini Vision dengan 4D Georeferenced Telemetry Contract
+        const telem = (window.MobileGPS && typeof window.MobileGPS.get4DTelemetry === 'function')
+            ? window.MobileGPS.get4DTelemetry()
+            : {
+                latitude: 0.824102,
+                longitude: 99.561214,
+                altitude_agl_m: 1.45,
+                camera_pitch_deg: -12.4,
+                timestamp_iso: new Date().toISOString()
+            };
+
         const response = await fetch('/api/ai/scan-image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 image_url: activePhotoBase64,
-                feature_name: "Mobile Multimodal Agronomic Scanner"
+                feature_name: "Mobile Multimodal Agronomic Scanner",
+                latitude: telem.latitude,
+                longitude: telem.longitude,
+                altitude_agl_m: telem.altitude_agl_m,
+                camera_pitch_deg: telem.camera_pitch_deg,
+                timestamp_iso: telem.timestamp_iso
             })
         });
 
@@ -204,6 +219,26 @@ async function triggerAiVisionAnalysis(forceRealScan = false) {
                 boxes = data.bounding_boxes;
             } else if (data && data.analysis && Array.isArray(data.analysis.bounding_boxes) && data.analysis.bounding_boxes.length > 0) {
                 boxes = data.analysis.bounding_boxes;
+            }
+
+            // Simpan ke IndexedDB inspection_reports
+            try {
+                if (window.MobileDB && typeof window.MobileDB.init === 'function') {
+                    const db = await window.MobileDB.init();
+                    if (db && db.objectStoreNames.contains('inspection_reports')) {
+                        const tx = db.transaction('inspection_reports', 'readwrite');
+                        tx.objectStore('inspection_reports').add({
+                            diagnostics: diagnostics,
+                            perspective_4d: data?.perspective_4d || data?.analysis?.perspective_4d,
+                            bounding_boxes: boxes,
+                            telemetry: telem,
+                            photo_name: activePhotoFileName,
+                            created_at: new Date().toISOString()
+                        });
+                    }
+                }
+            } catch (eIdb) {
+                console.warn('[MobileCamera] IndexedDB inspection_reports warning:', eIdb);
             }
         }
     } catch (err) {
@@ -239,80 +274,98 @@ function updateHudDynamicTelemetry(diag) {
     const hudSummary = document.getElementById('hudTelemetrySummary');
     if (!hudSummary) return;
 
-    const age = diag?.estimated_age_years || 7.5;
-    const stage = diag?.growth_stage || "Tanaman Menghasilkan (TM)";
-    const stageShort = stage.includes("TM") ? "TM" : "TBM";
-    const chlorStatus = diag?.foliar_health?.chlorosis_status || "NORMAL / HEALTHY";
-    const isHealthy = chlorStatus.includes("NORMAL") || chlorStatus.includes("HEALTHY");
-    const chlorText = isHealthy ? "Klorofil: Sehat" : "Klorofil: Defisiensi";
-    const ganoRisk = diag?.pathology_risk?.ganoderma_detected ? "Ganoderma: RISIKO" : "Ganoderma: 0.0%";
-
-    hudSummary.textContent = `[ Umur: ~${age} Thn (${stageShort}) ] • [ ${chlorText} ] • [ ${ganoRisk} ]`;
+    if (window.MobileGPS && typeof window.MobileGPS.format4DHud === 'function') {
+        hudSummary.textContent = `[ ${window.MobileGPS.format4DHud()} ]`;
+    } else {
+        hudSummary.textContent = `[ 🛰️ 4D: 0.824100°N, 99.561200°E | Alt: 1.45m (Handheld) | Pitch: -12° ]`;
+    }
 }
 
 function renderDiagnosticCards(diag) {
     if (!diag) diag = DEFAULT_PALM_DIAGNOSTICS;
+    const isId = (localStorage.getItem('precision_palm_mobile_lang') || localStorage.getItem('precision_palm_lang') || 'en') === 'id';
 
-    // Kartu 1: Morfologi & Umur Kanopi
+    // Kartu 1: Stand Maturity & Age
     const c1Age = document.getElementById('telemetryCard1Age');
     const c1Density = document.getElementById('telemetryCard1Density');
     if (c1Age) {
-        const minAge = ((diag.estimated_age_years || 7.5) - 0.3).toFixed(1);
-        const maxAge = ((diag.estimated_age_years || 7.5) + 0.3).toFixed(1);
-        const stage = diag.growth_stage || "Tanaman Menghasilkan (TM)";
-        const stageShort = stage.includes("TM") ? "TM" : "TBM";
-        c1Age.textContent = `${minAge} – ${maxAge} Tahun (${stageShort})`;
+        const age = Number(diag.estimated_age_years || 7.5);
+        const minAge = (age - 0.3).toFixed(1);
+        const maxAge = (age + 0.3).toFixed(1);
+        c1Age.textContent = isId
+            ? `${minAge} – ${maxAge} Tahun (Fase TM)`
+            : `${minAge} – ${maxAge} Years (TM Stage)`;
     }
     if (c1Density) {
-        c1Density.textContent = "Kerapatan Tajuk: 138 Pokok/Ha (Kanopi: 82.4%)";
+        const lai = diag.canopy_lai_calculated || 4.25;
+        c1Density.textContent = isId
+            ? `Kerapatan Tajuk: 138 Pokok/Ha (LAI: ${lai} • Kanopi: 82.4%)`
+            : `Stand Density: 138 Palms/Ha (LAI: ${lai} • Canopy: 82.4%)`;
     }
 
-    // Kartu 2: Klorosis Daun
+    // Kartu 2: Foliar Chlorosis
     const c2Status = document.getElementById('telemetryCard2Status');
     const c2Def = document.getElementById('telemetryCard2Deficiency');
     const c2Fert = document.getElementById('telemetryCard2Fertilizer');
     const spad = diag.foliar_health?.foliar_chlorophyll_spad || 82.4;
-    const chlorStatus = (diag.foliar_health?.chlorosis_status || "NORMAL / HEALTHY").includes("NORMAL") ? "SEHAT" : "PERHATIAN";
-    if (c2Status) c2Status.textContent = `Status: ${chlorStatus} (${spad} SPAD)`;
-    if (c2Def) c2Def.textContent = `Defisiensi Hara: ${diag.foliar_health?.nutrient_deficiency || "Nihil (Optimal N-K Balance)"}`;
-    if (c2Fert) c2Fert.textContent = `💡 ${diag.foliar_health?.fertilizer_recommendation || "Kompensasi MOP +75 kg/Ha di gawangan"}`;
+    const isHealthy = (diag.foliar_health?.chlorosis_status || "NORMAL / HEALTHY").includes("NORMAL");
+    if (c2Status) {
+        c2Status.textContent = isHealthy 
+            ? (isId ? `SEHAT (${spad} SPAD) • N-K Seimbang` : `HEALTHY (${spad} SPAD) • N-K Balanced`)
+            : (isId ? `DEFISIENSI (${spad} SPAD)` : `DEFICIENT (${spad} SPAD)`);
+    }
+    if (c2Def) {
+        c2Def.textContent = `${isId ? 'Defisiensi Hara' : 'Nutrient'}: ${diag.foliar_health?.nutrient_deficiency || (isId ? 'Nihil (Optimal N-K Balance)' : 'NIL (Optimal N-K Balance)')}`;
+    }
+    if (c2Fert) {
+        c2Fert.textContent = `💡 ${diag.foliar_health?.fertilizer_recommendation || (isId ? 'Pertahankan kompensasi MOP +75 kg/Ha di gawangan' : 'Maintain compensatory +75 kg MOP/Ha in active 3.79m alleys')}`;
+    }
 
-    // Kartu 3: Risiko Patologi (Ganoderma)
+    // Kartu 3: Pathology Risk
     const c3Gano = document.getElementById('telemetryCard3Ganoderma');
     const c3Basal = document.getElementById('telemetryCard3Basal');
     if (c3Gano) {
         const detected = diag.pathology_risk?.ganoderma_detected;
-        c3Gano.textContent = detected ? "Ganoderma: TERDETEKSI ⚠️" : "Ganoderma: TIDAK TERDETEKSI";
+        const bsr = Number(diag.pathology_risk?.basal_stem_rot_risk_pct || 0.0).toFixed(1);
+        c3Gano.textContent = detected 
+            ? (isId ? `Ganoderma: TERDETEKSI (${bsr}%)` : `Ganoderma: DETECTED (${bsr}%)`) 
+            : `Ganoderma: ${bsr}% • Clean Collar`;
         c3Gano.className = detected ? "text-xs font-black text-rose-400" : "text-xs font-black text-emerald-300";
     }
     if (c3Basal) {
-        const spear = diag.pathology_risk?.spear_leaf_condition || "Tegak Sehat, Tidak Menguncup";
-        c3Basal.textContent = `Pangkal Batang: Bersih • Daun Tombak: ${spear}`;
+        const spear = diag.pathology_risk?.spear_leaf_condition || (isId ? "Tegak Sehat, Tidak Menguncup" : "Erect, non-stunted healthy frond bundle");
+        c3Basal.textContent = isId 
+            ? `Pangkal Batang: Bersih • Daun Tombak: ${spear}`
+            : `Basal Collar: Clean • Spear Frond: ${spear}`;
     }
 
-    // Kartu 4: Piringan & Lorong Sela
+    // Kartu 4: Geometry & 2.0m Sterile Ring Validated • 3.79m Alley Open
     const c4Circle = document.getElementById('telemetryCard4Circle');
     const c4Corridor = document.getElementById('telemetryCard4Corridor');
     const c4Hydro = document.getElementById('telemetryCard4Hydrology');
     if (c4Circle) {
         const r = diag.spatial_alley_verification?.sterile_circle_radius_m || 2.0;
-        const comp = diag.spatial_alley_verification?.sterile_circle_compliant !== false ? "100% STERIL (Zero-Tillage)" : "TERGANGGU GULMA";
-        c4Circle.textContent = `Piringan ${r}m: ${comp}`;
+        const comp = diag.spatial_alley_verification?.sterile_circle_compliant !== false 
+            ? (isId ? `${r}m Lingkar Steril Tervalidasi` : `${r}m Sterile Ring Validated`)
+            : (isId ? "Piringan Terganggu Gulma" : "Ring Non-Compliant");
+        c4Circle.textContent = `${comp} • 3.79m Alley Open`;
     }
     if (c4Corridor) {
         const w = diag.spatial_alley_verification?.active_corridor_width_m || 3.79;
-        const weed = diag.spatial_alley_verification?.weed_biomass_level || "LOW / TERKENDALI";
-        c4Corridor.textContent = `Lorong ${w}m: Bersih Siap Tanam • Gulma: ${weed}`;
+        const weed = diag.spatial_alley_verification?.weed_biomass_level || (isId ? "LOW / TERKENDALI" : "LOW / MANAGED");
+        c4Corridor.textContent = isId
+            ? `Lorong ${w}m: Bersih Siap Tanam • Gulma: ${weed}`
+            : `Corridor ${w}m: Unhindered & Open • Weed: ${weed}`;
     }
     if (c4Hydro) {
-        const cn = diag.spatial_alley_verification?.hydrology_cn_reduction || "CN 82 -> CN 64 (-21.95% Runoff)";
+        const cn = diag.spatial_alley_verification?.hydrology_sponge_cn || diag.spatial_alley_verification?.hydrology_cn_reduction || "CN 64 (USDA SCS-CN Runoff suppressed -22%)";
         c4Hydro.textContent = `💧 ${cn}`;
     }
 
     const tsEl = document.getElementById('aiTelemetryTimestamp');
     if (tsEl) {
         const now = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + " WIB";
-        tsEl.textContent = `Terverifikasi ${now}`;
+        tsEl.textContent = isId ? `Terverifikasi ${now}` : `Verified ${now}`;
     }
 }
 

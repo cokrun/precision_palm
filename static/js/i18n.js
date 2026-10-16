@@ -336,6 +336,8 @@ const TRANSLATIONS_EN = {
     "spatial_ledger_synthesis_title": "Cumulative Auditor Synthesis & Spatial Conclusion (Multi-Evidence)",
     "spatial_select_all_photos": "Select All",
     "spatial_tbl_col_select": "Select",
+    "spatial_ground_truth_title": "IN-SITU GROUND TRUTH CORRELATION",
+    "spatial_ground_truth_sub": "Copernicus Sentinel-2 Surface Reflectance • In-Situ Handheld Sensor • Aerial Drone 4D Telemetry",
 
     // -------------------------------------------------------------
     // STAGE 2A: SPATIAL LAND INSPECTION (spatial.html)
@@ -398,6 +400,7 @@ const TRANSLATIONS_EN = {
     "sim_th_ler": "Projected LER",
     "sim_btn_ai_review": "Run AI Poly-Crop Agroecological Reasoning (Gemini)",
     "sim_btn_main_action": "Execute Full-Stack In-Silico & AI Audit",
+    "sim_btn_import_scanner": "Import Telemetry from AI Field Scanner (EST-MDN-001)",
 
     // -------------------------------------------------------------
     // STAGE 3: TIMELINES & FOREMAN MONITORING (timelines.html)
@@ -1223,6 +1226,8 @@ const TRANSLATIONS_ID = {
     "spatial_ledger_synthesis_title": "Sintesis Kesimpulan Auditor Kumulatif (Multi-Bukti Spasial)",
     "spatial_select_all_photos": "Pilih Semua",
     "spatial_tbl_col_select": "Pilih",
+    "spatial_ground_truth_title": "KORELASI GROUND TRUTH IN-SITU",
+    "spatial_ground_truth_sub": "Reflektansi Permukaan Copernicus Sentinel-2 • Sensor Genggam In-Situ • Telemetri Drone 4D",
 
     // -------------------------------------------------------------
     // TAHAP 2A: INSPEKSI SPASIAL LAHAN (spatial.html)
@@ -1285,6 +1290,7 @@ const TRANSLATIONS_ID = {
     "sim_th_ler": "Proyeksi LER",
     "sim_btn_ai_review": "Jalankan Review Penalaran AI Kombinasi Polikultur (Gemini Reasoning)",
     "sim_btn_main_action": "Jalankan Audit Penuh In-Silico & AI",
+    "sim_btn_import_scanner": "Impor Telemetri dari AI Field Scanner (EST-MDN-001)",
 
     // -------------------------------------------------------------
     // TAHAP 3: TIMELINES & MONITORING (timelines.html)
