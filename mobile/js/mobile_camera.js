@@ -55,6 +55,11 @@ function initCameraModule() {
     renderViewfinderReticles();
     startReticleAnimationLoop();
     window.addEventListener('resize', renderViewfinderReticles);
+    window.addEventListener('languageChanged', () => {
+        renderViewfinderReticles();
+        updateHudDynamicTelemetry(latestAiDiagnostics);
+        renderDiagnosticCards(latestAiDiagnostics);
+    });
     updateHudDynamicTelemetry(latestAiDiagnostics);
     renderDiagnosticCards(latestAiDiagnostics);
 }
