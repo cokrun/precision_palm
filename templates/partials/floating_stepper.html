@@ -329,11 +329,11 @@
           <span class="text-xs font-mono font-bold tracking-wider uppercase text-sky-400">Persona Role Hub</span>
           <span class="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono font-bold">RBAC SIM</span>
         </div>
-        <button type="button" onclick="closePersonaMenu()" class="text-slate-400 hover:text-white text-xs p-1 rounded-md hover:bg-slate-800 transition" title="Tutup">✕</button>
+        <button type="button" onclick="closePersonaMenu()" class="text-slate-400 hover:text-white text-xs p-1 rounded-md hover:bg-slate-800 transition" title="Close">✕</button>
       </div>
       
       <p class="text-[11px] text-slate-400 mb-3 leading-snug">
-        Simulasi Multi-Persona juri: Pilih peran untuk memfilter fokus langkah 1 s/d 7 &amp; navigasi cepat:
+        Judge Multi-Persona Simulation: Select role to filter Stage 1–7 workflow focus &amp; quick navigation:
       </p>
 
       <!-- 4 Opsi Kartu Persona -->
@@ -345,10 +345,10 @@
               <span class="text-base">🌐</span>
               <div>
                 <div class="text-xs font-bold text-slate-100 flex items-center gap-1.5">
-                  <span>Semua Langkah</span>
+                  <span>All Stages</span>
                   <span class="text-[9px] px-1 rounded bg-slate-700 text-slate-300 font-normal">Full Access</span>
                 </div>
-                <div class="text-[10.5px] text-slate-400 mt-0.5">Semua tahapan 1–7 menyala aktif tanpa reduksi opasitas.</div>
+                <div class="text-[10.5px] text-slate-400 mt-0.5">All stages 1–7 active without opacity reduction.</div>
               </div>
             </div>
           </div>
@@ -361,16 +361,16 @@
               <span class="text-base">🏢</span>
               <div>
                 <div class="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
-                  <span>Perusahaan &amp; Agronomis</span>
+                  <span>Company &amp; Agronomist</span>
                   <span class="text-[9px] px-1 rounded bg-emerald-900/60 text-emerald-300 font-normal">Planter</span>
                 </div>
-                <div class="text-[10.5px] text-slate-400 mt-0.5">Asupan HGU, GEE Satelit &amp; In-Silico LER.</div>
+                <div class="text-[10.5px] text-slate-400 mt-0.5">Title Deed HGU, GEE Satellite &amp; In-Silico LER.</div>
               </div>
             </div>
           </div>
           <div class="mt-2 pt-1.5 border-t border-emerald-900/40 flex items-center justify-between text-[10px]">
-            <span class="text-emerald-400/80 font-mono">Fokus: Step 1, 2, 3</span>
-            <button type="button" onclick="event.stopPropagation(); selectPersonaRole('perusahaan', '/permohonan')" class="px-2 py-0.5 rounded bg-emerald-600/30 hover:bg-emerald-600 text-emerald-200 hover:text-white font-semibold transition">Buka /permohonan →</button>
+            <span class="text-emerald-400/80 font-mono">Focus: Step 1, 2, 3</span>
+            <button type="button" onclick="event.stopPropagation(); selectPersonaRole('perusahaan', '/permohonan')" class="px-2 py-0.5 rounded bg-emerald-600/30 hover:bg-emerald-600 text-emerald-200 hover:text-white font-semibold transition">Open /permohonan →</button>
           </div>
         </div>
 
@@ -381,15 +381,15 @@
               <span class="text-base">👨‍🌾</span>
               <div>
                 <div class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
-                  <span>Foreman / Mandor Lapangan</span>
-                  <span class="text-[9px] px-1 rounded bg-amber-900/60 text-amber-300 font-normal">Mandor</span>
+                  <span>Foreman &amp; Field Node</span>
+                  <span class="text-[9px] px-1 rounded bg-amber-900/60 text-amber-300 font-normal">Foreman</span>
                 </div>
-                <div class="text-[10.5px] text-slate-400 mt-0.5">Fokus Tahap 4, M &amp; 5 (In-Silico Core, PWA Mobile, Surveillance).</div>
+                <div class="text-[10.5px] text-slate-400 mt-0.5">Focus Stages 4, M &amp; 5 (In-Silico Core, PWA Mobile, Surveillance).</div>
               </div>
             </div>
           </div>
           <div class="mt-2 pt-1.5 border-t border-amber-900/40 flex items-center justify-between text-[10px]">
-            <span class="text-amber-400/80 font-mono">Fokus: Step 4, M, 5</span>
+            <span class="text-amber-400/80 font-mono">Focus: Step 4, M, 5</span>
             <div class="flex items-center gap-1">
               <button type="button" onclick="event.stopPropagation(); selectPersonaRole('foreman', '/mobile')" class="px-1.5 py-0.5 rounded bg-amber-600/30 hover:bg-amber-600 text-amber-200 hover:text-white font-semibold transition">PWA Mobile (M) →</button>
               <button type="button" onclick="event.stopPropagation(); selectPersonaRole('foreman', '/timelines')" class="px-1.5 py-0.5 rounded bg-amber-600/30 hover:bg-amber-600 text-amber-200 hover:text-white font-semibold transition">/timelines (5)</button>
@@ -404,16 +404,16 @@
               <span class="text-base">⚖️</span>
               <div>
                 <div class="text-xs font-bold text-purple-300 flex items-center gap-1.5">
-                  <span>Eksekutif &amp; Asesor Sidang</span>
-                  <span class="text-[9px] px-1 rounded bg-purple-900/60 text-purple-300 font-normal">Asesor</span>
+                  <span>Executive &amp; Statutory Assessor</span>
+                  <span class="text-[9px] px-1 rounded bg-purple-900/60 text-purple-300 font-normal">Assessor</span>
                 </div>
-                <div class="text-[10.5px] text-slate-400 mt-0.5">Roadmap Kepatuhan, KMS SHA-256, Topologi DAG.</div>
+                <div class="text-[10.5px] text-slate-400 mt-0.5">Compliance Roadmap, KMS SHA-256, DAG Topology.</div>
               </div>
             </div>
           </div>
           <div class="mt-2 pt-1.5 border-t border-purple-900/40 flex items-center justify-between text-[10px]">
-            <span class="text-purple-400/80 font-mono">Fokus: Step 5, 6, 7</span>
-            <button type="button" onclick="event.stopPropagation(); selectPersonaRole('eksekutif', '/roadmap')" class="px-2 py-0.5 rounded bg-purple-600/30 hover:bg-purple-600 text-purple-200 hover:text-white font-semibold transition">Buka /roadmap →</button>
+            <span class="text-purple-400/80 font-mono">Focus: Step 5, 6, 7</span>
+            <button type="button" onclick="event.stopPropagation(); selectPersonaRole('eksekutif', '/roadmap')" class="px-2 py-0.5 rounded bg-purple-600/30 hover:bg-purple-600 text-purple-200 hover:text-white font-semibold transition">Open /roadmap →</button>
           </div>
         </div>
       </div>
@@ -631,14 +631,14 @@
         glow: '#10b981'
       },
       foreman: {
-        label: '👨‍🌾 Mandor',
+        label: '👨‍🌾 Foreman',
         icon: '',
         pulseBg: 'bg-amber-400',
         btnClass: 'bg-amber-950/95 text-amber-300 border-amber-400/70 ring-amber-500/40',
         glow: '#f59e0b'
       },
       eksekutif: {
-        label: '⚖️ Asesor',
+        label: '⚖️ Assessor',
         icon: '',
         pulseBg: 'bg-purple-400',
         btnClass: 'bg-purple-950/95 text-purple-300 border-purple-400/70 ring-purple-500/40',
@@ -710,7 +710,8 @@
 
       if (hubBtn) {
         hubBtn.className = `relative flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold shadow-lg border cursor-pointer select-none transition-all duration-300 mb-1.5 backdrop-blur-md ring-1 hover:scale-105 ${currentMeta.btnClass}`;
-        hubBtn.setAttribute('title', `Persona Aktif: ${currentMeta.label} (Klik untuk ganti peran)`);
+        const isId = (localStorage.getItem('precision_palm_lang') || 'en') === 'id';
+        hubBtn.setAttribute('title', isId ? `Persona Aktif: ${currentMeta.label} (Klik untuk ganti peran)` : `Active Persona: ${currentMeta.label} (Click to switch)`);
       }
 
       if (stepper) {

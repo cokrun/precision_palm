@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="id" class="dark">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Precision Palm Mobile • Node Lapangan Mandor Mandiri</title>
+    <title>Precision Palm Mobile • Edge Node PWA</title>
     
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="/mobile/manifest.json">
@@ -99,10 +99,10 @@
             </div>
 
             <div class="flex items-center gap-1.5">
-                <!-- Language Switcher: [EN | ID] -->
+                <!-- Language Switcher: [EN | ID] (Default: EN) -->
                 <div class="flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-0.5 text-[10px] font-bold font-mono">
-                    <button id="btnLangEN" type="button" onclick="setAppLanguage('en')" class="px-2 py-0.5 rounded-md transition text-slate-400 hover:text-white cursor-pointer">EN</button>
-                    <button id="btnLangID" type="button" onclick="setAppLanguage('id')" class="px-2 py-0.5 rounded-md transition bg-emerald-600 text-white font-bold cursor-pointer shadow-xs">ID</button>
+                    <button id="btnLangEN" type="button" onclick="setAppLanguage('en')" class="px-2 py-0.5 rounded-md transition bg-emerald-600 text-white font-bold cursor-pointer shadow-xs">EN</button>
+                    <button id="btnLangID" type="button" onclick="setAppLanguage('id')" class="px-2 py-0.5 rounded-md transition text-slate-400 hover:text-white cursor-pointer">ID</button>
                 </div>
 
                 <!-- Status Jaringan Online / Offline (IndexedDB Buffer) -->
@@ -248,7 +248,7 @@
                 <!-- Viewfinder Kanvas, Video Stream & Retikel AI -->
                 <div class="relative w-full h-64 bg-slate-950 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 shadow-inner group flex items-center justify-center select-none">
                     
-                    <img id="viewfinderPhotoImg" src="/static/img/sawit_drone.jpg" onerror="this.onerror=null; this.src='https://placehold.co/600x400/090d16/34d399?text=Palm+Canopy+Imagery';" alt="Field Evidence Photo" class="w-full h-full object-cover">
+                    <img id="viewfinderPhotoImg" src="/static/img/palm_7_year.jpeg" onerror="this.onerror=null; this.src='https://placehold.co/600x400/090d16/34d399?text=Palm+Canopy+Imagery';" alt="Field Evidence Photo" class="w-full h-full object-cover">
                     
                     <video id="liveCameraVideoEl" autoplay playsinline muted class="hidden w-full h-full object-cover"></video>
 
@@ -560,7 +560,7 @@
                --------------------------------------------------------------------- */
             const urlParams = new URLSearchParams(window.location.search);
             let activeEstateCode = (urlParams.get('kode') || 'EST-MDN-010').trim();
-            let activeLanguage = 'id';
+            let activeLanguage = (localStorage.getItem('precision_palm_lang') || 'en');
             let activeBottomTab = 'all';
 
             let registeredEstatesList = [];
@@ -2218,7 +2218,8 @@
                 });
 
                 await openMobileIndexedDb();
-                setAppLanguage('id');
+                const initMobileLang = (localStorage.getItem('precision_palm_lang') || localStorage.getItem('precision_palm_language') || 'en');
+                setAppLanguage(initMobileLang);
                 renderViewfinderReticles();
                 window.addEventListener('resize', renderViewfinderReticles);
 
