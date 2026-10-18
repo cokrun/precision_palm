@@ -2,11 +2,67 @@
   "gee_audit_history": [
     {
       "kode_kebun": "EST-MDN-010",
-      "timestamp": "2026-10-19 02:38:02 WIB",
+      "timestamp": "2026-10-19 03:13:12 WIB",
       "eudr_status": "EUDR COMPLIANT (0% Deforestation)",
       "ndvi": 0.822,
       "slope_deg": 5.1,
-      "sha256": "BE1981CCA663185D51CAAFA0046E6355AED5BEE9213C4B4EA4A9D59A36EB6516"
+      "sha256": "F6C608892C7E288E7CFA3658577EB4421935A6790DFF30F1234C1ABB61F1ABBF"
+    },
+    {
+      "kode_kebun": "EST-MDN-010",
+      "timestamp": "2026-10-19 03:12:45 WIB",
+      "eudr_status": "EUDR COMPLIANT (0% Deforestation)",
+      "ndvi": 0.822,
+      "slope_deg": 5.1,
+      "sha256": "926C5F61F97541CB4F3510C2C930810F51D8D172F161261611D326A3E64603B3"
+    },
+    {
+      "kode_kebun": "EST-MDN-010",
+      "timestamp": "2026-10-19 03:00:26 WIB",
+      "eudr_status": "EUDR COMPLIANT (0% Deforestation)",
+      "ndvi": 0.822,
+      "slope_deg": 5.1,
+      "sha256": "98E7AEE6D2F4D46F0B89537F5172151F1E7FBF4D1BC1F246494BBEA880D21F62"
+    },
+    {
+      "kode_kebun": "EST-MDN-010",
+      "timestamp": "2026-10-19 02:58:03 WIB",
+      "eudr_status": "EUDR COMPLIANT (0% Deforestation)",
+      "ndvi": 0.822,
+      "slope_deg": 5.1,
+      "sha256": "0E24BF8A16B8357FB4928F75D11C69DD721B57DC7A01EBA4A6C1AA4C2D01B015"
+    },
+    {
+      "kode_kebun": "EST-MDN-010",
+      "timestamp": "2026-10-19 02:55:59 WIB",
+      "eudr_status": "EUDR COMPLIANT (0% Deforestation)",
+      "ndvi": 0.822,
+      "slope_deg": 5.1,
+      "sha256": "730154C4D1383A7F3FA2BD06C5D4A59E75C42C37C5CF295D757ADD89BA37D308"
+    },
+    {
+      "kode_kebun": "EST-MDN-010",
+      "timestamp": "2026-10-19 02:29:23 WIB",
+      "eudr_status": "EUDR COMPLIANT (0% Deforestation)",
+      "ndvi": 0.822,
+      "slope_deg": 5.1,
+      "sha256": "F96616C469FBA7732C427215CBC94D63FCC78B0F5E2FFEAB70E7ABED8B9D4200"
+    },
+    {
+      "kode_kebun": "EST-MDN-010",
+      "timestamp": "2026-10-19 02:25:31 WIB",
+      "eudr_status": "EUDR COMPLIANT (0% Deforestation)",
+      "ndvi": 0.822,
+      "slope_deg": 5.1,
+      "sha256": "FCC03CC367073E43857B62A092B7B752BB44696639BF26F5F76A1EBC6B5EC9BC"
+    },
+    {
+      "kode_kebun": "EST-MDN-010",
+      "timestamp": "2026-10-19 02:20:13 WIB",
+      "eudr_status": "EUDR COMPLIANT (0% Deforestation)",
+      "ndvi": 0.822,
+      "slope_deg": 5.1,
+      "sha256": "F6CF8737394AE14A100483774871B728903261EE1E400E7809777ADF8795ACA4"
     },
     {
       "kode_kebun": "EST-MDN-010",

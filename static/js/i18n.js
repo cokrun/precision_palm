@@ -1804,7 +1804,7 @@ const TRANSLATIONS_EN = {
     "time_val_estdb_ok": "Smallholder e-STDB OK",
     "time_modal_evidence_title": "Foreman Surveillance Evidence & Zero-Tillage Weeded Ring Document",
     "time_modal_evidence_sub": "Dual-View Vision AI Verification, Satellite Weather Integrity • ISPO Principle 2 & EUDR Article 9",
-    "time_page_loading": "Loading page data..."
+    "time_page_loading": "Loading page data...",
     "sim_f1_lbl": "Filter 1: Light",
     "sim_f1_status": "✓ FULL COMPLIANCE",
     "sim_f2_lbl": "Filter 2: Pedology",
