@@ -1,0 +1,47 @@
+# ==============================================================================
+# Precision Palm - Google Cloud Deploy Ignore Rules (.gcloudignore)
+# Mengabaikan file yang TIDAK dibutuhkan saat build di Cloud Run / App Engine
+# ==============================================================================
+
+.gcloudignore
+.git
+.gitignore
+
+# Environments & Virtual Envs
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+
+# Secrets & Local Configurations (Sangat Penting!)
+.env
+*.pem
+*service_account*.json
+credentials.json
+client_secret*.json
+
+# Test Suite & Development Scripts (Tidak dibutuhkan di runtime produksi)
+tests/
+test_*.py
+verify_*.py
+scripts/
+docs/
+*.md
+*.ps1
+
+# Temporary & Redundant Databases
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+database.db
+database.sqlite
+palm.db
+precision_palm_dw
+
+# System & OS junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/scratch/

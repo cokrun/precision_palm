@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <!-- Theme Script to Prevent FOUC -->
+    <script>
+        (function () {
+            try {
+                const savedTheme = localStorage.getItem('precision_palm_theme') || 'dark';
+                if (savedTheme === 'light') {
+                    document.documentElement.classList.remove('dark');
+                } else {
+                    document.documentElement.classList.add('dark');
+                }
+            } catch (_) {}
+        })();
+    </script>
+    <script src="/static/js/i18n.js"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Overview &bull; Precision Palm Enterprise OS</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+                    },
+                    colors: {
+                        brand: {
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            950: '#022c22'
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Leaflet GIS Engine -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #1e293b; }
+        ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+        }
+        .dark .glass-card {
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid rgba(51, 65, 85, 0.75);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        .leaflet-container {
+            background-color: #f8fafc !important;
+            font-family: 'Inter', sans-serif !important;
+        }
+        .dark .leaflet-container {
+            background-color: #020617 !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans min-h-screen transition-colors duration-200 selection:bg-emerald-500 selection:text-white">
+    <div class="flex min-h-screen">
+        <!-- Sidebar Navigasi Enterprise di Kiri -->
+        {% include 'partials/sidebar.html' ignore missing %}
+
+        <!-- Workspace Utama -->
+        <div id="enterpriseWorkspace" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
+            <!-- Persistent Top Context Bar -->
+            {% include 'partials/top_context_bar.html' ignore missing %}
+
+            <main class="flex-1 overflow-y-auto">
+                <div class="max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
+
+                    <!-- HERO BANNER EKSEKUTIF (VIEW MURNI) -->
+                    <header class="glass-card rounded-3xl p-6 sm:p-8 relative overflow-hidden border border-emerald-500/30 shadow-xl">
+                        <div class="absolute -right-16 -top-16 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                        <div class="absolute -left-16 -bottom-16 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                            <div class="space-y-3 max-w-3xl">
+                                <div class="flex flex-wrap items-center gap-2 font-mono text-[10px] font-bold">
+                                    <span class="px-2.5 py-0.5 rounded-full uppercase bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-600 flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-ping"></span>
+                                        <span data-i18n="overview_badge_header">EXECUTIVE DASHBOARD &bull; READ-ONLY PORTFOLIO AUDIT</span>
+                                    </span>
+                                    <span data-i18n="overview_badge_reg" class="px-2.5 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-700">
+                                        Permentan 33/2025 &bull; EUDR TRACES
+                                    </span>
+                                    <span data-i18n="overview_badge_db" class="px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-700">
+                                        Single Source of Truth &bull; SQLite WAL
+                                    </span>
+                                </div>
+
+                                <h1 class="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+                                    <span data-i18n="overview_hero_title">Executive Overview &bull;</span> <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 dark:from-emerald-400 dark:via-teal-300 dark:to-cyan-400">Precision Palm</span>
+                                </h1>
+
+                                <p data-i18n="overview_hero_desc" class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
+                                    Unified executive surveillance dashboard without operational distortion. Aggregates legality data across 10 concessions, farmer FFB pricing calculation via statutory formula (MoA Reg 33/2025), zero-deforestation GEE spatial proof, and official export passport issuance progress.
+                                </p>
+                            </div>
+
+                            <!-- Indikator Sinkronisasi Sesi -->
+                            <div class="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0 font-mono text-xs">
+                                <button type="button" onclick="refreshOverviewData()" id="btnRefreshStats" class="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-xs">
+                                    <span id="refreshIcon">🔄</span> <span data-i18n="overview_btn_sync">Sync Live Data</span>
+                                </button>
+                                <div class="p-2.5 rounded-xl bg-slate-100/90 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-[10px] text-slate-500 dark:text-slate-400 space-y-1">
+                                    <div class="flex justify-between">
+                                        <span data-i18n="overview_sla_label">Audit SLA:</span>
+                                        <strong data-i18n="overview_sla_val" class="text-emerald-600 dark:text-emerald-400">180d Active</strong>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span data-i18n="overview_integrity_label">Integrity:</span>
+                                        <strong class="text-cyan-600 dark:text-cyan-300">FIPS SHA-256</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    <!-- BLOK A: 4 KARTU METRIK UTAMA (HEADLINE BENTO GRID) -->
+                    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-mono">
+                        <!-- Metrik 1: Total Portofolio Konsesi -->
+                        <div class="glass-card p-5 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-2 shadow-xs hover:border-emerald-500/50 transition">
+                            <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold">
+                                <span data-i18n="overview_kpi1_title">1. Land Portfolio</span>
+                                <span class="text-base">🏢</span>
+                            </div>
+                            <div class="space-y-0.5">
+                                <strong id="kpiTotalArea" class="text-2xl font-black text-slate-900 dark:text-white block">11,100.00 Ha</strong>
+                                <span id="kpiTotalDossiers" class="text-xs text-emerald-600 dark:text-emerald-400 font-bold block">10 Registered Dossiers</span>
+                            </div>
+                            <span data-i18n="overview_kpi1_sub" class="text-[10px] text-slate-500 dark:text-slate-400 font-sans block pt-1 border-t border-slate-200 dark:border-slate-800">
+                                100% Legal Title Deed (HGU, SHM, e-STDB)
+                            </span>
+                        </div>
+
+                        <!-- Metrik 2: Kepatuhan EUDR & Moratorium -->
+                        <div class="glass-card p-5 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-2 shadow-xs hover:border-cyan-500/50 transition">
+                            <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold">
+                                <span data-i18n="overview_kpi2_title">2. Statutory Compliance</span>
+                                <span class="text-base">⚖️</span>
+                            </div>
+                            <div class="space-y-0.5">
+                                <strong id="kpiEudrScore" data-i18n="overview_kpi2_val" class="text-2xl font-black text-cyan-600 dark:text-cyan-400 block">100% PASSED</strong>
+                                <span id="kpiDeforestation" data-i18n="overview_kpi2_sub" class="text-xs text-slate-700 dark:text-slate-300 font-bold block">0.00 Ha Post-2020 Deforestation</span>
+                            </div>
+                            <span data-i18n="overview_kpi2_note" class="text-[10px] text-slate-500 dark:text-slate-400 font-sans block pt-1 border-t border-slate-200 dark:border-slate-800">
+                                PIPPIB 2024 &bull; Conservation Buffer &gt; 50m
+                            </span>
+                        </div>
+
+                        <!-- Metrik 3: Efisiensi Lahan & LER -->
+                        <div class="glass-card p-5 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-2 shadow-xs hover:border-teal-500/50 transition">
+                            <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold">
+                                <span data-i18n="overview_kpi3_title">3. Biological Efficiency</span>
+                                <span class="text-base">🌱</span>
+                            </div>
+                            <div class="space-y-0.5">
+                                <strong id="kpiMeanLer" class="text-2xl font-black text-emerald-600 dark:text-emerald-400 block">1.48x LER</strong>
+                                <span id="kpiSparedForest" data-i18n="overview_kpi3_sub" class="text-xs text-teal-600 dark:text-teal-300 font-bold block">+48% Land Spared</span>
+                            </div>
+                            <span data-i18n="overview_kpi3_note" class="text-[10px] text-slate-500 dark:text-slate-400 font-sans block pt-1 border-t border-slate-200 dark:border-slate-800">
+                                Spared equivalent of 5,328 Ha primary forest
+                            </span>
+                        </div>
+
+                        <!-- Metrik 4: Valuasi Karbon & Nilai Tambah Petani -->
+                        <div class="glass-card p-5 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-2 shadow-xs hover:border-purple-500/50 transition">
+                            <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold">
+                                <span data-i18n="overview_kpi4_title">4. Added Value &amp; Carbon</span>
+                                <span class="text-base">💰</span>
+                            </div>
+                            <div class="space-y-0.5">
+                                <strong id="kpiCarbonOffset" class="text-2xl font-black text-purple-600 dark:text-purple-400 block">2,397,600 t</strong>
+                                <span id="kpiRevenueGain" data-i18n="overview_kpi4_sub" class="text-xs text-emerald-600 dark:text-emerald-300 font-bold block">+$2,143 / Ha / Yr (+IDR 38.4M)</span>
+                            </div>
+                            <span data-i18n="overview_kpi4_note" class="text-[10px] text-slate-500 dark:text-slate-400 font-sans block pt-1 border-t border-slate-200 dark:border-slate-800">
+                                Verra VM0007 ($12/t) &bull; FFB Deficit &le; 1.22%
+                            </span>
+                        </div>
+                    </section>
+
+                    <!-- BLOK B: GRAFIK HARGA TBS PASAR & KOMPARASI ARUS KAS AGROFORESTRI -->
+                    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Grafik 1: Tren Penetapan Harga TBS Berdasarkan rumus_tb.py -->
+                        <div class="lg:col-span-2 glass-card p-5 sm:p-7 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4 shadow-xl">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+                                <div>
+                                    <span data-i18n="overview_chart1_sub" class="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 font-bold uppercase tracking-wider block">
+                                        COMMODITY PRICING ENGINE &bull; RUMUS_TB.PY
+                                    </span>
+                                    <h2 data-i18n="overview_chart1_title" class="text-base sm:text-lg font-bold text-slate-900 dark:text-white font-sans">
+                                        Farmer FFB Price Trend vs International CPO Benchmark
+                                    </h2>
+                                </div>
+                                <span data-i18n="overview_chart1_badge" class="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 bg-slate-100 dark:bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    MoA Reg 33/2025 (K Index 91%)
+                                </span>
+                            </div>
+
+                            <!-- Live Price Summary Pills -->
+                            <div class="grid grid-cols-3 gap-2 font-mono text-center">
+                                <div class="p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                                    <span data-i18n="overview_cpo_label" class="text-[9px] text-slate-500 dark:text-slate-400 block">CPO CIF Rotterdam:</span>
+                                    <strong id="dispGlobalCpo" class="text-xs sm:text-sm text-cyan-600 dark:text-cyan-400 font-bold">$1,526.56 / MT</strong>
+                                </div>
+                                <div class="p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                                    <span data-i18n="overview_tbs_kg_label" class="text-[9px] text-slate-500 dark:text-slate-400 block">FFB Price per Kg:</span>
+                                    <strong id="dispTbsKg" class="text-xs sm:text-sm text-slate-900 dark:text-white font-bold">IDR 3,824.71 / kg</strong>
+                                </div>
+                                <div class="p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-950 border border-emerald-500/40">
+                                    <span data-i18n="overview_tbs_ton_label" class="text-[9px] text-slate-500 dark:text-slate-400 block font-semibold">FFB Price per Ton:</span>
+                                    <strong id="dispTbsTon" class="text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 font-black">IDR 3,824,710 / Ton</strong>
+                                </div>
+                            </div>
+
+                            <div class="h-64 w-full relative">
+                                <canvas id="tbsPriceTrendChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Grafik 2: Komparasi Arus Kas Bersih (Monokultur vs Agroforestri) -->
+                        <div class="glass-card p-5 sm:p-7 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4 shadow-xl flex flex-col justify-between">
+                            <div class="border-b border-slate-200 dark:border-slate-800 pb-3">
+                                <span data-i18n="overview_chart2_sub" class="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider block">
+                                    FINANCIAL BENEFIT MULTIPLIER
+                                </span>
+                                <h2 data-i18n="overview_chart2_title" class="text-base sm:text-lg font-bold text-slate-900 dark:text-white font-sans">
+                                    Monokultur vs Precision Palm
+                                </h2>
+                                <p data-i18n="overview_chart2_desc" class="text-[11px] text-slate-600 dark:text-slate-400 font-sans mt-0.5">
+                                    Optimizing 3.79m inter-row spacing yields +35% net cashflow boost.
+                                </p>
+                            </div>
+
+                            <div class="h-56 w-full relative">
+                                <canvas id="revenueComparisonChart"></canvas>
+                            </div>
+
+                            <div class="p-3 rounded-2xl bg-slate-100/80 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[10px] font-mono space-y-1">
+                                <div class="flex justify-between text-slate-600 dark:text-slate-400">
+                                    <span data-i18n="overview_chart2_row1">Primary Palm FFB Yield:</span>
+                                    <strong class="text-slate-900 dark:text-white">24.20 Ton/Ha (-1.22%)</strong>
+                                </div>
+                                <div class="flex justify-between text-slate-600 dark:text-slate-400">
+                                    <span data-i18n="overview_chart2_row2">Intercrop Yield (Red Ginger):</span>
+                                    <strong class="text-cyan-600 dark:text-cyan-400">12.40 Ton/Ha</strong>
+                                </div>
+                                <div class="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold pt-1 border-t border-slate-200 dark:border-slate-800">
+                                    <span data-i18n="overview_chart2_row3">Net Combined Revenue:</span>
+                                    <span data-i18n="overview_chart2_row3_val">IDR 148.2M / Ha / Yr (+$9,480)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- BLOK C & D: PETA KONSESI MULTI-TENANT & CORONG TATA KELOLA -->
+                    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Blok C: Peta Sebaran Konsesi Multi-Tenant -->
+                        <div class="lg:col-span-2 glass-card p-5 sm:p-7 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4 shadow-xl">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 font-mono text-xs">
+                                <div>
+                                    <span data-i18n="overview_map_sub" class="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider block">
+                                        GEODETIC PORTFOLIO SURVEILLANCE &bull; WGS84
+                                    </span>
+                                    <h2 data-i18n="overview_map_title" class="text-base sm:text-lg font-bold text-slate-900 dark:text-white font-sans">
+                                        Concession Polygons &amp; Conservation Zoning Distribution
+                                    </h2>
+                                </div>
+                                <div class="flex items-center gap-1.5 text-[10px]">
+                                    <span class="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-600 font-bold">🟢 Certified</span>
+                                    <span class="px-2 py-0.5 rounded bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-600 font-bold">🔵 Provisional</span>
+                                    <span class="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-600 font-bold">🟡 In-Review</span>
+                                </div>
+                            </div>
+
+                            <!-- Map Canvas Container -->
+                            <div class="w-full h-80 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 relative shadow-inner">
+                                <div id="overviewMap" class="w-full h-full"></div>
+                                <div class="absolute bottom-2 left-2 z-[400] px-2.5 py-1 rounded-xl bg-white/95 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-700 text-[10px] font-mono text-slate-700 dark:text-slate-300 shadow-sm">
+                                    <span>Centroid: 0.8241°N, 99.5612°E (Mandailing Natal) &bull; APL Verified</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Blok D: Corong Konversi Kepatuhan 4-Tahap -->
+                        <div class="glass-card p-5 sm:p-7 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4 shadow-xl flex flex-col justify-between">
+                            <div class="border-b border-slate-200 dark:border-slate-800 pb-3">
+                                <span data-i18n="overview_funnel_sub" class="text-[10px] font-mono text-purple-600 dark:text-purple-400 font-bold uppercase tracking-wider block">
+                                    4-STAGE PIPELINE PROGRESSION
+                                </span>
+                                <h2 data-i18n="overview_funnel_title" class="text-base sm:text-lg font-bold text-slate-900 dark:text-white font-sans">
+                                    Governance Pipeline
+                                </h2>
+                                <p data-i18n="overview_funnel_desc" class="text-[11px] text-slate-600 dark:text-slate-400 font-sans mt-0.5">
+                                    Sequential dossier tracking from cadastral intake to statutory export passport.
+                                </p>
+                            </div>
+
+                            <div class="space-y-2.5 font-mono text-xs">
+                                <!-- Tahap 1 -->
+                                <div class="p-3 rounded-2xl bg-slate-100/80 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
+                                    <div class="flex items-center justify-between">
+                                        <span data-i18n="overview_funnel_s1" class="text-slate-800 dark:text-slate-300 font-bold">1. Cadastral Intake</span>
+                                        <span id="funnelStage1" class="text-emerald-600 dark:text-emerald-400 font-bold">10 Dossiers</span>
+                                    </div>
+                                    <div class="w-full bg-slate-200 dark:bg-slate-900 h-1.5 rounded-full overflow-hidden">
+                                        <div class="bg-emerald-500 h-full w-full"></div>
+                                    </div>
+                                    <span data-i18n="overview_funnel_s1_sub" class="text-[9px] text-slate-500 block">100% Customary Land / HGU Verified</span>
+                                </div>
+
+                                <!-- Tahap 2 -->
+                                <div class="p-3 rounded-2xl bg-slate-100/80 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
+                                    <div class="flex items-center justify-between">
+                                        <span data-i18n="overview_funnel_s2" class="text-slate-800 dark:text-slate-300 font-bold">2. GEE &amp; Biophysics</span>
+                                        <span id="funnelStage2" class="text-cyan-600 dark:text-cyan-400 font-bold">10 Dossiers</span>
+                                    </div>
+                                    <div class="w-full bg-slate-200 dark:bg-slate-900 h-1.5 rounded-full overflow-hidden">
+                                        <div class="bg-cyan-500 h-full w-full"></div>
+                                    </div>
+                                    <span data-i18n="overview_funnel_s2_sub" class="text-[9px] text-slate-500 block">Zero Deforestation &bull; LER &gt; 1.40x</span>
+                                </div>
+
+                                <!-- Tahap 3 -->
+                                <div class="p-3 rounded-2xl bg-slate-100/80 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
+                                    <div class="flex items-center justify-between">
+                                        <span data-i18n="overview_funnel_s3" class="text-slate-800 dark:text-slate-300 font-bold">3. Field Surveillance</span>
+                                        <span id="funnelStage3" class="text-amber-600 dark:text-amber-400 font-bold">1 Active Dossier</span>
+                                    </div>
+                                    <div class="w-full bg-slate-200 dark:bg-slate-900 h-1.5 rounded-full overflow-hidden">
+                                        <div class="bg-amber-500 h-full w-[40%]"></div>
+                                    </div>
+                                    <span data-i18n="overview_funnel_s3_sub" class="text-[9px] text-slate-500 block">2.0m Root Ring &bull; 180-Day SLA Active</span>
+                                </div>
+
+                                <!-- Tahap 4 -->
+                                <div class="p-3 rounded-2xl bg-slate-100/80 dark:bg-slate-950 border border-purple-500/40 space-y-1">
+                                    <div class="flex items-center justify-between">
+                                        <span data-i18n="overview_funnel_s4" class="text-slate-900 dark:text-white font-bold">4. Final EUDR Passport</span>
+                                        <span id="funnelStage4" class="text-purple-600 dark:text-purple-400 font-bold">1 Certified</span>
+                                    </div>
+                                    <div class="w-full bg-slate-200 dark:bg-slate-900 h-1.5 rounded-full overflow-hidden">
+                                        <div class="bg-purple-500 h-full w-[40%]"></div>
+                                    </div>
+                                    <span data-i18n="overview_funnel_s4_sub" class="text-[9px] text-emerald-600 dark:text-emerald-400 block">SHA-256 Seal &bull; TRACES DDS Issued</span>
+                                </div>
+                            </div>
+
+                            <a href="/topologi" data-i18n="overview_btn_lineage" class="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-850 text-cyan-700 dark:text-cyan-300 border border-slate-200 dark:border-slate-700 font-mono text-[11px] font-bold text-center block transition">
+                                Open 12-Node DAG Lineage &rarr;
+                            </a>
+                        </div>
+                    </section>
+
+                    <!-- BLOK E: DAFTAR PORTOFOLIO KONSESI TERDAFTAR (VIEW MURNI: PENCARIAN & PAGINATION, TANPA TOMBOL AKSI) -->
+                    <section class="glass-card p-5 sm:p-7 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4 shadow-xl font-mono text-xs">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+                            <div class="flex items-center gap-2">
+                                <span data-i18n="overview_table_title" class="font-bold text-slate-900 dark:text-white text-sm">Active Concession Portfolio Directory (Pure View):</span>
+                                <span id="portfolioBadge" class="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold border border-emerald-300 dark:border-emerald-700">Loading data...</span>
+                            </div>
+                            
+                            <!-- Search Bar Real-Time -->
+                            <div class="relative w-full sm:w-72">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 text-xs">🔍</span>
+                                <input 
+                                    type="text" 
+                                    id="inpOverviewSearch" 
+                                    data-i18n-placeholder="overview_table_search_ph"
+                                    oninput="handleOverviewSearch(this.value)" 
+                                    placeholder="Search ID, company name, HGU, location..." 
+                                    class="w-full pl-9 pr-3 py-1.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500 transition"
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Read-Only Portfolio Table -->
+                        <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+                            <table class="w-full text-left text-xs font-mono whitespace-nowrap">
+                                <thead class="bg-slate-100 dark:bg-slate-950 text-slate-600 dark:text-slate-400 uppercase text-[10px] border-b border-slate-200 dark:border-slate-800">
+                                    <tr>
+                                        <th data-i18n="overview_th_no" class="py-3 px-3.5 text-center w-12">No.</th>
+                                        <th data-i18n="overview_th_dossier" class="py-3 px-3.5">Dossier ID</th>
+                                        <th data-i18n="overview_th_company" class="py-3 px-3.5">Company / Entity Name</th>
+                                        <th data-i18n="overview_th_hgu" class="py-3 px-3.5">HGU Number &bull; Tax NOP</th>
+                                        <th data-i18n="overview_th_area" class="py-3 px-3.5 text-right">Area (Ha)</th>
+                                        <th data-i18n="overview_th_deforestation" class="py-3 px-3.5 text-center">Deforestation (GEE)</th>
+                                        <th data-i18n="overview_th_spatial" class="py-3 px-3.5 text-center">Spatial Status (APL)</th>
+                                        <th data-i18n="overview_th_status" class="py-3 px-3.5 text-center">Certification Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="portfolioTableBody" class="divide-y divide-slate-200 dark:divide-slate-800 text-[11px] text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40">
+                                    <tr>
+                                        <td colspan="8" class="py-8 text-center text-slate-500 font-mono" data-i18n="overview_loading_table">
+                                            Loading portfolio dossiers from SQLite database...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination Controls (Pure View) -->
+                        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-[11px] text-slate-500 dark:text-slate-400">
+                            <span id="overviewPaginationInfo" data-i18n="overview_pagination_initial">Showing 0 - 0 of 0 concessions</span>
+                            <div class="flex items-center gap-1.5" id="overviewPaginationButtons">
+                                <!-- Dynamic pagination buttons -->
+                            </div>
+                        </div>
+                    </section>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT CONTROLLER: LEAFLET MAP, CHART.JS, PURE VIEW SEARCH & PAGINATION -->
+    <script>
+        let overviewMapInstance = null;
+        let tbsChartInstance = null;
+        let revenueChartInstance = null;
+        let mapMarkersLayer = null;
+
+        // Dataset Global untuk Pencarian & Pagination
+        let allOverviewDossiers = [];
+        let filteredOverviewDossiers = [];
+        let overviewCurrentPage = 1;
+        const overviewPageSize = 5; // 5 baris per halaman untuk tampilan ringkas eksekutif
+
+        let lastPricingData = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Apply translations immediately so page defaults to English without flash of untranslated text
+            if (typeof window.applyTranslations === 'function') {
+                window.applyTranslations();
+            }
+            const activeLang = localStorage.getItem('precision_palm_lang') || 'en';
+            initOverviewMap();
+            initTbsPriceChart();
+            initRevenueChart();
+            updateChartsLanguage(activeLang);
+            updateOverviewPricingDisplay(localStorage.getItem('precision_currency_mode') || 'USD');
+            await refreshOverviewData();
+
+            if (typeof window.applyTranslations === 'function') {
+                window.applyTranslations();
+            }
+        });
+
+        // Sinkronisasi saat bahasa berubah
+        window.addEventListener('languagechanged', (e) => {
+            if (typeof window.applyTranslations === 'function') {
+                window.applyTranslations();
+            }
+            const lang = e.detail?.lang || (localStorage.getItem('precision_palm_lang') || 'en');
+            updateChartsLanguage(lang);
+            updateOverviewPricingDisplay(localStorage.getItem('precision_currency_mode') || 'USD');
+            renderPagedPortfolioTable();
+            if (allOverviewDossiers && allOverviewDossiers.length > 0) {
+                renderMapMarkers(allOverviewDossiers);
+            }
+        });
+
+        // Sinkronisasi saat mata uang berubah
+        window.addEventListener('currencychanged', (e) => {
+            const curr = e.detail?.currency || (localStorage.getItem('precision_currency_mode') || 'USD');
+            updateOverviewPricingDisplay(curr);
+        });
+
+        function updateOverviewPricingDisplay(curr) {
+            const isUsd = (curr === 'USD');
+            const isEng = (localStorage.getItem('precision_palm_lang') || 'en') === 'en';
+            const elKg = document.getElementById('dispTbsKg');
+            const elTon = document.getElementById('dispTbsTon');
+
+            if (lastPricingData) {
+                if (elKg && lastPricingData.harga_tbs_kg) {
+                    if (isUsd) {
+                        const usdKg = (lastPricingData.harga_tbs_kg / 15650).toFixed(3);
+                        elKg.textContent = `$${usdKg} / kg`;
+                    } else {
+                        elKg.textContent = `Rp ${Number(lastPricingData.harga_tbs_kg).toLocaleString('id-ID', { minimumFractionDigits: 2 })} / kg`;
+                    }
+                }
+                if (elTon && lastPricingData.harga_tbs_ton) {
+                    if (isUsd) {
+                        const usdTon = (lastPricingData.harga_tbs_ton / 15650).toFixed(2);
+                        elTon.textContent = `$${usdTon} / Ton`;
+                    } else {
+                        elTon.textContent = `Rp ${Math.round(lastPricingData.harga_tbs_ton).toLocaleString('id-ID')} / Ton`;
+                    }
+                }
+            } else {
+                if (elKg) elKg.textContent = isUsd ? "$0.244 / kg" : (isEng ? "IDR 3,824.71 / kg" : "Rp 3.824,71 / kg");
+                if (elTon) elTon.textContent = isUsd ? "$244.38 / Ton" : (isEng ? "IDR 3,824,710 / Ton" : "Rp 3.824.710 / Ton");
+            }
+        }
+
+        function updateChartsLanguage(lang) {
+            const isEng = (lang || localStorage.getItem('precision_palm_lang') || 'en') === 'en';
+            if (tbsChartInstance) {
+                tbsChartInstance.data.labels = isEng 
+                    ? ['May 25', 'Jul 25', 'Sep 25', 'Nov 25', 'Jan 26', 'Mar 26', 'May 26', 'Jul 26', 'Oct 26']
+                    : ['Mei 25', 'Jul 25', 'Sep 25', 'Nov 25', 'Jan 26', 'Mar 26', 'Mei 26', 'Jul 26', 'Okt 26'];
+                if (tbsChartInstance.data.datasets[0]) {
+                    tbsChartInstance.data.datasets[0].label = isEng ? 'Farmer FFB Price (IDR / kg)' : 'Harga TBS Petani (Rp / kg)';
+                }
+                if (tbsChartInstance.data.datasets[1]) {
+                    tbsChartInstance.data.datasets[1].label = isEng ? 'CPO CIF Rotterdam (USD / MT)' : 'CPO CIF Rotterdam (USD / MT)';
+                }
+                tbsChartInstance.update();
+            }
+
+            if (revenueChartInstance) {
+                revenueChartInstance.data.labels = isEng ? ['Monoculture', 'Precision Palm'] : ['Monokultur', 'Precision Palm'];
+                if (revenueChartInstance.data.datasets[0]) {
+                    revenueChartInstance.data.datasets[0].label = isEng ? 'Oil Palm FFB (Million IDR/Ha)' : 'TBS Sawit (Juta Rp/Ha)';
+                }
+                if (revenueChartInstance.data.datasets[1]) {
+                    revenueChartInstance.data.datasets[1].label = isEng ? 'Intercrop Yield (Million IDR/Ha)' : 'Tanaman Sela (Juta Rp/Ha)';
+                }
+                revenueChartInstance.update();
+            }
+        }
+
+        // Sinkronisasi saat tema berubah (Light / Dark)
+        window.addEventListener('themechanged', (e) => {
+            updateChartsTheme(e.detail?.theme);
+        });
+
+        function isDarkMode() {
+            return document.documentElement.classList.contains('dark');
+        }
+
+        function updateChartsTheme(theme) {
+            const dark = theme ? (theme === 'dark') : isDarkMode();
+            const gridColor = dark ? 'rgba(51, 65, 85, 0.4)' : 'rgba(226, 232, 240, 0.8)';
+            const labelColor = dark ? '#94a3b8' : '#64748b';
+            const xTickColor = dark ? '#e2e8f0' : '#1e293b';
+
+            if (tbsChartInstance) {
+                tbsChartInstance.options.plugins.legend.labels.color = labelColor;
+                tbsChartInstance.options.scales.x.ticks.color = labelColor;
+                tbsChartInstance.options.scales.x.grid.color = gridColor;
+                tbsChartInstance.options.scales.y.grid.color = gridColor;
+                tbsChartInstance.update();
+            }
+
+            if (revenueChartInstance) {
+                revenueChartInstance.options.plugins.legend.labels.color = labelColor;
+                revenueChartInstance.options.scales.x.ticks.color = xTickColor;
+                revenueChartInstance.options.scales.x.grid.color = gridColor;
+                revenueChartInstance.options.scales.y.ticks.color = labelColor;
+                revenueChartInstance.options.scales.y.grid.color = gridColor;
+                revenueChartInstance.update();
+            }
+        }
+
+        // 1. Inisialisasi Peta Leaflet Portofolio
+        function initOverviewMap() {
+            const container = document.getElementById('overviewMap');
+            if (!container || overviewMapInstance) return;
+
+            overviewMapInstance = L.map('overviewMap', {
+                center: [0.8241, 99.5612],
+                zoom: 10,
+                zoomControl: true,
+                attributionControl: false
+            });
+
+            L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                maxZoom: 18
+            }).addTo(overviewMapInstance);
+
+            // Pasang asean.mbtiles juga di overview
+            L.tileLayer('/api/tiles/{z}/{x}/{y}', {
+                minZoom: 6,
+                maxNativeZoom: 10,
+                maxZoom: 18,
+                opacity: 0.50,
+                crossOrigin: 'anonymous'
+            }).addTo(overviewMapInstance);
+
+            mapMarkersLayer = L.layerGroup().addTo(overviewMapInstance);
+        }
+
+        function renderMapMarkers(dossiers) {
+            if (!overviewMapInstance || !mapMarkersLayer) return;
+            mapMarkersLayer.clearLayers();
+
+            const bounds = L.latLngBounds();
+
+            dossiers.forEach(d => {
+                const lat = parseFloat(d.centroid_lat || d.lat);
+                const lng = parseFloat(d.centroid_lng || d.lng);
+                if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return;
+
+                const kode = d.kode_kebun || d.id;
+                const nama = d.nama_kebun || d.company || 'Konsesi Sawit';
+                const luas = parseFloat(d.luas_ha || d.area_ha || 0);
+
+                const colorHex = (kode === 'EST-MDN-001') ? '#10b981' : '#0284c7';
+                
+                const circle = L.circleMarker([lat, lng], {
+                    radius: 8,
+                    color: colorHex,
+                    fillColor: colorHex,
+                    fillOpacity: 0.85,
+                    weight: 2
+                }).addTo(mapMarkersLayer);
+
+                const isEngPopup = (localStorage.getItem('precision_palm_lang') || 'en') === 'en';
+                circle.bindPopup(`
+                    <div style="font-family: monospace; font-size: 11px; color: #0f172a; min-width: 170px;">
+                        <strong style="color: #047857;">${kode}</strong><br>
+                        <b>${nama}</b><br>
+                        <span>${isEngPopup ? 'Area' : 'Luas'}: ${luas.toLocaleString(isEngPopup ? 'en-US' : 'id-ID')} Ha</span><br>
+                        <span style="color: #047857; font-weight: bold;">${isEngPopup ? '✓ 100% Non-Forest APL' : '✓ 100% Non-Hutan APL'}</span>
+                    </div>
+                `);
+
+                bounds.extend([lat, lng]);
+            });
+
+            if (bounds.isValid()) {
+                overviewMapInstance.fitBounds(bounds, { padding: [30, 30] });
+            }
+        }
+
+        // 2. Inisialisasi Grafik Tren Harga TBS (Chart.js)
+        function initTbsPriceChart() {
+            const ctx = document.getElementById('tbsPriceTrendChart')?.getContext('2d');
+            if (!ctx) return;
+
+            const dark = isDarkMode();
+            const gridColor = dark ? 'rgba(51, 65, 85, 0.4)' : 'rgba(226, 232, 240, 0.8)';
+            const labelColor = dark ? '#94a3b8' : '#64748b';
+
+            const isEng = (localStorage.getItem('precision_palm_lang') || 'en') === 'en';
+            const months = isEng
+                ? ['May 25', 'Jul 25', 'Sep 25', 'Nov 25', 'Jan 26', 'Mar 26', 'May 26', 'Jul 26', 'Oct 26']
+                : ['Mei 25', 'Jul 25', 'Sep 25', 'Nov 25', 'Jan 26', 'Mar 26', 'Mei 26', 'Jul 26', 'Okt 26'];
+            const tbsPriceKgs = [2850, 2980, 3120, 3350, 3480, 3620, 3750, 3790, 3824.71];
+            const cpoPrices = [1220, 1260, 1310, 1380, 1420, 1460, 1490, 1510, 1526.56];
+
+            tbsChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [
+                        {
+                            label: isEng ? 'Farmer FFB Price (IDR / kg)' : 'Harga TBS Petani (Rp / kg)',
+                            data: tbsPriceKgs,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                            fill: true,
+                            tension: 0.35,
+                            borderWidth: 2.5,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: isEng ? 'CPO CIF Rotterdam (USD / MT)' : 'CPO CIF Rotterdam (USD / MT)',
+                            data: cpoPrices,
+                            borderColor: '#0284c7',
+                            borderDash: [4, 4],
+                            backgroundColor: 'transparent',
+                            tension: 0.35,
+                            borderWidth: 2,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            labels: { color: labelColor, font: { family: 'monospace', size: 10 } }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: labelColor, font: { family: 'monospace', size: 9 } },
+                            grid: { color: gridColor }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            ticks: {
+                                color: '#10b981',
+                                font: { family: 'monospace', size: 9 },
+                                callback: val => 'Rp ' + val
+                            },
+                            grid: { color: gridColor }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            ticks: {
+                                color: '#0284c7',
+                                font: { family: 'monospace', size: 9 },
+                                callback: val => '$ ' + val
+                            },
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 3. Inisialisasi Grafik Komparasi Pendapatan
+        function initRevenueChart() {
+            const ctx = document.getElementById('revenueComparisonChart')?.getContext('2d');
+            if (!ctx) return;
+
+            const dark = isDarkMode();
+            const gridColor = dark ? 'rgba(51, 65, 85, 0.4)' : 'rgba(226, 232, 240, 0.8)';
+            const labelColor = dark ? '#94a3b8' : '#64748b';
+            const xTickColor = dark ? '#e2e8f0' : '#1e293b';
+
+            const isEng = (localStorage.getItem('precision_palm_lang') || 'en') === 'en';
+            revenueChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: isEng ? ['Monoculture', 'Precision Palm'] : ['Monokultur', 'Precision Palm'],
+                    datasets: [
+                        {
+                            label: isEng ? 'Oil Palm FFB (Million IDR/Ha)' : 'TBS Sawit (Juta Rp/Ha)',
+                            data: [93.7, 92.5],
+                            backgroundColor: '#059669',
+                            borderRadius: 6
+                        },
+                        {
+                            label: isEng ? 'Intercrop Yield (Million IDR/Ha)' : 'Tanaman Sela (Juta Rp/Ha)',
+                            data: [0.0, 55.7],
+                            backgroundColor: '#0284c7',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: labelColor, font: { family: 'monospace', size: 9 } }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            ticks: { color: xTickColor, font: { family: 'monospace', size: 10, weight: 'bold' } },
+                            grid: { color: gridColor }
+                        },
+                        y: {
+                            stacked: true,
+                            ticks: {
+                                color: labelColor,
+                                font: { family: 'monospace', size: 9 },
+                                callback: val => 'Rp ' + val + ' Jt'
+                            },
+                            grid: { color: gridColor }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 4. Pencarian Real-Time (Pure View)
+        function handleOverviewSearch(val) {
+            const q = (val || '').toLowerCase().trim();
+            if (!q) {
+                filteredOverviewDossiers = [...allOverviewDossiers];
+            } else {
+                filteredOverviewDossiers = allOverviewDossiers.filter(d => {
+                    const idStr = String(d.kode_kebun || d.id || '').toLowerCase();
+                    const nameStr = String(d.nama_kebun || d.company || '').toLowerCase();
+                    const hguStr = String(d.nomor_hgu || d.legal_deed_number || '').toLowerCase();
+                    const nopStr = String(d.nop_pbb || '').toLowerCase();
+                    return idStr.includes(q) || nameStr.includes(q) || hguStr.includes(q) || nopStr.includes(q);
+                });
+            }
+            overviewCurrentPage = 1;
+            renderPagedPortfolioTable();
+        }
+
+        // 5. Render Tabel Portofolio Read-Only dengan Pagination
+        function renderPagedPortfolioTable() {
+            const tbody = document.getElementById('portfolioTableBody');
+            const infoEl = document.getElementById('overviewPaginationInfo');
+            const pNav = document.getElementById('overviewPaginationButtons');
+            if (!tbody) return;
+
+            const total = filteredOverviewDossiers.length;
+            const totalPages = Math.max(1, Math.ceil(total / overviewPageSize));
+
+            if (overviewCurrentPage > totalPages) overviewCurrentPage = totalPages;
+            if (overviewCurrentPage < 1) overviewCurrentPage = 1;
+
+            const startIdx = (overviewCurrentPage - 1) * overviewPageSize;
+            const endIdx = Math.min(startIdx + overviewPageSize, total);
+            const pagedItems = filteredOverviewDossiers.slice(startIdx, endIdx);
+
+            const isEng = (localStorage.getItem('precision_palm_lang') || 'en') === 'en';
+
+            if (infoEl) {
+                if (total === 0) {
+                    infoEl.textContent = isEng ? "No matching concessions found" : "Tidak ada konsesi yang cocok";
+                } else {
+                    infoEl.textContent = isEng ? `Showing ${startIdx + 1} - ${endIdx} of ${total} concessions` : `Menampilkan ${startIdx + 1} - ${endIdx} dari ${total} konsesi`;
+                }
+            }
+
+            if (pagedItems.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="py-8 text-center text-slate-500 font-mono">
+                            ${isEng ? "No concession records matching your search query." : "Tidak ditemukan data konsesi yang sesuai dengan kata kunci pencarian."}
+                        </td>
+                    </tr>
+                `;
+                if (pNav) pNav.innerHTML = '';
+                return;
+            }
+
+            tbody.innerHTML = pagedItems.map((d, idx) => {
+                const actualNo = startIdx + idx + 1;
+                const kode = d.kode_kebun || d.id;
+                const nama = d.nama_kebun || d.company || (isEng ? 'Oil Palm Estate' : 'Konsesi Sawit');
+                const hgu = d.nomor_hgu || d.hgu || d.legal_deed_number || '-';
+                const nop = d.nop_pbb || '-';
+                const luas = parseFloat(d.luas_ha || d.area_ha || d.certified_area_ha || 0);
+                const isVerified = (kode === 'EST-MDN-001');
+
+                return `
+                    <tr class="hover:bg-emerald-50/50 dark:hover:bg-slate-800/40 transition border-b border-slate-200 dark:border-slate-800/60">
+                        <td class="py-3 px-3.5 text-center text-slate-400 dark:text-slate-500 font-bold">${actualNo}</td>
+                        <td class="py-3 px-3.5 font-bold text-emerald-600 dark:text-emerald-400 font-mono">${kode}</td>
+                        <td class="py-3 px-3.5 font-sans font-bold text-slate-900 dark:text-white max-w-[220px] truncate" title="${nama}">
+                            ${nama}
+                        </td>
+                        <td class="py-3 px-3.5 text-slate-600 dark:text-slate-400">
+                            <span class="block">${hgu}</span>
+                            <span class="text-[9.5px] text-slate-400 dark:text-slate-500 block font-mono">NOP: ${nop}</span>
+                        </td>
+                        <td class="py-3 px-3.5 text-right text-slate-800 dark:text-slate-200 font-bold">
+                            ${luas.toLocaleString(isEng ? 'en-US' : 'id-ID', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td class="py-3 px-3.5 text-center text-emerald-600 dark:text-emerald-400 font-bold">
+                            0.00 Ha
+                        </td>
+                        <td class="py-3 px-3.5 text-center">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                                ${isEng ? '✓ Non-Forest APL' : '✓ Lolos APL'}
+                            </span>
+                        </td>
+                        <td class="py-3 px-3.5 text-center">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isVerified ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'}">
+                                ${isVerified ? (isEng ? '✓ Certified' : '✓ Tersertifikasi') : (isEng ? 'Audit Stage 2A/2B' : 'Tahap Audit 2A/2B')}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Render Pagination Buttons
+            if (pNav) {
+                if (totalPages <= 1) {
+                    pNav.innerHTML = '';
+                    return;
+                }
+
+                let html = `
+                    <button type="button" onclick="goToOverviewPage(${overviewCurrentPage - 1})" ${overviewCurrentPage <= 1 ? 'disabled class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-900 text-slate-400 dark:text-slate-600 cursor-not-allowed text-[10px]"' : 'class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition text-[10px] cursor-pointer"'}>
+                        &larr; Prev
+                    </button>
+                `;
+
+                for (let p = 1; p <= totalPages; p++) {
+                    const isActive = p === overviewCurrentPage;
+                    html += `
+                        <button type="button" onclick="goToOverviewPage(${p})" class="w-6 h-6 rounded-lg text-[10px] font-bold transition cursor-pointer ${isActive ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800'}">
+                            ${p}
+                        </button>
+                    `;
+                }
+
+                html += `
+                    <button type="button" onclick="goToOverviewPage(${overviewCurrentPage + 1})" ${overviewCurrentPage >= totalPages ? 'disabled class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-900 text-slate-400 dark:text-slate-600 cursor-not-allowed text-[10px]"' : 'class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition text-[10px] cursor-pointer"'}>
+                        Next &rarr;
+                    </button>
+                `;
+
+                pNav.innerHTML = html;
+            }
+        }
+
+        function goToOverviewPage(page) {
+            overviewCurrentPage = page;
+            renderPagedPortfolioTable();
+        }
+
+        // 6. Muat Data Riil dari Backend (/api/overview/stats atau /api/estates)
+        async function refreshOverviewData() {
+            const btn = document.getElementById('btnRefreshStats');
+            const icon = document.getElementById('refreshIcon');
+            if (icon) icon.className = "animate-spin inline-block";
+
+            try {
+                let records = null;
+                let kpi = null;
+                let pricing = null;
+
+                // 1. Coba ambil dari /api/overview/stats
+                try {
+                    const resStats = await fetch('/api/overview/stats');
+                    if (resStats.ok) {
+                        const dataStats = await resStats.json();
+                        if (dataStats && dataStats.status === 'success') {
+                            records = dataStats.records || dataStats.dossiers;
+                            kpi = dataStats.kpi;
+                            pricing = dataStats.pricing;
+                        }
+                    }
+                } catch (_) {}
+
+                // 2. Fallback ke /api/estates
+                if (!records || !records.length) {
+                    const resEst = await fetch('/api/estates');
+                    if (resEst.ok) {
+                        const dataEst = await resEst.json();
+                        if (dataEst && dataEst.success && Array.isArray(dataEst.records)) {
+                            records = dataEst.records;
+                        }
+                    }
+                }
+
+                if (records && records.length) {
+                    allOverviewDossiers = records;
+                    filteredOverviewDossiers = [...records];
+
+                    const totalArea = kpi?.total_area_ha ?? records.reduce((acc, curr) => acc + (parseFloat(curr.luas_ha || curr.certified_area_ha || curr.area_ha) || 0), 0);
+                    const totalDossiers = kpi?.total_dossiers ?? records.length;
+
+                    // Perbarui Headline KPI Bento Cards
+                    const isEng = (localStorage.getItem('precision_palm_lang') || 'en') === 'en';
+                    const elArea = document.getElementById('kpiTotalArea');
+                    if (elArea) elArea.textContent = `${Number(totalArea).toLocaleString(isEng ? 'en-US' : 'id-ID', { minimumFractionDigits: 2 })} Ha`;
+
+                    const elCount = document.getElementById('kpiTotalDossiers');
+                    if (elCount) elCount.textContent = isEng ? `${totalDossiers} Registered Dossiers` : `${totalDossiers} Dossier Terdaftar`;
+
+                    const elBadge = document.getElementById('portfolioBadge');
+                    if (elBadge) elBadge.textContent = isEng ? `${totalDossiers} Registered Concessions` : `${totalDossiers} Konsesi Terdaftar`;
+
+                    // Perbarui Benchmark Harga TBS Live
+                    if (pricing) {
+                        lastPricingData = pricing;
+                        const elCpo = document.getElementById('dispGlobalCpo');
+                        if (elCpo && pricing.cpo_global) elCpo.textContent = `$${Number(pricing.cpo_global).toLocaleString('en-US', { minimumFractionDigits: 2 })} / MT`;
+
+                        updateOverviewPricingDisplay(localStorage.getItem('precision_currency_mode') || 'USD');
+                    }
+
+                    renderPagedPortfolioTable();
+                    renderMapMarkers(records);
+                }
+            } catch (e) {
+                console.warn("[Overview] Gagal mengambil data agregasi konsesi:", e);
+            } finally {
+                if (icon) icon.className = "inline-block";
+            }
+        }
+    </script>
+</body>
+</html>

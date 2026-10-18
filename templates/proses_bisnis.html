@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <!-- Theme Script to Prevent FOUC -->
+    <script>
+        (function () {
+            try {
+                const savedTheme = localStorage.getItem('precision_palm_theme') || 'dark';
+                if (savedTheme === 'light') {
+                    document.documentElement.classList.remove('dark');
+                } else {
+                    document.documentElement.classList.add('dark');
+                }
+            } catch (_) {}
+        })();
+    </script>
+    <script src="/static/js/i18n.js"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>End-to-End Business Process Walkthrough • Precision Palm Cloud</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+                    },
+                    colors: {
+                        brand: {
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                            950: '#022c22'
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #090d16;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #10b981;
+        }
+
+        /* Dynamic SVG data conduit flow */
+        @keyframes flowGlow {
+            0% {
+                stroke-dashoffset: 48;
+            }
+
+            100% {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        .anim-conduit {
+            stroke-dasharray: 6 6;
+            animation: flowGlow 1.2s linear infinite;
+        }
+
+        /* Laser sweep animation */
+        @keyframes laserSweepVertical {
+            0% {
+                top: 2%;
+                opacity: 0.95;
+            }
+
+            50% {
+                top: 96%;
+                opacity: 1;
+            }
+
+            100% {
+                top: 2%;
+                opacity: 0.95;
+            }
+        }
+
+        .laser-sweep-anim {
+            animation: laserSweepVertical 2.2s ease-in-out infinite;
+        }
+
+        /* Shimmer gradient overlay */
+        @keyframes shimmerSlow {
+            0% {
+                background-position: -200% 0;
+            }
+
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        .shimmer-badge {
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.1) 0%, rgba(56, 189, 248, 0.3) 50%, rgba(16, 185, 129, 0.1) 100%);
+            background-size: 200% 100%;
+            animation: shimmerSlow 4s linear infinite;
+        }
+
+        /* Audio wave bounce animation when AI narrator is speaking */
+        @keyframes audioWaveBounce {
+
+            0%,
+            100% {
+                height: 4px;
+            }
+
+            50% {
+                height: 18px;
+            }
+        }
+
+        .audio-wave-bar-1 {
+            animation: audioWaveBounce 0.55s ease-in-out infinite alternate;
+        }
+
+        .audio-wave-bar-2 {
+            animation: audioWaveBounce 0.75s ease-in-out infinite alternate 0.12s;
+        }
+
+        .audio-wave-bar-3 {
+            animation: audioWaveBounce 0.5s ease-in-out infinite alternate 0.25s;
+        }
+
+        .audio-wave-bar-4 {
+            animation: audioWaveBounce 0.65s ease-in-out infinite alternate 0.18s;
+        }
+
+        /* Ambient spatial background */
+        .stage-backdrop-grid {
+            background-image:
+                radial-gradient(circle at 50% 20%, rgba(16, 185, 129, 0.12) 0%, transparent 60%),
+                radial-gradient(circle at 85% 80%, rgba(56, 189, 248, 0.08) 0%, transparent 50%),
+                linear-gradient(to right, rgba(100, 116, 139, 0.08) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(100, 116, 139, 0.08) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-slate-950 text-slate-100 font-sans min-h-screen p-3 sm:p-5 transition-colors duration-200 selection:bg-emerald-500 selection:text-white stage-backdrop-grid flex flex-col justify-between">
+
+    <div class="max-w-7xl mx-auto w-full space-y-4 flex-1 flex flex-col">
+
+        <header
+            class="bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-2xl px-4 py-2.5 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-3 font-mono text-xs">
+            <div class="flex items-center gap-3">
+                <a href="/"
+                    class="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white text-base shadow font-bold hover:opacity-90 transition cursor-pointer"
+                    title="Back to Home">
+                    🌴
+                </a>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-black tracking-tight text-white block">
+                            PRECISION <span class="text-emerald-400">PALM</span>
+                        </span>
+                        <span
+                            class="px-2 py-0.2 rounded-full text-[9px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700">
+                            INTERACTIVE STORYBOARD
+                        </span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- CONTROLS: SCENE INDICATOR, VOICE CHARACTER CHOOSER & ACTIONS -->
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Scene Counter Pill -->
+                <div
+                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 font-bold">
+                    <span class="text-slate-400 text-[10px]">SCENE:</span>
+                    <span id="currentSceneIndexBadge" class="text-emerald-400 text-xs">1</span>
+                    <span class="text-slate-500">/</span>
+                    <span class="text-slate-400 text-xs">8</span>
+                </div>
+
+                <!-- NEW: AI Voice Character & Tone Profile Selector -->
+                <div
+                    class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1 text-xs">
+                    <span class="text-slate-400 text-[10px]">🎙️ Voice:</span>
+                    <select id="voiceProfileSelect" onchange="changeVoiceProfile(this.value)"
+                        class="bg-transparent font-bold text-cyan-400 focus:outline-none cursor-pointer text-xs"
+                        title="Select Voice Character Profile">
+                        <option value="executive_firm" class="bg-slate-900 text-white" selected>👔 Executive Firm (Deep
+                            &amp; Authoritative)</option>
+                        <option value="anchor_crisp" class="bg-slate-900 text-white">🎙️ Studio Anchor (Crisp &amp;
+                            Confident)</option>
+                        <option value="british_formal" class="bg-slate-900 text-white">🇬🇧 British Formal (Articulate)
+                        </option>
+                        <option value="gemini_fenrir" class="bg-slate-900 text-white">⚡ Gemini AI Fenrir (Studio Deep)
+                        </option>
+                        <option value="gemini_aoede" class="bg-slate-900 text-white">⚡ Gemini AI Aoede (Studio Clear)
+                        </option>
+                    </select>
+                </div>
+
+                <!-- AI Voice Narration Auto-Play Switcher -->
+                <button type="button" onclick="toggleVoiceNarration()" id="btnVoiceToggle"
+                    class="px-3 py-1.5 rounded-xl bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-600 font-bold transition flex items-center gap-2 cursor-pointer shadow-xs"
+                    title="Toggle Automated AI Voiceover Narration">
+                    <span id="iconVoiceState">🔊</span>
+                    <span id="labelVoiceState">Voice: ON</span>
+                    <!-- Dynamic Wave Visualizer -->
+                    <div id="narratorWaveVisualizer" class="flex items-center gap-0.5 h-4 px-1">
+                        <span class="w-1 bg-emerald-400 rounded-full audio-wave-bar-1 h-3"></span>
+                        <span class="w-1 bg-teal-300 rounded-full audio-wave-bar-2 h-4"></span>
+                        <span class="w-1 bg-cyan-400 rounded-full audio-wave-bar-3 h-2"></span>
+                        <span class="w-1 bg-emerald-400 rounded-full audio-wave-bar-4 h-3.5"></span>
+                    </div>
+                </button>
+
+                <!-- PPT Export Guide Button -->
+
+            </div>
+        </header>
+
+        <main
+            class="flex-1 bg-slate-900/95 border-2 border-slate-800 rounded-3xl shadow-2xl p-4 sm:p-7 flex flex-col justify-between relative overflow-hidden min-h-[540px] select-none">
+
+            <!-- STAGE HEADER: STAGE TAG & TIMING INDICATOR -->
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3 z-20">
+                <div class="flex items-center gap-2.5">
+                    <span id="sceneStepPill"
+                        class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black uppercase tracking-wider bg-emerald-950 text-emerald-300 border border-emerald-600">
+                        SCENE 1 • THE MACRO CHALLENGE
+                    </span>
+                    <h1 id="sceneTitleText" class="text-sm sm:text-base font-bold text-white font-sans">
+                        Monoculture Plantation Saturation &amp; Deforestation Pressure
+                    </h1>
+                </div>
+
+                <div class="flex items-center gap-2 font-mono text-[10px]">
+                    <span class="text-slate-500 hidden sm:inline">AUTOPLAY PROGRESS:</span>
+                    <div
+                        class="w-24 sm:w-32 bg-slate-800 h-1.5 rounded-full overflow-hidden border border-slate-700/80">
+                        <div id="sceneAutoProgress"
+                            class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full w-0 transition-all duration-100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DYNAMIC STAGE ANIMATION & GRAPHICS VIEWPORT (CENTER) -->
+            <div id="stageViewport" class="flex-1 my-3 relative flex items-center justify-center overflow-hidden z-10">
+                <!-- Injected dynamically via renderActiveScene() -->
+            </div>
+
+            <div
+                class="bg-slate-950/90 border border-slate-800 rounded-2xl p-3.5 sm:p-4 space-y-2 z-20 font-mono text-xs">
+                <div class="flex items-center justify-between border-b border-slate-800/80 pb-1.5">
+                    <div class="flex items-center gap-2">
+                        <span id="narratorLiveDot" class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                        <strong class="text-[10px] uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+                            <span>🎙️</span> <span>OFFICIAL NARRATION SCRIPT (AI AUTO-VOICEOVER &amp; RECORDING
+                                SCRIPT)</span>
+                        </strong>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="replayActiveSceneNarration()" id="btnReplayAudio"
+                            class="px-2.5 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 text-[10px] transition cursor-pointer flex items-center gap-1"
+                            title="Replay AI Voice Narration">
+                            <span>▶️</span> <span>Replay Voice</span>
+                        </button>
+
+                    </div>
+                </div>
+                <p id="voiceoverNarrationText"
+                    class="text-slate-200 font-sans text-xs sm:text-sm leading-relaxed italic">
+                    "Across Southeast Asia, over 25 million hectares of oil palm operate under rigid monoculture
+                    regimes. Facing strict EUDR Article 9 deforestation cut-offs and smallholder revenue dependency on
+                    volatile CPO prices, Precision Palm unlocks 8.5 million hectares of unutilized inter-row avenues
+                    into certified regenerative agroforestry."
+                </p>
+                <div
+                    class="flex items-center justify-between text-[10px] text-slate-500 pt-0.5 border-t border-slate-900">
+                    <span id="sceneAudienceTarget">Audience Target: EUDR Auditors, CPO Exporters &amp;
+                        Smallholders</span>
+                    <span id="sceneDurationEstimate">Estimated Duration: 20s • Voice Profile: Executive Firm
+                        (1.1x)</span>
+                </div>
+            </div>
+
+        </main>
+
+        <footer
+            class="bg-slate-900/95 border border-slate-800 rounded-2xl p-3 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-3 font-mono text-xs select-none">
+
+            <!-- Quick Jump Scene Pills (1 to 8) -->
+            <div id="sceneQuickJumperPills" class="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
+                <!-- Dynamically generated via JS -->
+            </div>
+
+            <!-- Playback Action Controls -->
+            <div class="flex items-center gap-2 shrink-0">
+                <button type="button" onclick="prevScene()" id="btnPrevScene"
+                    class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold transition flex items-center gap-1 cursor-pointer disabled:opacity-30">
+                    <span>⏮</span> <span class="hidden sm:inline">Prev</span>
+                </button>
+
+                <button type="button" onclick="togglePlayPause()" id="btnPlayPause"
+                    class="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black transition flex items-center gap-1.5 shadow shadow-emerald-950/60 cursor-pointer">
+                    <span id="iconPlayPause">⏸</span> <span id="labelPlayPause">Pause</span>
+                </button>
+
+                <button type="button" onclick="nextScene()" id="btnNextScene"
+                    class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold transition flex items-center gap-1 cursor-pointer disabled:opacity-30">
+                    <span class="hidden sm:inline">Next</span> <span>⏭</span>
+                </button>
+
+                <!-- Speed Toggle -->
+                <button type="button" onclick="togglePlaybackSpeed()" id="btnSpeedToggle"
+                    class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-cyan-400 font-bold cursor-pointer text-[10px]"
+                    title="Toggle Autoplay Speed">
+                    1.0x
+                </button>
+            </div>
+        </footer>
+
+    </div>
+
+    <div id="pptGuideModal"
+        class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 hidden">
+        <div
+            class="bg-slate-900 border-2 border-indigo-500/70 rounded-3xl max-w-3xl w-full flex flex-col shadow-2xl overflow-hidden font-mono text-xs">
+            <div class="p-4 sm:p-5 border-b border-slate-800 bg-slate-950 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-2xl">📽️</span>
+                    <div>
+                        <h3 class="text-sm sm:text-base font-bold text-white font-sans">
+                            PowerPoint &bull; MP4 Video Production Blueprint
+                        </h3>
+                        <p class="text-[10px] text-slate-400">Step-by-step instructions to convert this storyboard into
+                            an executive presentation video</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closePptGuideModal()"
+                    class="text-slate-400 hover:text-white p-1 text-base cursor-pointer">✕</button>
+            </div>
+
+            <div
+                class="p-5 sm:p-6 space-y-4 max-h-[70vh] overflow-y-auto text-slate-300 font-sans text-xs leading-relaxed">
+                <div class="p-3.5 bg-slate-950 rounded-2xl border border-indigo-900/60 space-y-2">
+                    <strong class="text-indigo-400 block font-mono text-xs uppercase">Option A: Native Screen Recording
+                        (Fastest &bull; 3 Minutes)</strong>
+                    <ol class="list-decimal list-inside space-y-1.5 text-slate-300">
+                        <li>Click <strong>Fullscreen (F11)</strong> on this browser window.</li>
+                        <li>Press <strong>Play (⏸)</strong> at 1.0x speed. Each scene will auto-advance smoothly every
+                            20–24 seconds after voiceover completes.</li>
+                        <li>Record your screen with OBS Studio, Windows Game Bar (<kbd
+                                class="px-1.5 py-0.5 rounded bg-slate-800 text-white font-mono text-[10px]">Win + Alt +
+                                R</kbd>), or QuickTime on Mac.</li>
+                        <li>The system automatically vocalizes each scene with executive timbre, or you can speak along
+                            with the script.</li>
+                    </ol>
+                </div>
+
+                <div class="p-3.5 bg-slate-950 rounded-2xl border border-emerald-900/60 space-y-2">
+                    <strong class="text-emerald-400 block font-mono text-xs uppercase">Option B: 8-Slide PowerPoint
+                        (.pptx) Export to MP4</strong>
+                    <ol class="list-decimal list-inside space-y-1.5 text-slate-300">
+                        <li>Open Microsoft PowerPoint and create 8 blank slides (16:9 Widescreen).</li>
+                        <li>Copy each scene's title, animated graphic or diagram snapshot, and metrics.</li>
+                        <li>Paste each scene's <strong>Official Narration Script</strong> into PowerPoint's <em>Speaker
+                                Notes</em>.</li>
+                        <li>In PowerPoint, navigate to: <code
+                                class="text-emerald-400 font-mono">Record &rarr; Record from Beginning</code> to record
+                            audio slide-by-slide.</li>
+                        <li>When finished, click <code
+                                class="text-emerald-400 font-mono">File &rarr; Export &rarr; Create a Video (Full HD 1080p MP4)</code>.
+                        </li>
+                    </ol>
+                </div>
+
+                <div
+                    class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-400 flex items-center justify-between">
+                    <span>Target Length: ~2 min 45 sec (Under 3-Min Hackathon Cap)</span>
+                    <span class="text-emerald-400 font-bold">100% Attributed &bull; EUDR Ready</span>
+                </div>
+            </div>
+
+            <div class="p-3.5 border-t border-slate-800 bg-slate-950 flex items-center justify-between">
+                <span class="text-[10px] text-slate-500 font-mono">Precision Palm Cloud &bull; Video Engine</span>
+                <button type="button" onclick="closePptGuideModal()"
+                    class="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs cursor-pointer">
+                    Close Guide
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // 8 CHRONOLOGICAL SCENES: COMPLETE END-TO-END BUSINESS PROCESS
+        // =========================================================================
+        const SCENES_DATA = [
+            // SCENE 1: THE MACRO CHALLENGE
+            {
+                id: 1,
+                tag: "SCENE 1 • THE MACRO CHALLENGE",
+                title: "Monoculture Plantation Saturation & Deforestation Pressures",
+                voiceover: "Across Southeast Asia, over 25 million hectares of oil palm operate under rigid monoculture regimes. Facing strict EUDR Article 9 deforestation cut-offs and smallholder revenue dependency on volatile CPO prices, 83% of inter-row avenues remain unutilized dead zones. Precision Palm solves this through biophysical corridor polyculture.",
+                audience: "EUDR Regulators, Plantation Executives & Independent Smallholders",
+                durationSec: 20,
+                renderHtml: `
+                    <div class="w-full max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs text-left animate-in fade-in duration-300">
+                        <div class="p-4 rounded-2xl bg-slate-950/90 border-2 border-rose-500/70 shadow-lg space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-rose-400 font-bold text-xs uppercase">Problem #1</span>
+                                <span class="text-lg">🌲</span>
+                            </div>
+                            <strong class="text-sm text-white font-sans block">Deforestation Drivers</strong>
+                            <p class="text-slate-400 text-[11px] leading-relaxed">
+                                Conventional expansion converts tropical rainforests, triggering severe international sanctions under EUDR 2023/1115 (Dec 31, 2020 cut-off).
+                            </p>
+                        </div>
+
+                        <div class="p-4 rounded-2xl bg-slate-950/90 border-2 border-amber-500/70 shadow-lg space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-amber-400 font-bold text-xs uppercase">Problem #2</span>
+                                <span class="text-lg">📉</span>
+                            </div>
+                            <strong class="text-sm text-white font-sans block">83% Dead Alleys</strong>
+                            <p class="text-slate-400 text-[11px] leading-relaxed">
+                                Standard 9.0m triangular planting leaves ~8.5 million hectares uncultivated, bare to erosion wash, or sprayed with herbicides.
+                            </p>
+                        </div>
+
+                        <div class="p-4 rounded-2xl bg-slate-950/90 border-2 border-sky-500/70 shadow-lg space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sky-400 font-bold text-xs uppercase">Problem #3</span>
+                                <span class="text-lg">💸</span>
+                            </div>
+                            <strong class="text-sm text-white font-sans block">Smallholder Vulnerability</strong>
+                            <p class="text-slate-400 text-[11px] leading-relaxed">
+                                Single-commodity dependence on volatile fresh fruit bunch pricing traps millions of farming families in poverty cycles.
+                            </p>
+                        </div>
+                    </div>
+                `
+            },
+
+            // SCENE 2: STAGE 1 - CADASTRAL INGESTION
+            {
+                id: 2,
+                tag: "SCENE 2 • STAGE 1: APPLICATIONS",
+                title: "Cadastral Ingestion, Document AI Deed Parsing & WGS84 Geodetic Polygon",
+                voiceover: "The journey begins at Stage 1. Google Cloud Document AI automatically extracts legal HGU title deeds, e-STDB registrations, and municipal property tax NOPs with 99.4% OCR precision. Boundaries are locked onto WGS84 6-decimal geodetic polygons, issuing an official registration code.",
+                audience: "Cadastral Notaries, Agrarian Agencies & Company Attorneys",
+                durationSec: 21,
+                renderHtml: `
+                    <div class="w-full max-w-4xl p-5 rounded-3xl bg-slate-950/90 border-2 border-emerald-500 shadow-xl space-y-3 font-mono text-xs text-left animate-in zoom-in-95 duration-300">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xl">📄</span>
+                                <strong class="text-white text-sm font-sans">Document AI Specialized Deed Parser</strong>
+                            </div>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-600">
+                                99.4% OCR CONFIDENCE
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-[11px]">
+                            <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                                <span class="text-slate-400 block text-[9px] uppercase">Agrarian Title</span>
+                                <strong class="text-white select-all">004/HGU/BPN-MDN/2021</strong>
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                                <span class="text-slate-400 block text-[9px] uppercase">Property Tax NOP</span>
+                                <strong class="text-white select-all">12.13.010.001.001-0001.0</strong>
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                                <span class="text-slate-400 block text-[9px] uppercase">Acreage Registered</span>
+                                <strong class="text-emerald-400">1,200.0 Hectares</strong>
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                                <span class="text-slate-400 block text-[9px] uppercase">WGS84 Centroid</span>
+                                <strong class="text-cyan-300">0.824100°N, 99.561200°E</strong>
+                            </div>
+                        </div>
+
+                        <div class="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-800/80 flex items-center justify-between text-[11px]">
+                            <span class="text-emerald-300">✓ OGC GeoJSON RFC 7946 Polygon Sealed</span>
+                            <span class="font-bold text-white">CERT-ECOGREEN-2026-0001 Registered</span>
+                        </div>
+                    </div>
+                `
+            },
+
+            // SCENE 3: STAGE 2A - SPATIAL AUDIT & MORATORIUM
+            {
+                id: 3,
+                tag: "SCENE 3 • STAGE 2A: SPATIAL AUDIT",
+                title: "Google Earth Engine Moratorium Clearance & 50m Buffer Enforcement",
+                voiceover: "In Stage 2A, parcel boundaries are audited against Google Earth Engine Sentinel-2 imagery and the Ministry of Forestry's PIPPIB 2024 Moratorium. The engine enforces a statutory 50-meter riparian and conservation buffer. If encroachment occurs, Self-Healing Auto-Enclave automatically excises red zones.",
+                audience: "Spatial GIS Engineers & Forestry Regulators",
+                durationSec: 22,
+                renderHtml: `
+                    <div class="w-full max-w-4xl p-5 rounded-3xl bg-slate-950/90 border-2 border-sky-500 shadow-xl space-y-3 font-mono text-xs text-left animate-in zoom-in-95 duration-300">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xl">🛰️</span>
+                                <strong class="text-white text-sm font-sans">Google Earth Engine (GEE API) &bull; PIPPIB Moratorium Screening</strong>
+                            </div>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-950 text-sky-300 border border-sky-600">
+                                100% NON-FOREST APL
+                            </span>
+                        </div>
+
+                        <div class="relative h-44 rounded-2xl overflow-hidden border border-slate-800 bg-slate-900 flex items-center justify-center">
+                            <svg viewBox="0 0 460 160" class="w-full h-full" fill="none">
+                                <rect x="20" y="20" width="130" height="120" rx="8" fill="rgba(244, 63, 94, 0.25)" stroke="#f43f5e" stroke-width="2" stroke-dasharray="4 4"/>
+                                <text x="30" y="45" fill="#f43f5e" font-size="9" font-family="monospace" font-weight="bold">PIPPIB 2024 Red Zone</text>
+                                <text x="30" y="60" fill="#f43f5e" font-size="8" font-family="monospace">Primary Conservation Forest</text>
+
+                                <line x1="150" y1="20" x2="150" y2="140" stroke="#f59e0b" stroke-width="2" stroke-dasharray="3 3"/>
+                                <rect x="150" y="20" width="30" height="120" fill="rgba(245, 158, 11, 0.15)"/>
+                                <text x="155" y="85" fill="#f59e0b" font-size="7" font-family="monospace" transform="rotate(-90 155 85)">BUFFER &gt; 50M</text>
+
+                                <polygon points="185,30 430,30 430,130 185,130" fill="rgba(16, 185, 129, 0.25)" stroke="#10b981" stroke-width="2.5"/>
+                                <text x="210" y="55" fill="#34d399" font-size="9" font-family="monospace" font-weight="bold">HGU Plantation Plot (Safe APL)</text>
+                                <text x="210" y="70" fill="#a7f3d0" font-size="8" font-family="monospace">Zero Encroachment &bull; PP 23/2021 Passed</text>
+                            </svg>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2 text-[10px]">
+                            <div class="p-2 rounded-xl bg-slate-900 border border-slate-800">Distance to Forest: <strong class="text-emerald-400 block">&ge; 50m Clear</strong></div>
+                            <div class="p-2 rounded-xl bg-slate-900 border border-slate-800">EUDR Baseline: <strong class="text-sky-300 block">31 Dec 2020 Passed</strong></div>
+                            <div class="p-2 rounded-xl bg-slate-900 border border-slate-800">Terrain Slope: <strong class="text-emerald-400 block">4.5° (Flat, Low Erosion)</strong></div>
+                        </div>
+                    </div>
+                `
+            },
+
+            // SCENE 4: STAGE 2B - IN-SILICO BIOPHYSICS
+            {
+                id: 4,
+                tag: "SCENE 4 • STAGE 2B: IN-SILICO ENGINE",
+                title: "Beer-Lambert Light Dynamics, 2.0m Sterile Buffer & Companion Crop Gate",
+                voiceover: "Next, the deterministic in-silico engine models solar radiation attenuation via Beer-Lambert physics with extinction coefficient k=0.45. It strictly enforces a 2.0-meter zero-tillage root exclusion circle to protect palm feeder roots from Ganoderma rot, calculating a Land Equivalent Ratio of 1.45x.",
+                audience: "Agronomists, Plantation Managers & Crop Scientists",
+                durationSec: 22,
+                renderHtml: `
+                    <div class="w-full max-w-4xl p-5 rounded-3xl bg-slate-950/90 border-2 border-emerald-500 shadow-xl space-y-3 font-mono text-xs text-left animate-in zoom-in-95 duration-300">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xl">🌴</span>
+                                <strong class="text-white text-sm font-sans">Beer-Lambert Radiation &amp; 2.0m Zero-Tillage Root Zone Geometry</strong>
+                            </div>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-600">
+                                LER 1.4545x (+45.5% ADVANTAGE)
+                            </span>
+                        </div>
+
+                        <!-- Alley Cross-Section Simulation Diagram -->
+                        <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+                            <div class="flex justify-between text-[10px] text-slate-400">
+                                <span>Palm Trunk 1 (0.0m)</span>
+                                <span class="text-emerald-400 font-bold">Surface PAR Transmitted: ~350 µmol/m²/s</span>
+                                <span>Palm Trunk 2 (7.79m)</span>
+                            </div>
+                            <div class="grid grid-cols-12 gap-1.5 h-16 items-end">
+                                <div class="col-span-3 h-14 rounded-xl bg-rose-500/20 border-2 border-dashed border-rose-500 flex flex-col justify-center text-center p-1">
+                                    <span class="text-[8px] font-bold text-rose-400">⛔ 2.0m Buffer</span>
+                                    <span class="text-[7px] text-rose-300">Zero-Tillage</span>
+                                </div>
+                                <div class="col-span-6 h-16 rounded-xl bg-emerald-500/20 border-2 border-dashed border-emerald-500 flex flex-col justify-center text-center p-1">
+                                    <span class="text-[9px] font-bold text-emerald-300">🌿 3.79m Net Agroforestry Corridor (82.91%)</span>
+                                    <span class="text-[8px] text-emerald-400">Red Ginger / Curcuma: 6 Raised Bed Rows</span>
+                                </div>
+                                <div class="col-span-3 h-14 rounded-xl bg-rose-500/20 border-2 border-dashed border-rose-500 flex flex-col justify-center text-center p-1">
+                                    <span class="text-[8px] font-bold text-rose-400">⛔ 2.0m Buffer</span>
+                                    <span class="text-[7px] text-rose-300">Zero-Tillage</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-4 gap-2 text-[10px] text-center">
+                            <div class="p-2 rounded-xl bg-slate-900 border border-slate-800">Total LER: <strong class="text-emerald-400 block text-xs">1.45x</strong></div>
+                            <div class="p-2 rounded-xl bg-slate-900 border border-slate-800">Primary Forest Spared: <strong class="text-sky-300 block text-xs">31.25 Ha</strong></div>
+                            <div class="p-2 rounded-xl bg-slate-900 border border-slate-800">MOP Compensatory: <strong class="text-amber-400 block text-xs">+75 kg K₂O</strong></div>
+                            <div class="p-2 rounded-xl bg-slate-900 border border-slate-800">FFB Yield Deficit: <strong class="text-emerald-400 block text-xs">&le; 4.5% Cap</strong></div>
+                        </div>
+                    </div>
+                `
+            },
+
+            // SCENE 5: PROVISIONAL PASSPORT GATEWAY
+            {
+                id: 5,
+                tag: "SCENE 5 • PROVISIONAL PERMIT ISSUANCE",
+                title: "Provisional Green Palm Passport Sealing & Cryptographic Planting SPK",
+                voiceover: "With the definitive crop locked, the system issues the Provisional Green Palm Recommendation Passport sealed with a SHA-256 hash. This legal work permit authorizes smallholders to establish alley beds without land tenure ambiguity.",
+                audience: "Financial Lenders, Planters & Field Supervisors",
+                durationSec: 20,
+                renderHtml: `
+                    <div class="w-full max-w-4xl p-5 rounded-3xl bg-slate-950/90 border-2 border-amber-500 shadow-xl space-y-3 font-mono text-xs text-left animate-in zoom-in-95 duration-300">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xl">📜</span>
+                                <strong class="text-white text-sm font-sans">Provisional Green Palm Recommendation Passport</strong>
+                            </div>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-600">
+                                PROVISIONAL PERMIT ACTIVE
+                            </span>
+                        </div>
+
+                        <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+                            <div class="flex justify-between items-center text-[11px]">
+                                <span class="text-slate-400">Authorized Companion Crop:</span>
+                                <strong class="text-emerald-400">Red Ginger (Zingiber officinale var. rubrum)</strong>
+                            </div>
+                            <div class="flex justify-between items-center text-[11px]">
+                                <span class="text-slate-400">Nutrient Dosing Blueprint:</span>
+                                <strong class="text-amber-300">+75.0 kg MOP (KCl) / Ha Alley Compensation</strong>
+                            </div>
+                            <div class="flex justify-between items-center text-[11px]">
+                                <span class="text-slate-400">180-Day SLA Countdown Trigger:</span>
+                                <strong class="text-sky-300">Active (180 Days Planting Grace Period)</strong>
+                            </div>
+                            <div class="flex justify-between items-center text-[11px] pt-1 border-t border-slate-800">
+                                <span class="text-slate-500">Cryptographic Seal:</span>
+                                <span class="text-indigo-400 font-bold select-all truncate max-w-xs">8F434346648F6B96DF89DDA901C5176B10A6D839...</span>
+                            </div>
+                        </div>
+
+                        <p class="text-slate-400 text-[10px] font-sans">
+                            Acts as official work authorization for field execution. Transitions the estate from In-Silico Planning to Active Surveillance.
+                        </p>
+                    </div>
+                `
+            },
+
+            // SCENE 6: STAGE 3 - FIELD SURVEILLANCE & SLA
+            {
+                id: 6,
+                tag: "SCENE 6 • STAGE 3: SURVEILLANCE",
+                title: "Edge PWA Node, Chirp 2 Voice-to-Report & 180-Day Automated Freeze",
+                voiceover: "In Stage 3, foremen record physical progress using the offline PWA node. Google Cloud Speech-to-Text Chirp 2 transcribes spoken Indonesian field notes into structured GAP checklists. The system validates weather against BMKG satellites, while the 180-day SLA state machine automatically suspends dormant dossiers on Day 181.",
+                audience: "Field Foremen (Mandor), Plantation Supervisors & Agronomists",
+                durationSec: 23,
+                renderHtml: `
+                    <div class="w-full max-w-4xl p-5 rounded-3xl bg-slate-950/90 border-2 border-indigo-500 shadow-xl space-y-3 font-mono text-xs text-left animate-in zoom-in-95 duration-300">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xl">📱</span>
+                                <strong class="text-white text-sm font-sans">Foreman Edge Node PWA (/mobile) &amp; Chirp 2 Voice-to-Report</strong>
+                            </div>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-950 text-indigo-300 border border-indigo-600">
+                                OFFLINE INDEXEDDB READY
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-[11px]">
+                            <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+                                <strong class="text-indigo-300 block">🎙️ Chirp 2 Speech-to-Report</strong>
+                                <p class="text-slate-400 text-[10px] leading-tight">
+                                    Spoken voice notes in Indonesian automatically extract block IDs and populate GAP checklists.
+                                </p>
+                            </div>
+                            <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+                                <strong class="text-emerald-400 block">🎯 AI Reticle Vision HUD</strong>
+                                <p class="text-slate-400 text-[10px] leading-tight">
+                                    Computer vision verifies the 2.0m sterile circle is tillage-free and crop beds respect 3.79m alleys.
+                                </p>
+                            </div>
+                            <div class="p-3 rounded-2xl bg-slate-900 border border-rose-900/60 space-y-1">
+                                <strong class="text-rose-400 block">⏱️ 180-Day Automated Freeze</strong>
+                                <p class="text-slate-400 text-[10px] leading-tight">
+                                    Day 181 without physical field survey triggers automated suspension (SUSPENDED_6_MONTHS).
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex justify-between text-[10px]">
+                            <span class="text-slate-400">Weather Anti-Fraud:</span>
+                            <span class="text-emerald-400 font-bold">✓ 100% BMKG Satellite Cross-Matched</span>
+                        </div>
+                    </div>
+                `
+            },
+
+            // SCENE 7: STAGE 4 - ALL-REPORT & ASSESSOR HEARING
+            {
+                id: 7,
+                tag: "SCENE 7 • STAGE 4: COMPLIANCE GOVERNANCE",
+                title: "Consolidated All-Report Master Docket & Assessor Council Audit Hearing",
+                voiceover: "Stage 4 consolidates evidence from all four stages into an auditable All-Report Master Docket. The Assessor Council reviews machine ground truth alongside human qualitative findings, confirming zero deforestation and capping FFB yield deficit under 4.5%.",
+                audience: "Assessor Council, Lead Auditors & Certification Boards",
+                durationSec: 21,
+                renderHtml: `
+                    <div class="w-full max-w-4xl p-5 rounded-3xl bg-slate-950/90 border-2 border-purple-500 shadow-xl space-y-3 font-mono text-xs text-left animate-in zoom-in-95 duration-300">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xl">🏛️</span>
+                                <strong class="text-white text-sm font-sans">All-Report Master Docket &amp; Dual-Layer Assessor Evaluation</strong>
+                            </div>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-950 text-purple-300 border border-purple-600">
+                                ALL 4 STAGES CONSOLIDATED
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-4 gap-2 text-[10px] text-center">
+                            <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                                <span class="text-slate-500 block">Stage 1</span>
+                                <strong class="text-emerald-400 text-xs">Tenure Passed</strong>
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                                <span class="text-slate-500 block">Stage 2A</span>
+                                <strong class="text-sky-300 text-xs">PIPPIB Cleared</strong>
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                                <span class="text-slate-500 block">Stage 2B</span>
+                                <strong class="text-emerald-400 text-xs">LER 1.45x Sealed</strong>
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                                <span class="text-slate-500 block">Stage 3</span>
+                                <strong class="text-cyan-300 text-xs">4 Quarters Audited</strong>
+                            </div>
+                        </div>
+
+                        <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-[11px] space-y-1">
+                            <div class="flex justify-between"><span class="text-slate-400">Lead Assessor:</span> <strong class="text-white">(Lead Assessor)</strong></div>
+                            <div class="flex justify-between"><span class="text-slate-400">Formal Verdict:</span> <strong class="text-emerald-400">✓ FULLY APPROVED (Eligible for Export)</strong></div>
+                            <div class="flex justify-between"><span class="text-slate-400">Grounded Auditor AI:</span> <strong class="text-indigo-400">[1] PP 23/2021 &bull; [2] EUDR Art. 9 Attributed</strong></div>
+                        </div>
+                    </div>
+                `
+            },
+
+            // SCENE 8: FINALE - STATUTORY CERTIFICATE & EUDR EXPORT
+            {
+                id: 8,
+                tag: "SCENE 8 • FINAL EXPORT CERTIFICATION",
+                title: "Statutory EcoGreen Certificate, Cloud KMS SHA-256 & EUDR TRACES-NT Export",
+                voiceover: "Finally, the Statutory EcoGreen Compliance Certificate is issued with a hardware Google Cloud KMS SHA-256 seal. European buyers verify compliance via public QR code, while operators download the official EUDR TRACES-NT Due Diligence JSON payload, unlocking certified international trade.",
+                audience: "European CPO Importers, Customs Authorities & Carbon Registries",
+                durationSec: 22,
+                renderHtml: `
+                    <div class="w-full max-w-4xl p-5 rounded-3xl bg-slate-950/90 border-2 border-emerald-400 shadow-2xl space-y-3.5 font-mono text-xs text-left animate-in zoom-in-95 duration-300">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-2xl">🏆</span>
+                                <div>
+                                    <strong class="text-white text-sm font-sans block">Statutory EcoGreen Compliance Certificate Issued</strong>
+                                    <span class="text-[10px] text-emerald-400">EUDR Article 9 &bull; ISPO Principles 1-7 Certified</span>
+                                </div>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-950 text-emerald-300 border border-emerald-500 animate-pulse">
+                                ACTIVE STATUTORY CERTIFIED
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px]">
+                            <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+                                <span class="text-slate-400 block text-[10px]">🇪🇺 EUDR TRACES-NT</span>
+                                <strong class="text-white block">DDS JSON Payload</strong>
+                                <span class="text-[9px] text-emerald-400">Ready for TRACES Upload</span>
+                            </div>
+                            <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+                                <span class="text-slate-400 block text-[10px]">🛡️ Public QR Validation</span>
+                                <strong class="text-white block">/validasi/CERT-0001</strong>
+                                <span class="text-[9px] text-cyan-400">Zero-Hallucination Portal</span>
+                            </div>
+                            <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+                                <span class="text-slate-400 block text-[10px]">🌿 Verra VM0007 Assets</span>
+                                <strong class="text-white block">14,062 tCO₂e Avoided</strong>
+                                <span class="text-[9px] text-purple-400">$168,744 Asset Value</span>
+                            </div>
+                        </div>
+
+                        <div class="p-3 rounded-2xl bg-emerald-950/30 border border-emerald-800/80 flex items-center justify-between text-[10px]">
+                            <span class="text-slate-400">Cryptographic Seal: <strong class="text-indigo-400">8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4</strong></span>
+                            <span class="text-emerald-400 font-bold">IMMUTABLE BIGQUERY ESG LEDGER</span>
+                        </div>
+                    </div>
+                `
+            }
+        ];
+
+        // =========================================================================
+        // TIMELINE & PLAYBACK CONTROLLER ENGINE
+        // =========================================================================
+        let currentSceneIndex = 0;
+        let isPlaying = true;
+        let playbackSpeed = 1.0;
+        let sceneIntervalTimer = null;
+        let progressTickInterval = null;
+        let elapsedProgressMs = 0;
+
+        // =========================================================================
+        // ENHANCED AI VOICE ENGINE & EXECUTIVE TONE PROFILES
+        // =========================================================================
+        let isVoiceNarrationEnabled = true;
+        let activeAudioElement = null;
+        let isNarrating = false;
+        let currentVoiceProfile = 'executive_firm';
+        const ttsAudioBlobCache = new Map();
+
+        // Cached browser voices
+        let availableBrowserVoices = [];
+
+        function initBrowserVoiceCache() {
+            if ('speechSynthesis' in window) {
+                availableBrowserVoices = window.speechSynthesis.getVoices();
+                window.speechSynthesis.onvoiceschanged = () => {
+                    availableBrowserVoices = window.speechSynthesis.getVoices();
+                };
+            }
+        }
+        initBrowserVoiceCache();
+
+        function changeVoiceProfile(profileKey) {
+            currentVoiceProfile = profileKey;
+            const desc = document.getElementById('sceneDurationEstimate');
+            if (desc) {
+                const s = SCENES_DATA[currentSceneIndex];
+                desc.textContent = `Estimated Duration: ${Math.round(s.durationSec / playbackSpeed)}s • Voice Profile: ${profileKey.replace('_', ' ').toUpperCase()}`;
+            }
+            if (isVoiceNarrationEnabled) {
+                speakActiveSceneNarration();
+            }
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binaryString = window.atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        function pcmToWav(pcm16, sampleRate = 24000) {
+            const numChannels = 1;
+            const bytesPerSample = 2;
+            const blockAlign = numChannels * bytesPerSample;
+            const byteRate = sampleRate * blockAlign;
+            const dataSize = pcm16.length * bytesPerSample;
+            const buffer = new ArrayBuffer(44 + dataSize);
+            const view = new DataView(buffer);
+
+            // RIFF header
+            for (let i = 0; i < 4; i++) view.setUint8(i, 'RIFF'.charCodeAt(i));
+            view.setUint32(4, 36 + dataSize, true);
+            for (let i = 0; i < 4; i++) view.setUint8(8 + i, 'WAVE'.charCodeAt(i));
+
+            // fmt sub-chunk
+            for (let i = 0; i < 4; i++) view.setUint8(12 + i, 'fmt '.charCodeAt(i));
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true); // PCM Format
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, 16, true); // bits per sample
+
+            // data sub-chunk
+            for (let i = 0; i < 4; i++) view.setUint8(36 + i, 'data'.charCodeAt(i));
+            view.setUint32(40, dataSize, true);
+
+            // Write PCM16 samples
+            let offset = 44;
+            for (let i = 0; i < pcm16.length; i++) {
+                view.setInt16(offset, pcm16[i], true);
+                offset += 2;
+            }
+
+            return new Blob([view], { type: 'audio/wav' });
+        }
+
+        async function fetchGeminiTtsAudio(scriptText, voiceName = "Fenrir") {
+            const cacheKey = `${voiceName}_${scriptText.slice(0, 80)}`;
+            if (ttsAudioBlobCache.has(cacheKey)) {
+                return ttsAudioBlobCache.get(cacheKey);
+            }
+
+            const apiKey = "";
+            if (!apiKey) {
+                throw new Error("No Gemini API key provided; falling back to enhanced speech synthesis");
+            }
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{
+                    parts: [{ text: `Speak with executive authority, firm cadence, and crisp articulation in American English: ${scriptText}` }]
+                }],
+                generationConfig: {
+                    responseModalities: ["AUDIO"],
+                    speechConfig: {
+                        voiceConfig: {
+                            prebuiltVoiceConfig: { voiceName: voiceName }
+                        }
+                    }
+                },
+                model: "gemini-2.5-flash-preview-tts"
+            };
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`TTS API HTTP error: ${response.status}`);
+            }
+
+            const result = await response.json();
+            const part = result?.candidates?.[0]?.content?.parts?.[0];
+            const audioData = part?.inlineData?.data;
+            const mimeType = part?.inlineData?.mimeType || "audio/L16;rate=24000";
+
+            if (!audioData) {
+                throw new Error("No audio inlineData received from Gemini TTS");
+            }
+
+            const rateMatch = mimeType.match(/rate=(\d+)/);
+            const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
+            const pcmBuffer = base64ToArrayBuffer(audioData);
+            const pcm16 = new Int16Array(pcmBuffer);
+            const wavBlob = pcmToWav(pcm16, sampleRate);
+            const audioUrl = URL.createObjectURL(wavBlob);
+
+            ttsAudioBlobCache.set(cacheKey, audioUrl);
+            return audioUrl;
+        }
+
+        function playExecutiveWebSpeech(scriptText) {
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(scriptText);
+            utterance.lang = 'en-US';
+
+            // Configure Cadence and Pitch depending on Selected Tone Profile
+            let targetRate = 1.08;
+            let targetPitch = 0.96;
+            let preferredKeywords = ['Natural', 'Guy', 'Christopher', 'Google', 'David', 'Online'];
+
+            if (currentVoiceProfile === 'executive_firm') {
+                targetRate = 1.10;
+                targetPitch = 0.92; // Slightly deeper, firm and authoritative
+                preferredKeywords = ['Natural', 'Guy', 'Christopher', 'David', 'Arthur', 'Oliver'];
+            } else if (currentVoiceProfile === 'anchor_crisp') {
+                targetRate = 1.12;
+                targetPitch = 1.02; // Clear, energetic studio cadence
+                preferredKeywords = ['Natural', 'Jenny', 'Aria', 'Samantha', 'Google', 'Ava'];
+            } else if (currentVoiceProfile === 'british_formal') {
+                utterance.lang = 'en-GB';
+                targetRate = 1.05;
+                targetPitch = 0.95;
+                preferredKeywords = ['UK', 'George', 'Oliver', 'Arthur', 'Hazel', 'Natural'];
+            } else {
+                targetRate = 1.08;
+                targetPitch = 0.95;
+            }
+
+            utterance.rate = targetRate * playbackSpeed;
+            utterance.pitch = targetPitch;
+
+            // Select most natural and authoritative installed voice
+            let voices = availableBrowserVoices.length > 0 ? availableBrowserVoices : window.speechSynthesis.getVoices();
+            if (voices && voices.length > 0) {
+                // Priority 1: Match preferred keyword + target language
+                let matchedVoice = voices.find(v => v.lang.startsWith(utterance.lang.slice(0, 2)) && preferredKeywords.some(k => v.name.includes(k)));
+
+                // Priority 2: Any English Natural/Google voice
+                if (!matchedVoice) {
+                    matchedVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Neural')));
+                }
+
+                // Priority 3: Any English voice
+                if (!matchedVoice) {
+                    matchedVoice = voices.find(v => v.lang.startsWith('en'));
+                }
+
+                if (matchedVoice) {
+                    utterance.voice = matchedVoice;
+                }
+            }
+
+            utterance.onstart = () => {
+                isNarrating = true;
+                setNarratorWaveVisualizer(true);
+            };
+
+            utterance.onend = () => {
+                isNarrating = false;
+                setNarratorWaveVisualizer(false);
+            };
+
+            utterance.onerror = () => {
+                isNarrating = false;
+                setNarratorWaveVisualizer(false);
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        async function speakActiveSceneNarration() {
+            if (!isVoiceNarrationEnabled) return;
+            stopActiveNarration();
+
+            const scene = SCENES_DATA[currentSceneIndex];
+            const textToSpeak = scene.voiceover;
+
+            setNarratorWaveVisualizer(true);
+            isNarrating = true;
+
+            // Select Gemini voice name if user chose Gemini profile
+            let geminiVoiceName = "Fenrir"; // Default deep firm voice
+            if (currentVoiceProfile === 'gemini_aoede') geminiVoiceName = "Aoede";
+            if (currentVoiceProfile === 'gemini_fenrir') geminiVoiceName = "Fenrir";
+
+            try {
+                // Try Gemini 3.8 Flash TTS
+                const audioUrl = await fetchGeminiTtsAudio(textToSpeak, geminiVoiceName);
+                activeAudioElement = new Audio(audioUrl);
+                activeAudioElement.playbackRate = playbackSpeed;
+
+                activeAudioElement.onended = () => {
+                    setNarratorWaveVisualizer(false);
+                    isNarrating = false;
+                };
+
+                activeAudioElement.onerror = () => {
+                    playExecutiveWebSpeech(textToSpeak);
+                };
+
+                await activeAudioElement.play();
+            } catch (err) {
+                // Fallback to enhanced Executive Web Speech
+                playExecutiveWebSpeech(textToSpeak);
+            }
+        }
+
+        function stopActiveNarration() {
+            isNarrating = false;
+            setNarratorWaveVisualizer(false);
+
+            if (activeAudioElement) {
+                try {
+                    activeAudioElement.pause();
+                    activeAudioElement.currentTime = 0;
+                } catch (_) { }
+                activeAudioElement = null;
+            }
+
+            if ('speechSynthesis' in window) {
+                try { window.speechSynthesis.cancel(); } catch (_) { }
+            }
+        }
+
+        function toggleVoiceNarration() {
+            isVoiceNarrationEnabled = !isVoiceNarrationEnabled;
+            const icon = document.getElementById('iconVoiceState');
+            const lbl = document.getElementById('labelVoiceState');
+            const btn = document.getElementById('btnVoiceToggle');
+
+            if (isVoiceNarrationEnabled) {
+                if (icon) icon.textContent = '🔊';
+                if (lbl) lbl.textContent = 'Voice: ON';
+                if (btn) btn.className = "px-3 py-1.5 rounded-xl bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-600 font-bold transition flex items-center gap-2 cursor-pointer shadow-xs";
+                speakActiveSceneNarration();
+            } else {
+                if (icon) icon.textContent = '🔇';
+                if (lbl) lbl.textContent = 'Voice: OFF';
+                if (btn) btn.className = "px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-850 text-slate-400 border border-slate-700 font-bold transition flex items-center gap-2 cursor-pointer shadow-xs";
+                stopActiveNarration();
+            }
+        }
+
+        function replayActiveSceneNarration() {
+            if (!isVoiceNarrationEnabled) toggleVoiceNarration();
+            else speakActiveSceneNarration();
+        }
+
+        function setNarratorWaveVisualizer(isActive) {
+            const visualizer = document.getElementById('narratorWaveVisualizer');
+            const liveDot = document.getElementById('narratorLiveDot');
+            if (visualizer) visualizer.style.opacity = isActive ? '1' : '0.25';
+            if (liveDot) {
+                liveDot.className = isActive ? 'w-2 h-2 rounded-full bg-emerald-400 animate-ping' : 'w-2 h-2 rounded-full bg-slate-600';
+            }
+        }
+
+        function initStoryboardEngine() {
+            renderSceneJumpPills();
+            renderActiveScene(0);
+            startSceneAutoPlay();
+        }
+
+        function renderSceneJumpPills() {
+            const container = document.getElementById('sceneQuickJumperPills');
+            if (!container) return;
+
+            container.innerHTML = SCENES_DATA.map((scene, idx) => `
+                <button type="button" onclick="goToScene(${idx})" id="pillScene_${idx}" class="px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${idx === 0 ? 'bg-emerald-600 text-slate-950 font-black shadow-md' : 'bg-slate-800 text-slate-400 hover:text-white'}">
+                    ${idx + 1}
+                </button>
+            `).join('');
+        }
+
+        function renderActiveScene(index) {
+            currentSceneIndex = Math.max(0, Math.min(SCENES_DATA.length - 1, index));
+            const s = SCENES_DATA[currentSceneIndex];
+
+            // Update Header & Badge Text
+            document.getElementById('currentSceneIndexBadge').textContent = s.id;
+            document.getElementById('sceneStepPill').textContent = s.tag;
+            document.getElementById('sceneTitleText').textContent = s.title;
+
+            // Update Viewport Graphics
+            const stage = document.getElementById('stageViewport');
+            if (stage) stage.innerHTML = s.renderHtml;
+
+            // Update Narration Script Box
+            document.getElementById('voiceoverNarrationText').textContent = `"${s.voiceover}"`;
+            document.getElementById('sceneAudienceTarget').textContent = `Audience Target: ${s.audience}`;
+            document.getElementById('sceneDurationEstimate').textContent = `Estimated Duration: ${Math.round(s.durationSec / playbackSpeed)}s • Voice Profile: ${currentVoiceProfile.replace('_', ' ').toUpperCase()}`;
+
+            // Update Navigation Pills
+            SCENES_DATA.forEach((_, idx) => {
+                const pill = document.getElementById(`pillScene_${idx}`);
+                if (pill) {
+                    pill.className = (idx === currentSceneIndex)
+                        ? "px-2.5 py-1 rounded-xl text-xs font-black bg-emerald-500 text-slate-950 shadow-md cursor-pointer"
+                        : "px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 hover:text-white cursor-pointer";
+                }
+            });
+
+            // Update Prev/Next button states
+            document.getElementById('btnPrevScene').disabled = (currentSceneIndex === 0);
+            document.getElementById('btnNextScene').disabled = (currentSceneIndex === SCENES_DATA.length - 1);
+
+            resetProgressCounters();
+
+            // Trigger AI Voice Narration for current scene
+            speakActiveSceneNarration();
+        }
+
+        function resetProgressCounters() {
+            elapsedProgressMs = 0;
+            const bar = document.getElementById('sceneAutoProgress');
+            if (bar) bar.style.width = '0%';
+        }
+
+        function startSceneAutoPlay() {
+            clearInterval(progressTickInterval);
+            if (!isPlaying) return;
+
+            const currentScene = SCENES_DATA[currentSceneIndex];
+            const totalDurationMs = (currentScene.durationSec * 1000) / playbackSpeed;
+            const tickRateMs = 100;
+
+            progressTickInterval = setInterval(() => {
+                if (!isPlaying) return;
+                elapsedProgressMs += tickRateMs;
+                const pct = Math.min(100, (elapsedProgressMs / totalDurationMs) * 100);
+                const bar = document.getElementById('sceneAutoProgress');
+                if (bar) bar.style.width = `${pct}%`;
+
+                // If time limit reached, only advance if voice narration has finished speaking
+                if (elapsedProgressMs >= totalDurationMs) {
+                    if (isNarrating && isVoiceNarrationEnabled) {
+                        return; // Wait until voice narration ends
+                    }
+
+                    clearInterval(progressTickInterval);
+                    if (currentSceneIndex < SCENES_DATA.length - 1) {
+                        nextScene();
+                    } else {
+                        // Loop back to Scene 1
+                        goToScene(0);
+                    }
+                }
+            }, tickRateMs);
+        }
+
+        function togglePlayPause() {
+            isPlaying = !isPlaying;
+            const icon = document.getElementById('iconPlayPause');
+            const lbl = document.getElementById('labelPlayPause');
+
+            if (isPlaying) {
+                if (icon) icon.textContent = '⏸';
+                if (lbl) lbl.textContent = 'Pause';
+                startSceneAutoPlay();
+                speakActiveSceneNarration();
+            } else {
+                if (icon) icon.textContent = '▶';
+                if (lbl) lbl.textContent = 'Play';
+                clearInterval(progressTickInterval);
+                stopActiveNarration();
+            }
+        }
+
+        function nextScene() {
+            if (currentSceneIndex < SCENES_DATA.length - 1) {
+                renderActiveScene(currentSceneIndex + 1);
+                startSceneAutoPlay();
+            }
+        }
+
+        function prevScene() {
+            if (currentSceneIndex > 0) {
+                renderActiveScene(currentSceneIndex - 1);
+                startSceneAutoPlay();
+            }
+        }
+
+        function goToScene(index) {
+            renderActiveScene(index);
+            startSceneAutoPlay();
+        }
+
+        function togglePlaybackSpeed() {
+            if (playbackSpeed === 1.0) playbackSpeed = 1.25;
+            else if (playbackSpeed === 1.25) playbackSpeed = 1.5;
+            else playbackSpeed = 1.0;
+
+            const btn = document.getElementById('btnSpeedToggle');
+            if (btn) btn.textContent = `${playbackSpeed.toFixed(2)}x`;
+
+            startSceneAutoPlay();
+            speakActiveSceneNarration();
+        }
+
+        function copyVoiceoverScript() {
+            const text = document.getElementById('voiceoverNarrationText')?.innerText || '';
+            const btn = document.getElementById('btnCopyScript');
+
+            try {
+                navigator.clipboard.writeText(text).then(() => {
+                    if (btn) {
+                        btn.innerHTML = '<span>✓</span> <span>Copied!</span>';
+                        setTimeout(() => { btn.innerHTML = '<span>📋</span> <span>Copy Voiceover</span>'; }, 1500);
+                    }
+                });
+            } catch (_) {
+                document.execCommand('copy');
+            }
+        }
+
+        // PowerPoint Guide Modal
+        function openPptGuideModal() {
+            const m = document.getElementById('pptGuideModal');
+            if (m) m.classList.remove('hidden');
+        }
+
+        function closePptGuideModal() {
+            const m = document.getElementById('pptGuideModal');
+            if (m) m.classList.add('hidden');
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.code === 'Space') {
+                e.preventDefault();
+                togglePlayPause();
+            } else if (e.key === 'ArrowRight') {
+                nextScene();
+            } else if (e.key === 'ArrowLeft') {
+                prevScene();
+            } else if (e.key === 'Escape') {
+                closePptGuideModal();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', initStoryboardEngine);
+
+        // Global Window Exposure
+        window.prevScene = prevScene;
+        window.nextScene = nextScene;
+        window.goToScene = goToScene;
+        window.togglePlayPause = togglePlayPause;
+        window.togglePlaybackSpeed = togglePlaybackSpeed;
+        window.copyVoiceoverScript = copyVoiceoverScript;
+        window.openPptGuideModal = openPptGuideModal;
+        window.closePptGuideModal = closePptGuideModal;
+        window.toggleVoiceNarration = toggleVoiceNarration;
+        window.replayActiveSceneNarration = replayActiveSceneNarration;
+        window.changeVoiceProfile = changeVoiceProfile;
+    </script>
+</body>
+
+</html>

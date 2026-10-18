@@ -1,0 +1,70 @@
+<!-- templates/partials/floating_terminal.html -->
+<!-- 
+  Precision Palm - Modular Floating AI Execution Terminal
+  Displays transparent 3-phase telemetry streams ([REQUEST] -> [PROCESS] -> [RESULT]),
+  equipped with filtering tabs, copy-to-clipboard, minimize/maximize controls, and live pulse status.
+-->
+
+<div id="floatingAiTerminalContainer" class="fixed bottom-4 right-4 z-50 w-[95vw] sm:w-[480px] max-w-full bg-slate-950/95 border border-slate-700/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-md hidden transition-all duration-300 font-mono">
+    
+    <!-- Terminal Header Bar -->
+    <div class="p-3 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between select-none">
+        <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                <span>⚡</span> <span data-i18n="term_title">AI Execution Terminal</span>
+            </span>
+            <span id="terminalStatusIndicator" class="text-[9px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold" data-i18n="term_ready">
+                Ready
+            </span>
+        </div>
+        <div class="flex items-center gap-1.5 text-slate-400">
+            <button type="button" onclick="toggleMinimizeTerminal()" id="btnTerminalMinimize" class="p-1 hover:text-white rounded hover:bg-slate-800 transition cursor-pointer" title="Minimize / Maximize" data-i18n-title="term_minimize_title">🗕</button>
+            <button type="button" onclick="closeTerminalWindow()" class="p-1 hover:text-rose-400 rounded hover:bg-slate-800 transition cursor-pointer" title="Close Terminal" data-i18n-title="term_close_title">✕</button>
+        </div>
+    </div>
+
+    <!-- Terminal Filter Toolbar -->
+    <div id="floatingAiTerminalToolbar" class="p-2 border-b border-slate-800/80 bg-slate-900/50 flex items-center justify-between text-[10px]">
+        <div class="flex items-center gap-1">
+            <button type="button" id="btnTermFilter_ALL" onclick="setTerminalFilter('ALL')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-600 text-white cursor-pointer shadow-xs" data-i18n="term_filter_all">ALL</button>
+            <button type="button" id="btnTermFilter_REQUEST" onclick="setTerminalFilter('REQUEST')" class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400 hover:text-white cursor-pointer transition" data-i18n="term_filter_request">REQUEST</button>
+            <button type="button" id="btnTermFilter_PROCESS" onclick="setTerminalFilter('PROCESS')" class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400 hover:text-white cursor-pointer transition" data-i18n="term_filter_process">PROCESS</button>
+            <button type="button" id="btnTermFilter_RESULT" onclick="setTerminalFilter('RESULT')" class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400 hover:text-white cursor-pointer transition" data-i18n="term_filter_result">RESULT</button>
+        </div>
+        <div class="flex items-center gap-1">
+            <button type="button" id="btnTerminalCopy" onclick="if (typeof copyTerminalLogsToClipboard === 'function') { copyTerminalLogsToClipboard(); } else if (typeof window.copyTerminalLogsToClipboard === 'function') { window.copyTerminalLogsToClipboard(); }" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] cursor-pointer transition" data-i18n="term_btn_copy">Copy</button>
+            <button type="button" onclick="if (typeof clearTerminalLogs === 'function') { clearTerminalLogs(); } else if (typeof window.clearTerminalLogs === 'function') { window.clearTerminalLogs(); }" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-rose-900 text-slate-300 hover:text-rose-200 text-[10px] cursor-pointer transition" data-i18n="term_btn_clear">Clear</button>
+        </div>
+    </div>
+
+    <!-- Terminal Scrollable Stream Body -->
+    <div id="floatingAiTerminalBody" class="p-3 max-h-72 sm:max-h-84 overflow-y-auto space-y-2 text-[10px] bg-slate-950 select-text">
+        <div id="floatingTerminalLogStream" class="space-y-2">
+            <div id="terminalEmptyPlaceholder" class="p-4 text-center text-slate-500 text-[10px]" data-i18n="term_placeholder">
+                ⚡ AI Execution Terminal online. Standing by for telemetry dispatch...
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Action Trigger Pill Button removed per user specification -->
+
+<script>
+    if (typeof window.clearTerminalLogs !== 'function') {
+        window.clearTerminalLogs = function() {
+            const container = document.getElementById('floatingTerminalLogStream');
+            if (container) {
+                container.innerHTML = `
+                    <div id="terminalEmptyPlaceholder" class="p-4 text-center text-slate-500 text-[10px]" data-i18n="term_placeholder">
+                        ⚡ AI Execution Terminal online. Standing by for telemetry dispatch...
+                    </div>
+                `;
+            }
+            if (typeof terminalLogCounter !== 'undefined') terminalLogCounter = 0;
+            try {
+                localStorage.removeItem('precision_palm_terminal_logs_cache');
+            } catch (e) {}
+        };
+    }
+</script>

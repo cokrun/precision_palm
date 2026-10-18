@@ -1,0 +1,2 @@
+# kalkulasi/requirements.txt
+# Modul standar Python math dan typing sudah built-in

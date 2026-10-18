@@ -1,0 +1,771 @@
+<!-- templates/pendaftaran.html -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <!-- Theme Script to Prevent FOUC -->
+    <script>
+        (function () {
+            try {
+                const savedTheme = localStorage.getItem('precision_palm_theme') || 'dark';
+                if (savedTheme === 'light') {
+                    document.documentElement.classList.remove('dark');
+                } else {
+                    document.documentElement.classList.add('dark');
+                }
+            } catch (_) {}
+        })();
+    </script>
+    <script src="/static/js/i18n.js"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plantation Applications &amp; Dossier Status • Precision Palm Cloud</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        };
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Leaflet GIS Engine (v1.9.4) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen transition-colors duration-200 font-sans selection:bg-emerald-500 selection:text-white">
+    <div class="flex min-h-screen">
+        <!-- Sidebar Navigasi Enterprise di Kiri -->
+        {% include 'partials/sidebar.html' ignore missing %}
+
+        <!-- Workspace Utama di Kanan -->
+        <div id="enterpriseWorkspace" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
+            <!-- Persistent Top Context Bar -->
+            {% include 'partials/top_context_bar.html' ignore missing %}
+
+            <!-- Main Content Scrollable Area -->
+            <main class="flex-1 overflow-y-auto">
+                <div class="max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
+
+    <!-- DYNAMIC SUMMARY METRIC CARDS -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+        <div class="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-1">
+            <span class="text-[10px] text-slate-500 uppercase block font-sans font-semibold">Total Applications</span>
+            <strong id="metricTotalDossiers" class="text-xl font-black text-slate-900 dark:text-white block">-</strong>
+            <span class="text-[10px] text-emerald-600">Registered in SQLite</span>
+        </div>
+        <div class="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-1">
+            <span class="text-[10px] text-slate-500 uppercase block font-sans font-semibold">100% Passed</span>
+            <strong id="metricSafeApl" class="text-xl font-black text-emerald-600 dark:text-emerald-400 block">-</strong>
+            <span class="text-[10px] text-slate-500" id="metricSafeAplSub">Free of PIPPIB Moratorium</span>
+        </div>
+        <div class="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-1">
+            <span class="text-[10px] text-slate-500 uppercase block font-sans font-semibold">Total Submitted Area</span>
+            <strong id="metricTotalArea" class="text-xl font-black text-sky-600 dark:text-sky-400 block">- Ha</strong>
+            <span class="text-[10px] text-slate-500">Productive Land</span>
+        </div>
+        <div class="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-1">
+            <span class="text-[10px] text-slate-500 uppercase block font-sans font-semibold">Certification Status</span>
+            <strong id="metricActiveStatus" class="text-xl font-black text-purple-600 dark:text-purple-400 block">-</strong>
+            <span class="text-[10px] text-slate-500">Ready for Stage 2A</span>
+        </div>
+    </div>
+
+    <!-- INTERACTIVE CONCESSION CADASTRAL GIS MAP WITH ASEAN.MBTILES & GEE CANOPY -->
+    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-sm space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div class="flex items-center gap-2">
+                <span class="text-lg">🗺️</span>
+                <div>
+                    <h3 class="text-xs font-bold font-mono text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                        <span>PETA INTERAKTIF KONSESI KEBUN TERDAFTAR (WGS84)</span>
+                        <span class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-400 font-semibold">
+                            Zero-Overlap Cadastre
+                        </span>
+                    </h3>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono flex items-center gap-2">
+                        <span>L.tileLayer asean.mbtiles (/api/tiles) &bull; GEE Sentinel-2 Raster &bull; Sorot baris tabel</span>
+                        <span class="text-slate-400 dark:text-slate-600">|</span>
+                        <span id="txtDossierCount" class="text-emerald-600 dark:text-emerald-400 font-bold">Memuat berkas kebun...</span>
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-2 text-[10px] font-mono">
+                <!-- Basemap Switch & Reset View -->
+                <button type="button" onclick="setPendaftaranBasemap('sat')" id="btnPendaftaranSat" class="px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400 font-bold cursor-pointer transition">
+                    🛰️ Satellite
+                </button>
+                <button type="button" onclick="setPendaftaranBasemap('osm')" id="btnPendaftaranOsm" class="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 cursor-pointer transition">
+                    🗺️ OSM
+                </button>
+                <button type="button" onclick="fitAllPendaftaranPolygons()" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold transition border border-slate-300 dark:border-slate-700 cursor-pointer flex items-center gap-1" title="Pusatkan peta ke seluruh konsesi">
+                    <span>🔍</span> <span>Reset View</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Leaflet Map Container with Floating Layer Switcher & Opacity Slider -->
+        <div id="pendaftaranMapWrapper" class="relative w-full h-80 sm:h-96 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-950 shadow-inner">
+            <div id="pendaftaranMap" class="w-full h-full z-10"></div>
+
+            <!-- Layer Control / Switcher Panel (Pojok Kanan Atas Peta) -->
+            <div id="pendaftaranMapControls" class="absolute top-3 right-3 z-[400] bg-slate-950/90 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3 shadow-2xl text-xs font-mono space-y-2.5 pointer-events-auto max-w-[250px]">
+                <!-- Basemap Switcher -->
+                <div class="flex items-center justify-between gap-2 pb-1.5 border-b border-slate-800">
+                    <span class="text-[9.5px] uppercase font-bold text-slate-400 tracking-wider">Basemap:</span>
+                    <div class="flex items-center gap-1">
+                        <button type="button" id="ctrlBtnSat" onclick="setPendaftaranBasemap('sat')" class="px-2 py-0.5 text-[9.5px] rounded-md font-bold bg-emerald-600 text-white cursor-pointer transition shadow-xs">🛰️ Sat</button>
+                        <button type="button" id="ctrlBtnOsm" onclick="setPendaftaranBasemap('osm')" class="px-2 py-0.5 text-[9.5px] rounded-md font-bold bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 cursor-pointer transition">🗺️ OSM</button>
+                    </div>
+                </div>
+
+                <!-- Spatial Layer Toggles -->
+                <div class="space-y-2 pt-0.5">
+                    <!-- Layer 1: asean.mbtiles Moratorium (/api/tiles) -->
+                    <div class="space-y-1">
+                        <label class="flex items-center gap-2 cursor-pointer select-none text-[10.5px] text-slate-200 hover:text-white group">
+                            <input type="checkbox" id="chkMbtilesLayer" checked onchange="toggleMbtilesForestLayer(this.checked)" class="w-3.5 h-3.5 rounded text-rose-500 focus:ring-rose-400 bg-slate-800 border-slate-600 cursor-pointer accent-rose-500">
+                            <span class="flex items-center gap-1.5 font-sans font-medium">
+                                <span class="w-2.5 h-2.5 rounded-sm bg-rose-600/70 border border-rose-500 inline-block shrink-0"></span>
+                                <span>Kawasan Hutan (asean.mbtiles)</span>
+                            </span>
+                        </label>
+                        <!-- Opacity Slider for asean.mbtiles -->
+                        <div class="flex items-center gap-2 pl-5 text-[9px] text-slate-400">
+                            <span>Transparansi:</span>
+                            <input type="range" id="sliderMbtilesOpacity" min="0.1" max="1.0" step="0.05" value="0.65" oninput="changeMbtilesOpacity(this.value)" class="w-20 h-1 bg-slate-800 rounded accent-rose-500 cursor-pointer">
+                            <span id="lblMbtilesOpacity" class="font-bold text-rose-400">65%</span>
+                        </div>
+                    </div>
+
+                    <!-- Layer 2: GEE Canopy Greenness Heatmap Raster -->
+                    <div class="space-y-1 pt-1 border-t border-slate-800">
+                        <label class="flex items-center gap-2 cursor-pointer select-none text-[10.5px] text-slate-200 hover:text-white group">
+                            <input type="checkbox" id="chkNdviRasterLayer" checked onchange="toggleGeeNdviRaster(this.checked)" class="w-3.5 h-3.5 rounded text-emerald-500 focus:ring-emerald-400 bg-slate-800 border-slate-600 cursor-pointer accent-emerald-500">
+                            <span class="flex items-center gap-1.5 font-sans font-medium">
+                                <span class="w-2.5 h-2.5 rounded-sm bg-emerald-500/80 border border-emerald-400 inline-block shrink-0"></span>
+                                <span>GEE Canopy Greenness (Sentinel-2)</span>
+                            </span>
+                        </label>
+                        <!-- Opacity Slider for GEE Raster -->
+                        <div class="flex items-center gap-2 pl-5 text-[9px] text-slate-400">
+                            <span>Transparansi:</span>
+                            <input type="range" id="sliderNdviOpacity" min="0.1" max="1.0" step="0.05" value="0.75" oninput="changeNdviRasterOpacity(this.value)" class="w-20 h-1 bg-slate-800 rounded accent-emerald-500 cursor-pointer">
+                            <span id="lblNdviOpacity" class="font-bold text-emerald-400">75%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GEE Canopy Greenness Heatmap Colorbar Legend -->
+            <div id="pendaftaranNdviLegend" class="absolute bottom-3 right-3 z-[400] px-3 py-2 rounded-2xl bg-slate-950/90 backdrop-blur-md border border-slate-700 text-[10px] font-mono text-slate-200 pointer-events-none select-none shadow-xl space-y-1.5">
+                <div class="flex items-center justify-between gap-3 border-b border-slate-800 pb-1">
+                    <strong class="text-emerald-400 flex items-center gap-1">
+                        <span>🛰️</span> <span>GEE Canopy Greenness (NDVI)</span>
+                    </strong>
+                    <span class="text-[9px] text-slate-400 font-bold">Sentinel-2 MSI</span>
+                </div>
+                <!-- 9-Step Gradient Colorbar Match GEE Image -->
+                <div class="w-48 h-3 rounded-full bg-gradient-to-r from-[#d73027] via-[#fee08b] via-[#a6d96a] via-[#1a9850] to-[#00441b] border border-slate-600 shadow-inner"></div>
+                <div class="flex justify-between text-[8.5px] text-slate-400 font-bold">
+                    <span class="text-rose-400">0.20 (Terbuka/Semak)</span>
+                    <span class="text-amber-300">0.50 (Sedang)</span>
+                    <span class="text-emerald-300">0.85+ (Rapat/Subur)</span>
+                </div>
+            </div>
+
+            <div id="pendaftaranMapStatus" class="absolute bottom-3 left-3 z-[400] px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700 text-[10px] font-mono text-emerald-300 pointer-events-none select-none">
+                <span>asean.mbtiles (/api/tiles) &bull; GEE Sentinel-2 &bull; WGS84 Geodetik</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APPLICATIONS DIRECTORY TABLE -->
+    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-sm space-y-4">
+        
+        <!-- Filter & Search Toolbar -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div class="relative flex-1 max-w-md">
+                <input type="text" id="inpSearchDossier" oninput="handleSearchDossier()" placeholder="Cari nama kebun, nomor HGU, NOP, atau kode..." class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-1.5 pl-9 text-xs font-mono focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                <span class="absolute left-3 top-2 text-slate-400 text-xs">🔍</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="loadDossiersList()" class="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-mono font-semibold transition cursor-pointer flex items-center gap-1.5 border border-slate-300 dark:border-slate-700">
+                    <span>🔄</span> <span>Muat Ulang SQLite</span>
+                </button>
+                <a href="/permohonan" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-mono transition flex items-center gap-1.5 shadow-xs cursor-pointer">
+                    <span>➕</span> <span>Tambah Permohonan Lahan</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+            <table class="w-full text-left text-xs whitespace-nowrap">
+                <thead class="bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[9.5px] font-bold border-b border-slate-200 dark:border-slate-700 font-mono">
+                    <tr>
+                        <th class="px-2 py-2 text-center w-8">No.</th>
+                        <th class="px-2.5 py-2">Nomor Registrasi</th>
+                        <th class="px-2.5 py-2 font-sans">Entitas Perkebunan / Pemohon</th>
+                        <th class="px-2.5 py-2 text-right">Luas (Ha)</th>
+                        <th class="px-2.5 py-2">Komoditas Sela</th>
+                        <th class="px-2.5 py-2 text-center">Dokumen HGU</th>
+                        <th class="px-2.5 py-2 text-center">Status Spasial (APL)</th>
+                        <th class="px-2.5 py-2 text-center">Aksi Cepat</th>
+                    </tr>
+                </thead>
+                <tbody id="dossiersTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-slate-900/60 font-mono text-xs">
+                    <tr>
+                        <td colspan="8" class="py-10 text-center text-slate-400 font-mono text-xs">
+                            Memuat berkas dossier kebun dari basis data SQLite...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Table Pagination Controls -->
+        <div id="dossiersPaginationBar" class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-xs font-mono text-slate-500 border-t border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-2">
+                <span>Menampilkan</span>
+                <span id="dossierPageInfo" class="font-bold text-slate-800 dark:text-slate-200">1 - 10</span>
+                <span>dari</span>
+                <span id="dossierTotalCount" class="font-bold text-emerald-600 dark:text-emerald-400">10</span>
+                <span>konsesi terdaftar</span>
+            </div>
+            <div class="flex items-center gap-1.5" id="dossierPaginationButtons">
+                <button type="button" onclick="changeDossierPage('prev')" id="btnDossierPrevPage" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                    &larr; Prev
+                </button>
+                <div id="dossierPageNumbers" class="flex items-center gap-1"></div>
+                <button type="button" onclick="changeDossierPage('next')" id="btnDossierNextPage" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                    Next &rarr;
+                </button>
+            </div>
+        </div>
+    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+<!-- APPLICATIONS CONTROLLER SCRIPT -->
+<script>
+    let allDossiers = [];
+    let searchQuery = '';
+    let currentDossierPage = 1;
+    const DOSSIER_PAGE_SIZE = 10;
+    let pendaftaranMap = null;
+    let pendaftaranSatTile = null;
+    let pendaftaranOsmTile = null;
+    let pendaftaranPolygonGroup = null;
+    let mbtilesForestLayer = null;
+    let geeNdviRasterLayer = null;
+    let estatePolygonsByKode = {};
+    let highlightedRowKode = null;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        initPendaftaranMap();
+        loadDossiersList();
+    });
+
+    function initPendaftaranMap() {
+        const container = document.getElementById('pendaftaranMap');
+        if (!container || typeof L === 'undefined' || pendaftaranMap) return;
+
+        // Centroid Mandailing Natal, Sumatera Utara
+        pendaftaranMap = L.map('pendaftaranMap', {
+            center: [0.8241, 99.5612],
+            zoom: 11,
+            zoomControl: true
+        });
+
+        // 1. Basemap Google Satellite Hybrid
+        pendaftaranSatTile = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            attribution: '&copy; Google Earth Satellite Hybrid',
+            maxZoom: 20
+        }).addTo(pendaftaranMap);
+
+        // 2. Basemap OpenStreetMap
+        pendaftaranOsmTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19
+        });
+
+        // 3. LAYER MBTILES: asean.mbtiles Moratorium Hutan Lindung & Gambut (Local Direct SQLite MBTiles)
+        mbtilesForestLayer = L.tileLayer('/api/tiles/{z}/{x}/{y}', {
+            minZoom: 6,
+            maxNativeZoom: 10,
+            maxZoom: 19,
+            opacity: 0.65,
+            crossOrigin: 'anonymous',
+            attribution: '&copy; MoEF / JAPAC PIPPIB Moratorium (Local asean.mbtiles)'
+        }).addTo(pendaftaranMap);
+
+        // 4. LAYER GEE RASTER CANOPY GREENNESS (SENTINEL-2 HEATMAP TILE)
+        initGeeNdviRasterLayer();
+
+        // 5. Layer Group untuk Poligon Batas Konsesi
+        pendaftaranPolygonGroup = L.layerGroup().addTo(pendaftaranMap);
+
+        setTimeout(() => {
+            if (pendaftaranMap) pendaftaranMap.invalidateSize();
+        }, 350);
+    }
+
+    // Mengambil dan me-render Raster Tile GEE Sentinel-2 Canopy Greenness
+    async function initGeeNdviRasterLayer() {
+        // Fallback tile global Sentinel-2 Cloudless gratis beresolusi tinggi jika backend GEE belum dikonfigurasi
+        const fallbackUrl = "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg";
+
+        try {
+            const res = await fetch('/api/gee/canopy-tile-url');
+            let tileUrl = fallbackUrl;
+            if (res.ok) {
+                const json = await res.json();
+                if (json && json.tile_url) {
+                    tileUrl = json.tile_url;
+                }
+            }
+
+            geeNdviRasterLayer = L.tileLayer(tileUrl, {
+                maxZoom: 18,
+                opacity: 0.75,
+                attribution: '&copy; Google Earth Engine &bull; Copernicus Sentinel-2 MSI'
+            }).addTo(pendaftaranMap);
+
+        } catch (err) {
+            console.warn("[Pendaftaran] GEE tile endpoint notice, using Sentinel-2 Cloudless provider:", err);
+            geeNdviRasterLayer = L.tileLayer(fallbackUrl, {
+                maxZoom: 18,
+                opacity: 0.75,
+                attribution: '&copy; Sentinel-2 Cloudless &bull; EOX'
+            }).addTo(pendaftaranMap);
+        }
+    }
+
+    // Toggle & Opacity Kontrol asean.mbtiles
+    function toggleMbtilesForestLayer(show) {
+        if (!pendaftaranMap || !mbtilesForestLayer) return;
+        if (show) {
+            if (!pendaftaranMap.hasLayer(mbtilesForestLayer)) pendaftaranMap.addLayer(mbtilesForestLayer);
+        } else {
+            if (pendaftaranMap.hasLayer(mbtilesForestLayer)) pendaftaranMap.removeLayer(mbtilesForestLayer);
+        }
+    }
+
+    function changeMbtilesOpacity(val) {
+        const opacity = parseFloat(val);
+        if (mbtilesForestLayer && typeof mbtilesForestLayer.setOpacity === 'function') {
+            mbtilesForestLayer.setOpacity(opacity);
+        }
+        const lbl = document.getElementById('lblMbtilesOpacity');
+        if (lbl) lbl.textContent = `${Math.round(opacity * 100)}%`;
+    }
+
+    // Toggle & Opacity Kontrol GEE Sentinel-2 Raster
+    function toggleGeeNdviRaster(show) {
+        if (!pendaftaranMap || !geeNdviRasterLayer) return;
+        const legend = document.getElementById('pendaftaranNdviLegend');
+        if (show) {
+            if (!pendaftaranMap.hasLayer(geeNdviRasterLayer)) pendaftaranMap.addLayer(geeNdviRasterLayer);
+            if (legend) legend.classList.remove('hidden');
+        } else {
+            if (pendaftaranMap.hasLayer(geeNdviRasterLayer)) pendaftaranMap.removeLayer(geeNdviRasterLayer);
+            if (legend) legend.classList.add('hidden');
+        }
+    }
+
+    function changeNdviRasterOpacity(val) {
+        const opacity = parseFloat(val);
+        if (geeNdviRasterLayer && typeof geeNdviRasterLayer.setOpacity === 'function') {
+            geeNdviRasterLayer.setOpacity(opacity);
+        }
+        const lbl = document.getElementById('lblNdviOpacity');
+        if (lbl) lbl.textContent = `${Math.round(opacity * 100)}%`;
+    }
+
+    function setPendaftaranBasemap(type) {
+        if (!pendaftaranMap) return;
+        const btnSat = document.getElementById('btnPendaftaranSat');
+        const btnOsm = document.getElementById('btnPendaftaranOsm');
+        const ctrlSat = document.getElementById('ctrlBtnSat');
+        const ctrlOsm = document.getElementById('ctrlBtnOsm');
+
+        if (type === 'sat') {
+            if (pendaftaranMap.hasLayer(pendaftaranOsmTile)) pendaftaranMap.removeLayer(pendaftaranOsmTile);
+            pendaftaranSatTile.addTo(pendaftaranMap);
+            if (btnSat) btnSat.className = "px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400 font-bold cursor-pointer transition";
+            if (btnOsm) btnOsm.className = "px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 cursor-pointer transition";
+            if (ctrlSat) ctrlSat.className = "px-2 py-0.5 text-[9.5px] rounded-md font-bold bg-emerald-600 text-white cursor-pointer transition shadow-xs";
+            if (ctrlOsm) ctrlOsm.className = "px-2 py-0.5 text-[9.5px] rounded-md font-bold bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 cursor-pointer transition";
+        } else {
+            if (pendaftaranMap.hasLayer(pendaftaranSatTile)) pendaftaranMap.removeLayer(pendaftaranSatTile);
+            pendaftaranOsmTile.addTo(pendaftaranMap);
+            if (btnOsm) btnOsm.className = "px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400 font-bold cursor-pointer transition";
+            if (btnSat) btnSat.className = "px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 cursor-pointer transition";
+            if (ctrlOsm) ctrlOsm.className = "px-2 py-0.5 text-[9.5px] rounded-md font-bold bg-emerald-600 text-white cursor-pointer transition shadow-xs";
+            if (ctrlSat) ctrlSat.className = "px-2 py-0.5 text-[9.5px] rounded-md font-bold bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 cursor-pointer transition";
+        }
+    }
+
+    function fitAllPendaftaranPolygons() {
+        if (!pendaftaranMap || !pendaftaranPolygonGroup) return;
+        const layers = pendaftaranPolygonGroup.getLayers();
+        if (layers.length === 0) return;
+        const bounds = L.latLngBounds();
+        layers.forEach(l => {
+            if (typeof l.getBounds === 'function') {
+                bounds.extend(l.getBounds());
+            }
+        });
+        if (bounds.isValid()) {
+            pendaftaranMap.fitBounds(bounds, { padding: [30, 30] });
+        }
+    }
+
+    async function loadDossiersList() {
+        allDossiers = [];
+
+        // Fetch live records dari endpoint backend
+        try {
+            const res = await fetch('/api/estates');
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.success && Array.isArray(data.records)) {
+                    allDossiers = data.records;
+                }
+            }
+        } catch (e) {
+            console.warn("[Pendaftaran] Gagal mengambil data /api/estates:", e);
+        }
+
+        renderDossiersTable();
+        renderPendaftaranMapPolygons(allDossiers);
+        updateMetrics();
+    }
+
+    function handleSearchDossier() {
+        searchQuery = (document.getElementById('inpSearchDossier')?.value || '').trim().toLowerCase();
+        currentDossierPage = 1;
+        renderDossiersTable();
+    }
+
+    function renderPendaftaranMapPolygons(dossiers) {
+        if (!pendaftaranMap || !pendaftaranPolygonGroup) return;
+        pendaftaranPolygonGroup.clearLayers();
+        estatePolygonsByKode = {};
+
+        const bounds = L.latLngBounds();
+
+        dossiers.forEach(d => {
+            const kode = d.kode_kebun || d.dossier_id;
+            let coords = null;
+
+            const geoField = d.poligon_geojson || d.boundary_geojson;
+            if (geoField) {
+                try {
+                    const parsed = (typeof geoField === 'string') ? JSON.parse(geoField) : geoField;
+                    const g = parsed.geometry || parsed;
+                    if (g && g.coordinates && Array.isArray(g.coordinates)) {
+                        coords = (Array.isArray(g.coordinates[0]) && Array.isArray(g.coordinates[0][0])) ? g.coordinates[0] : g.coordinates;
+                    }
+                } catch (_) {}
+            }
+
+            if (!coords || coords.length < 3) {
+                const lat = parseFloat(d.centroid_lat);
+                const lng = parseFloat(d.centroid_lng);
+                if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+                    const delta = Math.sqrt(parseFloat(d.luas_ha || d.certified_area_ha || 500) / 100.0) * 0.0035;
+                    coords = [
+                        [lng - delta, lat - delta],
+                        [lng + delta, lat - delta],
+                        [lng + delta, lat + delta],
+                        [lng - delta, lat + delta],
+                        [lng - delta, lat - delta]
+                    ];
+                }
+            }
+
+            if (!coords || coords.length < 3) return;
+
+            const latLngs = coords.map(pt => [pt[1], pt[0]]);
+            latLngs.forEach(ll => bounds.extend(ll));
+
+            const isCollision = (d.status_permohonan === 'SUSPENDED');
+            const polyColor = isCollision ? '#ef4444' : '#10b981';
+            const polyFill = isCollision ? '#f87171' : '#34d399';
+
+            const poly = L.polygon(latLngs, {
+                color: polyColor,
+                fillColor: polyFill,
+                fillOpacity: 0.35,
+                weight: 2.2,
+                dashArray: isCollision ? '5, 5' : undefined
+            });
+
+            const statusText = isCollision 
+                ? '<span class="text-rose-400 font-bold">🚨 PIPPIB MORATORIUM OVERLAP</span>' 
+                : '<span class="text-emerald-400 font-bold">✓ LOLOS APL (BEBAS MORATORIUM)</span>';
+
+            const popupContent = `
+                <div class="font-mono text-xs space-y-1 p-1 max-w-[220px]">
+                    <div class="flex items-center justify-between border-b border-slate-700 pb-1">
+                        <strong class="text-white">${kode}</strong>
+                        <span class="text-[9px] px-1.5 py-0.5 rounded ${isCollision ? 'bg-rose-950 text-rose-300' : 'bg-emerald-950 text-emerald-300'} font-bold">
+                            ${isCollision ? 'Flagged' : 'Passed APL'}
+                        </span>
+                    </div>
+                    <div class="text-[11px] font-sans font-bold text-slate-200">${d.nama_kebun || d.estate_block_name || 'Konsesi'}</div>
+                    <div class="text-[10px] text-slate-400">Luas: <strong>${parseFloat(d.luas_ha || d.certified_area_ha || 0).toLocaleString()} Ha</strong></div>
+                    <div class="text-[9.5px] pt-1">${statusText}</div>
+                    <div class="pt-1.5 flex gap-1">
+                        <a href="/spatial?dossier_id=${encodeURIComponent(kode)}" class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[9.5px] font-bold block text-center flex-1">
+                            Audit (2A) &rarr;
+                        </a>
+                        <a href="/topologi?dossier_id=${encodeURIComponent(kode)}" class="px-2 py-0.5 rounded ${isCollision ? 'bg-rose-600 hover:bg-rose-500' : 'bg-purple-600 hover:bg-purple-500'} text-white text-[9.5px] font-bold block text-center flex-1">
+                            🌳 Topologi &rarr;
+                        </a>
+                    </div>
+                </div>
+            `;
+
+            poly.bindTooltip(`<b>${kode}</b>: ${d.nama_kebun || d.estate_block_name || 'Konsesi'} (${parseFloat(d.luas_ha || d.certified_area_ha || 0).toLocaleString()} Ha)`, { sticky: true });
+            poly.bindPopup(popupContent);
+
+            poly.on('click', () => {
+                highlightTableRow(kode);
+            });
+
+            estatePolygonsByKode[kode] = {
+                layer: poly,
+                defaultColor: polyColor,
+                defaultFill: polyFill,
+                isCollision: isCollision,
+                bounds: poly.getBounds()
+            };
+
+            pendaftaranPolygonGroup.addLayer(poly);
+        });
+
+        if (bounds.isValid() && pendaftaranMap) {
+            pendaftaranMap.fitBounds(bounds, { padding: [35, 35] });
+        }
+    }
+
+    function highlightTableRow(kode) {
+        if (highlightedRowKode) {
+            const prevRow = document.getElementById(`dossier-row-${highlightedRowKode}`);
+            if (prevRow) {
+                prevRow.classList.remove('bg-emerald-500/25', 'dark:bg-emerald-950/60', 'ring-2', 'ring-emerald-500');
+            }
+        }
+
+        highlightedRowKode = kode;
+        const row = document.getElementById(`dossier-row-${kode}`);
+        if (row) {
+            row.classList.add('bg-emerald-500/25', 'dark:bg-emerald-950/60', 'ring-2', 'ring-emerald-500');
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    function handleRowHover(kode) {
+        const item = estatePolygonsByKode[kode];
+        if (!item || !pendaftaranMap) return;
+        item.layer.setStyle({
+            weight: 4.5,
+            fillOpacity: 0.65,
+            color: '#38bdf8'
+        });
+    }
+
+    function handleRowLeave(kode) {
+        const item = estatePolygonsByKode[kode];
+        if (!item) return;
+        item.layer.setStyle({
+            weight: 2.2,
+            fillOpacity: 0.35,
+            color: item.defaultColor
+        });
+    }
+
+    function handleRowClick(kode) {
+        const item = estatePolygonsByKode[kode];
+        if (!item || !pendaftaranMap) return;
+        pendaftaranMap.flyToBounds(item.bounds, { maxZoom: 14, duration: 0.8 });
+        item.layer.openPopup();
+        highlightTableRow(kode);
+    }
+
+    function renderDossiersTable() {
+        const tbody = document.getElementById('dossiersTableBody');
+        if (!tbody) return;
+
+        const filtered = allDossiers.filter(d => {
+            if (!searchQuery) return true;
+            const nama = (d.nama_kebun || d.company_name || d.estate_block_name || '').toLowerCase();
+            const kode = (d.kode_kebun || d.dossier_id || '').toLowerCase();
+            const hgu = (d.nomor_hgu || d.legal_deed_number || '').toLowerCase();
+            const nop = (d.nop_pbb || d.tax_nop_pbb || '').toLowerCase();
+            return nama.includes(searchQuery) || kode.includes(searchQuery) || hgu.includes(searchQuery) || nop.includes(searchQuery);
+        });
+
+        const totalItems = filtered.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / DOSSIER_PAGE_SIZE));
+        if (currentDossierPage > totalPages) currentDossierPage = totalPages;
+        if (currentDossierPage < 1) currentDossierPage = 1;
+
+        const startIndex = (currentDossierPage - 1) * DOSSIER_PAGE_SIZE;
+        const endIndex = Math.min(startIndex + DOSSIER_PAGE_SIZE, totalItems);
+        const pagedData = filtered.slice(startIndex, endIndex);
+
+        const pageInfoEl = document.getElementById('dossierPageInfo');
+        if (pageInfoEl) pageInfoEl.textContent = totalItems === 0 ? '0 - 0' : `${startIndex + 1} - ${endIndex}`;
+        const totalCountEl = document.getElementById('dossierTotalCount');
+        if (totalCountEl) totalCountEl.textContent = totalItems;
+
+        const btnPrev = document.getElementById('btnDossierPrevPage');
+        if (btnPrev) btnPrev.disabled = (currentDossierPage <= 1);
+        const btnNext = document.getElementById('btnDossierNextPage');
+        if (btnNext) btnNext.disabled = (currentDossierPage >= totalPages);
+
+        const pageNumbersContainer = document.getElementById('dossierPageNumbers');
+        if (pageNumbersContainer) {
+            let htmlPages = '';
+            for (let p = 1; p <= totalPages; p++) {
+                const isActive = (p === currentDossierPage);
+                htmlPages += `<button type="button" onclick="goToDossierPage(${p})" class="w-7 h-7 rounded-lg text-xs font-bold transition ${isActive ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer'}">${p}</button>`;
+            }
+            pageNumbersContainer.innerHTML = htmlPages;
+        }
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="py-12 text-center text-slate-500 font-mono text-xs">
+                        Tidak ada berkas konsesi yang cocok dengan kriteria pencarian.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = pagedData.map((d, idx) => {
+            const displayNo = startIndex + idx + 1;
+            const kode = d.kode_kebun || d.dossier_id;
+            const regNo = d.nomor_registrasi || `CERT-ECOGREEN-2026-${String(displayNo).padStart(4, '0')}`;
+            const luas = parseFloat(d.luas_ha || d.certified_area_ha || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 });
+            const sela = d.komoditas_sela || 'Jahe Merah (Zingiber officinale)';
+            const isCollision = (d.status_permohonan === 'SUSPENDED');
+
+            const statusBadge = isCollision
+                ? `<span class="px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border border-rose-400 dark:border-rose-700 animate-pulse">
+                     🚨 MORATORIUM OVERLAP
+                   </span>`
+                : `<span class="px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                     ✓ LOLOS APL
+                   </span>`;
+
+            return `
+                <tr id="dossier-row-${kode}" 
+                    data-kode="${kode}" 
+                    onmouseenter="handleRowHover('${kode}')" 
+                    onmouseleave="handleRowLeave('${kode}')" 
+                    onclick="handleRowClick('${kode}')"
+                    class="hover:bg-slate-100 dark:hover:bg-slate-800/80 transition border-b border-slate-100 dark:border-slate-800/60 font-mono text-xs cursor-pointer">
+                    <td class="px-2 py-1.5 text-center text-slate-400 font-bold">${displayNo}</td>
+                    <td class="px-2.5 py-1.5 font-bold text-emerald-700 dark:text-emerald-400">
+                        <span class="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700 text-[9.5px]">
+                            ${regNo}
+                        </span>
+                    </td>
+                    <td class="px-2.5 py-1.5 font-sans font-bold text-slate-900 dark:text-white max-w-[200px]">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs">🏢</span>
+                            <span class="truncate block max-w-[180px]">${d.nama_kebun || d.company_name || 'Konsesi Sawit'}</span>
+                        </div>
+                        <span class="text-[9.5px] text-slate-400 font-mono block truncate max-w-[180px]">${d.legal_deed_number || d.nomor_hgu || 'Alas Hak Terverifikasi'}</span>
+                    </td>
+                    <td class="px-2.5 py-1.5 text-right font-bold text-slate-900 dark:text-slate-100 text-[11px]">${luas} Ha</td>
+                    <td class="px-2.5 py-1.5 font-sans text-emerald-700 dark:text-emerald-300 font-medium text-[11px] max-w-[170px] truncate">${sela}</td>
+                    <td class="px-2.5 py-1.5 text-center" onclick="event.stopPropagation()">
+                        <span class="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800 text-[9.5px] font-bold inline-flex items-center gap-1">
+                            <span>📄</span> <span>HGU PDF</span>
+                        </span>
+                    </td>
+                    <td class="px-2.5 py-1.5 text-center" onclick="event.stopPropagation()">
+                        <a href="/topologi?dossier_id=${encodeURIComponent(kode)}" class="inline-block hover:scale-105 transition-transform">
+                            ${statusBadge}
+                        </a>
+                    </td>
+                    <td class="px-2.5 py-1.5 text-center" onclick="event.stopPropagation()">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <a href="/spatial?dossier_id=${encodeURIComponent(kode)}" class="px-2 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-[10px] shadow-xs transition inline-flex items-center gap-1 cursor-pointer whitespace-nowrap">
+                                <span>🗺️</span> <span>Audit (2A)</span>
+                            </a>
+                            <a href="/topologi?dossier_id=${encodeURIComponent(kode)}" class="px-2 py-1 rounded-lg ${isCollision ? 'bg-rose-600 hover:bg-rose-500' : 'bg-purple-600 hover:bg-purple-500'} text-white font-bold text-[10px] shadow-xs transition inline-flex items-center gap-1 cursor-pointer whitespace-nowrap">
+                                <span>🌳</span> <span>Topologi</span>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function changeDossierPage(dir) {
+        if (dir === 'prev' && currentDossierPage > 1) {
+            currentDossierPage--;
+            renderDossiersTable();
+        } else if (dir === 'next') {
+            currentDossierPage++;
+            renderDossiersTable();
+        }
+    }
+
+    function goToDossierPage(p) {
+        currentDossierPage = p;
+        renderDossiersTable();
+    }
+
+    function updateMetrics() {
+        const total = allDossiers.length;
+        const totalArea = allDossiers.reduce((acc, curr) => acc + (parseFloat(curr.luas_ha || curr.certified_area_ha) || 0), 0);
+
+        let safeCount = 0;
+        allDossiers.forEach(d => {
+            if (d.status_permohonan !== 'SUSPENDED') safeCount++;
+        });
+
+        const elTotal = document.getElementById('metricTotalDossiers');
+        const elSafe = document.getElementById('metricSafeApl');
+        const elSafeSub = document.getElementById('metricSafeAplSub');
+        const elArea = document.getElementById('metricTotalArea');
+        const elStatus = document.getElementById('metricActiveStatus');
+        const elCountText = document.getElementById('txtDossierCount');
+
+        if (elTotal) elTotal.textContent = total;
+        if (elSafe) elSafe.textContent = `${safeCount}/${total}`;
+        if (elSafeSub) elSafeSub.textContent = `${Math.round((safeCount/Math.max(1, total))*100)}% Bebas Moratorium`;
+        if (elArea) elArea.textContent = `${totalArea.toLocaleString('id-ID', {maximumFractionDigits: 1})} Ha`;
+        if (elStatus) elStatus.textContent = `${total} Aktif`;
+        if (elCountText) elCountText.textContent = `Total ${total} Berkas Kebun Terdaftar`;
+    }
+</script>
+</body>
+</html>

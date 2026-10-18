@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <!-- Theme Script to Prevent FOUC -->
+    <script>
+        (function () {
+            try {
+                const savedTheme = localStorage.getItem('precision_palm_theme') || 'dark';
+                if (savedTheme === 'light') {
+                    document.documentElement.classList.remove('dark');
+                } else {
+                    document.documentElement.classList.add('dark');
+                }
+            } catch (_) {}
+        })();
+    </script>
+    <script src="/static/js/i18n.js"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle" data-i18n="settings_title">Pusat Kendali Pengaturan • Precision Palm Enterprise OS</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+                    },
+                    colors: {
+                        brand: {
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            950: '#022c22'
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #1e293b; }
+        ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+
+        .control-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+        }
+        .dark .control-card {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(51, 65, 85, 0.7);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .tab-btn-active {
+            border-bottom: 2px solid #10b981;
+            color: #059669;
+            font-weight: 700;
+            background: rgba(16, 185, 129, 0.08);
+        }
+        .dark .tab-btn-active {
+            color: #34d399;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans min-h-screen transition-colors duration-200 selection:bg-emerald-500 selection:text-white">
+    <div class="flex min-h-screen">
+        <!-- Sidebar Navigasi Enterprise di Kiri (240px -> 64px) -->
+        {% include 'partials/sidebar.html' %}
+
+        <!-- Workspace Utama di Kanan -->
+        <div id="enterpriseWorkspace" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
+            <!-- Persistent Top Context Bar (GCP Console Style) -->
+            {% include 'partials/top_context_bar.html' %}
+
+            <!-- Main Content Scrollable Area -->
+            <main class="flex-1 overflow-y-auto">
+                <div class="max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
+
+    <!-- Top Alert Notification Banner -->
+    <div id="saveToast" class="hidden p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/90 border border-emerald-400 dark:border-emerald-500 text-emerald-800 dark:text-emerald-200 text-xs font-mono flex items-center justify-between shadow-xl backdrop-blur-md">
+        <div class="flex items-center gap-2.5">
+            <span class="text-base text-emerald-600 dark:text-emerald-400">✓</span>
+            <span id="saveToastText">Pengaturan berhasil disimpan dan disinkronkan ke basis data lokal serta sesi aktif.</span>
+        </div>
+        <button type="button" onclick="document.getElementById('saveToast').classList.add('hidden')" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-white font-bold cursor-pointer">✕</button>
+    </div>
+
+    <!-- Header & Hero Section -->
+    <header class="control-card rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-xl dark:shadow-2xl">
+        <div class="absolute -right-20 -bottom-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 space-y-3 max-w-4xl">
+            <div class="flex flex-wrap items-center gap-2 font-mono text-[10px] font-bold">
+                <span class="px-2.5 py-0.5 rounded-full uppercase bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700" data-i18n="settings_tag_sys">
+                    Enterprise System Control
+                </span>
+                <span class="px-2.5 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-700" data-i18n="settings_tag_reg">
+                    Permentan 33/2025 • EUDR TRACES
+                </span>
+                <span class="px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-700" data-i18n="settings_tag_engine">
+                    rumus_tb.py Live Engine
+                </span>
+            </div>
+
+            <h1 class="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+                <span data-i18n="settings_h1_prefix">Pusat Kendali Sistem &bull; </span><span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 dark:from-emerald-400 dark:via-teal-300 dark:to-cyan-400">Precision Palm</span>
+            </h1>
+
+            <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-sans" data-i18n="settings_header_desc">
+                Atur konfigurasi isolasi data per perusahaan (Multi-Tenancy), kelola parameter pasar TBS riil (CPO CIF Rotterdam, Bea Keluar, Pungutan BPDPKS & Indeks K), pilih yurisdiksi pasar (Rupiah Domestik vs Dollar Ekspor), dan atur hak akses publikasi berkas sertifikat.
+            </p>
+
+            <div class="flex flex-wrap items-center gap-3 pt-2 text-xs font-mono">
+                <a href="/" class="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-bold transition flex items-center gap-1.5">
+                    <span>🏠</span> <span data-i18n="settings_btn_home">Kembali ke Beranda</span>
+                </a>
+                <a href="/proses" class="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-cyan-700 dark:text-cyan-300 border border-slate-300 dark:border-slate-700 font-bold transition flex items-center gap-1.5">
+                    <span>🧪</span> <span data-i18n="settings_btn_simulator">Buka Simulator LER</span>
+                </a>
+                <a href="/timelines" class="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 border border-slate-300 dark:border-slate-700 font-bold transition flex items-center gap-1.5">
+                    <span>📅</span> <span data-i18n="settings_btn_timelines">Buka Surveilans Timelines</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <div class="border-b border-slate-200 dark:border-slate-800 flex flex-wrap gap-1 font-mono text-xs">
+        <button type="button" onclick="switchControlTab('market')" id="tabBtn_market" class="px-4 py-3 rounded-t-xl transition flex items-center gap-2 cursor-pointer tab-btn-active">
+            <span>🌐</span> <span data-i18n="settings_tab_market">1. Yurisdiksi Pasar (IDR Permentan No. 33 Tahun 2025 vs USD EUDR)</span>
+        </button>
+        <button type="button" onclick="switchControlTab('pricing')" id="tabBtn_pricing" class="px-4 py-3 rounded-t-xl transition flex items-center gap-2 cursor-pointer text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200">
+            <span>📊</span> <span data-i18n="settings_tab_pricing">2. Parameter Pasar TBS & CPO (rumus_tb.py)</span>
+        </button>
+        <button type="button" onclick="switchControlTab('privacy')" id="tabBtn_privacy" class="px-4 py-3 rounded-t-xl transition flex items-center gap-2 cursor-pointer text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200">
+            <span>🔒</span> <span data-i18n="settings_tab_privacy">3. Kontrol Privasi & Publikasi (Draft vs Verifiable)</span>
+        </button>
+        <button type="button" onclick="switchControlTab('tenancy')" id="tabBtn_tenancy" class="px-4 py-3 rounded-t-xl transition flex items-center gap-2 cursor-pointer text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200">
+            <span>🏢</span> <span data-i18n="settings_tab_tenancy">4. Pemilih Tenant Perusahaan Aktif & BigQuery</span>
+        </button>
+        <button type="button" onclick="switchControlTab('governance')" id="tabBtn_governance" class="px-4 py-3 rounded-t-xl transition flex items-center gap-2 cursor-pointer text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200">
+            <span>⚖️</span> <span data-i18n="settings_tab_governance">5. Enterprise Governance &amp; Judge Calibration</span>
+        </button>
+    </div>
+
+    <!-- TAB 1: YURISDIKSI PASAR (IDR Permentan No. 33 Tahun 2025 vs USD Ekspor EUDR) -->
+    <section id="panel_market" class="control-card rounded-3xl p-5 sm:p-7 space-y-6">
+        <div class="border-b border-slate-200 dark:border-slate-800 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+                <span class="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold uppercase block tracking-wider" data-i18n="settings_mkt_sub">
+                    MARKET JURISDICTION &bull; DUAL CURRENCY &bull; PERMENTAN NO. 33 TAHUN 2025
+                </span>
+                <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white font-sans" data-i18n="settings_mkt_title">
+                    Penetapan Mode Pasar & Standar Regulasi (Permentan No. 33 Tahun 2025 vs EUDR)
+                </h2>
+            </div>
+            <span class="text-[10px] font-mono text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-800">
+                <span data-i18n="settings_mkt_active">Mode Aktif:</span> <strong id="lblActiveMode" class="text-emerald-600 dark:text-emerald-400">DOMESTIC_IDR</strong>
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Mode Domestik Indonesia -->
+            <label class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/60 cursor-pointer transition flex items-start gap-4 shadow-sm">
+                <input type="radio" name="market_jurisdiction" value="DOMESTIC_IDR" checked onchange="updateJurisdictionSelection('DOMESTIC_IDR')" class="mt-1 text-emerald-500 focus:ring-emerald-500">
+                <div class="space-y-1.5 flex-1 text-xs">
+                    <div class="flex items-center justify-between">
+                        <strong class="text-slate-900 dark:text-white text-sm" data-i18n="settings_mkt_dom_title">🇮🇩 Versi Domestik Indonesia (IDR)</strong>
+                        <span class="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-mono text-[9px] font-bold border border-emerald-300 dark:border-emerald-700">Permentan 33/2025</span>
+                    </div>
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed font-sans text-[11px]" data-i18n="settings_mkt_dom_desc">
+                        Menggunakan satuan mata uang Rupiah (Rp/kg & Rp/Ton TBS). Mengadopsi formula Indeks K penetapan harga PKS provinsi, audit mandatori ISPO 5 tahun, dan harga pasar komoditas pangan/simplisia nasional (Bapanas).
+                    </p>
+                </div>
+            </label>
+
+            <!-- Mode Ekspor Internasional -->
+            <label class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/60 cursor-pointer transition flex items-start gap-4 shadow-sm">
+                <input type="radio" name="market_jurisdiction" value="EXPORT_USD" onchange="updateJurisdictionSelection('EXPORT_USD')" class="mt-1 text-cyan-500 focus:ring-cyan-500">
+                <div class="space-y-1.5 flex-1 text-xs">
+                    <div class="flex items-center justify-between">
+                        <strong class="text-slate-900 dark:text-white text-sm" data-i18n="settings_mkt_exp_title">🌐 Versi Ekspor Internasional (USD/EUR)</strong>
+                        <span class="px-2 py-0.5 rounded bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 font-mono text-[9px] font-bold border border-cyan-300 dark:border-cyan-700">EUDR TRACES-NT</span>
+                    </div>
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed font-sans text-[11px]" data-i18n="settings_mkt_exp_desc">
+                        Menggunakan satuan mata uang Dollar Amerika (USD/MT) & Euro. Mengadopsi indeks bursa CIF Rotterdam, benchmark upah hidup layak (Anker Living Income), dan transmisi uji tuntas EUDR Pasal 9.
+                    </p>
+                </div>
+            </label>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-xs">
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
+                <label class="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold" data-i18n="settings_lbl_lang">Bahasa Antarmuka Default:</label>
+                <select id="cfg_default_lang" onchange="handleLangDropdownChange(this.value)" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-cyan-700 dark:text-cyan-300 font-bold focus:border-emerald-500">
+                    <option value="en" selected data-i18n="settings_opt_lang_en">English (Default Internasional)</option>
+                    <option value="id" data-i18n="settings_opt_lang_id">Bahasa Indonesia (Standar Domestik)</option>
+                </select>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
+                <label class="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold" data-i18n="settings_lbl_unit">Satuan Hasil TBS yang Ditampilkan:</label>
+                <select id="cfg_unit_display" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white font-bold focus:border-emerald-500">
+                    <option value="TON" selected data-i18n="settings_opt_unit_ton">Metrik Ton (t/Ha/tahun)</option>
+                    <option value="KG" data-i18n="settings_opt_unit_kg">Kilogram (kg/Ha/tahun)</option>
+                </select>
+            </div>
+        </div>
+    </section>
+
+    <!-- TAB 2: PARAMETER PASAR TBS & CPO (rumus_tb.py Implementation) -->
+    <section id="panel_pricing" class="control-card rounded-3xl p-5 sm:p-7 space-y-6 hidden">
+        <div class="border-b border-slate-200 dark:border-slate-800 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+                <span class="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 font-bold uppercase block tracking-wider" data-i18n="settings_price_sub">
+                    MATHEMATICAL PRICING ENGINE &bull; RUMUS_TB.PY
+                </span>
+                <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white font-sans" data-i18n="settings_price_title">
+                    Parameter Penetapan Harga TBS Petani, CPO Global & Indeks K
+                </h2>
+            </div>
+            <span class="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 bg-slate-100 dark:bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-800" data-i18n="settings_price_formula">
+                Formula: Permentan Indeks K + CIF Rotterdam
+            </span>
+        </div>
+
+        <!-- 4 Kolom: Parameter Ekspor & Bursa Dunia -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 font-mono text-xs">
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                <label class="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold" data-i18n="settings_lbl_cpo_global">Harga CPO Global (USD/MT):</label>
+                <input type="number" step="0.01" id="cfg_cpo_global" value="1526.56" oninput="recalculateTbsLive()" class="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white font-bold focus:border-cyan-400">
+                <span class="text-[9px] text-slate-500 dark:text-slate-400" data-i18n="settings_sub_cpo_global">Acuan CIF Rotterdam (World Bank)</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                <label class="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold" data-i18n="settings_lbl_kurs_usd">Kurs USD ke IDR (Rp):</label>
+                <input type="number" id="cfg_kurs_usd" value="17920" oninput="recalculateTbsLive()" class="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-emerald-600 dark:text-emerald-400 font-bold focus:border-emerald-400">
+                <span class="text-[9px] text-slate-500 dark:text-slate-400" data-i18n="settings_sub_kurs_usd">Kurs Transaksi Bank Indonesia</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                <label class="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold" data-i18n="settings_lbl_bea_keluar">Bea Keluar Ekspor (USD/MT):</label>
+                <input type="number" step="0.01" id="cfg_bea_keluar" value="178.00" oninput="recalculateTbsLive()" class="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white font-bold focus:border-cyan-400">
+                <span class="text-[9px] text-slate-500 dark:text-slate-400" data-i18n="settings_sub_bea_keluar">Tarif PMK Kemenkeu RI</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                <label class="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold" data-i18n="settings_lbl_pe_bpdpks">Pungutan BPDPKS (USD/MT):</label>
+                <input type="number" step="0.01" id="cfg_pe_bpdpks" value="130.27" oninput="recalculateTbsLive()" class="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white font-bold focus:border-cyan-400">
+                <span class="text-[9px] text-slate-500 dark:text-slate-400" data-i18n="settings_sub_pe_bpdpks">Dana Peremajaan Sawit Rakyat (PSR)</span>
+            </div>
+        </div>
+
+        <!-- 4 Kolom: Parameter Pabrik Kelapa Sawit (PKS) Daerah -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 font-mono text-xs">
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                <label class="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold" data-i18n="settings_lbl_logistik">Biaya Logistik & Kapal (USD/MT):</label>
+                <input type="number" step="0.01" id="cfg_logistik" value="50.00" oninput="recalculateTbsLive()" class="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white font-bold focus:border-cyan-400">
+                <span class="text-[9px] text-slate-500 dark:text-slate-400" data-i18n="settings_sub_logistik">Asuransi & Freight Laut Ekspor</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                <label class="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold" data-i18n="settings_lbl_p_kernel">Harga Inti Kernel (Rp/kg):</label>
+                <input type="number" id="cfg_p_kernel" value="12700" oninput="recalculateTbsLive()" class="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-emerald-600 dark:text-emerald-400 font-bold focus:border-emerald-400">
+                <span class="text-[9px] text-slate-500 dark:text-slate-400" data-i18n="settings_sub_p_kernel">Palm Kernel Oil (PKO)</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                <label class="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold" data-i18n="settings_lbl_rendemen_cpo">Rendemen CPO Pabrik (%):</label>
+                <input type="number" step="0.1" id="cfg_rendemen_cpo" value="21.0" oninput="recalculateTbsLive()" class="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-900 dark:text-white font-bold focus:border-emerald-400">
+                <span class="text-[9px] text-slate-500 dark:text-slate-400" data-i18n="settings_sub_rendemen_cpo">Standar Ekstraksi TBS Sawit</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                <label class="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold" data-i18n="settings_lbl_indeks_k">Indeks K Pabrik PKS (%):</label>
+                <input type="number" step="0.1" id="cfg_indeks_k" value="91.0" oninput="recalculateTbsLive()" class="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-cyan-600 dark:text-cyan-300 font-bold focus:border-emerald-400">
+                <span class="text-[9px] text-slate-500 dark:text-slate-400" data-i18n="settings_sub_indeks_k">SK Disbun Daerah (Permentan 33/2025)</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-xs">
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                <label class="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold" data-i18n="settings_lbl_biaya_olah">Biaya Olah Pabrik PKS (Rp/kg):</label>
+                <input type="number" id="cfg_biaya_olah" value="300" oninput="recalculateTbsLive()" class="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-700 dark:text-slate-300 font-bold focus:border-emerald-400">
+                <span class="text-[9px] text-slate-500 dark:text-slate-400" data-i18n="settings_sub_biaya_olah">Operating Milling Cost per kg TBS</span>
+            </div>
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                <label class="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold" data-i18n="settings_lbl_rendemen_kernel">Rendemen Inti Kernel (%):</label>
+                <input type="number" step="0.1" id="cfg_rendemen_kernel" value="5.0" oninput="recalculateTbsLive()" class="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-700 dark:text-slate-300 font-bold focus:border-emerald-400">
+                <span class="text-[9px] text-slate-500 dark:text-slate-400" data-i18n="settings_sub_rendemen_kernel">Kernel Recovery Ratio</span>
+            </div>
+        </div>
+
+        <!-- Real-Time Live Calculation Display -->
+        <div class="p-5 rounded-2xl bg-white dark:bg-slate-950 border border-emerald-500/40 space-y-3 font-mono text-xs shadow-inner">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                <span class="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                    <span>⚡</span> <span data-i18n="settings_sim_title">Hasil Simulasi Eksak Harga TBS & CPO (Output rumus_tb.py):</span>
+                </span>
+                <span class="text-[10px] text-slate-500 dark:text-slate-400" data-i18n="settings_sim_auto">Kalkulasi Otomatis Browser</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
+                <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 block" data-i18n="settings_sim_cpo_net">Harga Bersih CPO Domestik:</span>
+                    <strong id="out_cpo_domestik" class="text-base font-bold text-slate-900 dark:text-white block mt-1">Rp 20.935,25 / kg</strong>
+                </div>
+                <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 block" data-i18n="settings_sim_tbs_kg">Estimasi Harga TBS Petani:</span>
+                    <strong id="out_tbs_kg" class="text-base font-bold text-cyan-600 dark:text-cyan-400 block mt-1">Rp 3.824,71 / kg</strong>
+                </div>
+                <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-emerald-500/50">
+                    <span class="text-[10px] text-slate-600 dark:text-slate-400 block font-semibold" data-i18n="settings_sim_tbs_ton">HARGA EKSAK PER TON TBS:</span>
+                    <strong id="out_tbs_ton" class="text-lg font-black text-emerald-600 dark:text-emerald-400 block mt-1">Rp 3.824.710 / Ton</strong>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TAB 3: KONTEKS PERUSAHAAN & KONSEP TAHUN (Multi-Tenancy & Max 10 Pagination) -->
+    <section id="panel_tenancy" class="control-card rounded-3xl p-5 sm:p-7 space-y-6 hidden">
+        <div class="border-b border-slate-200 dark:border-slate-800 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+                <span class="text-[10px] font-mono text-amber-600 dark:text-amber-400 font-bold uppercase block tracking-wider" data-i18n="settings_ten_sub">
+                    STRICT MULTI-TENANCY CONTEXT &bull; AUDIT YEAR PROGRESSION
+                </span>
+                <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white font-sans" data-i18n="settings_ten_title">
+                    Isolasi Berkas Perusahaan & Siklus Tahun Buku
+                </h2>
+            </div>
+            <span class="text-[10px] font-mono text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-800" data-i18n="settings_ten_badge">
+                Zero Data Mixing Policy
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+            <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                <label class="text-[10px] text-slate-600 dark:text-slate-400 block font-semibold" data-i18n="settings_lbl_dossier">Konteks Dossier Perusahaan Aktif:</label>
+                <select id="cfg_active_dossier" onchange="updateDossierBadge()" class="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-slate-900 dark:text-white font-bold focus:border-emerald-500">
+                    <option value="EST-MDN-001" selected>EST-MDN-001 &bull; PT Mandailing Agro Sustainable</option>
+                    <option value="EST-MDN-002">EST-MDN-002 &bull; Koperasi Sawit Swadaya Maju</option>
+                    <option value="EST-MDN-003">EST-MDN-003 &bull; PT Batang Gadis Plantation</option>
+                    <option value="EST-MDN-004">EST-MDN-004 &bull; PT Sorik Marapi Agro Lestari</option>
+                    <option value="EST-MDN-005">EST-MDN-005 &bull; KUD Harapan Bersama Natal</option>
+                    <option value="EST-MDN-006">EST-MDN-006 &bull; PT Panyabungan Palma Raya</option>
+                    <option value="EST-MDN-007">EST-MDN-007 &bull; PT Rintis Alam Mandailing</option>
+                    <option value="EST-MDN-008">EST-MDN-008 &bull; Koperasi Tani Tunas Makmur</option>
+                    <option value="EST-MDN-009">EST-MDN-009 &bull; PT Bukit Barisan Agro Sejahtera</option>
+                    <option value="EST-MDN-010">EST-MDN-010 &bull; PT Mitra Agro Mandiri Madina</option>
+                </select>
+                <span class="text-[10px] text-slate-500 dark:text-slate-400 block leading-relaxed" data-i18n="settings_sub_dossier">
+                    Setiap halaman (/spatial, /proses, /timelines) akan terisolasi secara ketat dan hanya memuat berkas serta foto milik dossier yang dipilih.
+                </span>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                <label class="text-[10px] text-slate-600 dark:text-slate-400 block font-semibold" data-i18n="settings_lbl_audit_year">Tahun Audit Operasional Aktif (Year Progression):</label>
+                <select id="cfg_audit_year" class="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-cyan-700 dark:text-cyan-300 font-bold focus:border-cyan-400">
+                    <option value="2026" selected>Tahun Buku 2026 (Audit Berjalan & Ekspor EUDR)</option>
+                    <option value="2027">Tahun Buku 2027 (Proyeksi Pertumbuhan LER)</option>
+                    <option value="2025">Tahun Buku 2025 (Arsip Historis Cut-Off)</option>
+                </select>
+                <span class="text-[10px] text-slate-500 dark:text-slate-400 block leading-relaxed" data-i18n="settings_sub_audit_year">
+                    Mencegah pengulangan siklus. Siklus triwulan (Q1–Q4) berjalan dalam tahun buku ini; tahun berikutnya membuka lembar evaluasi baru.
+                </span>
+            </div>
+        </div>
+
+        <!-- Daftar Dossier Terdaftar: Max 10 dengan Pagination & Real-time Search -->
+        <div class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3 font-mono text-xs shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-slate-900 dark:text-white" data-i18n="settings_dossier_list_title">Daftar Dossier Terdaftar (Maksimal 10 Baris per Halaman):</span>
+                    <span id="dossierCountBadge" class="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold border border-emerald-300 dark:border-emerald-800">Total: 10 Dossier</span>
+                </div>
+                <!-- Search Box -->
+                <div class="relative w-full sm:w-64">
+                    <input type="text" id="dossierSearchInput" oninput="filterDossierTable()" placeholder="Cari nama PT / ID..." class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:border-emerald-500">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs font-mono">
+                    <thead class="bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 uppercase text-[10px] border-b border-slate-200 dark:border-slate-800">
+                        <tr>
+                            <th class="py-2.5 px-3" data-i18n="settings_th_id">Dossier ID</th>
+                            <th class="py-2.5 px-3" data-i18n="settings_th_company">Nama Perusahaan / Entitas</th>
+                            <th class="py-2.5 px-3" data-i18n="settings_th_location">Lokasi Konsesi</th>
+                            <th class="py-2.5 px-3" data-i18n="settings_th_area">Luas Hektar</th>
+                            <th class="py-2.5 px-3" data-i18n="settings_th_status">Status EUDR</th>
+                            <th class="py-2.5 px-3" data-i18n="settings_th_action">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dossierTableBody" class="divide-y divide-slate-200 dark:divide-slate-800 text-[11px] text-slate-700 dark:text-slate-300">
+                        <!-- Rendered by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Bar -->
+            <div class="flex items-center justify-between pt-2 text-[11px] border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
+                <span id="paginationInfo">Menampilkan 1-10 dari 10 berkas</span>
+                <div class="flex items-center gap-1">
+                    <button type="button" class="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed" data-i18n="settings_btn_prev">Sebelumnya</button>
+                    <span class="px-2.5 py-1 rounded bg-emerald-100 dark:bg-emerald-950 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 font-bold">1</span>
+                    <button type="button" class="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed" data-i18n="settings_btn_next">Selanjutnya</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TAB 4: PRIVASI & ANTI-FRAUD FOTO (Publication Gates & SHA-256 Anti-Replay) -->
+    <section id="panel_privacy" class="control-card rounded-3xl p-5 sm:p-7 space-y-6 hidden">
+        <div class="border-b border-slate-200 dark:border-slate-800 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+                <span class="text-[10px] font-mono text-purple-600 dark:text-purple-400 font-bold uppercase block tracking-wider" data-i18n="settings_priv_sub">
+                    GOVERNANCE &bull; PUBLICATION STATE &bull; ANTI-FRAUD
+                </span>
+                <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white font-sans" data-i18n="settings_priv_title">
+                    Status Publikasi & Kunci Anti-Fraud Foto
+                </h2>
+            </div>
+            <span class="text-[10px] font-mono text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-800" data-i18n="settings_priv_badge">
+                Public Gateway Controller
+            </span>
+        </div>
+
+        <div class="space-y-4 text-xs font-sans">
+            <!-- Publikasikan ke Portal Publik -->
+            <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-start gap-4 shadow-sm">
+                <input type="checkbox" id="cfg_is_published" checked class="mt-1 w-4 h-4 text-emerald-600 rounded border-slate-300 dark:border-slate-700 focus:ring-emerald-500 cursor-pointer">
+                <div class="space-y-1 flex-1">
+                    <label for="cfg_is_published" class="font-bold text-slate-900 dark:text-white text-sm block cursor-pointer" data-i18n="settings_lbl_publish">
+                        Publikasikan Paspor Sertifikat ke Portal Publik (/validasi)
+                    </label>
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed text-[11px]" data-i18n="settings_desc_publish">
+                        Jika dicentang, pembeli CPO internasional, auditor pelabuhan, dan regulator dapat memindai QR code untuk memvalidasi koordinat WGS84, status nol deforestasi EUDR Pasal 9, dan segel kriptografis SHA-256 secara terbuka. Jika tidak dicentang, status terkunci sebagai <em>Draft Internal</em>.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Penegakan Anti-Fraud Foto Biner -->
+            <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-start gap-4 shadow-sm">
+                <input type="checkbox" id="cfg_antifraud_active" checked class="mt-1 w-4 h-4 text-emerald-600 rounded border-slate-300 dark:border-slate-700 focus:ring-emerald-500 cursor-pointer">
+                <div class="space-y-1 flex-1">
+                    <label for="cfg_antifraud_active" class="font-bold text-slate-900 dark:text-white text-sm block cursor-pointer" data-i18n="settings_lbl_antifraud">
+                        Penegakan Anti-Fraud Foto Biner (Zero Re-Use / Anti-Replay)
+                    </label>
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed text-[11px]" data-i18n="settings_desc_antifraud">
+                        Mengaktifkan pelacakan hash SHA-256 biner otomatis pada modul <code>/mobile</code>. Foto yang pernah diunggah pada audit sebelumnya akan diblokir oleh server dengan status HTTP 409 Conflict guna mencegah manipulasi laporan oleh mandor lapangan.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Alat Perawatan Database & Mode Uji Coba -->
+            <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 font-mono">
+                <span class="text-slate-700 dark:text-slate-300 font-bold block text-xs" data-i18n="settings_db_tools">Alat Perawatan Database & Mode Demo:</span>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="resetPhotoHashCache()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-rose-700 dark:text-rose-300 border border-slate-300 dark:border-slate-700 transition cursor-pointer flex items-center gap-1.5 text-xs font-bold">
+                        <span>🧹</span> <span data-i18n="settings_btn_reset_hash">Reset Riwayat Hash Foto (Khusus Mode Demo)</span>
+                    </button>
+                    <button type="button" onclick="alert('Sinkronisasi latar belakang ke Google BigQuery (precision_palm_dw) berhasil dijalankan secara asinkron.')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-cyan-700 dark:text-cyan-300 border border-slate-300 dark:border-slate-700 transition cursor-pointer flex items-center gap-1.5 text-xs font-bold">
+                        <span>🚀</span> <span data-i18n="settings_btn_sync_bq">Paksa Sinkronisasi ke BigQuery DW</span>
+                    </button>
+                    <a href="/bigquery-manager" class="px-3 py-1.5 rounded-xl bg-blue-100 hover:bg-blue-200 dark:bg-blue-950 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800 transition cursor-pointer flex items-center gap-1.5 text-xs font-bold" title="Buka Pengelola Data CRUD BigQuery Langsung">
+                        <span>📊</span> <span>Direct BigQuery CRUD Manager</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TAB 5: ENTERPRISE GOVERNANCE & JUDGE CALIBRATION -->
+    <section id="panel_governance" class="control-card rounded-3xl p-5 sm:p-7 space-y-6 hidden">
+        <div id="governanceSettingsPanel"></div>
+    </section>
+
+    <!-- Action Bar: Simpan Pengaturan -->
+    <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 font-mono text-xs shadow-md">
+        <span class="text-slate-600 dark:text-slate-400 flex items-center gap-2">
+            <span>💾</span> <span data-i18n="settings_save_note">Seluruh perubahan disimpan ke basis data SQLite WAL & LocalStorage.</span>
+        </span>
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+            <a href="/" class="flex-1 sm:flex-none text-center px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 font-bold transition" data-i18n="settings_btn_cancel">
+                Batal
+            </a>
+            <button type="button" onclick="saveAllSettings()" class="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-950/20 dark:shadow-emerald-950/50 transition cursor-pointer" data-i18n="settings_btn_save">
+                Simpan Konfigurasi
+            </button>
+        </div>
+    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+<script>
+    // Tab Switcher
+    function switchControlTab(tabKey) {
+        const tabs = ['market', 'pricing', 'tenancy', 'privacy', 'governance'];
+        tabs.forEach(t => {
+            const panel = document.getElementById(`panel_${t}`);
+            const btn = document.getElementById(`tabBtn_${t}`);
+            if (t === tabKey) {
+                if (panel) panel.classList.remove('hidden');
+                if (btn) btn.className = "px-4 py-3 rounded-t-xl transition flex items-center gap-2 cursor-pointer tab-btn-active";
+                if (t === 'governance' && typeof window.renderGovernanceSettingsUI === 'function') {
+                    window.renderGovernanceSettingsUI('governanceSettingsPanel');
+                }
+            } else {
+                if (panel) panel.classList.add('hidden');
+                if (btn) btn.className = "px-4 py-3 rounded-t-xl transition flex items-center gap-2 cursor-pointer text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200";
+            }
+        });
+    }
+
+    // Live Math Calculation for TBS (rumus_tb.py implementation in browser JS)
+    function recalculateTbsLive() {
+        const p_int_usd_mt = parseFloat(document.getElementById('cfg_cpo_global').value) || 1526.56;
+        const kurs_usd_idr = parseFloat(document.getElementById('cfg_kurs_usd').value) || 17920.0;
+        const bk_usd_mt = parseFloat(document.getElementById('cfg_bea_keluar').value) || 178.0;
+        const pe_usd_mt = parseFloat(document.getElementById('cfg_pe_bpdpks').value) || 130.27;
+        const logistik_usd_mt = parseFloat(document.getElementById('cfg_logistik').value) || 50.0;
+        const p_kernel_idr_kg = parseFloat(document.getElementById('cfg_p_kernel').value) || 12700.0;
+        const rendemen_cpo = (parseFloat(document.getElementById('cfg_rendemen_cpo').value) || 21.0) / 100.0;
+        const indeks_k = (parseFloat(document.getElementById('cfg_indeks_k').value) || 91.0) / 100.0;
+        const biaya_olah_idr_kg = parseFloat(document.getElementById('cfg_biaya_olah').value) || 300.0;
+        const rendemen_kernel = (parseFloat(document.getElementById('cfg_rendemen_kernel').value) || 5.0) / 100.0;
+
+        // 1. Total potongan ekspor per kg CPO
+        const total_potongan_usd_mt = bk_usd_mt + pe_usd_mt + logistik_usd_mt;
+        const potongan_idr_kg = (total_potongan_usd_mt * kurs_usd_idr) / 1000.0;
+
+        // 2. Harga CPO domestik bersih diterima PKS
+        const p_int_idr_kg = (p_int_usd_mt * kurs_usd_idr) / 1000.0;
+        const p_domestik_idr_kg = p_int_idr_kg - potongan_idr_kg;
+
+        // 3. Nilai komponen TBS per kg
+        const nilai_cpo_dari_tbs = rendemen_cpo * p_domestik_idr_kg;
+        const nilai_kernel_dari_tbs = rendemen_kernel * p_kernel_idr_kg;
+
+        // 4. Harga TBS per kg menggunakan Indeks K
+        const harga_tbs_per_kg = (indeks_k * (nilai_cpo_dari_tbs + nilai_kernel_dari_tbs)) - biaya_olah_idr_kg;
+        const harga_tbs_per_ton = harga_tbs_per_kg * 1000.0;
+
+        // Render Outputs
+        document.getElementById('out_cpo_domestik').textContent = `Rp ${p_domestik_idr_kg.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / kg`;
+        document.getElementById('out_tbs_kg').textContent = `Rp ${harga_tbs_per_kg.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / kg`;
+        document.getElementById('out_tbs_ton').textContent = `Rp ${Math.round(harga_tbs_per_ton).toLocaleString('id-ID')} / Ton`;
+    }
+
+    function updateJurisdictionSelection(mode) {
+        document.getElementById('lblActiveMode').textContent = mode;
+    }
+
+    function updateDossierBadge() {
+        const d = document.getElementById('cfg_active_dossier').value;
+        localStorage.setItem('precision_palm_active_dossier', d);
+        window.dispatchEvent(new CustomEvent('dossierchanged', { detail: { dossierId: d } }));
+    }
+
+    function handleLangDropdownChange(newLang) {
+        if (typeof window.setAppLanguage === 'function') {
+            window.setAppLanguage(newLang);
+        } else {
+            localStorage.setItem('precision_palm_lang', newLang);
+        }
+    }
+
+    // Real Concessions Dataset from SQLite (kebun_profil)
+    const DOSSIERS_DATA = [
+        { id: "EST-MDN-001", name: "PT Mandailing Agro Sustainable", location: "Mandailing Natal, Sumut", area: "1.200,00 Ha", status: "LOLOS (0.00 Ha Deforestasi)" },
+        { id: "EST-MDN-002", name: "Koperasi Sawit Swadaya Maju", location: "Mandailing Natal, Sumut", area: "450,00 Ha", status: "LOLOS (0.00 Ha Deforestasi)" },
+        { id: "EST-MDN-003", name: "PT Batang Gadis Plantation", location: "Mandailing Natal, Sumut", area: "2.100,00 Ha", status: "LOLOS (0.00 Ha Deforestasi)" },
+        { id: "EST-MDN-004", name: "PT Sorik Marapi Agro Lestari", location: "Mandailing Natal, Sumut", area: "850,00 Ha", status: "LOLOS (0.00 Ha Deforestasi)" },
+        { id: "EST-MDN-005", name: "KUD Harapan Bersama Natal", location: "Mandailing Natal, Sumut", area: "380,00 Ha", status: "LOLOS (0.00 Ha Deforestasi)" },
+        { id: "EST-MDN-006", name: "PT Panyabungan Palma Raya", location: "Mandailing Natal, Sumut", area: "1.450,00 Ha", status: "LOLOS (0.00 Ha Deforestasi)" },
+        { id: "EST-MDN-007", name: "PT Rintis Alam Mandailing", location: "Mandailing Natal, Sumut", area: "920,00 Ha", status: "LOLOS (0.00 Ha Deforestasi)" },
+        { id: "EST-MDN-008", name: "Koperasi Tani Tunas Makmur", location: "Mandailing Natal, Sumut", area: "310,00 Ha", status: "LOLOS (0.00 Ha Deforestasi)" },
+        { id: "EST-MDN-009", name: "PT Bukit Barisan Agro Sejahtera", location: "Mandailing Natal, Sumut", area: "2.800,00 Ha", status: "LOLOS (0.00 Ha Deforestasi)" },
+        { id: "EST-MDN-010", name: "PT Mitra Agro Mandiri Madina", location: "Mandailing Natal, Sumut", area: "640,00 Ha", status: "LOLOS (0.00 Ha Deforestasi)" }
+    ];
+
+    function renderDossierTable(items) {
+        const tbody = document.getElementById('dossierTableBody');
+        tbody.innerHTML = '';
+        if (items.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-slate-500 font-mono">Tidak ada dossier yang cocok dengan pencarian.</td></tr>';
+            return;
+        }
+
+        const btnSelectText = (window.t ? window.t('settings_btn_select', 'Pilih Aktif') : 'Pilih Aktif');
+
+        items.forEach(d => {
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-slate-100/60 dark:hover:bg-slate-900/50 transition";
+            tr.innerHTML = `
+                <td class="py-2.5 px-3 font-bold text-emerald-600 dark:text-emerald-400">${d.id}</td>
+                <td class="py-2.5 px-3 font-bold text-slate-900 dark:text-white">${d.name}</td>
+                <td class="py-2.5 px-3 text-slate-600 dark:text-slate-400">${d.location}</td>
+                <td class="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-semibold">${d.area}</td>
+                <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold border border-emerald-300 dark:border-emerald-700">${d.status}</span></td>
+                <td class="py-2.5 px-3">
+                    <button type="button" onclick="selectActiveDossierDirect('${d.id}')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-emerald-600 hover:text-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold transition cursor-pointer">
+                        ${btnSelectText}
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('paginationInfo').textContent = `Menampilkan 1-${items.length} dari ${DOSSIERS_DATA.length} berkas`;
+    }
+
+    function filterDossierTable() {
+        const q = (document.getElementById('dossierSearchInput').value || '').toLowerCase().trim();
+        const filtered = DOSSIERS_DATA.filter(d => 
+            d.id.toLowerCase().includes(q) || 
+            d.name.toLowerCase().includes(q) || 
+            d.location.toLowerCase().includes(q)
+        );
+        renderDossierTable(filtered.slice(0, 10)); // Limit to max 10
+    }
+
+    function selectActiveDossierDirect(dossierId) {
+        document.getElementById('cfg_active_dossier').value = dossierId;
+        updateDossierBadge();
+        const toast = document.getElementById('saveToast');
+        document.getElementById('saveToastText').textContent = `Konteks perusahaan berhasil dialihkan ke: ${dossierId}.`;
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 3500);
+    }
+
+    function resetPhotoHashCache() {
+        localStorage.removeItem('precision_palm_used_hashes');
+        const toast = document.getElementById('saveToast');
+        document.getElementById('saveToastText').textContent = "Riwayat hash anti-fraud foto telah dibersihkan untuk mode demo.";
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 3500);
+    }
+
+    // Save All Settings Function
+    function saveAllSettings() {
+        const payload = {
+            market_mode: document.querySelector('input[name="market_jurisdiction"]:checked').value,
+            audit_year: document.getElementById('cfg_audit_year').value,
+            kurs_usd: document.getElementById('cfg_kurs_usd').value,
+            default_lang: document.getElementById('cfg_default_lang').value,
+            cpo_global: document.getElementById('cfg_cpo_global').value,
+            bea_keluar: document.getElementById('cfg_bea_keluar').value,
+            pe_bpdpks: document.getElementById('cfg_pe_bpdpks').value,
+            logistik: document.getElementById('cfg_logistik').value,
+            p_kernel: document.getElementById('cfg_p_kernel').value,
+            rendemen_cpo: document.getElementById('cfg_rendemen_cpo').value,
+            indeks_k: document.getElementById('cfg_indeks_k').value,
+            biaya_olah: document.getElementById('cfg_biaya_olah').value,
+            is_published: document.getElementById('cfg_is_published').checked,
+            antifraud_active: document.getElementById('cfg_antifraud_active').checked,
+            active_dossier: document.getElementById('cfg_active_dossier').value
+        };
+
+        localStorage.setItem('precision_palm_settings', JSON.stringify(payload));
+        localStorage.setItem('precision_palm_active_dossier', payload.active_dossier);
+        localStorage.setItem('precision_palm_lang', payload.default_lang);
+        if (typeof window.setAppLanguage === 'function') {
+            window.setAppLanguage(payload.default_lang);
+        }
+
+        fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).catch(() => {});
+
+        const toast = document.getElementById('saveToast');
+        document.getElementById('saveToastText').textContent = "Konfigurasi berhasil disimpan dan disinkronkan ke seluruh sistem.";
+        toast.classList.remove('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => toast.classList.add('hidden'), 4000);
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        recalculateTbsLive();
+        renderDossierTable(DOSSIERS_DATA.slice(0, 10));
+
+        // Sync default lang dropdown with current system language
+        const currentSysLang = (typeof window.getAppLanguage === 'function') ? window.getAppLanguage() : (localStorage.getItem('precision_palm_lang') || 'en');
+        const langDropdown = document.getElementById('cfg_default_lang');
+        if (langDropdown) {
+            langDropdown.value = currentSysLang;
+        }
+
+        // Listen to language changes
+        window.addEventListener('languagechanged', (e) => {
+            if (langDropdown && e.detail && e.detail.lang) {
+                langDropdown.value = e.detail.lang;
+            }
+            renderDossierTable(DOSSIERS_DATA.slice(0, 10));
+        });
+
+        // Load from backend first, fallback to localStorage
+        try {
+            const resp = await fetch('/api/settings');
+            if (resp.ok) {
+                const res = await resp.json();
+                if (res.status === 'success' && res.settings) {
+                    const cfg = res.settings;
+                    if (cfg.active_dossier) document.getElementById('cfg_active_dossier').value = cfg.active_dossier;
+                    if (cfg.kurs_usd) document.getElementById('cfg_kurs_usd').value = cfg.kurs_usd;
+                    if (cfg.cpo_global) document.getElementById('cfg_cpo_global').value = cfg.cpo_global;
+                    if (cfg.audit_year) document.getElementById('cfg_audit_year').value = cfg.audit_year;
+                    if (cfg.bea_keluar) document.getElementById('cfg_bea_keluar').value = cfg.bea_keluar;
+                    if (cfg.pe_bpdpks) document.getElementById('cfg_pe_bpdpks').value = cfg.pe_bpdpks;
+                    if (cfg.logistik) document.getElementById('cfg_logistik').value = cfg.logistik;
+                    if (cfg.p_kernel) document.getElementById('cfg_p_kernel').value = cfg.p_kernel;
+                    if (cfg.rendemen_cpo) document.getElementById('cfg_rendemen_cpo').value = cfg.rendemen_cpo;
+                    if (cfg.indeks_k) document.getElementById('cfg_indeks_k').value = cfg.indeks_k;
+                    if (cfg.biaya_olah) document.getElementById('cfg_biaya_olah').value = cfg.biaya_olah;
+                    if (cfg.market_mode) {
+                        const r = document.querySelector(`input[name="market_jurisdiction"][value="${cfg.market_mode}"]`);
+                        if (r) r.checked = true;
+                        updateJurisdictionSelection(cfg.market_mode);
+                    }
+                    recalculateTbsLive();
+                }
+            }
+        } catch (e) {
+            console.warn("Could not load backend settings:", e);
+        }
+
+        const saved = localStorage.getItem('precision_palm_settings');
+        if (saved) {
+            try {
+                const cfg = JSON.parse(saved);
+                if (cfg.active_dossier) document.getElementById('cfg_active_dossier').value = cfg.active_dossier;
+                if (cfg.kurs_usd) document.getElementById('cfg_kurs_usd').value = cfg.kurs_usd;
+                if (cfg.cpo_global) document.getElementById('cfg_cpo_global').value = cfg.cpo_global;
+                if (cfg.audit_year) document.getElementById('cfg_audit_year').value = cfg.audit_year;
+                recalculateTbsLive();
+            } catch(e) {}
+        }
+    });
+</script>
+<script src="/static/js/settings_governance.js"></script>
+</body>
+</html>

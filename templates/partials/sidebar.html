@@ -1,0 +1,346 @@
+<!-- templates/partials/sidebar.html -->
+<!-- ENTERPRISE SIDEBAR NAVIGATION (GCP CONSOLE STYLE) -->
+<aside id="enterpriseSidebar" class="w-64 shrink-0 transition-all duration-300 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800/80 flex flex-col min-h-screen select-none z-30">
+    <!-- 1. BRAND HEADER -->
+    <div class="h-14 px-3.5 flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-950">
+        <a href="/" class="flex items-center gap-2 overflow-hidden group py-1" title="PRECISION PALM Enterprise OS">
+            <!-- Full Logo when expanded -->
+            <img src="/static/img/logo.svg" alt="PRECISION PALM" class="sidebar-logo-full h-8 w-auto transition-transform group-hover:scale-105" onerror="this.onerror=null; this.src='/static/logo.svg';">
+            <!-- Compact Icon when collapsed -->
+            <div class="sidebar-logo-icon hidden items-center justify-center w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                🌴
+            </div>
+        </a>
+    </div>
+
+    <!-- 2. SCROLLABLE MENU LIST -->
+    <nav class="p-2 space-y-1 overflow-y-auto flex-1 max-h-[calc(100vh-60px)]">
+        
+        <!-- SECTION 1: EXECUTIVE SUMMARY -->
+        <div class="pt-1 pb-1">
+            <span class="sidebar-label px-3 text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-bold font-mono" data-i18n="sidebar_sec_summary">EXECUTIVE SUMMARY</span>
+        </div>
+        <!-- Executive Overview -->
+        <a href="/overview" data-path="/overview,/" class="sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition font-mono text-xs group" title="Executive Overview & Portfolio KPIs" data-i18n-title="sidebar_overview_desc">
+            <span class="text-base shrink-0 text-emerald-500 dark:text-emerald-400 group-hover:scale-110 transition-transform">📊</span>
+            <span class="sidebar-label truncate font-medium text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-white" data-i18n="sidebar_overview">Executive Overview</span>
+        </a>
+
+        <!-- SECTION 2: ADMINISTRATION & TENURE -->
+        <div class="pt-2.5 pb-1">
+            <span class="sidebar-label px-3 text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-bold font-mono" data-i18n="sidebar_sec_admin">ADMINISTRATION &amp; TENURE</span>
+        </div>
+        <!-- Concession Directory -->
+        <a href="/pendaftaran" data-path="/pendaftaran,/concession-register" class="sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition font-mono text-xs group" title="Registered Concessions & Land Dossiers" data-i18n-title="sidebar_concessions_desc">
+            <span class="text-base shrink-0 text-amber-500 group-hover:scale-110 transition-transform">🏢</span>
+            <span class="sidebar-label truncate font-medium text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-white" data-i18n="sidebar_concessions">Concession Directory</span>
+        </a>
+        <!-- New Registration -->
+        <a href="/permohonan" data-path="/permohonan,/cadastral-onboarding" class="sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition font-mono text-xs group" title="New Concession Intake & WGS84 Mapping" data-i18n-title="sidebar_registration_desc">
+            <span class="text-base shrink-0 text-purple-500 group-hover:scale-110 transition-transform">➕</span>
+            <span class="sidebar-label truncate font-medium text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-white" data-i18n="sidebar_registration">New Registration</span>
+        </a>
+
+        <!-- SECTION 3: AUDIT & ANALYTICS -->
+        <div class="pt-2.5 pb-1">
+            <span class="sidebar-label px-3 text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-bold font-mono" data-i18n="sidebar_sec_audit">AUDIT &amp; ANALYTICS</span>
+        </div>
+        <!-- Spatial Map GEE -->
+        <a href="/spatial" data-path="/spatial,/planetary-observatory" class="sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition font-mono text-xs group" title="GEE Satellite Spatial Observatory & Moratorium" data-i18n-title="sidebar_spatial_desc">
+            <span class="text-base shrink-0 text-sky-500 dark:text-sky-400 group-hover:scale-110 transition-transform">🛰️</span>
+            <span class="sidebar-label truncate font-medium text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-white" data-i18n="sidebar_spatial">Spatial Map (GEE)</span>
+        </a>
+        <!-- LER Simulator & Yield -->
+        <a href="/proses" data-path="/proses,/simulator,/in-silico" class="sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition font-mono text-xs group" title="In-Silico LER Canopy & Biophysical Simulator" data-i18n-title="sidebar_simulator_desc">
+            <span class="text-base shrink-0 text-emerald-500 group-hover:scale-110 transition-transform">🧪</span>
+            <span class="sidebar-label truncate font-medium text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-white" data-i18n="sidebar_simulator">LER Simulator &amp; Yield</span>
+        </a>
+        <!-- Quarterly Surveillance -->
+        <a href="/timelines" data-path="/timelines,/quarterly-surveillance,/monitoring" class="sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition font-mono text-xs group" title="Quarterly Foreman Field Surveillance & Monitoring" data-i18n-title="sidebar_surveillance_desc">
+            <span class="text-base shrink-0 text-amber-500 group-hover:scale-110 transition-transform">📅</span>
+            <span class="sidebar-label truncate font-medium text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-white" data-i18n="sidebar_surveillance">Quarterly Surveillance</span>
+        </a>
+        <!-- Statutory Certification & Passport -->
+        <a href="/roadmap" data-path="/roadmap,/statutory-ratification" class="sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition font-mono text-xs group" title="Statutory Certification & EUDR Passport" data-i18n-title="sidebar_certification_desc">
+            <span class="text-base shrink-0 text-purple-500 group-hover:scale-110 transition-transform">⚖️</span>
+            <span class="sidebar-label truncate font-medium text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-white" data-i18n="sidebar_certification">Certification &amp; Passport</span>
+        </a>
+        <!-- Audit Lineage DAG -->
+        <a href="/topologi" data-path="/topologi,/compliance-lineage,/topology" class="sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition font-mono text-xs group" title="12-Node Compliance DAG Traceability Lineage" data-i18n-title="sidebar_topology_desc">
+            <span class="text-base shrink-0 text-cyan-500 dark:text-cyan-400 group-hover:scale-110 transition-transform">🌳</span>
+            <span class="sidebar-label truncate font-medium text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-white" data-i18n="sidebar_topology">Audit Lineage (DAG)</span>
+        </a>
+
+        <!-- SECTION 4: SYSTEM & GUIDANCE -->
+        <div class="pt-2.5 pb-1">
+            <span class="sidebar-label px-3 text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-bold font-mono" data-i18n="sidebar_sec_system">SYSTEM &amp; GUIDANCE</span>
+        </div>
+        <!-- Guide & SOP -->
+        <a href="/panduan" data-path="/panduan,/guide" class="sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition font-mono text-xs group" title="Scientific Manual & Role-Based SOP Guide" data-i18n-title="sidebar_guide_desc">
+            <span class="text-base shrink-0 text-indigo-500 group-hover:scale-110 transition-transform">📖</span>
+            <span class="sidebar-label truncate font-medium text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-white" data-i18n="sidebar_guide">Guide &amp; SOP</span>
+        </a>
+        <!-- AI Live Logs -->
+        <a href="/ai-logs" data-path="/ai-logs,/log_ai" class="sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition font-mono text-xs group" title="Real-Time Gemini AI Execution & Telemetry Logs" data-i18n-title="sidebar_ailogs_desc">
+            <span class="text-base shrink-0 text-teal-500 group-hover:scale-110 transition-transform">🤖</span>
+            <span class="sidebar-label truncate font-medium text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-white" data-i18n="sidebar_ailogs">AI Live Logs</span>
+        </a>
+        <!-- System Settings -->
+        <a href="/pengaturan" data-path="/pengaturan,/settings,/system-control" class="sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition font-mono text-xs group" title="System Control Center & Statutory FFB Formulas" data-i18n-title="sidebar_settings_desc">
+            <span class="text-base shrink-0 text-slate-500 group-hover:scale-110 transition-transform">⚙️</span>
+            <span class="sidebar-label truncate font-medium text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-white" data-i18n="sidebar_settings">System Settings</span>
+        </a>
+        <!-- BigQuery DW Manager -->
+        <a href="/bigquery-manager" data-path="/bigquery-manager,/bigquery_admin" class="sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition font-mono text-xs group" title="Google BigQuery Multi-Table Data Warehouse Manager" data-i18n-title="sidebar_bq_desc">
+            <span class="text-base shrink-0 text-blue-500 group-hover:scale-110 transition-transform">🗄️</span>
+            <span class="sidebar-label truncate font-medium text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-white" data-i18n="sidebar_bq">BigQuery DW Manager</span>
+        </a>
+
+    </nav>
+</aside>
+
+<script>
+    // AUTO HIDE & COLLAPSE CONTROLLER FOR ENTERPRISE SIDEBAR
+    function toggleSidebarCollapse() {
+        const sidebar = document.getElementById('enterpriseSidebar');
+        if (!sidebar) return;
+
+        const isCurrentlyCollapsed = sidebar.classList.contains('w-16');
+        const nextStateCollapsed = !isCurrentlyCollapsed;
+
+        applySidebarState(nextStateCollapsed);
+        try {
+            localStorage.setItem('precision_sidebar_collapsed', nextStateCollapsed ? 'true' : 'false');
+        } catch (_) {}
+    }
+
+    function applySidebarState(isCollapsed) {
+        const sidebar = document.getElementById('enterpriseSidebar');
+        if (!sidebar) return;
+
+        const arrow = document.getElementById('sidebarCollapseArrow');
+        const labels = sidebar.querySelectorAll('.sidebar-label');
+        const navItems = sidebar.querySelectorAll('.sidebar-nav-item');
+        const logoFull = sidebar.querySelector('.sidebar-logo-full');
+        const logoIcon = sidebar.querySelector('.sidebar-logo-icon');
+
+        if (isCollapsed) {
+            sidebar.classList.remove('w-64');
+            sidebar.classList.add('w-16');
+            if (arrow) arrow.textContent = '▶';
+
+            labels.forEach(el => el.classList.add('hidden'));
+            navItems.forEach(el => {
+                el.classList.remove('px-3');
+                el.classList.add('px-2', 'justify-center');
+            });
+
+            if (logoFull) logoFull.classList.add('hidden');
+            if (logoIcon) {
+                logoIcon.classList.remove('hidden');
+                logoIcon.classList.add('flex');
+            }
+        } else {
+            sidebar.classList.remove('w-16');
+            sidebar.classList.add('w-64');
+            if (arrow) arrow.textContent = '◀';
+
+            labels.forEach(el => el.classList.remove('hidden'));
+            navItems.forEach(el => {
+                el.classList.add('px-3');
+                el.classList.remove('px-2', 'justify-center');
+            });
+
+            if (logoFull) logoFull.classList.remove('hidden');
+            if (logoIcon) {
+                logoIcon.classList.add('hidden');
+                logoIcon.classList.remove('flex');
+            }
+        }
+    }
+
+    // Comprehensive Dual-Language Terminology Dictionary for Sidebar Navigation
+    const SIDEBAR_I18N = {
+        en: {
+            sidebar_sec_summary: "EXECUTIVE SUMMARY",
+            sidebar_overview: "Executive Overview",
+            sidebar_overview_desc: "Executive Overview & Portfolio KPIs",
+            sidebar_sec_admin: "ADMINISTRATION & TENURE",
+            sidebar_concessions: "Concession Directory",
+            sidebar_concessions_desc: "Registered Concessions & Land Dossiers",
+            sidebar_registration: "New Registration",
+            sidebar_registration_desc: "New Concession Intake & WGS84 Mapping",
+            sidebar_sec_audit: "AUDIT & ANALYTICS",
+            sidebar_spatial: "Spatial Map (GEE)",
+            sidebar_spatial_desc: "GEE Satellite Spatial Observatory & Moratorium",
+            sidebar_simulator: "LER Simulator & Yield",
+            sidebar_simulator_desc: "In-Silico LER Canopy & Biophysical Simulator",
+            sidebar_surveillance: "Quarterly Surveillance",
+            sidebar_surveillance_desc: "Quarterly Foreman Field Surveillance & Monitoring",
+            sidebar_certification: "Certification & Passport",
+            sidebar_certification_desc: "Statutory Certification & EUDR Passport",
+            sidebar_topology: "Audit Lineage (DAG)",
+            sidebar_topology_desc: "12-Node Compliance DAG Traceability Lineage",
+            sidebar_sec_system: "SYSTEM & GUIDANCE",
+            sidebar_guide: "Guide & SOP",
+            sidebar_guide_desc: "Scientific Manual & Role-Based SOP Guide",
+            sidebar_ailogs: "AI Live Logs",
+            sidebar_ailogs_desc: "Real-Time Gemini AI Execution & Telemetry Logs",
+            sidebar_settings: "System Settings",
+            sidebar_settings_desc: "System Control Center & Statutory FFB Formulas",
+            sidebar_bq: "BigQuery DW Manager",
+            sidebar_bq_desc: "Google BigQuery Multi-Table Data Warehouse Manager"
+        },
+        id: {
+            sidebar_sec_summary: "RINGKASAN UTAMA",
+            sidebar_overview: "Ringkasan Eksekutif",
+            sidebar_overview_desc: "Ringkasan Eksekutif & KPI Portofolio",
+            sidebar_sec_admin: "ADMINISTRASI & LAHAN",
+            sidebar_concessions: "Data Konsesi",
+            sidebar_concessions_desc: "Daftar Konsesi & Dokumen Lahan Terdaftar",
+            sidebar_registration: "Pendaftaran Baru",
+            sidebar_registration_desc: "Pendaftaran Lahan Baru & Pemetaan WGS84",
+            sidebar_sec_audit: "AUDIT & ANALISIS",
+            sidebar_spatial: "Peta Spasial (GEE)",
+            sidebar_spatial_desc: "Peta Spasial Satelit GEE & Moratorium PIPPIB",
+            sidebar_simulator: "Simulator LER & Hasil",
+            sidebar_simulator_desc: "Simulator Kanopi LER & Biofisika In-Silico",
+            sidebar_surveillance: "Surveilans Triwulan",
+            sidebar_surveillance_desc: "Surveilans Triwulanan Mandor Lapangan",
+            sidebar_certification: "Sertifikasi & Paspor",
+            sidebar_certification_desc: "Sertifikasi Statuter & Paspor EUDR",
+            sidebar_topology: "Silsilah Audit (DAG)",
+            sidebar_topology_desc: "Silsilah Penelusuran Kepatuhan 12-Node DAG",
+            sidebar_sec_system: "SISTEM & PANDUAN",
+            sidebar_guide: "Panduan & SOP",
+            sidebar_guide_desc: "Buku Panduan Ilmiah & SOP Berbasis Peran",
+            sidebar_ailogs: "Log Telemetri AI",
+            sidebar_ailogs_desc: "Catatan Telemetri & Eksekusi AI Gemini Real-Time",
+            sidebar_settings: "Pengaturan Sistem",
+            sidebar_settings_desc: "Pusat Kendali Sistem & Formula Statuter TBS",
+            sidebar_bq: "Manajer Gudang BigQuery",
+            sidebar_bq_desc: "Manajer Multi-Tabel Gudang Data Google BigQuery"
+        }
+    };
+
+    /**
+     * Updates all sidebar navigation labels and titles based on the specified language.
+     * @param {'en'|'id'} [langCode] - Language code to apply ('en' or 'id')
+     */
+    function updateSidebarLanguage(langCode) {
+        let lang = langCode;
+        if (lang !== 'id' && lang !== 'en') {
+            try {
+                lang = localStorage.getItem('precision_palm_lang') || 
+                       localStorage.getItem('precision_palm_language') || 
+                       document.documentElement.lang || 
+                       'en';
+            } catch (_) {
+                lang = 'en';
+            }
+        }
+        if (lang !== 'id' && lang !== 'en') lang = 'en';
+
+        const dict = SIDEBAR_I18N[lang] || SIDEBAR_I18N['en'];
+
+        // 1. Update text labels with [data-i18n]
+        document.querySelectorAll('#enterpriseSidebar [data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (dict[key]) {
+                el.innerHTML = dict[key];
+            } else if (typeof window.t === 'function') {
+                const tr = window.t(key);
+                if (tr && tr !== key) el.innerHTML = tr;
+            }
+        });
+
+        // 2. Update tooltip titles with [data-i18n-title]
+        document.querySelectorAll('#enterpriseSidebar [data-i18n-title]').forEach(el => {
+            const titleKey = el.getAttribute('data-i18n-title');
+            if (dict[titleKey]) {
+                el.setAttribute('title', dict[titleKey]);
+            } else if (typeof window.t === 'function') {
+                const tr = window.t(titleKey);
+                if (tr && tr !== titleKey) el.setAttribute('title', tr);
+            }
+        });
+    }
+
+    // Inisialisasi awal saat sidebar dimuat
+    (function initSidebar() {
+        try {
+            const savedState = localStorage.getItem('precision_sidebar_collapsed') === 'true';
+            applySidebarState(savedState);
+        } catch (_) {}
+
+        // Inisialisasi bahasa sidebar sesuai preferensi pengguna
+        try {
+            const curLang = localStorage.getItem('precision_palm_lang') || 
+                            localStorage.getItem('precision_palm_language') || 
+                            document.documentElement.lang || 
+                            'en';
+            updateSidebarLanguage(curLang);
+        } catch (_) {
+            updateSidebarLanguage('en');
+        }
+
+        // Highlight tautan menu yang aktif sesuai URL saat ini
+        try {
+            const currentPath = window.location.pathname.toLowerCase();
+            const navItems = document.querySelectorAll('.sidebar-nav-item');
+            navItems.forEach(item => {
+                const paths = (item.getAttribute('data-path') || '').toLowerCase().split(',');
+                const isMatch = paths.some(p => p.trim() && (currentPath === p.trim() || (p.trim() !== '/' && currentPath.startsWith(p.trim()))));
+                if (isMatch) {
+                    item.classList.add('bg-emerald-50', 'dark:bg-emerald-950/60', 'text-emerald-700', 'dark:text-emerald-400', 'font-bold', 'border', 'border-emerald-200', 'dark:border-emerald-800/60');
+                    item.classList.remove('text-slate-700', 'dark:text-slate-300');
+                }
+            });
+        } catch (_) {}
+    })();
+
+    // Listen to global language change event emitted by top_context_bar or i18n.js
+    window.addEventListener('languagechanged', (e) => {
+        const targetLang = e.detail?.lang || localStorage.getItem('precision_palm_lang') || 'en';
+        updateSidebarLanguage(targetLang);
+    });
+
+    document.addEventListener('languagechanged', (e) => {
+        const targetLang = e.detail?.lang || localStorage.getItem('precision_palm_lang') || 'en';
+        updateSidebarLanguage(targetLang);
+    });
+
+    // Reactive sync across tabs / localStorage changes
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'precision_palm_lang' || e.key === 'precision_palm_language') {
+            updateSidebarLanguage(e.newValue || 'en');
+        }
+    });
+
+    // MutationObserver on <html> lang attribute to instantly catch any framework language change
+    if (window.MutationObserver) {
+        const langObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'lang') {
+                    const newLang = document.documentElement.lang || 'en';
+                    updateSidebarLanguage(newLang);
+                }
+            });
+        });
+        langObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+    }
+
+    // Secondary hook on DOMContentLoaded and load to ensure all dynamic elements are translated
+    document.addEventListener('DOMContentLoaded', () => {
+        const cur = localStorage.getItem('precision_palm_lang') || 'en';
+        updateSidebarLanguage(cur);
+    });
+    window.addEventListener('load', () => {
+        const cur = localStorage.getItem('precision_palm_lang') || 'en';
+        updateSidebarLanguage(cur);
+    });
+
+    // Expose global alias agar tombol hamburger dan i18n switcher bisa memanggil
+    window.toggleSidebarCollapse = toggleSidebarCollapse;
+    window.updateSidebarLanguage = updateSidebarLanguage;
+</script>

@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <!-- Theme Script to Prevent FOUC -->
+    <script>
+        (function () {
+            try {
+                const savedTheme = localStorage.getItem('precision_palm_theme') || 'dark';
+                if (savedTheme === 'light') {
+                    document.documentElement.classList.remove('dark');
+                } else {
+                    document.documentElement.classList.add('dark');
+                }
+            } catch (_) {}
+        })();
+    </script>
+    <script src="/static/js/i18n.js"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Public Statutory Certificate Validation • Precision Palm Cloud</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        };
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- QRCode Generator Library CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="/static/js/i18n.js"></script>
+
+    <style>
+        .security-guilloche {
+            background-image: radial-gradient(rgba(16, 185, 129, 0.08) 1px, transparent 1px);
+            background-size: 16px 16px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-3 sm:p-6 font-sans selection:bg-emerald-500 selection:text-white">
+<div class="max-w-4xl mx-auto space-y-5">
+
+    <!-- Header Partial Universal (if available) -->
+    {% include 'partials/header.html' ignore missing %}
+
+    <!-- CARD UTAMA DOKUMEN VALIDASI PUBLIK QR -->
+    <div class="bg-slate-900 border-2 {% if lifecycle.is_suspended %}border-rose-500 shadow-rose-950/40{% elif lifecycle.status_code == 'RENEWAL_DUE' %}border-amber-500 shadow-amber-950/40{% else %}border-emerald-500/70 shadow-emerald-950/40{% endif %} rounded-3xl shadow-2xl p-5 sm:p-8 space-y-6 relative overflow-hidden">
+        
+        <!-- Watermark Guilloche -->
+        <div class="security-guilloche absolute inset-0 pointer-events-none"></div>
+
+        <!-- HEADER KOP OTENTIKASI RESMI -->
+        <div class="border-b border-slate-800 pb-5 flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl {% if lifecycle.is_suspended %}bg-rose-500/20 text-rose-400 border border-rose-500/40{% else %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/40{% endif %} flex items-center justify-center text-2xl font-bold shadow-inner">
+                    {% if lifecycle.is_suspended %}🚨{% else %}🛡️{% endif %}
+                </div>
+                <div>
+                    <span data-i18n="val_hero_tag" class="text-[10px] font-mono uppercase tracking-widest text-slate-400 block font-bold">
+                        PUBLIC STATUTORY REGISTRY • QR CODE GATEWAY
+                    </span>
+                    <h1 data-i18n="val_heading" class="text-base sm:text-xl font-black text-white tracking-tight">
+                        Public Statutory Certificate Verification
+                    </h1>
+                    <span data-i18n="val_sub_std" class="text-xs text-slate-400 font-mono">
+                        Compliance Standards: EUDR Article 9 &bull; ISPO Principles 1-3 &bull; PP 23/2021
+                    </span>
+                </div>
+            </div>
+
+            <!-- Dynamic Live Status Pill -->
+            <div class="text-center sm:text-right">
+                <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono font-black uppercase tracking-wider border shadow-md {% if lifecycle.is_suspended %}bg-rose-950 text-rose-300 border-rose-500 animate-pulse{% elif lifecycle.status_code == 'RENEWAL_DUE' or lifecycle.status_code == 'WARNING_Q2_PENDING' %}bg-amber-950 text-amber-300 border-amber-500 animate-pulse{% else %}bg-emerald-950 text-emerald-300 border-emerald-400{% endif %}">
+                    <span class="w-2 h-2 rounded-full {% if lifecycle.is_suspended %}bg-rose-400{% elif lifecycle.status_code == 'RENEWAL_DUE' %}bg-amber-400{% else %}bg-emerald-400{% endif %} animate-ping"></span>
+                    <span>{{ lifecycle.status_code }}</span>
+                </span>
+                <span class="text-[10px] text-slate-400 font-mono block mt-1">
+                    {{ lifecycle.status_label_id }}
+                </span>
+            </div>
+        </div>
+
+        <!-- PERINGATAN PEMBEKUAN JIKA MELEWATI 6 BULAN (HARD LIMIT ENFORCEMENT) -->
+        {% if lifecycle.is_suspended %}
+        <div class="relative z-10 p-4 rounded-2xl bg-rose-950/60 border-2 border-rose-500 text-rose-200 text-xs font-sans space-y-1.5 shadow-lg">
+            <div class="flex items-center gap-2 font-bold font-mono text-rose-300 text-sm">
+                <span>⛔</span> <span data-i18n="val_suspended_title">STATUS: CERTIFICATE TEMPORARILY SUSPENDED</span>
+            </div>
+            <p class="leading-relaxed text-[11px]" data-i18n="val_suspended_reason">
+                Suspension Reason: The estate has exceeded the 180-day (6-month) tolerance from initial issuance without verified physical companion cropping in alley corridors.
+            </p>
+            <p class="text-[10px] text-rose-300/80 font-mono" data-i18n="val_suspended_impact">
+                Regulatory Impact: This QR code displays a suspended statutory status. All EUDR TRACES-NT export credentials are temporarily disabled until updated by field foreman surveillance.
+            </p>
+        </div>
+        {% elif lifecycle.status_code == 'WARNING_Q2_PENDING' %}
+        <div class="relative z-10 p-4 rounded-2xl bg-amber-950/60 border-2 border-amber-500 text-amber-200 text-xs font-sans space-y-1 shadow-md">
+            <div class="flex items-center gap-2 font-bold font-mono text-amber-300 text-xs">
+                <span>⚠️</span> <span data-i18n="val_warning_title">WARNING: APPROACHING 6-MONTH TOLERANCE LIMIT</span>
+            </div>
+            <p class="leading-relaxed text-[11px]" data-i18n="val_warning_desc">
+                Quarter 1 validity has expired. The foreman must immediately upload photographic evidence of physical companion planting before day 180 to prevent automatic certificate suspension.
+            </p>
+        </div>
+        {% endif %}
+
+        <!-- KARTU IDENTITAS DOSSIER & QR CODE REAL-TIME -->
+        <div class="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+            
+            <!-- Kolom 1 & 2: Informasi Hak Atas Tanah & Profil Kebun -->
+            <div class="md:col-span-2 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3 text-xs font-mono">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <span data-i18n="val_lbl_dossier_id" class="text-slate-400 font-bold uppercase text-[10px]">Plantation Dossier Identity:</span>
+                    <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] font-bold">
+                        {{ estate.kode_kebun }}
+                    </span>
+                </div>
+
+                <div class="space-y-1">
+                    <span data-i18n="val_lbl_official_entity" class="text-[10px] text-slate-500 block">OFFICIAL ENTITY NAME:</span>
+                    <strong class="text-white text-sm font-sans block">{{ estate.nama_kebun }}</strong>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                    <div>
+                        <span data-i18n="val_lbl_hgu_num" class="text-slate-500 block text-[10px]">HGU / e-STDB NUMBER:</span>
+                        <strong class="text-slate-200 select-all">{{ estate.nomor_hgu }}</strong>
+                    </div>
+                    <div>
+                        <span data-i18n="val_lbl_nop" class="text-slate-500 block text-[10px]">TAX NOP NUMBER:</span>
+                        <strong class="text-slate-200 select-all">{{ estate.nop_pbb }}</strong>
+                    </div>
+                    <div>
+                        <span data-i18n="val_lbl_registered_area" class="text-slate-500 block text-[10px]">REGISTERED AREA:</span>
+                        <strong class="text-emerald-400">{{ estate.luas_ha }} Hectares</strong>
+                    </div>
+                    <div>
+                        <span data-i18n="val_lbl_palm_age" class="text-slate-500 block text-[10px]">AVERAGE PALM AGE:</span>
+                        <strong class="text-slate-200">{{ estate.umur_sawit }} Years</strong>
+                    </div>
+                    <div>
+                        <span data-i18n="val_lbl_companion_crop" class="text-slate-500 block text-[10px]">OFFICIAL COMPANION CROP:</span>
+                        <strong class="text-teal-300 font-sans font-bold">{{ estate.komoditas_sela }}</strong>
+                    </div>
+                    <div>
+                        <span data-i18n="val_lbl_centroid" class="text-slate-500 block text-[10px]">CENTROID COORDINATES:</span>
+                        <strong class="text-slate-200">{{ estate.centroid_lat }}, {{ estate.centroid_lng }}</strong>
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px]">
+                    <span data-i18n="val_lbl_issue_date" class="text-slate-400">Initial Issue Date:</span>
+                    <strong class="text-white">{{ lifecycle.tgl_terbit }}</strong>
+                </div>
+                <div class="flex items-center justify-between text-[11px]">
+                    <span data-i18n="val_lbl_days_elapsed" class="text-slate-400">Total Elapsed Days:</span>
+                    <strong class="text-sky-400">{{ lifecycle.delta_days }} Days</strong>
+                </div>
+            </div>
+
+            <!-- Kolom 3: QR Code Visual & Stempel Verifikasi Instan -->
+            <div class="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col items-center justify-center text-center space-y-3">
+                <div class="p-2.5 bg-white rounded-2xl shadow-xl border-4 border-slate-800" id="qrcodeCanvas"></div>
+                
+                <div class="space-y-0.5">
+                    <span data-i18n="val_lbl_official_reg_no" class="text-[9px] uppercase tracking-wider text-slate-400 font-mono block">OFFICIAL REGISTRATION NUMBER:</span>
+                    <strong class="text-xs font-mono font-bold text-emerald-400 select-all block">
+                        {{ estate.nomor_registrasi }}
+                    </strong>
+                    <span data-i18n="val_lbl_scan_qr" class="text-[9px] text-slate-500 font-mono block">Scan for independent verification</span>
+                </div>
+
+                <a href="{{ qr_verify_url }}" target="_blank" class="w-full py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] font-mono font-bold transition flex items-center justify-center gap-1 border border-slate-700">
+                    <span>🔗</span> <span data-i18n="val_btn_copy_link">Copy Validation Link</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- MATRIKS KONTROL SURVEILANS 4 TRIWULAN (Q1 - Q4) -->
+        <div class="relative z-10 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-base">📅</span>
+                    <h3 data-i18n="val_surveillance_matrix" class="text-xs font-bold text-white uppercase font-mono tracking-wider">
+                        4-Quarter Surveillance Calendar (Active Surveillance Calendar)
+                    </h3>
+                </div>
+                <span class="text-[10px] font-mono text-emerald-400 font-bold">
+                    <span data-i18n="val_active_cycle">Active Cycle:</span> {{ lifecycle.current_quarter }}
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-mono">
+                {% for item in lifecycle.quarterly_timeline %}
+                <div class="p-3.5 rounded-2xl border transition-all space-y-2 {% if item.status == 'VERIFIED' %}bg-emerald-950/40 border-emerald-500/60 text-emerald-200{% elif item.status == 'OVERDUE' %}bg-rose-950/40 border-rose-500 text-rose-200{% elif item.status == 'ACTIVE' %}bg-sky-950/40 border-sky-500/80 text-sky-200{% else %}bg-slate-950/60 border-slate-800 text-slate-400{% endif %}">
+                    <div class="flex items-center justify-between">
+                        <span class="w-6 h-6 rounded-lg {% if item.status == 'VERIFIED' %}bg-emerald-600 text-white{% elif item.status == 'OVERDUE' %}bg-rose-600 text-white{% elif item.status == 'ACTIVE' %}bg-sky-600 text-white{% else %}bg-slate-800 text-slate-400{% endif %} font-bold inline-flex items-center justify-center text-xs">
+                            {{ item.quarter_code }}
+                        </span>
+                        <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase {% if item.status == 'VERIFIED' %}bg-emerald-900 text-emerald-200 border border-emerald-700{% elif item.status == 'OVERDUE' %}bg-rose-900 text-rose-200 border border-rose-700{% elif item.status == 'ACTIVE' %}bg-sky-900 text-sky-200 border border-sky-700 animate-pulse{% else %}bg-slate-800 text-slate-400 border border-slate-700{% endif %}">
+                            {{ item.status_label }}
+                        </span>
+                    </div>
+
+                    <div>
+                        <strong class="block text-xs font-bold text-white font-sans leading-tight">
+                            {{ item.title_id }}
+                        </strong>
+                        <span class="text-[10px] text-slate-400 block mt-1">
+                            {{ item.window }}
+                        </span>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px]">
+                        <span data-i18n="val_target_date" class="text-slate-500">Target Date:</span>
+                        <strong class="text-slate-300">{{ item.date }}</strong>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- LOG SURVEI LAPANGAN MANDOR TERAKHIR (BUKTI FISIK) -->
+        <div class="relative z-10 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5 text-xs font-mono">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <span class="text-xs font-bold text-slate-300 uppercase flex items-center gap-1.5 font-sans">
+                    <span>📸</span> <span data-i18n="val_foreman_logs_title">Foreman Field Surveillance Proof Log (Confirmed)</span>
+                </span>
+                <span class="text-[10px] text-emerald-400 font-bold">
+                    {{ lifecycle.log_count }} <span data-i18n="val_synced_reports">Synchronized Reports</span>
+                </span>
+            </div>
+
+            {% if monitoring_logs and monitoring_logs|length > 0 %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs whitespace-nowrap">
+                    <thead class="text-[10px] text-slate-400 uppercase border-b border-slate-800">
+                        <tr>
+                            <th data-i18n="val_th_cycle" class="py-2 px-3">Cycle</th>
+                            <th data-i18n="val_th_field_time" class="py-2 px-3">Field Timestamp</th>
+                            <th data-i18n="val_th_gps" class="py-2 px-3">GPS WGS84</th>
+                            <th data-i18n="val_th_sterile_circle" class="py-2 px-3">2.0m Sterile Circle</th>
+                            <th data-i18n="val_th_ffb_deficit" class="py-2 px-3">FFB Deficit</th>
+                            <th data-i18n="val_th_weather_integrity" class="py-2 px-3">AI Weather Match</th>
+                            <th data-i18n="val_th_audit_status" class="py-2 px-3 text-center">Audit Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 text-[11px]">
+                        {% for log in monitoring_logs %}
+                        <tr class="hover:bg-slate-900/60 transition">
+                            <td class="py-2 px-3 font-bold text-emerald-400">{{ log.periode_siklus }}</td>
+                            <td class="py-2 px-3 text-slate-300">{{ log.waktu_pengambilan }}</td>
+                            <td class="py-2 px-3 text-slate-400">{{ log.gps_lat }}, {{ log.gps_lng }}</td>
+                            <td class="py-2 px-3 font-bold text-emerald-400">✓ {{ log.piringan_steril_meter }}m Safe Buffer</td>
+                            <td class="py-2 px-3 text-slate-300">{{ log.defisit_tbs_persen }}% (&le;4.5% Cap)</td>
+                            <td class="py-2 px-3">
+                                {% if log.weather_satellite_validation == 'MATCH_BMKG_RADAR_CLEAR' or log.weather_satellite_validation == 'MATCH' or log.cuaca_satellite_match == 1 or 'MATCH' in (log.weather_satellite_validation|string) %}
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
+                                    ✓ BMKG Matched
+                                </span>
+                                {% elif log.weather_satellite_validation %}
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">
+                                    {{ log.weather_satellite_validation }}
+                                </span>
+                                {% else %}
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-950 text-amber-300 border border-amber-800">
+                                    ⚠ Pending Audit
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="py-2 px-3 text-center">
+                                {% if log.ai_scan_status == 'rejected' or log.status == 'REJECTED' or log.status == 'FRAUD_FLAGGED' %}
+                                <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-rose-950 text-rose-300 border border-rose-600">
+                                    FLAGGED
+                                </span>
+                                {% elif log.ai_scan_status == 'pending' or log.status == 'PENDING' %}
+                                <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-950 text-amber-300 border border-amber-600">
+                                    PENDING
+                                </span>
+                                {% else %}
+                                <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-600">
+                                    VERIFIED AI
+                                </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="py-4 text-center text-slate-500 font-mono text-[11px]" data-i18n="val_no_logs">
+                No physical surveillance logs uploaded for this period yet.
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- BUKTI KRIPTOGRAFIS SHA-256 & PAKTA INTEGRITAS EUDR -->
+        <div class="relative z-10 border-t border-slate-800 pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono">
+            <div class="space-y-1 w-full max-w-xl">
+                <span data-i18n="val_crypto_title" class="text-[10px] text-slate-400 uppercase block font-bold">
+                    CRYPTOGRAPHIC AUDIT TRAIL KEY (SHA-256 DIGITAL HASH):
+                </span>
+                <div class="p-2 rounded-xl bg-slate-950 border border-slate-800 text-[10px] text-emerald-400 break-all select-all">
+                    {{ estate.sha256_credential_hash }}
+                </div>
+                <span data-i18n="val_crypto_desc" class="text-[9px] text-slate-500 block">
+                    Deterministically hashed against WGS84 polygon boundary coordinates, land title deed, and telemetry history.
+                </span>
+            </div>
+
+            <div class="shrink-0 flex items-center gap-2">
+                <button type="button" onclick="window.print()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition cursor-pointer">
+                    🖨️ <span data-i18n="val_btn_print">Print Proof</span>
+                </button>
+                <a href="/certificate/{{ estate.id_sertifikat }}" target="_blank" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition cursor-pointer">
+                    📜 <span data-i18n="val_btn_open_passport">Open Passport Document</span>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- INISIALISASI QR CODE DINAMIS -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const qrContainer = document.getElementById('qrcodeCanvas');
+        const verifyUrl = "{{ qr_verify_url }}";
+
+        if (qrContainer && typeof QRCode !== 'undefined') {
+            new QRCode(qrContainer, {
+                text: verifyUrl,
+                width: 128,
+                height: 128,
+                colorDark : "#0f172a",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
+    });
+</script>
+</body>
+</html>

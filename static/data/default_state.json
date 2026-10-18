@@ -1,0 +1,976 @@
+{
+  "version": "2026.1",
+  "source": "BigQuery Seed Hydration (precision_palm_dw)",
+  "generated_at": "2026-10-15T19:30:00+07:00",
+  "telemetry": [
+    {
+      "id": 48196,
+      "request_id": "REQ-SIM-2026-48196",
+      "created_at": "2026-10-15 06:04 PM",
+      "timestamp": "2026-10-15 06:04 PM",
+      "palm_age": 7.0,
+      "land_area": 100.0,
+      "crop_name": "Vanilla Orchid (Vanilla planifolia)",
+      "companion_species": "Vanilla Orchid (Vanilla planifolia)",
+      "total_ler": 1.482,
+      "forest_spared_ha": 32.5,
+      "avoided_land_ha": 32.5,
+      "climate_asset": 1462.0,
+      "total_climate_benefit_tco2e": 1462,
+      "sha256": "48196C123648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4"
+    },
+    {
+      "id": 90258,
+      "request_id": "REQ-SIM-2026-90258",
+      "created_at": "2026-10-15 06:03 PM",
+      "timestamp": "2026-10-15 06:03 PM",
+      "palm_age": 5.5,
+      "land_area": 100.0,
+      "crop_name": "Sweet Sorghum (Sorghum bicolor)",
+      "companion_species": "Sweet Sorghum (Sorghum bicolor)",
+      "total_ler": 1.564,
+      "forest_spared_ha": 36.05,
+      "avoided_land_ha": 36.05,
+      "climate_asset": 1622.0,
+      "total_climate_benefit_tco2e": 1622,
+      "sha256": "90258A783648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327BB5"
+    },
+    {
+      "id": 5200,
+      "request_id": "REQ-SIM-2026-05200",
+      "created_at": "2026-10-15 06:01 PM",
+      "timestamp": "2026-10-15 06:01 PM",
+      "palm_age": 6.0,
+      "land_area": 100.0,
+      "crop_name": "Red Ginger (Zingiber officinale var. rubrum)",
+      "companion_species": "Red Ginger (Zingiber officinale var. rubrum)",
+      "total_ler": 1.5238,
+      "forest_spared_ha": 34.37,
+      "avoided_land_ha": 34.37,
+      "climate_asset": 1546.0,
+      "total_climate_benefit_tco2e": 1546,
+      "sha256": "5200D9983648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327CC6"
+    },
+    {
+      "id": 31804,
+      "request_id": "REQ-SIM-2026-31804",
+      "created_at": "2026-10-15 04:30 PM",
+      "timestamp": "2026-10-15 04:30 PM",
+      "palm_age": 8.0,
+      "land_area": 100.0,
+      "crop_name": "Patchouli (Pogostemon cablin)",
+      "companion_species": "Patchouli (Pogostemon cablin)",
+      "total_ler": 1.415,
+      "forest_spared_ha": 29.3,
+      "avoided_land_ha": 29.3,
+      "climate_asset": 1318.0,
+      "total_climate_benefit_tco2e": 1318,
+      "sha256": "31804E112648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327DD7"
+    },
+    {
+      "id": 27410,
+      "request_id": "REQ-SIM-2026-27410",
+      "created_at": "2026-10-15 02:10 PM",
+      "timestamp": "2026-10-15 02:10 PM",
+      "palm_age": 9.0,
+      "land_area": 100.0,
+      "crop_name": "Liberica Coffee (Coffea liberica)",
+      "companion_species": "Liberica Coffee (Coffea liberica)",
+      "total_ler": 1.492,
+      "forest_spared_ha": 33.0,
+      "avoided_land_ha": 33.0,
+      "climate_asset": 1485.0,
+      "total_climate_benefit_tco2e": 1485,
+      "sha256": "27410F445648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327EE8"
+    },
+    {
+      "id": 19520,
+      "request_id": "REQ-SIM-2026-19520",
+      "created_at": "2026-10-14 11:30 AM",
+      "timestamp": "2026-10-14 11:30 AM",
+      "palm_age": 6.5,
+      "land_area": 100.0,
+      "crop_name": "Fine Flavor Cacao (Theobroma cacao)",
+      "companion_species": "Fine Flavor Cacao (Theobroma cacao)",
+      "total_ler": 1.468,
+      "forest_spared_ha": 31.8,
+      "avoided_land_ha": 31.8,
+      "climate_asset": 1431.0,
+      "total_climate_benefit_tco2e": 1431,
+      "sha256": "19520B556648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327FF9"
+    }
+  ],
+  "kebun_monitoring_log": [
+    {
+      "id_log": 1,
+      "id_kebun": 1,
+      "kode_kebun": "EST-MDN-001",
+      "nama_kebun": "PT Mandailing Agro Sustainable",
+      "periode_siklus": "Q1",
+      "tahun_siklus": 2026,
+      "titik_ke": 1,
+      "blok": "Blok Mandina 1 - Sempadan Gawangan",
+      "gps_lat": 0.8241,
+      "gps_lng": 99.5612,
+      "elevasi_dpl": 142.0,
+      "ketinggian_agl": 25.0,
+      "kemiringan_lereng": 4.5,
+      "view_perspective": "uav_orthophoto_nadir",
+      "foto_url": "/static/img/sawit_drone.jpg",
+      "waktu_pengambilan": "2026-10-09 10:20 WIB",
+      "cuaca_tercatat": "Cerah Berawan (26.6°C)",
+      "cuaca_satellite_match": 1,
+      "piringan_steril_meter": 2.0,
+      "circle_status": "2.0m Zero-Tillage Radius Circle",
+      "defisit_tbs_persen": 2.1,
+      "ai_scan_status": "verified",
+      "mandor": "Supervisor Sutrisno",
+      "sha256_seal": "8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4",
+      "sync_bigquery": 1
+    },
+    {
+      "id_log": 2,
+      "id_kebun": 1,
+      "kode_kebun": "EST-MDN-001",
+      "nama_kebun": "PT Mandailing Agro Sustainable",
+      "periode_siklus": "Baseline",
+      "tahun_siklus": 2026,
+      "titik_ke": 2,
+      "blok": "Blok Mandina 2 - Lorong Gawangan Aktif",
+      "gps_lat": 0.8242,
+      "gps_lng": 99.5614,
+      "elevasi_dpl": 144.0,
+      "ketinggian_agl": 22.0,
+      "kemiringan_lereng": 4.8,
+      "view_perspective": "ground_eye_level",
+      "foto_url": null,
+      "waktu_pengambilan": "2026-10-10 11:45 WIB",
+      "cuaca_tercatat": "Cerah (27.4°C)",
+      "cuaca_satellite_match": 1,
+      "piringan_steril_meter": 2.0,
+      "circle_status": "2.0m Sterile Maintained",
+      "defisit_tbs_persen": 1.8,
+      "ai_scan_status": "verified",
+      "mandor": "Supervisor Sutrisno",
+      "sha256_seal": "9A545457759F7C07E090EEBA01D6287C21B7E94072EE4D2BD99C60C3ED438BB5",
+      "sync_bigquery": 1
+    },
+    {
+      "id_log": 3,
+      "id_kebun": 1,
+      "kode_kebun": "EST-MDN-001",
+      "nama_kebun": "PT Mandailing Agro Sustainable",
+      "periode_siklus": "Q2",
+      "tahun_siklus": 2026,
+      "titik_ke": 3,
+      "blok": "Blok Mandina 3 - Sempadan Riparian",
+      "gps_lat": 0.824,
+      "gps_lng": 99.561,
+      "elevasi_dpl": 140.0,
+      "ketinggian_agl": 20.0,
+      "kemiringan_lereng": 4.2,
+      "view_perspective": "ground_eye_level",
+      "foto_url": "/static/img/field_wetland_buffer.jpg",
+      "waktu_pengambilan": "2026-10-12 14:15 WIB",
+      "cuaca_tercatat": "Berawan (25.9°C)",
+      "cuaca_satellite_match": 1,
+      "piringan_steril_meter": 2.0,
+      "circle_status": "2.0m Sempadan Bebas Olah",
+      "defisit_tbs_persen": 1.5,
+      "ai_scan_status": "verified",
+      "mandor": "Supervisor Budianto",
+      "sha256_seal": "B2D5E3F4A5B60123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0125",
+      "sync_bigquery": 1
+    },
+    {
+      "id_log": 4,
+      "id_kebun": 10,
+      "kode_kebun": "EST-MDN-010",
+      "nama_kebun": "Koperasi Mandiri Sawit Madina",
+      "periode_siklus": "Q1",
+      "tahun_siklus": 2026,
+      "titik_ke": 1,
+      "blok": "Blok Madina 10 - Sempadan Riparian",
+      "gps_lat": 0.8194,
+      "gps_lng": 99.563,
+      "elevasi_dpl": 220.0,
+      "ketinggian_agl": 24.0,
+      "kemiringan_lereng": 9.2,
+      "view_perspective": "ground_eye_level",
+      "foto_url": "/static/img/field_wetland_buffer.jpg",
+      "waktu_pengambilan": "2026-10-10 08:30 WIB",
+      "cuaca_tercatat": "Cerah Berawan (25.8°C)",
+      "cuaca_satellite_match": 1,
+      "piringan_steril_meter": 2.0,
+      "circle_status": "2.0m Sempadan Bebas Olah",
+      "defisit_tbs_persen": 0.8,
+      "ai_scan_status": "verified",
+      "mandor": "Ir. Darwin Simatupang",
+      "sha256_seal": "E4F7A5B6C7D80123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0126",
+      "sync_bigquery": 1
+    },
+    {
+      "id_log": 5,
+      "id_kebun": 10,
+      "kode_kebun": "EST-MDN-010",
+      "nama_kebun": "Koperasi Mandiri Sawit Madina",
+      "periode_siklus": "Baseline",
+      "tahun_siklus": 2026,
+      "titik_ke": 2,
+      "blok": "Blok Madina 10 - Gawangan Inti",
+      "gps_lat": 0.8195,
+      "gps_lng": 99.5631,
+      "elevasi_dpl": 222.0,
+      "ketinggian_agl": 25.0,
+      "kemiringan_lereng": 9.0,
+      "view_perspective": "uav_orthophoto_nadir",
+      "foto_url": "/static/img/sawit_drone.jpg",
+      "waktu_pengambilan": "2026-10-11 11:15 WIB",
+      "cuaca_tercatat": "Cerah (28.2°C)",
+      "cuaca_satellite_match": 1,
+      "piringan_steril_meter": 2.0,
+      "circle_status": "2.0m Zero-Tillage Ring",
+      "defisit_tbs_persen": 1.1,
+      "ai_scan_status": "verified",
+      "mandor": "Supervisor Gunawan",
+      "sha256_seal": "F5A8B6C7D8E90123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0127",
+      "sync_bigquery": 1
+    },
+    {
+      "id_log": 6,
+      "id_kebun": 10,
+      "kode_kebun": "EST-MDN-010",
+      "nama_kebun": "Koperasi Mandiri Sawit Madina",
+      "periode_siklus": "Q2",
+      "tahun_siklus": 2026,
+      "titik_ke": 3,
+      "blok": "Blok Madina 10 - Lorong Cacao",
+      "gps_lat": 0.8196,
+      "gps_lng": 99.5632,
+      "elevasi_dpl": 224.0,
+      "ketinggian_agl": 20.0,
+      "kemiringan_lereng": 8.8,
+      "view_perspective": "ground_eye_level",
+      "foto_url": null,
+      "waktu_pengambilan": "2026-10-13 13:45 WIB",
+      "cuaca_tercatat": "Berawan (26.5°C)",
+      "cuaca_satellite_match": 1,
+      "piringan_steril_meter": 2.0,
+      "circle_status": "2.0m Sterile Maintained",
+      "defisit_tbs_persen": 1.4,
+      "ai_scan_status": "verified",
+      "mandor": "Supervisor Syafei",
+      "sha256_seal": "A6B9C7D8E9F00123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0128",
+      "sync_bigquery": 1
+    }
+  ],
+  "field_tracking": [
+    {
+      "id": 1,
+      "estate_code": "EST-MDN-001",
+      "cycle": "Cycle 1 (Post-Planting)",
+      "timestamp": "2026-10-09 10:20 WIB",
+      "block": "Blok Mandina 1 - Sempadan Gawangan",
+      "coordinates": "0.824100, 99.561200",
+      "latitude": 0.8241,
+      "longitude": 99.5612,
+      "elevation": "142M MSL",
+      "slope": 4.5,
+      "soil_ph": 5.5,
+      "texture": "Sandy Loam",
+      "photo_url": "/static/img/sawit_drone.jpg",
+      "circle_status": "✓ 2.0m Zero-Tillage Radius Circle",
+      "tbs_deficit": "2.1% (Cap ≤4.5%)",
+      "weather": "Cerah Berawan (26.6°C)",
+      "supervisor": "Supervisor Sutrisno",
+      "ai_status": "VERIFIED AI",
+      "sha256": "8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4"
+    },
+    {
+      "id": 2,
+      "estate_code": "EST-MDN-001",
+      "cycle": "Registration Baseline",
+      "timestamp": "2026-10-10 11:45 WIB",
+      "block": "Blok Mandina 2 - Lorong Gawangan Aktif",
+      "coordinates": "0.824200, 99.561400",
+      "latitude": 0.8242,
+      "longitude": 99.5614,
+      "elevation": "144M MSL",
+      "slope": 4.8,
+      "soil_ph": 5.5,
+      "texture": "Sandy Loam",
+      "photo_url": null,
+      "circle_status": "✓ 2.0m Sterile Maintained",
+      "tbs_deficit": "1.8% (Cap ≤4.5%)",
+      "weather": "Cerah (27.4°C)",
+      "supervisor": "Supervisor Sutrisno",
+      "ai_status": "VERIFIED AI",
+      "sha256": "9A545457759F7C07E090EEBA01D6287C21B7E94072EE4D2BD99C60C3ED438BB5"
+    },
+    {
+      "id": 3,
+      "estate_code": "EST-MDN-001",
+      "cycle": "Cycle 2 (Riparian Audit)",
+      "timestamp": "2026-10-12 14:15 WIB",
+      "block": "Blok Mandina 3 - Sempadan Riparian",
+      "coordinates": "0.824000, 99.561000",
+      "latitude": 0.824,
+      "longitude": 99.561,
+      "elevation": "140M MSL",
+      "slope": 4.2,
+      "soil_ph": 5.4,
+      "texture": "Sandy Loam",
+      "photo_url": "/static/img/field_wetland_buffer.jpg",
+      "circle_status": "✓ 2.0m Sempadan Bebas Olah",
+      "tbs_deficit": "1.5% (Cap ≤4.5%)",
+      "weather": "Berawan (25.9°C)",
+      "supervisor": "Supervisor Budianto",
+      "ai_status": "VERIFIED AI",
+      "sha256": "B2D5E3F4A5B60123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0125"
+    }
+  ],
+  "node_audit_reviews": [
+    {
+      "node_id": "M1.1",
+      "estate_code": "EST-MDN-001",
+      "node_title": "Cadastral Tenure & Agronomic Dossier Baseline",
+      "verdict_answer": "Verified legally registered under HGU No. 004/HGU/BPN-MDN/2021 with valid SPPT NOP. Palm stand age 7.5 years in prime production stage.",
+      "citations": "HGU No. 004/HGU/BPN-MDN/2021 & SPPT NOP 12.13.010.001.001-0001.0",
+      "citations_json": "[\"HGU No. 004/HGU/BPN-MDN/2021\", \"SPPT NOP 12.13.010.001.001-0001.0\"]",
+      "timestamp": "2026-10-15 08:00:00 WIB",
+      "sha256_hash": "A1B2C3D4E5F67890123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0"
+    },
+    {
+      "node_id": "M1.2",
+      "estate_code": "EST-MDN-001",
+      "node_title": "Geospatial Forest Moratorium & 50m Buffer Clearance",
+      "verdict_answer": "100% Non-Forest Arable Land (APL) cleared per MoEF PIPPIB 2024. Distance to protected forest boundary exceeds 5000m, satisfying PP 23/2021 >=50m statutory buffer.",
+      "citations": "MoEF PIPPIB 2024 Shapefile & PP 23/2021 Article 29",
+      "citations_json": "[\"MoEF PIPPIB 2024 Shapefile\", \"PP 23/2021 Article 29\"]",
+      "timestamp": "2026-10-15 08:15:00 WIB",
+      "sha256_hash": "B2C3D4E5F6A17890123456789ABCDEF0123456789ABCDEF0123456789ABCDEF1"
+    },
+    {
+      "node_id": "M2.1",
+      "estate_code": "EST-MDN-001",
+      "node_title": "In-Silico LER Multi-Canopy Biophysical Computation",
+      "verdict_answer": "Land Equivalent Ratio (LER) achieved at 1.4820x with Vanilla Orchid, preserving 32.50 Ha of forest land and generating 1462 tCO2e avoided carbon footprint.",
+      "citations": "PPKS Agronomic Benchmark & LER Optimization Engine",
+      "citations_json": "[\"PPKS Agronomic Benchmark\", \"LER Optimization Engine\"]",
+      "timestamp": "2026-10-15 08:30:00 WIB",
+      "sha256_hash": "C3D4E5F6A1B27890123456789ABCDEF0123456789ABCDEF0123456789ABCDEF2"
+    },
+    {
+      "node_id": "M2.2",
+      "estate_code": "EST-MDN-001",
+      "node_title": "Zero-Tillage Root Buffer & HCV/HCS Environmental Audit",
+      "verdict_answer": "Reticle HUD vision AI confirms 2.0m radius zero-tillage root buffer circle maintained without hoeing. Weed mulch cover protects alley soils and preserves water retention.",
+      "citations": "ISPO Principle 3 & EUDR Deforestation-Free Article 9",
+      "citations_json": "[\"ISPO Principle 3\", \"EUDR Deforestation-Free Article 9\"]",
+      "timestamp": "2026-10-15 08:45:00 WIB",
+      "sha256_hash": "D4E5F6A1B2C37890123456789ABCDEF0123456789ABCDEF0123456789ABCDEF3"
+    }
+  ],
+  "simulator": {
+    "active_crop": "Vanilla Orchid (Vanilla planifolia)",
+    "ler_result": "1.4820x",
+    "forest_spared_ha": "32.50 Ha",
+    "carbon_offset": "1462.0 tCO2e",
+    "palm_age": 7.0,
+    "land_area": 100.0,
+    "soil_ph": 5.5,
+    "terrain_slope": 4.5
+  },
+  "timelines": {
+    "estate_code": "EST-MDN-001",
+    "nama_kebun": "PT Mandailing Agro Sustainable",
+    "status_code": "ACTIVE_COMPLIANT",
+    "status_label_en": "Legally Certified Active",
+    "is_valid": true,
+    "current_quarter": "Q4",
+    "quarterly_timeline": "152 Days Remaining",
+    "delta_days": 28
+  },
+  "estates": [
+    {
+      "id": 1,
+      "id_kebun": 1,
+      "kode_kebun": "EST-MDN-001",
+      "nama_kebun": "PT Mandailing Agro Sustainable",
+      "nomor_hgu": "004/HGU/BPN-MDN/2021",
+      "nop_pbb": "12.13.010.001.001-0001.0",
+      "luas_ha": 1200.0,
+      "umur_sawit": 7.5,
+      "komoditas_sela": "Red Ginger (Zingiber officinale)",
+      "centroid_lat": 0.825,
+      "centroid_lng": 99.565,
+      "nomor_registrasi": "CERT-ECOGREEN-2026-0001",
+      "status_sertifikat": "active",
+      "status_siklus": "Q2_ACTIVE",
+      "ler_achieved": 1.5238,
+      "avoided_forest_ha": 34.37,
+      "carbon_tco2e": 1546.65,
+      "sha256_hash": "577D67D3D624578C65F4D18E2271FA94967C8D102BDF0639CBDE04B6D1E8C1CF",
+      "polygon": {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                99.555,
+                0.815
+              ],
+              [
+                99.575,
+                0.815
+              ],
+              [
+                99.575,
+                0.835
+              ],
+              [
+                99.555,
+                0.835
+              ],
+              [
+                99.555,
+                0.815
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "area_ha": 1200.0,
+          "name": "Batas Poligon HGU EST-MDN-001",
+          "zone": "Panyabungan Sentral - Batang Gadis Valley",
+          "entity": "PT Mandailing Agro Sustainable",
+          "nomor_hgu": "004/HGU/BPN-MDN/2021"
+        }
+      },
+      "poligon_geojson": "{\"type\": \"Feature\", \"geometry\": {\"type\": \"Polygon\", \"coordinates\": [[[99.555, 0.815], [99.575, 0.815], [99.575, 0.835], [99.555, 0.835], [99.555, 0.815]]]}, \"properties\": {\"area_ha\": 1200.0, \"name\": \"Batas Poligon HGU EST-MDN-001\", \"zone\": \"Panyabungan Sentral - Batang Gadis Valley\", \"entity\": \"PT Mandailing Agro Sustainable\", \"nomor_hgu\": \"004/HGU/BPN-MDN/2021\"}}"
+    },
+    {
+      "id": 2,
+      "id_kebun": 2,
+      "kode_kebun": "EST-MDN-002",
+      "nama_kebun": "Koperasi Sawit Swadaya Maju",
+      "nomor_hgu": "012/HGU/BPN-MDN/2019",
+      "nop_pbb": "12.13.010.002.002-0002.0",
+      "luas_ha": 450.0,
+      "umur_sawit": 6.0,
+      "komoditas_sela": "Shade Robusta Coffee",
+      "centroid_lat": 0.885,
+      "centroid_lng": 99.505,
+      "nomor_registrasi": "CERT-ECOGREEN-2026-0002",
+      "status_sertifikat": "provisional",
+      "status_siklus": "Q2_PENDING",
+      "ler_achieved": 1.442,
+      "avoided_forest_ha": 15.2,
+      "carbon_tco2e": 684.0,
+      "sha256_hash": "E96261E8E5D3620A0347DAC5A27525ABAE2012552280D83A1F4CFE4F4488DD19",
+      "polygon": {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                99.495,
+                0.875
+              ],
+              [
+                99.515,
+                0.875
+              ],
+              [
+                99.515,
+                0.895
+              ],
+              [
+                99.495,
+                0.895
+              ],
+              [
+                99.495,
+                0.875
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "area_ha": 450.0,
+          "name": "Batas Poligon HGU EST-MDN-002",
+          "zone": "Siabu Barat - Dataran Rendah APL",
+          "entity": "Koperasi Sawit Swadaya Maju",
+          "nomor_hgu": "012/HGU/BPN-MDN/2019"
+        }
+      },
+      "poligon_geojson": "{\"type\": \"Feature\", \"geometry\": {\"type\": \"Polygon\", \"coordinates\": [[[99.495, 0.875], [99.515, 0.875], [99.515, 0.895], [99.495, 0.895], [99.495, 0.875]]]}, \"properties\": {\"area_ha\": 450.0, \"name\": \"Batas Poligon HGU EST-MDN-002\", \"zone\": \"Siabu Barat - Dataran Rendah APL\", \"entity\": \"Koperasi Sawit Swadaya Maju\", \"nomor_hgu\": \"012/HGU/BPN-MDN/2019\"}}"
+    },
+    {
+      "id": 3,
+      "id_kebun": 3,
+      "kode_kebun": "EST-MDN-003",
+      "nama_kebun": "PT Batang Gadis Plantation",
+      "nomor_hgu": "088/HGU/BPN-MDN/2020",
+      "nop_pbb": "12.13.020.005.001-0014.0",
+      "luas_ha": 2100.0,
+      "umur_sawit": 9.0,
+      "komoditas_sela": "Cardamom (Amomum compactum)",
+      "centroid_lat": 0.74,
+      "centroid_lng": 99.38,
+      "nomor_registrasi": "CERT-ECOGREEN-2026-0003",
+      "status_sertifikat": "active",
+      "status_siklus": "Q2_ACTIVE",
+      "ler_achieved": 1.485,
+      "avoided_forest_ha": 68.6,
+      "carbon_tco2e": 3087.0,
+      "sha256_hash": "DBCFDAC38C189B6E5507C33B110D8CDB97E7A8241D9B80BB05E709B0703F5D78",
+      "polygon": {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                99.36,
+                0.725
+              ],
+              [
+                99.4,
+                0.725
+              ],
+              [
+                99.4,
+                0.755
+              ],
+              [
+                99.36,
+                0.755
+              ],
+              [
+                99.36,
+                0.725
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "area_ha": 2100.0,
+          "name": "Batas Poligon HGU EST-MDN-003",
+          "zone": "Muara Batang Gadis - Singkuang Hilir",
+          "entity": "PT Batang Gadis Plantation",
+          "nomor_hgu": "088/HGU/BPN-MDN/2020"
+        }
+      },
+      "poligon_geojson": "{\"type\": \"Feature\", \"geometry\": {\"type\": \"Polygon\", \"coordinates\": [[[99.36, 0.725], [99.4, 0.725], [99.4, 0.755], [99.36, 0.755], [99.36, 0.725]]]}, \"properties\": {\"area_ha\": 2100.0, \"name\": \"Batas Poligon HGU EST-MDN-003\", \"zone\": \"Muara Batang Gadis - Singkuang Hilir\", \"entity\": \"PT Batang Gadis Plantation\", \"nomor_hgu\": \"088/HGU/BPN-MDN/2020\"}}"
+    },
+    {
+      "id": 4,
+      "id_kebun": 4,
+      "kode_kebun": "EST-MDN-004",
+      "nama_kebun": "PT Sorik Marapi Agro Lestari",
+      "nomor_hgu": "034/HGU/BPN-MDN/2022",
+      "nop_pbb": "12.13.030.012.003-0008.0",
+      "luas_ha": 850.0,
+      "umur_sawit": 5.5,
+      "komoditas_sela": "Porang (Amorphophallus muelleri)",
+      "centroid_lat": 0.785,
+      "centroid_lng": 99.54,
+      "nomor_registrasi": "CERT-ECOGREEN-2026-0004",
+      "status_sertifikat": "provisional",
+      "status_siklus": "Q2_PENDING",
+      "ler_achieved": 1.412,
+      "avoided_forest_ha": 24.8,
+      "carbon_tco2e": 1116.0,
+      "sha256_hash": "B63B04ECEC1D013616FF5DEC760D4AD1930987A0AAAB5FB0B275D79187EEF115",
+      "polygon": {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                99.53,
+                0.775
+              ],
+              [
+                99.55,
+                0.775
+              ],
+              [
+                99.55,
+                0.795
+              ],
+              [
+                99.53,
+                0.795
+              ],
+              [
+                99.53,
+                0.775
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "area_ha": 850.0,
+          "name": "Batas Poligon HGU EST-MDN-004",
+          "zone": "Lembah Sorik Marapi - Koridor Penyangga Vulkanik APL",
+          "entity": "PT Sorik Marapi Agro Lestari",
+          "nomor_hgu": "034/HGU/BPN-MDN/2022"
+        }
+      },
+      "poligon_geojson": "{\"type\": \"Feature\", \"geometry\": {\"type\": \"Polygon\", \"coordinates\": [[[99.53, 0.775], [99.55, 0.775], [99.55, 0.795], [99.53, 0.795], [99.53, 0.775]]]}, \"properties\": {\"area_ha\": 850.0, \"name\": \"Batas Poligon HGU EST-MDN-004\", \"zone\": \"Lembah Sorik Marapi - Koridor Penyangga Vulkanik APL\", \"entity\": \"PT Sorik Marapi Agro Lestari\", \"nomor_hgu\": \"034/HGU/BPN-MDN/2022\"}}"
+    },
+    {
+      "id": 5,
+      "id_kebun": 5,
+      "kode_kebun": "EST-MDN-005",
+      "nama_kebun": "KUD Harapan Bersama Natal",
+      "nomor_hgu": "045/HGU/BPN-MDN/2018",
+      "nop_pbb": "12.13.040.008.002-0019.0",
+      "luas_ha": 380.0,
+      "umur_sawit": 12.0,
+      "komoditas_sela": "Shade Vanilla (Vanilla planifolia)",
+      "centroid_lat": 0.81,
+      "centroid_lng": 99.485,
+      "nomor_registrasi": "CERT-ECOGREEN-2026-0005",
+      "status_sertifikat": "provisional",
+      "status_siklus": "Q1_PROVISIONAL",
+      "ler_achieved": 1.395,
+      "avoided_forest_ha": 10.7,
+      "carbon_tco2e": 481.5,
+      "sha256_hash": "E7D5D4BAEE50B3B6D093F62B253923BD9B1BC202F734C460F42843652B63CB27",
+      "polygon": {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                99.475,
+                0.8
+              ],
+              [
+                99.495,
+                0.8
+              ],
+              [
+                99.495,
+                0.82
+              ],
+              [
+                99.475,
+                0.82
+              ],
+              [
+                99.475,
+                0.8
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "area_ha": 380.0,
+          "name": "Batas Poligon HGU EST-MDN-005",
+          "zone": "Natal Pesisir - Zona Uji Penyangga Gambut",
+          "entity": "KUD Harapan Bersama Natal",
+          "nomor_hgu": "045/HGU/BPN-MDN/2018"
+        }
+      },
+      "poligon_geojson": "{\"type\": \"Feature\", \"geometry\": {\"type\": \"Polygon\", \"coordinates\": [[[99.475, 0.8], [99.495, 0.8], [99.495, 0.82], [99.475, 0.82], [99.475, 0.8]]]}, \"properties\": {\"area_ha\": 380.0, \"name\": \"Batas Poligon HGU EST-MDN-005\", \"zone\": \"Natal Pesisir - Zona Uji Penyangga Gambut\", \"entity\": \"KUD Harapan Bersama Natal\", \"nomor_hgu\": \"045/HGU/BPN-MDN/2018\"}}"
+    },
+    {
+      "id": 6,
+      "id_kebun": 6,
+      "kode_kebun": "EST-MDN-006",
+      "nama_kebun": "PT Panyabungan Palma Raya",
+      "nomor_hgu": "055/HGU/BPN-MDN/2021",
+      "nop_pbb": "12.13.050.015.001-0005.0",
+      "luas_ha": 1450.0,
+      "umur_sawit": 8.0,
+      "komoditas_sela": "Curcuma / Temulawak (Curcuma zanthorrhiza)",
+      "centroid_lat": 0.84,
+      "centroid_lng": 99.61,
+      "nomor_registrasi": "CERT-ECOGREEN-2026-0006",
+      "status_sertifikat": "active",
+      "status_siklus": "Q2_ACTIVE",
+      "ler_achieved": 1.472,
+      "avoided_forest_ha": 46.4,
+      "carbon_tco2e": 2088.0,
+      "sha256_hash": "2A7052C0769933A0A584FA18D961562147F049CE2202E05A34CF6D3524045996",
+      "polygon": {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                99.598,
+                0.828
+              ],
+              [
+                99.622,
+                0.828
+              ],
+              [
+                99.622,
+                0.852
+              ],
+              [
+                99.598,
+                0.852
+              ],
+              [
+                99.598,
+                0.828
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "area_ha": 1450.0,
+          "name": "Batas Poligon HGU EST-MDN-006",
+          "zone": "Panyabungan Timur - Batang Lolo APL",
+          "entity": "PT Panyabungan Palma Raya",
+          "nomor_hgu": "055/HGU/BPN-MDN/2021"
+        }
+      },
+      "poligon_geojson": "{\"type\": \"Feature\", \"geometry\": {\"type\": \"Polygon\", \"coordinates\": [[[99.598, 0.828], [99.622, 0.828], [99.622, 0.852], [99.598, 0.852], [99.598, 0.828]]]}, \"properties\": {\"area_ha\": 1450.0, \"name\": \"Batas Poligon HGU EST-MDN-006\", \"zone\": \"Panyabungan Timur - Batang Lolo APL\", \"entity\": \"PT Panyabungan Palma Raya\", \"nomor_hgu\": \"055/HGU/BPN-MDN/2021\"}}"
+    },
+    {
+      "id": 7,
+      "id_kebun": 7,
+      "kode_kebun": "EST-MDN-007",
+      "nama_kebun": "PT Rintis Alam Mandailing",
+      "nomor_hgu": "071/HGU/BPN-MDN/2023",
+      "nop_pbb": "12.13.060.022.001-0012.0",
+      "luas_ha": 920.0,
+      "umur_sawit": 6.5,
+      "komoditas_sela": "Patchouli / Nilam (Pogostemon cablin)",
+      "centroid_lat": 0.835,
+      "centroid_lng": 99.52,
+      "nomor_registrasi": "CERT-ECOGREEN-2026-0007",
+      "status_sertifikat": "active",
+      "status_siklus": "Q2_ACTIVE",
+      "ler_achieved": 1.458,
+      "avoided_forest_ha": 28.9,
+      "carbon_tco2e": 1300.5,
+      "sha256_hash": "0EB329EC550BFF8E202C4B3AFADCDEE054FB76F7A814A056CD8F5072B727A78D",
+      "polygon": {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                99.51,
+                0.825
+              ],
+              [
+                99.53,
+                0.825
+              ],
+              [
+                99.53,
+                0.845
+              ],
+              [
+                99.51,
+                0.845
+              ],
+              [
+                99.51,
+                0.825
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "area_ha": 920.0,
+          "name": "Batas Poligon HGU EST-MDN-007",
+          "zone": "Huta Bargot - Koridor Barat Batang Gadis",
+          "entity": "PT Rintis Alam Mandailing",
+          "nomor_hgu": "071/HGU/BPN-MDN/2023"
+        }
+      },
+      "poligon_geojson": "{\"type\": \"Feature\", \"geometry\": {\"type\": \"Polygon\", \"coordinates\": [[[99.51, 0.825], [99.53, 0.825], [99.53, 0.845], [99.51, 0.845], [99.51, 0.825]]]}, \"properties\": {\"area_ha\": 920.0, \"name\": \"Batas Poligon HGU EST-MDN-007\", \"zone\": \"Huta Bargot - Koridor Barat Batang Gadis\", \"entity\": \"PT Rintis Alam Mandailing\", \"nomor_hgu\": \"071/HGU/BPN-MDN/2023\"}}"
+    },
+    {
+      "id": 8,
+      "id_kebun": 8,
+      "kode_kebun": "EST-MDN-008",
+      "nama_kebun": "Koperasi Tani Tunas Makmur",
+      "nomor_hgu": "019/HGU/BPN-MDN/2020",
+      "nop_pbb": "12.13.070.010.003-0018.0",
+      "luas_ha": 310.0,
+      "umur_sawit": 5.0,
+      "komoditas_sela": "Citronella Grass (Cymbopogon nardus)",
+      "centroid_lat": 0.9,
+      "centroid_lng": 99.55,
+      "nomor_registrasi": "CERT-ECOGREEN-2026-0008",
+      "status_sertifikat": "provisional",
+      "status_siklus": "Q2_PENDING",
+      "ler_achieved": 1.431,
+      "avoided_forest_ha": 9.3,
+      "carbon_tco2e": 418.5,
+      "sha256_hash": "F4A11C63730B432C70F606C171401B51BF1783727BA8503E724C12BCAA9E543F",
+      "polygon": {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                99.542,
+                0.892
+              ],
+              [
+                99.558,
+                0.892
+              ],
+              [
+                99.558,
+                0.908
+              ],
+              [
+                99.542,
+                0.908
+              ],
+              [
+                99.542,
+                0.892
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "area_ha": 310.0,
+          "name": "Batas Poligon HGU EST-MDN-008",
+          "zone": "Bukit Malintang - Lembah APL Utara",
+          "entity": "Koperasi Tani Tunas Makmur",
+          "nomor_hgu": "019/HGU/BPN-MDN/2020"
+        }
+      },
+      "poligon_geojson": "{\"type\": \"Feature\", \"geometry\": {\"type\": \"Polygon\", \"coordinates\": [[[99.542, 0.892], [99.558, 0.892], [99.558, 0.908], [99.542, 0.908], [99.542, 0.892]]]}, \"properties\": {\"area_ha\": 310.0, \"name\": \"Batas Poligon HGU EST-MDN-008\", \"zone\": \"Bukit Malintang - Lembah APL Utara\", \"entity\": \"Koperasi Tani Tunas Makmur\", \"nomor_hgu\": \"019/HGU/BPN-MDN/2020\"}}"
+    },
+    {
+      "id": 9,
+      "id_kebun": 9,
+      "kode_kebun": "EST-MDN-009",
+      "nama_kebun": "PT Bukit Barisan Agro Sejahtera",
+      "nomor_hgu": "099/HGU/BPN-MDN/2019",
+      "nop_pbb": "12.13.080.030.001-0022.0",
+      "luas_ha": 2800.0,
+      "umur_sawit": 4.0,
+      "komoditas_sela": "Soybean (Glycine max)",
+      "centroid_lat": 0.755,
+      "centroid_lng": 99.62,
+      "nomor_registrasi": "CERT-ECOGREEN-2026-0009",
+      "status_sertifikat": "active",
+      "status_siklus": "Q2_ACTIVE",
+      "ler_achieved": 1.492,
+      "avoided_forest_ha": 92.4,
+      "carbon_tco2e": 4158.0,
+      "sha256_hash": "4F219247EF263F0F2037DBB7B06A6C5AE2B0653F437377EE77A269BB1136DBAF",
+      "polygon": {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                99.605,
+                0.74
+              ],
+              [
+                99.635,
+                0.74
+              ],
+              [
+                99.635,
+                0.77
+              ],
+              [
+                99.605,
+                0.77
+              ],
+              [
+                99.605,
+                0.74
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "area_ha": 2800.0,
+          "name": "Batas Poligon HGU EST-MDN-009",
+          "zone": "Kotanopan - Dataran Tinggi Ulu Pungkut APL",
+          "entity": "PT Bukit Barisan Agro Sejahtera",
+          "nomor_hgu": "099/HGU/BPN-MDN/2019"
+        }
+      },
+      "poligon_geojson": "{\"type\": \"Feature\", \"geometry\": {\"type\": \"Polygon\", \"coordinates\": [[[99.605, 0.74], [99.635, 0.74], [99.635, 0.77], [99.605, 0.77], [99.605, 0.74]]]}, \"properties\": {\"area_ha\": 2800.0, \"name\": \"Batas Poligon HGU EST-MDN-009\", \"zone\": \"Kotanopan - Dataran Tinggi Ulu Pungkut APL\", \"entity\": \"PT Bukit Barisan Agro Sejahtera\", \"nomor_hgu\": \"099/HGU/BPN-MDN/2019\"}}"
+    },
+    {
+      "id": 10,
+      "id_kebun": 10,
+      "kode_kebun": "EST-MDN-010",
+      "nama_kebun": "PT Mitra Agro Mandiri Madina",
+      "nomor_hgu": "010/HGU/BPN-MDN/2026",
+      "nop_pbb": "12.13.010.010.001-0010.0",
+      "luas_ha": 640.0,
+      "umur_sawit": 10.0,
+      "komoditas_sela": "Shade Cacao (Theobroma cacao)",
+      "centroid_lat": 0.865,
+      "centroid_lng": 99.56,
+      "nomor_registrasi": "CERT-ECOGREEN-2026-0010",
+      "status_sertifikat": "active",
+      "status_siklus": "Q2_ACTIVE",
+      "ler_achieved": 1.512,
+      "avoided_forest_ha": 21.6,
+      "carbon_tco2e": 972.0,
+      "sha256_hash": "865FF3707C6AFF37FDCDCDDABE184ACF79C269EDBA3177116BE8817A8F82B384",
+      "polygon": {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                99.55,
+                0.855
+              ],
+              [
+                99.57,
+                0.855
+              ],
+              [
+                99.57,
+                0.875
+              ],
+              [
+                99.55,
+                0.875
+              ],
+              [
+                99.55,
+                0.855
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "area_ha": 640.0,
+          "name": "Batas Poligon HGU EST-MDN-010",
+          "zone": "Panyabungan Utara - Koridor Agroforestry Madina",
+          "entity": "PT Mitra Agro Mandiri Madina",
+          "nomor_hgu": "010/HGU/BPN-MDN/2026"
+        }
+      },
+      "poligon_geojson": "{\"type\": \"Feature\", \"geometry\": {\"type\": \"Polygon\", \"coordinates\": [[[99.55, 0.855], [99.57, 0.855], [99.57, 0.875], [99.55, 0.875], [99.55, 0.855]]]}, \"properties\": {\"area_ha\": 640.0, \"name\": \"Batas Poligon HGU EST-MDN-010\", \"zone\": \"Panyabungan Utara - Koridor Agroforestry Madina\", \"entity\": \"PT Mitra Agro Mandiri Madina\", \"nomor_hgu\": \"010/HGU/BPN-MDN/2026\"}}"
+    }
+  ]
+}

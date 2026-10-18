@@ -1,0 +1,23 @@
+# Secrets & Credentials
+.env
+*.json
+service-account*.json
+!mobile/manifest.json
+!data/precision_store.json
+!static/data/*.json
+
+# Python Bytecode & Environments
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+env/
+
+# Database locks & temporary files
+*.db-journal
+*.db-wal
+*.db-shm
+.DS_Store
+.vscode/
+.idea/
+scratch/

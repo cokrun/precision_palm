@@ -1,0 +1,168 @@
+<!-- templates/partials/header.html -->
+<header class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-3.5 sm:p-4 shadow-sm transition-colors duration-200">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <!-- BRAND LOGO & SYSTEM IDENTITY -->
+        <div class="flex items-center justify-between">
+            <a href="/" class="flex items-center gap-3 group cursor-pointer" title="Precision Palm Cloud • Regenerative Agroforestry">
+                <div class="flex items-center">
+                    <img src="/static/logo.svg" alt="Precision Palm Logo" class="h-9 sm:h-10 w-auto group-hover:scale-105 transition-transform" onerror="this.onerror=null; this.src='/static/icon.png';">
+                </div>
+            </a>
+
+            <!-- Mobile Menu Toggle Button -->
+            <button type="button" onclick="toggleMobileNavMenu()" class="lg:hidden p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer" title="Toggle Navigation Menu">
+                <span class="text-xl">☰</span>
+            </button>
+        </div>
+
+        <!-- STREAMLINED PUBLIC & WORKSPACE NAVIGATION LINKS -->
+        <nav id="primaryNavMenu" class="hidden lg:flex flex-wrap items-center gap-1 sm:gap-2 text-xs font-mono font-semibold">
+            <!-- 1. Home -->
+            <a href="/" class="px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1.5" title="Home Landing">
+                <span>🏠</span> <span>Home</span>
+            </a>
+
+            <!-- 2. Application (Primary Workspace Entrypoint) -->
+            <a href="/overview" class="px-3.5 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600 hover:text-white transition flex items-center gap-1.5 font-bold shadow-xs" title="Open Enterprise Application Workspace">
+                <span>💻</span> <span>Application</span>
+            </a>
+
+            <!-- 3. Mobile (Field Node PWA) -->
+            <a href="/mobile" class="px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1.5" title="Foreman Offline Mobile Field Node PWA">
+                <span>📱</span> <span>Mobile</span>
+            </a>
+
+            <!-- 4. Architecture Stack (Teknologi) -->
+            <a href="/teknologi" class="px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1.5" title="Enterprise Architecture & Google Cloud AI Stack">
+                <span>⚡</span> <span>Architecture Stack</span>
+            </a>
+            <!-- 5. Guide (Spatial & GEE Satellite Observatorium) -->
+            <a href="/guide" class="px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-sky-500 dark:hover:text-sky-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1.5" title="Interactive Spatial Mapping & GEE Satellite Observatory">
+                <span>🗺️</span> <span>Guide</span>
+            </a>
+            <!-- 6. Guide & SOP (Panduan Ilmiah) -->
+            <a href="/panduan" class="px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1.5" title="Scientific Manual & Role-Based SOP">
+                <span>📖</span> <span>Information</span>
+            </a>
+            <a href="/verifikasi" class="px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1.5" title="Verification Cloud Stack">
+                        🤖 <span>Verification Cloud</span>
+             </a>
+            <!-- 7. More Dropdown (Dokumen Tambahan) -->
+            <div class="relative group">
+                <button type="button" class="px-2.5 py-1.5 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1 cursor-pointer" title="Dokumen Tambahan">
+                    <span>More</span> <span>▾</span>
+                </button>
+                <div class="absolute right-0 top-full mt-1 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-2 hidden group-hover:block z-50 animate-in fade-in zoom-in-95 duration-150 font-sans text-xs">
+                    <a href="/about" class="block px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-600 transition">
+                        ℹ️ <span>About &amp; Genesis</span>
+                    </a>
+                    <a href="/proses_bisnis" class="block px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-600 transition">
+                        🎬 <span>Business Process</span>
+                    </a>
+                    <a href="/ai-logs" class="block px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-600 transition">
+                        🤖 <span>AI Telemetry Logs</span>
+                    </a>
+                    <a href="/validasi" class="block px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-600 transition">
+                        🛡️ <span>Public QR Validation</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- ACTION UTILITIES: THEME & LANGUAGE -->
+        <div class="flex items-center justify-end gap-2 text-xs font-mono">
+            <!-- Language Switcher (EN / ID) -->
+            <div class="inline-flex rounded-xl bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700">
+                <button type="button" id="btnLangEN" onclick="setAppLanguage('en')" class="px-2 py-1 rounded-lg transition-all bg-emerald-600 text-white font-bold shadow-xs cursor-pointer text-[10px]" title="English">
+                    EN
+                </button>
+                <button type="button" id="btnLangID" onclick="setAppLanguage('id')" class="px-2 py-1 rounded-lg transition-all text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer font-bold text-[10px]" title="Bahasa Indonesia">
+                    ID
+                </button>
+            </div>
+
+            <!-- Dark / Light Theme Toggle -->
+            <button type="button" onclick="toggleThemeMode()" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-emerald-500 border border-slate-200 dark:border-slate-700 transition cursor-pointer" title="Toggle Dark/Light Mode">
+                <span id="themeToggleIcon" class="text-sm">🌙</span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<script>
+    function toggleMobileNavMenu() {
+        const nav = document.getElementById('primaryNavMenu');
+        if (nav) {
+            nav.classList.toggle('hidden');
+            nav.classList.toggle('flex');
+            nav.classList.toggle('flex-col');
+            nav.classList.toggle('pt-3');
+            nav.classList.toggle('border-t');
+            nav.classList.toggle('border-slate-100');
+            nav.classList.toggle('dark:border-slate-800');
+        }
+    }
+
+    function applyThemeMode(theme) {
+        const targetTheme = (theme === 'light') ? 'light' : 'dark';
+        const icon = document.getElementById('themeToggleIcon');
+
+        if (targetTheme === 'dark') {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('precision_palm_theme', 'dark');
+            if (icon) icon.textContent = '🌙';
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('precision_palm_theme', 'light');
+            if (icon) icon.textContent = '☀️';
+        }
+        window.dispatchEvent(new CustomEvent('themechanged', { detail: { theme: targetTheme } }));
+    }
+
+    function toggleThemeMode() {
+        const isCurrentlyDark = document.documentElement.classList.contains('dark');
+        applyThemeMode(isCurrentlyDark ? 'light' : 'dark');
+    }
+
+    function setAppLanguage(lang) {
+        const targetLang = (lang === 'id' || lang === 'en') ? lang : 'en';
+        localStorage.setItem('precision_palm_lang', targetLang);
+        document.documentElement.lang = targetLang;
+
+        const btnEN = document.getElementById('btnLangEN');
+        const btnID = document.getElementById('btnLangID');
+        if (btnEN && btnID) {
+            if (targetLang === 'en') {
+                btnEN.className = "px-2 py-1 rounded-lg transition-all bg-emerald-600 text-white font-bold shadow-xs cursor-pointer text-[10px]";
+                btnID.className = "px-2 py-1 rounded-lg transition-all text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer font-bold text-[10px]";
+            } else {
+                btnID.className = "px-2 py-1 rounded-lg transition-all bg-emerald-600 text-white font-bold shadow-xs cursor-pointer text-[10px]";
+                btnEN.className = "px-2 py-1 rounded-lg transition-all text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer font-bold text-[10px]";
+            }
+        }
+        window.dispatchEvent(new CustomEvent('languagechanged', { detail: { lang: targetLang } }));
+    }
+
+    // Penanda tautan aktif pada header
+    (function initHeaderActiveLink() {
+        const currentPath = window.location.pathname.replace(/\/$/, '') || '/';
+        const links = document.querySelectorAll('#primaryNavMenu a');
+        links.forEach(link => {
+            const href = link.getAttribute('href');
+            if (!href) return;
+            const normHref = href.replace(/\/$/, '') || '/';
+            if ((normHref === '/' && currentPath === '/') || (normHref !== '/' && currentPath.startsWith(normHref))) {
+                if (!link.classList.contains('bg-emerald-500/15')) {
+                    link.classList.add('text-emerald-500', 'font-bold');
+                }
+            }
+        });
+    })();
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedTheme = localStorage.getItem('precision_palm_theme') || 'dark';
+        applyThemeMode(savedTheme);
+        const savedLang = localStorage.getItem('precision_palm_lang') || 'en';
+        setAppLanguage(savedLang);
+    });
+</script>

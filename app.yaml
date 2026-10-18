@@ -1,0 +1,11 @@
+runtime: python311
+instance_class: F2
+entrypoint: gunicorn -b :$PORT app:app --workers 3 --threads 4 --timeout 120
+
+env_variables:
+  FLASK_ENV: "production"
+  GOOGLE_CLOUD_PROJECT: "palm-project-511008"
+  GCP_REGION: "asia-southeast2"
+  GEMINI_MODEL: "gemini-3.8-flash"
+  GCS_SPATIAL_BUCKET: "palm-spatial-assets-511008"
+  BIGQUERY_DATASET: "precision_palm_dw"

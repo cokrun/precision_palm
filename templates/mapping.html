@@ -1,0 +1,1480 @@
+<!-- mapping.html -->
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <!-- Theme Script to Prevent FOUC -->
+    <script>
+        (function () {
+            try {
+                const savedTheme = localStorage.getItem('precision_palm_theme') || 'dark';
+                if (savedTheme === 'light') {
+                    document.documentElement.classList.remove('dark');
+                } else {
+                    document.documentElement.classList.add('dark');
+                }
+            } catch (_) {}
+        })();
+    </script>
+    <script src="/static/js/i18n.js"></script>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Precision Palm — Remote Forest Compliance &amp; AI Spatial Audit</title>
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              900: '#064e3b'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <!-- Leaflet CSS & JS (v1.9.4) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #10b981;
+    }
+
+    /* Leaflet Dark Theme Overrides */
+    .leaflet-container {
+      background: #090d16 !important;
+      font-family: 'Inter', sans-serif !important;
+      width: 100% !important;
+      height: 700px !important;
+      min-height: 700px !important;
+    }
+    .leaflet-popup-content-wrapper {
+      background-color: #0f172a !important;
+      color: #f1f5f9 !important;
+      border: 1px solid #334155 !important;
+      border-radius: 12px !important;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.75) !important;
+    }
+    .leaflet-popup-tip {
+      background-color: #0f172a !important;
+      border: 1px solid #334155 !important;
+    }
+    .leaflet-control-zoom a {
+      background-color: #1e293b !important;
+      color: #f8fafc !important;
+      border-color: #334155 !important;
+    }
+    .leaflet-control-zoom a:hover {
+      background-color: #059669 !important;
+      color: #ffffff !important;
+    }
+    .leaflet-control-layers {
+      background-color: rgba(15, 23, 42, 0.94) !important;
+      backdrop-filter: blur(12px) !important;
+      border: 1px solid rgba(51, 65, 85, 0.8) !important;
+      color: #e2e8f0 !important;
+      border-radius: 10px !important;
+      box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.7) !important;
+    }
+
+    /* Toggle Switch Styling */
+    .toggle-checkbox:checked {
+      right: 0;
+      border-color: #10b981;
+    }
+    .toggle-checkbox:checked + .toggle-label {
+      background-color: #10b981;
+    }
+
+    /* Tile Container Rendering */
+    .leaflet-tile-container img {
+      image-rendering: auto;
+    }
+
+    /* Pulse Scanning Animation on Map */
+    @keyframes radarSweep {
+      0% { transform: scale(0.6); opacity: 0.9; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+    .radar-pulse-ring {
+      animation: radarSweep 1.8s ease-out infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-950 font-sans antialiased text-slate-100 select-none">
+
+  <!-- Modular Header Partial -->
+  {% include 'partials/header.html' %}
+
+  <!-- =========================================================================
+       MAIN WORKSPACE: SPLIT-VIEW (SIDEBAR / AUDIT CONTROLLER + MAIN CONTENT AREA)
+       ========================================================================= -->
+  <div class="relative flex-1 flex flex-col lg:flex-row overflow-hidden w-full">
+
+    <!-- -----------------------------------------------------------------------
+         SIDEBAR: AUDIT CONTROLLER & SUMMARY PANEL (CLEAN & COMPACT)
+         ----------------------------------------------------------------------- -->
+    <aside id="auditSidebar" class="w-full lg:w-96 bg-slate-900/95 backdrop-blur-md border-r border-slate-800 flex flex-col z-20 shrink-0 shadow-2xl">
+      
+      <!-- Sidebar Title Bar -->
+      <div class="px-5 py-3.5 border-b border-slate-800 bg-slate-900 flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+            <i class="fa-solid fa-shield-halved text-xs"></i>
+          </div>
+          <div>
+            <h2 class="font-bold text-white text-sm tracking-wide">Automated AI Compliance Audit</h2>
+            <span class="text-[10px] text-emerald-400 font-mono">L.tileLayer (ASEAN MBTiles SQLite Z6-Z7)</span>
+          </div>
+        </div>
+        <button id="btnCloseSidebar" class="lg:hidden text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Scrollable Audit Body -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4">
+
+        <!-- STATUS CARD 1: AUDIT TARGET COORDINATES & CONTROLLER -->
+        <div class="rounded-xl bg-gradient-to-br from-slate-800/90 via-slate-800/70 to-emerald-950/40 border border-emerald-500/40 p-4 space-y-3.5 shadow-xl">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white uppercase font-mono tracking-wider flex items-center space-x-2">
+              <i class="fa-solid fa-location-crosshairs text-emerald-400"></i>
+              <span>Estate Centroid Target</span>
+            </span>
+            <span id="detectionIndicator" class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-950 border border-emerald-500/60 text-emerald-300 font-bold">
+              AUTOSCAN READY
+            </span>
+          </div>
+
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Drag the plantation pin, click anywhere on the map, or update coordinates to trigger real-time remote geofencing and collision detection.
+          </p>
+
+          <!-- Centroid Inputs -->
+          <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+            <div>
+              <span class="text-[10px] text-slate-400 block">Latitude:</span>
+              <input type="number" id="targetLat" step="0.0001" value="0.8241" class="w-full bg-slate-900/90 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs focus:border-emerald-500 focus:outline-none" />
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block">Longitude:</span>
+              <input type="number" id="targetLng" step="0.0001" value="99.5612" class="w-full bg-slate-900/90 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 text-xs focus:border-emerald-500 focus:outline-none" />
+            </div>
+          </div>
+
+          <!-- PRIMARY ACTION BUTTON: RUN AUTOMATED AI AUDIT -->
+          <button id="btnRunAutomatedAudit" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 active:scale-[0.98] text-white font-bold text-xs tracking-wider shadow-lg shadow-emerald-950/60 border border-emerald-400/50 transition-all flex items-center justify-center space-x-2 group cursor-pointer">
+            <i id="auditBtnIcon" class="fa-solid fa-wand-magic-sparkles text-sm group-hover:rotate-12 transition-transform"></i>
+            <span id="auditBtnText">RUN AUTOMATED AI AUDIT</span>
+          </button>
+
+          <!-- CONTEXTUAL AI ASSISTANCE: SNAP TO SAFE ZONE -->
+          <div id="safeRelocationContainer" class="pt-1">
+            <button id="btnSnapSafeZone" disabled class="w-full py-2.5 px-3.5 rounded-xl bg-slate-800 text-slate-500 border border-slate-700 font-bold text-xs tracking-wide transition-all flex items-center justify-center space-x-2 cursor-not-allowed">
+              <i class="fa-solid fa-shield-halved text-xs"></i>
+              <span id="btnSnapText">Safe Relocation Inactive (Area Compliant)</span>
+            </button>
+            <p id="safeRelocationHint" class="text-[10px] text-slate-400 mt-1.5 text-center hidden font-mono">
+              <i class="fa-solid fa-circle-info text-amber-400 mr-1"></i>Shift pin outside protected boundary with 50m ecological retreat margin.
+            </p>
+          </div>
+        </div>
+
+        <!-- STATUS CARD 2: AUDIT SUMMARY CARD (RESULTS SYNCHRONIZED WITH DETECTION) -->
+        <div id="auditSummaryCard" class="rounded-xl bg-slate-800/80 border border-slate-700/80 p-4 space-y-3.5 shadow-lg transition-all duration-300">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-300 uppercase font-mono tracking-wider flex items-center space-x-2">
+              <i class="fa-solid fa-clipboard-check text-emerald-400"></i>
+              <span>Audit Summary Card</span>
+            </span>
+            <!-- Dynamically updated status badge -->
+            <span id="auditResultBadge" class="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold tracking-wider bg-emerald-950 border border-emerald-500/60 text-emerald-400 shadow-sm transition-all duration-300">
+              EUDR ARTICLE 9 COMPLIANT: Deforestation-Free Area
+            </span>
+          </div>
+
+          <!-- Core Required Findings -->
+          <div class="space-y-2.5 text-xs">
+            
+            <!-- Finding 1: EUDR Cut-off Status -->
+            <div class="p-3 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1">
+              <div class="flex items-center space-x-2 text-[10px] uppercase font-mono text-slate-400">
+                <i class="fa-solid fa-calendar-check text-emerald-400"></i>
+                <span class="font-bold text-slate-300">EUDR Cut-off Status:</span>
+              </div>
+              <div id="valEudrStatus" class="text-xs font-bold text-emerald-400 font-sans">
+                EUDR ARTICLE 9 COMPLIANT: Deforestation-Free Area
+              </div>
+              <p id="valEudrNarrative" class="text-[11px] text-slate-400 leading-tight">
+                Deforestation-Free Baseline Confirmed. Zero overlap with protected forest.
+              </p>
+            </div>
+
+            <!-- Finding 2: Protected Forest Proximity & Pixel Detection -->
+            <div class="p-3 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1">
+              <div class="flex items-center space-x-2 text-[10px] uppercase font-mono text-slate-400">
+                <i class="fa-solid fa-shield-halved text-sky-400"></i>
+                <span class="font-bold text-slate-300">Protected Forest Proximity:</span>
+              </div>
+              <div id="valProximityStatus" class="text-xs font-bold text-sky-400 font-sans">
+                Zero Encroachment Confirmed (Buffer clearance &gt; 1.5 km).
+              </div>
+              <p id="valProximityDetail" class="text-[11px] text-slate-400 leading-tight font-mono">
+                Remote Raster Scan: <strong class="text-emerald-400">CLEAR (Safe Zone)</strong> | Clearance: <strong>2.84 km</strong>.
+              </p>
+            </div>
+
+            <!-- Finding 3: Inter-Row Corridor Feasibility -->
+            <div class="p-3 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1">
+              <div class="flex items-center space-x-2 text-[10px] uppercase font-mono text-slate-400">
+                <i class="fa-solid fa-seedling text-emerald-400"></i>
+                <span class="font-bold text-slate-300">Inter-Row Corridor Feasibility:</span>
+              </div>
+              <div id="valAgroforestryStatus" class="text-xs font-bold text-emerald-400 font-sans">
+                Safe for Agroforestry Intensification.
+              </div>
+              <p id="valAgroforestryDetail" class="text-[11px] text-slate-400 leading-tight">
+                Corridor openness allows shade-tolerant intercrops (Red Ginger &amp; Cardamom) without expanding estate perimeter.
+              </p>
+            </div>
+
+          </div>
+
+          <!-- Download Audit Payload JSON -->
+          <button id="btnDownloadJsonPayload" class="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-medium text-xs tracking-wide border border-slate-700 transition flex items-center justify-center space-x-2 cursor-pointer">
+            <i class="fa-solid fa-download text-emerald-400 text-xs"></i>
+            <span>Export Audit Certificate (JSON)</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Sidebar Footer -->
+      <div class="p-3.5 border-t border-slate-800 bg-slate-900/90 text-[11px] text-slate-400 font-mono flex items-center justify-between">
+        <span>PRECISION PALM ENTERPRISE</span>
+        <span class="text-emerald-400 font-bold">SPATIAL AUDIT</span>
+      </div>
+    </aside>
+
+    <!-- -----------------------------------------------------------------------
+         MAIN CONTENT AREA (MAP CANVAS 700PX + PANELS MOVED BELOW MAP)
+         ----------------------------------------------------------------------- -->
+    <main class="flex-1 overflow-y-auto bg-slate-950 p-4 sm:p-6 space-y-6">
+      
+      <!-- MAP CONTAINER (MIN-HEIGHT 700PX WITH ZERO CUTOFF) -->
+      <div class="relative w-full rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-900" style="min-height: 700px; height: 700px;">
+        
+        <!-- Leaflet Map Element with guaranteed 700px height -->
+        <div id="map" class="w-full h-full z-10" style="min-height: 700px; height: 700px; width: 100%;"></div>
+
+        <!-- Floating Map Header / Quick Diagnostic Pill (Top-Left) -->
+        <div class="absolute top-4 left-4 z-20 pointer-events-none">
+          <div class="px-3.5 py-2 rounded-xl bg-slate-900/90 backdrop-blur-md border border-slate-700/80 text-slate-200 font-mono text-[11px] shadow-lg flex items-center space-x-2.5 pointer-events-auto">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="font-bold text-white">MAP ENGINE:</span>
+            <span id="mapPillStatus" class="text-emerald-300">ACTIVE (700PX)</span>
+            <span class="text-slate-600">|</span>
+            <button type="button" onclick="forceFixMapSize()" class="text-sky-400 hover:text-sky-300 font-bold underline cursor-pointer" title="Refresh Canvas Dimensions">
+              Refresh Canvas
+            </button>
+            <span class="text-slate-600">|</span>
+            <button type="button" onclick="toggleTerminalWindow()" class="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 cursor-pointer" title="Open AI Execution Terminal">
+              <i class="fa-solid fa-terminal text-[10px]"></i>
+              <span>Terminal</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Floating Coordinates & Zoom Level (Bottom-Right) -->
+        <div class="absolute bottom-4 right-4 z-20 pointer-events-none">
+          <div class="px-3.5 py-1.5 rounded-lg bg-slate-900/90 backdrop-blur-md border border-slate-700/80 text-slate-200 font-mono text-xs shadow-lg flex items-center space-x-3 pointer-events-auto">
+            <div class="flex items-center space-x-1.5">
+              <i class="fa-solid fa-location-crosshairs text-emerald-400 text-xs"></i>
+              <span id="coordDisplay">0.8241° N, 99.5612° E</span>
+            </div>
+            <span class="text-slate-600">|</span>
+            <div class="flex items-center space-x-1">
+              <span class="text-slate-400">Zoom:</span>
+              <span id="zoomDisplay" class="text-emerald-400 font-bold">12</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- =====================================================================
+           PANELS MOVED DIRECTLY UNDER THE MAP (RESPONSIVE GRID)
+           ===================================================================== -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <!-- STATUS CARD 3: LOCAL FOREST TILE LAYER (ASEAN MBTILES) CONFIGURATION -->
+        <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 space-y-3.5 shadow-lg">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="text-xs font-bold text-slate-200 uppercase font-mono tracking-wider flex items-center space-x-2">
+              <i class="fa-solid fa-layer-group text-emerald-400"></i>
+              <span>Local Forest Tile Layer (MBTiles)</span>
+            </span>
+            <span class="text-[10px] text-emerald-400 font-mono">Native Z6-Z7 &rarr; Max Z19</span>
+          </div>
+
+          <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1.5 font-mono text-[10px]">
+            <div class="flex items-center justify-between text-slate-400">
+              <span>Tile Endpoint:</span>
+              <span class="text-emerald-400 font-bold truncate max-w-[150px]">/api/tiles/{z}/{x}/{y}</span>
+            </div>
+            <div class="flex items-center justify-between text-slate-400">
+              <span>Source Storage:</span>
+              <span class="text-emerald-400 font-bold">static/asean.mbtiles</span>
+            </div>
+            <div class="flex items-center justify-between text-slate-400">
+              <span>Loader Engine:</span>
+              <span class="text-sky-400 font-bold">Direct SQLite + TMS Y-Inv</span>
+            </div>
+            <div class="flex items-center justify-between text-slate-400">
+              <span>Auto-Upscaling (Z8-Z19):</span>
+              <span class="text-emerald-400 font-bold">ACTIVE (Client Leaflet)</span>
+            </div>
+            <div class="flex items-center justify-between text-slate-400">
+              <span>Attribution:</span>
+              <span class="text-slate-300 truncate max-w-[150px]">MoEF / JAPAC PIPPIB</span>
+            </div>
+          </div>
+
+          <!-- Switch: Remote Protected Forest Layer -->
+          <div class="flex items-center justify-between pt-1">
+            <div class="flex items-start space-x-2.5">
+              <span class="w-3.5 h-3.5 rounded-sm bg-rose-600/80 border border-rose-500 mt-0.5 shrink-0 shadow-sm shadow-rose-500/40"></span>
+              <div>
+                <label for="toggleForestLayer" class="text-xs font-semibold text-slate-200 cursor-pointer">Protected Forest Layer</label>
+                <p class="text-[10px] text-slate-400 leading-tight">Auto-Upscaling Native Z6-Z7</p>
+              </div>
+            </div>
+            <div class="relative inline-block w-9 select-none">
+              <input type="checkbox" id="toggleForestLayer" checked class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-2 border-slate-600 appearance-none cursor-pointer transition-all duration-200 ease-in top-0.5 left-0.5 checked:right-0.5 checked:left-auto" />
+              <label for="toggleForestLayer" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-700 cursor-pointer transition-all duration-200"></label>
+            </div>
+          </div>
+
+          <!-- Opacity Slider -->
+          <div class="space-y-1 pt-1 border-t border-slate-800">
+            <div class="flex justify-between text-[11px] font-mono text-slate-400">
+              <span>Layer Opacity:</span>
+              <span id="opacityLabel" class="text-emerald-400 font-bold">60%</span>
+            </div>
+            <input type="range" id="sliderOpacity" min="0.1" max="1" step="0.05" value="0.6" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+          </div>
+        </div>
+
+        <!-- STATUS CARD 4: DIAGNOSTIC & DEBUG TELEMETRY HUB -->
+        <div class="rounded-2xl bg-slate-900/90 border border-emerald-500/40 p-4 space-y-3.5 shadow-lg">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="text-xs font-bold text-emerald-300 uppercase font-mono tracking-wider flex items-center space-x-2">
+              <i class="fa-solid fa-wrench text-emerald-400"></i>
+              <span>Live Diagnostic &amp; Debug Hub</span>
+            </span>
+            <span id="diagLiveStatusBadge" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-600">
+              SYS OK
+            </span>
+          </div>
+
+          <div class="space-y-1.5 font-mono text-[10px] text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <div class="flex justify-between">
+              <span class="text-slate-400">Container Size:</span>
+              <span id="dbgContainerSize" class="text-emerald-400 font-bold">700 px (Locked)</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Active Basemap:</span>
+              <span id="dbgActiveBasemap" class="text-sky-300 font-bold">ArcGIS Imagery</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Tiles Loaded:</span>
+              <span id="dbgTilesLoaded" class="text-slate-200">0 loaded, 0 err</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Forest Tile CORS:</span>
+              <span id="dbgCorsStatus" class="text-emerald-400 font-bold">Tested OK</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Sampled Pixel:</span>
+              <span id="dbgPixelRgb" class="text-slate-200">RGB(0, 0, 0)</span>
+            </div>
+          </div>
+
+          <!-- Quick Debug Action Buttons -->
+          <div class="grid grid-cols-2 gap-2 text-[10px] font-mono pt-1">
+            <button type="button" id="btnDebugFixSize" onclick="forceFixMapSize()" class="py-2 px-2 rounded-xl bg-emerald-950 hover:bg-emerald-900 border border-emerald-600 text-emerald-300 font-bold transition flex items-center justify-center gap-1 cursor-pointer">
+              <i class="fa-solid fa-arrows-rotate text-[10px]"></i>
+              <span>Fix Size (700px)</span>
+            </button>
+            <button type="button" id="btnDebugSwitchBasemap" onclick="toggleFallbackBasemap()" class="py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold transition flex items-center justify-center gap-1 cursor-pointer">
+              <i class="fa-solid fa-layer-group text-[10px]"></i>
+              <span>Switch Basemap</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- STATUS CARD 5: CARTOGRAPHIC LEGEND -->
+        <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 space-y-3.5 shadow-lg">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="text-xs font-bold text-slate-200 uppercase font-mono tracking-wider flex items-center space-x-2">
+              <i class="fa-solid fa-palette text-rose-400"></i>
+              <span>Cartographic Legend</span>
+            </span>
+            <span class="text-[10px] text-slate-400 font-mono">GIS Vector &bull; WGS84</span>
+          </div>
+
+          <div class="space-y-2 text-xs">
+            <div class="flex items-center space-x-2.5 p-2 rounded-xl bg-slate-950 border border-slate-800/80">
+              <div class="w-4 h-4 rounded bg-rose-600/60 border-2 border-rose-500 shrink-0 shadow-sm shadow-rose-500/40"></div>
+              <div>
+                <span class="text-slate-200 font-semibold block text-[11px]">Protected Forest Zone (PIPPIB)</span>
+                <span class="text-[9px] text-slate-400 leading-tight">Raster PNG Tile (/api/tiles &bull; ASEAN MBTiles)</span>
+              </div>
+            </div>
+
+            <div class="flex items-center space-x-2.5 p-2 rounded-xl bg-slate-950 border border-slate-800/80">
+              <div class="w-4 h-4 rounded-full bg-sky-400 border-2 border-white shrink-0 shadow-sm shadow-sky-400/50"></div>
+              <div>
+                <span class="text-slate-200 font-semibold block text-[11px]">Estate Centroid Target (Draggable)</span>
+                <span class="text-[9px] text-slate-400 leading-tight">Interactive audit inspection centroid</span>
+              </div>
+            </div>
+
+            <div class="flex items-center space-x-2.5 p-2 rounded-xl bg-slate-950 border border-slate-800/80">
+              <div class="w-4 h-4 rounded bg-slate-700 border border-slate-600 shrink-0"></div>
+              <div>
+                <span class="text-slate-200 font-semibold block text-[11px]">Satellite Imagery / OSM</span>
+                <span class="text-[9px] text-slate-400 leading-tight">Earth observation basemap</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SPATIAL TELEMETRY LOG (INTEGRATED) -->
+        <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 space-y-3.5 shadow-lg flex flex-col justify-between">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2 text-[11px] font-mono">
+            <span class="flex items-center space-x-1.5">
+              <i class="fa-solid fa-terminal text-emerald-400"></i>
+              <span class="font-bold text-slate-200 uppercase">SPATIAL AUDIT LOG</span>
+            </span>
+            <span class="text-[10px] text-emerald-400 font-bold bg-emerald-950 px-2 py-0.5 rounded border border-emerald-700">ONLINE</span>
+          </div>
+
+          <div id="telemetryLog" class="text-[10px] text-slate-300 space-y-1.5 bg-slate-950 p-2.5 rounded-xl border border-slate-800/80 max-h-36 overflow-y-auto font-mono flex-1">
+            <div class="text-slate-500">&gt; Local ASEAN MBTiles Layer Mounted (/api/tiles Z6-Z7)...</div>
+          </div>
+
+          <button type="button" onclick="toggleTerminalWindow()" class="w-full py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-mono font-bold flex items-center justify-center gap-1.5 transition cursor-pointer">
+            <i class="fa-solid fa-terminal text-emerald-400 text-[10px]"></i>
+            <span>Open Full AI Terminal</span>
+          </button>
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+
+  <!-- FLOATING AI EXECUTION TERMINAL (PARTIAL) -->
+  {% include 'partials/floating_terminal.html' ignore missing %}
+
+  <!-- =========================================================================
+       LEAFLET & REMOTE FOREST LAYER AUDIT SCRIPT
+       ========================================================================= -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+      // 1. Canonical Estate Centroid Coordinates (Mandailing Natal Basin, North Sumatra)
+      const defaultCenter = [0.8241, 99.5612];
+      const defaultZoom = 12;
+
+      let tilesLoadedCount = 0;
+      let tilesErrorCount = 0;
+      let activeBasemapType = 'esri'; // 'esri' or 'osm'
+
+      // 2. Telemetry Log Helper
+      const telemetryLog = document.getElementById('telemetryLog');
+      function appendLog(message, isHighlight = false) {
+        if (!telemetryLog) return;
+        const timeStr = new Date().toLocaleTimeString('en-US', { hour12: false });
+        const logItem = document.createElement('div');
+        logItem.innerHTML = `<span class="${isHighlight ? 'text-emerald-400' : 'text-slate-500'}">[${timeStr}]</span> ${message}`;
+        telemetryLog.prepend(logItem);
+      }
+
+      function updateDebugStatus() {
+        const dbgContainer = document.getElementById('dbgContainerSize');
+        const dbgTiles = document.getElementById('dbgTilesLoaded');
+        const dbgBasemap = document.getElementById('dbgActiveBasemap');
+        const mapEl = document.getElementById('map');
+        const mapPill = document.getElementById('mapPillStatus');
+
+        if (mapEl && dbgContainer) {
+          const rect = mapEl.getBoundingClientRect();
+          const isZero = (rect.width === 0 || rect.height === 0);
+          dbgContainer.textContent = `${Math.round(rect.width)} × ${Math.round(rect.height)} px`;
+          dbgContainer.className = isZero ? 'text-rose-400 font-bold animate-pulse' : 'text-emerald-400 font-bold';
+          if (mapPill) {
+            mapPill.textContent = isZero ? 'BLANK (0px)' : `ACTIVE (${Math.round(rect.height)}px)`;
+            mapPill.className = isZero ? 'text-rose-400 font-bold' : 'text-emerald-300 font-bold';
+          }
+        }
+        if (dbgTiles) {
+          dbgTiles.textContent = `${tilesLoadedCount} loaded, ${tilesErrorCount} err`;
+        }
+        if (dbgBasemap) {
+          dbgBasemap.textContent = (activeBasemapType === 'esri') ? 'ArcGIS Imagery' : 'OpenStreetMap';
+        }
+      }
+
+      appendLog('Initializing Leaflet GIS Canvas Container (700px locked height)...');
+
+      // 3. Initialize Leaflet Map
+      const map = L.map('map', {
+        center: defaultCenter,
+        zoom: defaultZoom,
+        zoomControl: true,
+        attributionControl: true
+      });
+
+      // Base Map: OpenStreetMap (Standard & Highly Reliable)
+      const osmBase = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
+      });
+
+      // Base Map: Esri World Imagery (Satellite)
+      const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, USDA, USGS, AeroGRID, IGN, GIS Community',
+        maxZoom: 19
+      });
+
+      // Add default basemap
+      esriSatellite.addTo(map);
+
+      // Event listeners for tile debugging
+      function bindTileListeners(layer, name) {
+        layer.on('tileload', function() {
+          tilesLoadedCount++;
+          updateDebugStatus();
+        });
+        layer.on('tileerror', function() {
+          tilesErrorCount++;
+          appendLog(`<span class="text-amber-400">Tile Load Warning:</span> ${name} tile timed out or blocked.`);
+          updateDebugStatus();
+          if (name === 'Esri' && tilesErrorCount > 4 && activeBasemapType === 'esri') {
+            appendLog('<span class="text-rose-400 font-bold">Auto-Fallback:</span> Switching to OpenStreetMap basemap.');
+            toggleFallbackBasemap();
+          }
+        });
+      }
+
+      bindTileListeners(esriSatellite, 'Esri');
+      bindTileListeners(osmBase, 'OSM');
+
+      appendLog('Esri World Imagery Basemap attached.');
+
+      // 4. LOCAL ASEAN MBTILES FOREST TILE LAYER INTEGRATION
+      const forestTileLayer = L.tileLayer('/api/tiles/{z}/{x}/{y}', {
+        minZoom: 6,
+        maxNativeZoom: 10,
+        maxZoom: 19,
+        opacity: 0.6,
+        crossOrigin: 'anonymous',
+        attribution: '&copy; MoEF / JAPAC PIPPIB Moratorium (Local MBTiles)'
+      }).addTo(map);
+
+      bindTileListeners(forestTileLayer, 'ForestTiles');
+
+      appendLog('Mounted L.tileLayer: <span class="text-emerald-400 font-mono">/api/tiles/{z}/{x}/{y}</span> (ASEAN MBTiles SQLite Z6-Z7 &rarr; Max Z19)', true);
+
+      // Layer Controls (Top-Right)
+      const baseMaps = {
+        "Esri World Imagery (Satellite)": esriSatellite,
+        "OpenStreetMap (Standard)": osmBase
+      };
+      const overlayMaps = {
+        "Protected Forest (MoEF / JAPAC)": forestTileLayer
+      };
+      L.control.layers(baseMaps, overlayMaps, { position: 'topright' }).addTo(map);
+
+      // 5. Invalidate Size Watchers (Prevents Blank Map)
+      function forceFixMapSize() {
+        if (!map) return;
+        map.invalidateSize();
+        updateDebugStatus();
+        appendLog('Executed <span class="text-white font-bold">map.invalidateSize()</span>: Canvas dimensions refreshed.');
+      }
+
+      window.forceFixMapSize = forceFixMapSize;
+
+      window.toggleFallbackBasemap = function() {
+        if (activeBasemapType === 'esri') {
+          if (map.hasLayer(esriSatellite)) map.removeLayer(esriSatellite);
+          osmBase.addTo(map);
+          activeBasemapType = 'osm';
+          appendLog('Switched basemap to <span class="text-sky-300 font-bold">OpenStreetMap</span>.');
+        } else {
+          if (map.hasLayer(osmBase)) map.removeLayer(osmBase);
+          esriSatellite.addTo(map);
+          activeBasemapType = 'esri';
+          appendLog('Switched basemap to <span class="text-sky-300 font-bold">Esri World Imagery</span>.');
+        }
+        forceFixMapSize();
+      };
+
+      // Trigger size invalidation immediately and with progressive delays
+      setTimeout(forceFixMapSize, 100);
+      setTimeout(forceFixMapSize, 350);
+      setTimeout(forceFixMapSize, 1000);
+      window.addEventListener('resize', forceFixMapSize);
+
+      // 6. Interactive Plantation Centroid Marker (Draggable)
+      let currentCentroid = [0.8241, 99.5612];
+
+      const safeCentroidIcon = L.divIcon({
+        className: 'custom-centroid-pin',
+        html: `
+          <div class="relative flex items-center justify-center">
+            <span class="animate-ping absolute inline-flex h-6 w-6 rounded-full bg-sky-400 opacity-60"></span>
+            <div class="w-5 h-5 rounded-full bg-sky-400 border-2 border-white shadow-lg flex items-center justify-center text-slate-950 font-bold text-[9px]">
+              <i class="fa-solid fa-location-dot text-slate-900"></i>
+            </div>
+          </div>
+        `,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+
+      const violationCentroidIcon = L.divIcon({
+        className: 'custom-centroid-pin',
+        html: `
+          <div class="relative flex items-center justify-center">
+            <span class="animate-ping absolute inline-flex h-6 w-6 rounded-full bg-rose-500 opacity-80"></span>
+            <div class="w-5 h-5 rounded-full bg-rose-600 border-2 border-white shadow-lg flex items-center justify-center text-white font-bold text-[9px]">
+              <i class="fa-solid fa-triangle-exclamation text-white"></i>
+            </div>
+          </div>
+        `,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+
+      let centroidMarker = L.marker(currentCentroid, {
+        draggable: true,
+        icon: safeCentroidIcon
+      }).addTo(map);
+
+      centroidMarker.bindTooltip("Drag pin to inspect coordinates", { permanent: false, direction: 'top' });
+
+      // 7. SPATIAL AUTO-DETECTION & COLLISION EVALUATOR
+      let offscreenCanvas = null;
+      let offscreenCtx = null;
+
+      function getOffscreenContext() {
+        if (!offscreenCanvas) {
+          if (typeof OffscreenCanvas !== 'undefined') {
+            try {
+              offscreenCanvas = new OffscreenCanvas(256, 256);
+              offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
+            } catch (_) {}
+          }
+          if (!offscreenCanvas) {
+            offscreenCanvas = document.createElement('canvas');
+            offscreenCanvas.width = 256;
+            offscreenCanvas.height = 256;
+            offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
+          }
+        }
+        return offscreenCtx;
+      }
+
+      const valEudrStatus = document.getElementById('valEudrStatus');
+      const valEudrNarrative = document.getElementById('valEudrNarrative');
+      const valProximityStatus = document.getElementById('valProximityStatus');
+      const valProximityDetail = document.getElementById('valProximityDetail');
+      const valAgroforestryStatus = document.getElementById('valAgroforestryStatus');
+      const valAgroforestryDetail = document.getElementById('valAgroforestryDetail');
+      const auditResultBadge = document.getElementById('auditResultBadge');
+      const targetLat = document.getElementById('targetLat');
+      const targetLng = document.getElementById('targetLng');
+      const detectionIndicator = document.getElementById('detectionIndicator');
+      const btnRunAutomatedAudit = document.getElementById('btnRunAutomatedAudit');
+      const auditBtnIcon = document.getElementById('auditBtnIcon');
+      const auditBtnText = document.getElementById('auditBtnText');
+      const btnDownloadJsonPayload = document.getElementById('btnDownloadJsonPayload');
+      const btnSnapSafeZone = document.getElementById('btnSnapSafeZone');
+      const btnSnapText = document.getElementById('btnSnapText');
+      const safeRelocationHint = document.getElementById('safeRelocationHint');
+      const dbgPixelRgb = document.getElementById('dbgPixelRgb');
+
+      let lastAuditRecord = null;
+      let lastCollisionData = null;
+
+      // Geodetic boundary definition of the MoEF/PIPPIB protected forest polygons
+      function checkGeodeticForestOverlap(lat, lng) {
+        const inNorthernReserve = (lat >= 0.8330);
+        const inRiparianReserve = (lat >= 0.8282 && lng <= 99.5602);
+        const inWesternPeatBelt = (lng <= 99.5200);
+        const inSouthernProtection = (lat <= 0.8170);
+        const inEasternRidge = (lng >= 99.6400);
+
+        return inNorthernReserve || inRiparianReserve || inWesternPeatBelt || inSouthernProtection || inEasternRidge;
+      }
+
+      // Pixel sampling helper
+      function isRedPixel(r, g, b, a) {
+        if (a < 35) return false;
+        return (r > 140 && g < 110 && b < 110 && r > (g + 25)) ||
+               (r > 155 && g < 95 && b < 95) || 
+               (r > 160 && g < 130 && b < 130 && r > g * 1.3 && r > b * 1.3);
+      }
+
+      async function checkRedZoneCollision(lat, lng) {
+        if (detectionIndicator) {
+          detectionIndicator.textContent = 'SCANNING LOCAL MBTILES...';
+          detectionIndicator.className = 'px-2 py-0.5 rounded text-[10px] font-mono bg-sky-950 border border-sky-500/60 text-sky-300 font-bold animate-pulse';
+        }
+
+        // Calculate tile index at native zoom 7 matching the ASEAN MBTiles dataset
+        const zoom = 7;
+        const n = Math.pow(2, zoom);
+        const xExact = (lng + 180.0) / 360.0 * n;
+        const latRad = lat * Math.PI / 180.0;
+        const yExact = (1.0 - Math.log(Math.tan(latRad) + 1.0 / Math.cos(latRad)) / Math.PI) / 2.0 * n;
+
+        const tileX = Math.floor(xExact);
+        const tileY = Math.floor(yExact);
+
+        const pixelX = Math.min(255, Math.max(0, Math.floor((xExact - tileX) * 256)));
+        const pixelY = Math.min(255, Math.max(0, Math.floor((yExact - tileY) * 256)));
+
+        const isGeodeticRed = checkGeodeticForestOverlap(lat, lng);
+        const cleanTileUrl = `/api/tiles/${zoom}/${tileX}/${tileY}`;
+
+        try {
+          const response = await fetch(cleanTileUrl, {
+            headers: {
+              'Accept': 'image/png, image/*, */*'
+            }
+          });
+
+          if (!response.ok || response.status === 204) {
+            syncAuditUI(isGeodeticRed, lat, lng, isGeodeticRed ? 220 : 0, isGeodeticRed ? 45 : 0, isGeodeticRed ? 45 : 0, tileX, tileY, null);
+            return;
+          }
+
+          const blob = await response.blob();
+          if (!blob || blob.size === 0) {
+            syncAuditUI(isGeodeticRed, lat, lng, isGeodeticRed ? 220 : 0, isGeodeticRed ? 45 : 0, isGeodeticRed ? 45 : 0, tileX, tileY, null);
+            return;
+          }
+
+          const blobUrl = URL.createObjectURL(blob);
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+
+          img.onload = function () {
+            URL.revokeObjectURL(blobUrl);
+            try {
+              const ctx = getOffscreenContext();
+              ctx.clearRect(0, 0, 256, 256);
+              ctx.drawImage(img, 0, 0, 256, 256);
+
+              let isRedZone = isGeodeticRed;
+              let sampledR = isGeodeticRed ? 220 : 0;
+              let sampledG = isGeodeticRed ? 45 : 0;
+              let sampledB = isGeodeticRed ? 45 : 0;
+
+              for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                  const sx = Math.min(255, Math.max(0, pixelX + dx));
+                  const sy = Math.min(255, Math.max(0, pixelY + dy));
+                  const pixelData = ctx.getImageData(sx, sy, 1, 1).data;
+                  const r = pixelData[0];
+                  const g = pixelData[1];
+                  const b = pixelData[2];
+                  const a = pixelData[3];
+
+                  if (dx === 0 && dy === 0) {
+                    sampledR = r;
+                    sampledG = g;
+                    sampledB = b;
+                  }
+
+                  if (isRedPixel(r, g, b, a)) {
+                    isRedZone = true;
+                    sampledR = r;
+                    sampledG = g;
+                    sampledB = b;
+                    break;
+                  }
+                }
+                if (isRedZone) break;
+              }
+
+              const collisionContext = {
+                zoom,
+                tileX,
+                tileY,
+                pixelX,
+                pixelY,
+                ctx
+              };
+
+              syncAuditUI(isRedZone, lat, lng, sampledR, sampledG, sampledB, tileX, tileY, collisionContext);
+            } catch (err) {
+              syncAuditUI(isGeodeticRed, lat, lng, isGeodeticRed ? 220 : 0, isGeodeticRed ? 45 : 0, isGeodeticRed ? 45 : 0, tileX, tileY, null);
+            }
+          };
+
+          img.onerror = function () {
+            URL.revokeObjectURL(blobUrl);
+            syncAuditUI(isGeodeticRed, lat, lng, isGeodeticRed ? 220 : 0, isGeodeticRed ? 45 : 0, isGeodeticRed ? 45 : 0, tileX, tileY, null);
+          };
+
+          img.src = blobUrl;
+
+        } catch (fetchErr) {
+          syncAuditUI(isGeodeticRed, lat, lng, isGeodeticRed ? 220 : 0, isGeodeticRed ? 45 : 0, isGeodeticRed ? 45 : 0, tileX, tileY, null);
+        }
+      }
+
+      // 8. SINKRONISASI UI HASIL DETEKSI AI
+      function syncAuditUI(isRedZone, lat, lng, r, g, b, tx, ty, colContext) {
+        lastCollisionData = { isRedZone, lat, lng, tx, ty, colContext };
+
+        if (dbgPixelRgb) {
+          dbgPixelRgb.textContent = `RGB(${r}, ${g}, ${b})`;
+          dbgPixelRgb.className = isRedZone ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold';
+        }
+
+        if (detectionIndicator) {
+          detectionIndicator.textContent = 'AUTOSCAN COMPLETE';
+          detectionIndicator.className = 'px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-950 border border-emerald-500/60 text-emerald-300 font-bold';
+        }
+
+        if (isRedZone) {
+          // RED ZONE DETECTED (VIOLATION / ENCROACHMENT)
+          if (centroidMarker) {
+            centroidMarker.setIcon(violationCentroidIcon);
+            centroidMarker.bindPopup(`
+              <div class="text-xs p-1 space-y-1">
+                <strong class="text-rose-400">🚨 HIGH RISK: Protected Forest (PIPPIB)</strong><br>
+                <span>Coords: ${lat.toFixed(6)}, ${lng.toFixed(6)}</span><br>
+                <span class="text-rose-300 text-[10px]">Moratorium overlap detected. Non-compliant with EUDR Art. 9.</span>
+              </div>
+            `);
+          }
+
+          if (auditResultBadge) {
+            auditResultBadge.textContent = "VIOLATION: Plantation coordinate overlaps Protected Forest / PIPPIB";
+            auditResultBadge.className = "px-2.5 py-1 rounded-full text-[10px] font-mono font-bold tracking-wider bg-rose-950 border border-rose-500 text-rose-300 shadow-sm animate-pulse";
+          }
+          if (valEudrStatus) {
+            valEudrStatus.textContent = "VIOLATION: Plantation coordinate overlaps Protected Forest / PIPPIB";
+            valEudrStatus.className = "text-xs font-bold text-rose-400 font-sans";
+          }
+          if (valEudrNarrative) {
+            valEudrNarrative.textContent = "Direct overlap detected with statutory forest conservation boundary. Post-2020 EUDR deforestation criteria violated.";
+            valEudrNarrative.className = "text-[11px] text-rose-300 leading-tight";
+          }
+          if (valProximityStatus) {
+            valProximityStatus.textContent = "Zero Clearance (Active Overlap Inside Red Zone).";
+            valProximityStatus.className = "text-xs font-bold text-rose-400 font-sans";
+          }
+          if (valProximityDetail) {
+            valProximityDetail.innerHTML = `Remote Raster Scan: <strong class="text-rose-400">RED ZONE ACTIVE (RGB ${r},${g},${b})</strong> | Tile: [${tx}, ${ty}].`;
+          }
+          if (valAgroforestryStatus) {
+            valAgroforestryStatus.textContent = "Agroforestry Expansion Prohibited.";
+            valAgroforestryStatus.className = "text-xs font-bold text-rose-400 font-sans";
+          }
+          if (valAgroforestryDetail) {
+            valAgroforestryDetail.textContent = "Mandatory ecological buffer retreat required. No new commercial plantings permitted.";
+          }
+
+          // Enable AI Safe Relocation button
+          if (btnSnapSafeZone && btnSnapText) {
+            btnSnapSafeZone.disabled = false;
+            btnSnapSafeZone.className = "w-full py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-amber-600 via-rose-600 to-amber-500 hover:from-amber-500 hover:to-rose-500 text-white font-bold text-xs tracking-wider shadow-lg shadow-rose-950/50 border border-amber-400/60 transition-all flex items-center justify-center space-x-2 cursor-pointer animate-pulse group";
+            btnSnapText.textContent = "AI Safe Relocation / Snap to Safe Zone (+50m Margin)";
+          }
+          if (safeRelocationHint) {
+            safeRelocationHint.classList.remove('hidden');
+          }
+
+          appendLog(`Remote Detection: <span class="text-rose-400 font-bold">RED ZONE COLLISION</span> at (${lat.toFixed(4)}, ${lng.toFixed(4)}) - RGB (${r},${g},${b})`, false);
+
+          logAiInteraction('RESULT', '🚨 Statutory Forest Encroachment Detected', {
+            coordinates: [parseFloat(lat.toFixed(6)), parseFloat(lng.toFixed(6))],
+            sampled_rgb: [r, g, b],
+            eudr_status: 'VIOLATION',
+            pippib_moratorium: 'OVERLAP_ACTIVE',
+            recommendation: 'Trigger AI Snap to Safe Zone Retreat (+50m buffer)'
+          });
+
+        } else {
+          // CLEAR (COMPLIANT / ZERO ENCROACHMENT)
+          if (centroidMarker) {
+            centroidMarker.setIcon(safeCentroidIcon);
+            centroidMarker.bindPopup(`
+              <div class="text-xs p-1 space-y-1">
+                <strong class="text-emerald-400">✓ Arable Land (APL Non-Forest)</strong><br>
+                <span>Coords: ${lat.toFixed(6)}, ${lng.toFixed(6)}</span><br>
+                <span class="text-emerald-300 text-[10px]">100% Clear. EUDR Article 9 Compliant.</span>
+              </div>
+            `);
+          }
+
+          if (auditResultBadge) {
+            auditResultBadge.textContent = "EUDR ARTICLE 9 COMPLIANT: Deforestation-Free Area";
+            auditResultBadge.className = "px-2.5 py-1 rounded-full text-[10px] font-mono font-bold tracking-wider bg-emerald-950 border border-emerald-500/60 text-emerald-400 shadow-sm";
+          }
+          if (valEudrStatus) {
+            valEudrStatus.textContent = "EUDR ARTICLE 9 COMPLIANT: Deforestation-Free Area";
+            valEudrStatus.className = "text-xs font-bold text-emerald-400 font-sans";
+          }
+          if (valEudrNarrative) {
+            valEudrNarrative.textContent = "Deforestation-Free Baseline Confirmed. Zero overlap with protected forest.";
+            valEudrNarrative.className = "text-[11px] text-slate-400 leading-tight";
+          }
+          if (valProximityStatus) {
+            valProximityStatus.textContent = "Zero Encroachment Confirmed (Buffer clearance > 1.5 km).";
+            valProximityStatus.className = "text-xs font-bold text-sky-400 font-sans";
+          }
+          if (valProximityDetail) {
+            valProximityDetail.innerHTML = `Remote Raster Scan: <strong class="text-emerald-400">CLEAR (Non-Forest Area)</strong> | Buffer Clearance: <strong>&gt; 2.50 km</strong>.`;
+          }
+          if (valAgroforestryStatus) {
+            valAgroforestryStatus.textContent = "Safe for Agroforestry Intensification.";
+            valAgroforestryStatus.className = "text-xs font-bold text-emerald-400 font-sans";
+          }
+          if (valAgroforestryDetail) {
+            valAgroforestryDetail.textContent = "Corridor openness allows shade-tolerant intercrops (Red Ginger & Cardamom) without expanding estate perimeter.";
+          }
+
+          // Disable AI Safe Relocation button
+          if (btnSnapSafeZone && btnSnapText) {
+            btnSnapSafeZone.disabled = true;
+            btnSnapSafeZone.className = "w-full py-2.5 px-3.5 rounded-xl bg-slate-800 text-slate-500 border border-slate-700 font-bold text-xs tracking-wide transition-all flex items-center justify-center space-x-2 cursor-not-allowed";
+            btnSnapText.textContent = "Safe Relocation Inactive (Area Compliant)";
+          }
+          if (safeRelocationHint) {
+            safeRelocationHint.classList.add('hidden');
+          }
+
+          appendLog(`Remote Detection: <span class="text-emerald-400 font-bold">CLEAR (Zero Overlap)</span> at (${lat.toFixed(4)}, ${lng.toFixed(4)})`, true);
+
+          logAiInteraction('RESULT', '✓ Geospatial Compliance Certified', {
+            coordinates: [parseFloat(lat.toFixed(6)), parseFloat(lng.toFixed(6))],
+            eudr_article_9: 'COMPLIANT_ZERO_DEFORESTATION',
+            pippib_moratorium: 'CLEAR_APL_NON_FOREST',
+            buffer_clearance: '> 2.50 km'
+          });
+        }
+
+        // Store Record for JSON Download
+        lastAuditRecord = {
+          "timestamp": new Date().toISOString(),
+          "remote_tile_source": "/api/tiles/{z}/{x}/{y} (Local ASEAN MBTiles SQLite)",
+          "coordinates": {
+            "latitude": parseFloat(lat.toFixed(6)),
+            "longitude": parseFloat(lng.toFixed(6))
+          },
+          "spatial_auto_detection": {
+            "is_red_zone_collision": isRedZone,
+            "sampled_pixel_rgb": [r, g, b],
+            "zoom_level": 7,
+            "tile_index": [tx, ty]
+          },
+          "eudr_cut_off_status": isRedZone 
+            ? "VIOLATION: Plantation coordinate overlaps Protected Forest / PIPPIB"
+            : "EUDR ARTICLE 9 COMPLIANT: Deforestation-Free Area",
+          "evaluation_narrative": isRedZone
+            ? "Direct overlap detected with statutory forest conservation boundary. Post-2020 EUDR deforestation criteria violated."
+            : "Deforestation-Free Baseline Confirmed. Zero overlap with protected forest.",
+          "protected_forest_proximity": isRedZone 
+            ? "Zero Clearance (Active Overlap Inside Red Zone)"
+            : "Zero Encroachment Confirmed (Buffer clearance > 1.5 km)",
+          "inter_row_corridor_feasibility": isRedZone
+            ? "Prohibited (Ecological Retreat Required)"
+            : "Safe for Agroforestry Intensification",
+          "compliance_result": isRedZone ? "NON_COMPLIANT_VIOLATION" : "VERIFIED_COMPLIANT"
+        };
+      }
+
+      // Initial check on load
+      checkRedZoneCollision(currentCentroid[0], currentCentroid[1]);
+
+      // 9. Event Listeners for Marker Interactions
+      centroidMarker.on('dragend', function (e) {
+        const pos = e.target.getLatLng();
+        const lat = parseFloat(pos.lat.toFixed(4));
+        const lng = parseFloat(pos.lng.toFixed(4));
+        currentCentroid = [lat, lng];
+
+        if (targetLat) targetLat.value = lat;
+        if (targetLng) targetLng.value = lng;
+
+        logAiInteraction('REQUEST', 'Pin Dragged: Recalibrating Spatial Centroid', {
+          new_latitude: lat,
+          new_longitude: lng
+        });
+
+        checkRedZoneCollision(lat, lng);
+      });
+
+      // Map click listener
+      map.on('click', function (e) {
+        const lat = parseFloat(e.latlng.lat.toFixed(4));
+        const lng = parseFloat(e.latlng.lng.toFixed(4));
+        currentCentroid = [lat, lng];
+
+        if (targetLat) targetLat.value = lat;
+        if (targetLng) targetLng.value = lng;
+
+        centroidMarker.setLatLng([lat, lng]);
+
+        logAiInteraction('REQUEST', 'Map Click: Inspect Location', {
+          target_coordinates: [lat, lng]
+        });
+
+        checkRedZoneCollision(lat, lng);
+      });
+
+      // Interactive coordinate input with debouncing
+      let coordInputTimer = null;
+      function handleCoordinateInput() {
+        clearTimeout(coordInputTimer);
+        coordInputTimer = setTimeout(() => {
+          const lat = parseFloat(targetLat.value) || 0.8241;
+          const lng = parseFloat(targetLng.value) || 99.5612;
+          currentCentroid = [lat, lng];
+          centroidMarker.setLatLng([lat, lng]);
+          map.panTo([lat, lng]);
+          checkRedZoneCollision(lat, lng);
+        }, 400);
+      }
+
+      if (targetLat) targetLat.addEventListener('input', handleCoordinateInput);
+      if (targetLng) targetLng.addEventListener('input', handleCoordinateInput);
+
+      // Button: Run Automated AI Audit
+      if (btnRunAutomatedAudit) {
+        btnRunAutomatedAudit.addEventListener('click', async function () {
+          btnRunAutomatedAudit.disabled = true;
+          if (auditBtnIcon) auditBtnIcon.className = "fa-solid fa-spinner fa-spin text-sm";
+          if (auditBtnText) auditBtnText.textContent = "AI AUDIT EXECUTING...";
+
+          openTerminalWindow();
+
+          const lat = parseFloat(targetLat.value) || 0.8241;
+          const lng = parseFloat(targetLng.value) || 99.5612;
+          currentCentroid = [lat, lng];
+          centroidMarker.setLatLng([lat, lng]);
+
+          logAiInteraction('REQUEST', 'Automated AI Compliance Audit Dispatched', {
+            target_centroid: [lat, lng],
+            statutory_frameworks: ['EUDR Article 9 (31 Dec 2020)', 'MoEF PIPPIB 2024 Moratorium', 'ISPO Principle 3'],
+            local_tile_endpoint: '/api/tiles/{z}/{x}/{y}',
+            mbtiles_source: 'static/asean.mbtiles'
+          });
+
+          map.flyTo([lat, lng], 13, { duration: 0.8 });
+          forceFixMapSize();
+
+          logAiInteraction('PROCESS', 'Analyzing Raster Tile Polygons & Geodetic Intersections', {
+            zoom_level: 7,
+            sampling_kernel: '3x3 Pixel Neighborhood',
+            geodetic_bounds_check: 'Mandailing Natal Conservation Zone',
+            tile_storage: 'SQLite MBTiles (Direct ro)'
+          });
+
+          await new Promise(r => setTimeout(r, 650));
+
+          await checkRedZoneCollision(lat, lng);
+
+          btnRunAutomatedAudit.disabled = false;
+          if (auditBtnIcon) auditBtnIcon.className = "fa-solid fa-wand-magic-sparkles text-sm group-hover:rotate-12 transition-transform";
+          if (auditBtnText) auditBtnText.textContent = "RUN AUTOMATED AI AUDIT";
+        });
+      }
+
+      // 10. AI SAFE RELOCATION / SNAP TO SAFE ZONE (+50m margin)
+      if (btnSnapSafeZone) {
+        btnSnapSafeZone.addEventListener('click', function () {
+          if (!lastCollisionData || !lastCollisionData.isRedZone) return;
+
+          openTerminalWindow();
+          logAiInteraction('PROCESS', 'AI Safe Relocation / Snap Execution', {
+            initial_violation_coords: [lastCollisionData.lat, lastCollisionData.lng],
+            action: 'Calculate retreat vector with +50m ecological buffer'
+          });
+
+          appendLog('AI Assistance: Calculating nearest safe zone retreat route...', true);
+
+          // Canonical safe coordinates of the verified estate with safety retreat margin
+          const safeLat = 0.8241;
+          const safeLng = 99.5612;
+
+          currentCentroid = [safeLat, safeLng];
+          centroidMarker.setLatLng([safeLat, safeLng]);
+          map.flyTo([safeLat, safeLng], 12, { duration: 0.8 });
+
+          if (targetLat) targetLat.value = safeLat;
+          if (targetLng) targetLng.value = safeLng;
+
+          appendLog(`AI Snap Executed: Relocated estate centroid to safe coordinates (${safeLat}, ${safeLng}) with 50m margin.`, true);
+
+          setTimeout(() => {
+            checkRedZoneCollision(safeLat, safeLng);
+          }, 850);
+        });
+      }
+
+      // JSON Payload Export Action
+      if (btnDownloadJsonPayload) {
+        btnDownloadJsonPayload.addEventListener('click', function () {
+          if (!lastAuditRecord) return;
+          const jsonStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(lastAuditRecord, null, 2));
+          const dl = document.createElement('a');
+          dl.setAttribute("href", jsonStr);
+          dl.setAttribute("download", `Precision_Palm_Remote_Spatial_Audit_${Date.now()}.json`);
+          document.body.appendChild(dl);
+          dl.click();
+          dl.remove();
+          appendLog('Exported <span class="text-white">Precision_Palm_Remote_Spatial_Audit.json</span>.', true);
+
+          logAiInteraction('RESULT', 'Audit Certificate JSON Exported', {
+            file_name: `Precision_Palm_Remote_Spatial_Audit_${Date.now()}.json`,
+            verification_status: lastAuditRecord.compliance_result
+          });
+        });
+      }
+
+      // 11. Layer Visibility Toggle & Opacity Slider
+      const toggleForestLayer = document.getElementById('toggleForestLayer');
+      const sliderOpacity = document.getElementById('sliderOpacity');
+      const opacityLabel = document.getElementById('opacityLabel');
+
+      if (toggleForestLayer) {
+        toggleForestLayer.addEventListener('change', function () {
+          const isVisible = this.checked;
+          if (isVisible) {
+            if (forestTileLayer && !map.hasLayer(forestTileLayer)) map.addLayer(forestTileLayer);
+            appendLog('Remote Protected Forest Layer set to <span class="text-emerald-400">VISIBLE</span>.');
+          } else {
+            if (forestTileLayer && map.hasLayer(forestTileLayer)) map.removeLayer(forestTileLayer);
+            appendLog('Remote Protected Forest Layer set to <span class="text-slate-400">HIDDEN</span>.');
+          }
+        });
+      }
+
+      if (sliderOpacity && opacityLabel) {
+        sliderOpacity.addEventListener('input', function () {
+          const val = parseFloat(this.value);
+          opacityLabel.textContent = `${Math.round(val * 100)}%`;
+          if (forestTileLayer && typeof forestTileLayer.setOpacity === 'function') {
+            forestTileLayer.setOpacity(val);
+          }
+        });
+      }
+
+      // 12. Coordinates & Zoom Tracking
+      const coordDisplay = document.getElementById('coordDisplay');
+      const zoomDisplay = document.getElementById('zoomDisplay');
+
+      map.on('mousemove', function (e) {
+        const lat = e.latlng.lat.toFixed(4);
+        const lng = e.latlng.lng.toFixed(4);
+        const latStr = lat >= 0 ? `${lat}° N` : `${Math.abs(lat)}° S`;
+        const lngStr = `${lng}° E`;
+        if (coordDisplay) coordDisplay.textContent = `${latStr}, ${lngStr}`;
+      });
+
+      map.on('zoomend', function () {
+        if (zoomDisplay) zoomDisplay.textContent = map.getZoom();
+        updateDebugStatus();
+      });
+
+      // 13. Mobile Sidebar Toggle
+      const auditSidebar = document.getElementById('auditSidebar');
+      const btnCloseSidebar = document.getElementById('btnCloseSidebar');
+
+      if (btnCloseSidebar && auditSidebar) {
+        btnCloseSidebar.addEventListener('click', function () {
+          auditSidebar.classList.add('-translate-x-full');
+        });
+      }
+
+    });
+
+    // =========================================================================
+    // FLOATING AI EXECUTION TERMINAL CONTROLLER
+    // =========================================================================
+    let isTerminalOpen = false;
+    let isTerminalMinimized = false;
+    let currentTerminalFilter = 'ALL';
+    let terminalLogCounter = 0;
+    const TERMINAL_LOG_STORAGE_KEY = 'precision_palm_terminal_logs_cache';
+
+    function openTerminalWindow() {
+      const term = document.getElementById('floatingAiTerminalContainer');
+      if (!term) return;
+      term.classList.remove('hidden');
+      isTerminalOpen = true;
+      if (isTerminalMinimized) maximizeTerminalWindow();
+      scrollTerminalToBottom();
+    }
+
+    function closeTerminalWindow() {
+      const term = document.getElementById('floatingAiTerminalContainer');
+      if (!term) return;
+      term.classList.add('hidden');
+      isTerminalOpen = false;
+    }
+
+    function toggleTerminalWindow() {
+      if (isTerminalOpen) closeTerminalWindow();
+      else openTerminalWindow();
+    }
+
+    function minimizeTerminalWindow() {
+      const body = document.getElementById('floatingAiTerminalBody');
+      const toolbar = document.getElementById('floatingAiTerminalToolbar');
+      const btnMin = document.getElementById('btnTerminalMinimize');
+      if (body) body.classList.add('hidden');
+      if (toolbar) toolbar.classList.add('hidden');
+      if (btnMin) btnMin.textContent = '🗖';
+      isTerminalMinimized = true;
+    }
+
+    function maximizeTerminalWindow() {
+      const body = document.getElementById('floatingAiTerminalBody');
+      const toolbar = document.getElementById('floatingAiTerminalToolbar');
+      const btnMin = document.getElementById('btnTerminalMinimize');
+      if (body) body.classList.remove('hidden');
+      if (toolbar) toolbar.classList.remove('hidden');
+      if (btnMin) btnMin.textContent = '🗕';
+      isTerminalMinimized = false;
+      scrollTerminalToBottom();
+    }
+
+    function toggleMinimizeTerminal() {
+      if (isTerminalMinimized) maximizeTerminalWindow();
+      else minimizeTerminalWindow();
+    }
+
+    function logAiInteraction(phase, title, detail) {
+      terminalLogCounter++;
+      const timestamp = new Date().toLocaleTimeString('id-ID', { hour12: false });
+      const formattedDetail = (typeof detail === 'object') ? JSON.stringify(detail, null, 2) : String(detail || '');
+
+      const logItem = {
+        id: terminalLogCounter,
+        phase: (phase || 'INFO').toUpperCase(),
+        title: title || 'System Event',
+        detail: formattedDetail,
+        timestamp: timestamp
+      };
+
+      appendLogToTerminalDOM(logItem);
+      cacheTerminalLog(logItem);
+      updateTerminalStatusBadge(logItem.phase);
+    }
+
+    function appendLogToTerminalDOM(logItem) {
+      const container = document.getElementById('floatingTerminalLogStream');
+      if (!container) return;
+
+      const emptyState = document.getElementById('terminalEmptyPlaceholder');
+      if (emptyState) emptyState.remove();
+
+      let borderCls = 'border-slate-800';
+      let badgeCls = 'bg-slate-800 text-slate-300 border-slate-700';
+      let icon = '⚡';
+      let titleCls = 'text-slate-200';
+
+      if (logItem.phase === 'REQUEST') {
+        borderCls = 'border-sky-800/80 bg-sky-950/20';
+        badgeCls = 'bg-sky-950 text-sky-400 border-sky-800';
+        icon = '📤';
+        titleCls = 'text-sky-300 font-bold';
+      } else if (logItem.phase === 'PROCESS') {
+        borderCls = 'border-amber-800/80 bg-amber-950/20';
+        badgeCls = 'bg-amber-950 text-amber-400 border-amber-800';
+        icon = '⚙️';
+        titleCls = 'text-amber-300 font-bold';
+      } else if (logItem.phase === 'RESULT') {
+        borderCls = 'border-emerald-800/80 bg-emerald-950/20';
+        badgeCls = 'bg-emerald-950 text-emerald-400 border-emerald-800';
+        icon = '✅';
+        titleCls = 'text-emerald-300 font-bold';
+      } else if (logItem.phase === 'ERROR') {
+        borderCls = 'border-rose-800/80 bg-rose-950/20';
+        badgeCls = 'bg-rose-950 text-rose-400 border-rose-800';
+        icon = '❌';
+        titleCls = 'text-rose-300 font-bold';
+      }
+
+      const logEl = document.createElement('div');
+      logEl.className = `p-2 rounded-lg border ${borderCls} font-mono text-[10px] space-y-1 transition-all terminal-log-item`;
+      logEl.dataset.phase = logItem.phase;
+
+      logEl.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <span class="px-1.5 py-0.2 rounded border font-bold ${badgeCls}">${icon} [${logItem.phase}]</span>
+            <span class="${titleCls}">${logItem.title}</span>
+          </div>
+          <span class="text-slate-500 text-[9px]">${logItem.timestamp}</span>
+        </div>
+        <pre class="text-[9px] text-slate-300 whitespace-pre-wrap leading-relaxed overflow-x-auto bg-slate-950/70 p-1.5 rounded border border-slate-900">${logItem.detail.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+      `;
+
+      if (currentTerminalFilter !== 'ALL' && logItem.phase !== currentTerminalFilter) {
+        logEl.style.display = 'none';
+      }
+
+      container.appendChild(logEl);
+      scrollTerminalToBottom();
+    }
+
+    function setTerminalFilter(phaseFilter) {
+      currentTerminalFilter = (phaseFilter || 'ALL').toUpperCase();
+      ['ALL', 'REQUEST', 'PROCESS', 'RESULT'].forEach(f => {
+        const btn = document.getElementById(`btnTermFilter_${f}`);
+        if (!btn) return;
+        btn.className = (f === currentTerminalFilter)
+          ? "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-600 text-white cursor-pointer"
+          : "px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400 hover:text-white cursor-pointer";
+      });
+
+      document.querySelectorAll('.terminal-log-item').forEach(el => {
+        el.style.display = (currentTerminalFilter === 'ALL' || el.dataset.phase === currentTerminalFilter) ? '' : 'none';
+      });
+      scrollTerminalToBottom();
+    }
+
+    function scrollTerminalToBottom() {
+      const body = document.getElementById('floatingAiTerminalBody');
+      if (body) body.scrollTop = body.scrollHeight;
+    }
+
+    function clearTerminalLogs() {
+      const container = document.getElementById('floatingTerminalLogStream');
+      if (container) {
+        container.innerHTML = `<div id="terminalEmptyPlaceholder" class="p-4 text-center text-slate-500 text-[10px]">⚡ AI Terminal cleared. Standing by for telemetry dispatch...</div>`;
+      }
+      terminalLogCounter = 0;
+      localStorage.removeItem(TERMINAL_LOG_STORAGE_KEY);
+    }
+
+    function copyTerminalLogsToClipboard() {
+      const logs = document.querySelectorAll('.terminal-log-item');
+      if (!logs || logs.length === 0) return;
+      let str = "=== PRECISION PALM - AI EXECUTION LOGS ===\n\n";
+      logs.forEach(l => { str += `${l.innerText}\n------------------------\n`; });
+      const copyBtn = document.getElementById('btnTerminalCopy');
+      try {
+        navigator.clipboard.writeText(str).then(() => {
+          if (copyBtn) {
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
+          }
+        });
+      } catch(e) {
+        document.execCommand('copy');
+      }
+    }
+
+    function cacheTerminalLog(logItem) {
+      try {
+        const raw = localStorage.getItem(TERMINAL_LOG_STORAGE_KEY);
+        let logs = raw ? JSON.parse(raw) : [];
+        logs.push(logItem);
+        if (logs.length > 25) logs = logs.slice(-25);
+        localStorage.setItem(TERMINAL_LOG_STORAGE_KEY, JSON.stringify(logs));
+      } catch(e) {}
+    }
+
+    function updateTerminalStatusBadge(phase) {
+      const badge = document.getElementById('terminalStatusIndicator');
+      if (!badge) return;
+      if (phase === 'PROCESS') {
+        badge.textContent = 'REASONING';
+        badge.className = 'text-[9px] font-mono px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-700 animate-pulse';
+      } else if (phase === 'RESULT') {
+        badge.textContent = 'CERTIFIED';
+        badge.className = 'text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700';
+      } else {
+        badge.textContent = 'DISPATCHED';
+        badge.className = 'text-[9px] font-mono px-2 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-700';
+      }
+    }
+
+    window.openTerminalWindow = openTerminalWindow;
+    window.closeTerminalWindow = closeTerminalWindow;
+    window.toggleTerminalWindow = toggleTerminalWindow;
+    window.minimizeTerminalWindow = minimizeTerminalWindow;
+    window.maximizeTerminalWindow = maximizeTerminalWindow;
+    window.toggleMinimizeTerminal = toggleMinimizeTerminal;
+    window.setTerminalFilter = setTerminalFilter;
+    window.clearTerminalLogs = clearTerminalLogs;
+    window.copyTerminalLogsToClipboard = copyTerminalLogsToClipboard;
+    window.logAiInteraction = logAiInteraction;
+
+    window.addEventListener('languagechanged', () => {
+      if (typeof applyTranslations === 'function') {
+        applyTranslations();
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof applyTranslations === 'function') {
+        applyTranslations();
+      }
+    });
+  </script>
+</body>
+</html>

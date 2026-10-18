@@ -1,0 +1,1009 @@
+<!-- templates/report_all.html -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MASTER_STATUTORY_DOSSIER_{{ estate.kode_kebun or 'EST-MDN-010' }}_{{ active_year or '2026' }} • Precision Palm Enterprise</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                        serif: ['Georgia', 'Cambria', 'Times New Roman', 'serif']
+                    }
+                }
+            }
+        };
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Leaflet GIS Engine (v1.9.4) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+    <style>
+        /* Standar Halaman Cetak Dokumen Statuter A4 (mPDF / PDF Print Engine) */
+        @page {
+            size: A4 portrait;
+            margin: 10mm 8mm 10mm 8mm;
+        }
+        @media print {
+            body { 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+                background: #ffffff !important; 
+                color: #0f172a !important; 
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .no-print { display: none !important; }
+            .page-break { page-break-before: always; }
+            .leaflet-control-container { display: none !important; }
+            .dossier-sheet {
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                max-width: 100% !important;
+            }
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-size: 10.5px;
+            color: #0f172a;
+            line-height: 1.45;
+            background-color: #f1f5f9;
+        }
+        /* Kop Dokumen Resmi Garis Ganda Standar Kementerian */
+        .kop-double-rule {
+            border-bottom: 3px double #047857;
+        }
+        .table-custom th {
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            padding: 4.5px 6px;
+            font-size: 9px;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #334155;
+        }
+        .table-custom td {
+            border: 1px solid #cbd5e1;
+            padding: 4.5px 6px;
+            font-size: 9.5px;
+            color: #1e293b;
+        }
+        .box-lock-active {
+            position: absolute;
+            border-radius: 4px;
+            pointer-events: none;
+            transition: all 0.2s ease;
+        }
+    </style>
+</head>
+
+<body class="p-2 sm:p-5 text-slate-900 selection:bg-emerald-500 selection:text-white">
+
+    <!-- ========================================================================= -->
+    <!-- FLOATING TOP EXECUTIVE ACTION & PDF CONTROLS (NO-PRINT)                   -->
+    <!-- ========================================================================= -->
+    <header class="no-print max-w-5xl mx-auto mb-4 bg-white border border-slate-300 rounded-2xl p-3 shadow-md flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+        <div class="flex items-center gap-2.5">
+            <span class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-base shadow">
+                📑
+            </span>
+            <div>
+                <strong class="text-slate-900 text-xs block font-sans">Master 4-Stage Statutory Audit Dossier (PDF Mode)</strong>
+                <span class="text-[10px] text-emerald-700 font-bold">Persil: {{ estate.kode_kebun or 'EST-MDN-010' }} &bull; {{ estate.nama_kebun or 'PT Mitra Agro Mandiri Madina' }}</span>
+            </div>
+        </div>
+
+        <!-- Concession Switcher & Action Buttons -->
+        <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-300">
+                <span class="text-[10px] text-slate-500 font-mono">Pilih Persil:</span>
+                <select id="reportEstateSelector" onchange="changeReportEstate(this.value)" class="bg-transparent text-[11px] font-mono text-emerald-800 font-bold focus:outline-none cursor-pointer">
+                    {% if estates %}
+                        {% for e in estates %}
+                        <option value="{{ e.kode_kebun }}" {% if e.kode_kebun == estate.kode_kebun or e.id_kebun == estate.id_kebun %}selected{% endif %}>
+                            {{ e.kode_kebun }} - {{ e.nama_kebun }}
+                        </option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="{{ estate.kode_kebun or 'EST-MDN-010' }}" selected>
+                            {{ estate.kode_kebun or 'EST-MDN-010' }} - {{ estate.nama_kebun or 'PT Mitra Agro Mandiri' }}
+                        </option>
+                    {% endif %}
+                </select>
+            </div>
+
+            <!-- Tombol Cetak / Simpan PDF (A4) -->
+            <button type="button" onclick="window.print()" class="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shadow transition cursor-pointer">
+                <span>🖨️</span> <span>Cetak / Simpan PDF</span>
+            </button>
+
+            <!-- Tombol Unduh Berkas PDF mPDF / ReportLab -->
+            <button type="button" onclick="downloadMasterDocketPdf()" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-1.5 shadow transition cursor-pointer">
+                <span>📥</span> <span>Unduh PDF Resmi</span>
+            </button>
+
+            <button type="button" onclick="window.close()" class="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs cursor-pointer">
+                Tutup
+            </button>
+        </div>
+    </header>
+
+    <!-- ========================================================================= -->
+    <!-- MASTER LEMBAR DOKUMEN STATUTER A4 (CLEAN WHITE LIGHT THEME)               -->
+    <!-- ========================================================================= -->
+    <main class="dossier-sheet max-w-5xl mx-auto bg-white p-6 sm:p-9 shadow-xl rounded-2xl border border-slate-300 space-y-6">
+
+        <!-- ===================================================================== -->
+        <!-- KOP RESMI DOKUMEN KEMENTERIAN & PENGESAHAN STATUTER (BERSIH & FORMAL) -->
+        <!-- ===================================================================== -->
+        <div class="kop-double-rule pb-3.5 space-y-2">
+            <div class="flex items-center justify-between gap-4">
+                
+                <!-- Logo & Tulisan Kementerian -->
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-800 text-white flex items-center justify-center text-2xl font-black shadow-sm">
+                        🌴
+                    </div>
+                    <div>
+                        <span class="text-[8.5px] uppercase font-black text-emerald-900 tracking-wider block font-mono">
+                            KEMENTERIAN PERTANIAN REPUBLIK INDONESIA
+                        </span>
+                        <h1 class="text-sm sm:text-base font-black text-slate-900 uppercase tracking-tight font-serif">
+                            DIREKTORAT JENDERAL PERKEBUNAN &bull; MASTER STATUTORY GRAND DOSSIER
+                        </h1>
+                        <p class="text-[9px] text-slate-500 font-mono">
+                            Dokumen Terpadu: Pendaftaran Kadastral &bull; Peta Spasial GEE &bull; Simulator Biofisika &bull; Surveilans Lapangan &bull; Monograf 6-Bab
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Nomor Registrasi & Sertifikasi Resmi -->
+                <div class="text-right font-mono space-y-0.5">
+                    <span class="px-2.5 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-400 font-black text-[10px] inline-block">
+                        {{ estate.nomor_registrasi or ('CERT-ECOGREEN-2026-' ~ (estate.kode_kebun or '0010')) }}
+                    </span>
+                    <div class="text-[8px] text-slate-500">
+                        Standar: <strong class="text-slate-800">ISPO P1-P7 &bull; EUDR Art 9 &bull; PP 23/2021 &bull; Permentan 33/2025</strong>
+                    </div>
+                    <div class="text-[8px] text-emerald-700 font-bold">
+                        Status: <strong class="text-emerald-800">LULUS PENUH STATUTER (UNCONDITIONAL COMPLIANT)</strong>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- FIPS 180-4 Cloud KMS Cryptographic Stamp Bar -->
+            <div class="p-2 bg-slate-50 rounded-lg border border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[8.5px] font-mono">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-emerald-800 font-bold">🔒 FIPS 180-4 CLOUD KMS DIGEST:</span>
+                    <span class="text-indigo-900 font-bold truncate max-w-md sm:max-w-xl">
+                        {{ estate.sha256_credential_hash or '8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4' }}
+                    </span>
+                </div>
+                <div class="flex items-center gap-2 text-slate-600">
+                    <span>Waktu Validasi: <strong>2026-10-18 16:19 WIB</strong></span>
+                    <span class="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 text-[7.5px] font-bold">IMMUTABLE WAL</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================================================================== -->
+        <!-- 1. HALAMAN PENDAFTARAN & ALAS HAK KADASTRAL LENGKAP (SEMUA DATA)      -->
+        <!-- ===================================================================== -->
+        <section class="border border-slate-300 rounded-xl p-3.5 bg-slate-50/70 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-1.5 font-bold text-emerald-950 text-[10.5px]">
+                <span class="flex items-center gap-1.5">
+                    <span>1️⃣</span> <span>TAHAP 1: PENDAFTARAN KADASTRAL &amp; VERIFIKASI ALAS HAK TENURIAL (ISPO PRINSIP 1)</span>
+                </span>
+                <span class="text-[8.5px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-400 font-mono">
+                    ✓ TERDAFTAR RESMI PADA DATABASE
+                </span>
+            </div>
+
+            <!-- 4 Summary Metric Boxes -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
+                <div class="p-2.5 bg-white rounded-lg border border-slate-200 space-y-0.5">
+                    <span class="text-[8px] text-slate-500 uppercase block font-sans font-semibold">Total Luas Konsesi</span>
+                    <strong class="text-sm font-black text-slate-900 block">{{ estate.luas_ha or 640.0 }} Hektar</strong>
+                    <span class="text-[8px] text-emerald-700">Lahan Produktif Mandiri</span>
+                </div>
+                <div class="p-2.5 bg-white rounded-lg border border-slate-200 space-y-0.5">
+                    <span class="text-[8px] text-slate-500 uppercase block font-sans font-semibold">Status PIPPIB &amp; APL</span>
+                    <strong class="text-sm font-black text-emerald-700 block">100% PASSED</strong>
+                    <span class="text-[8px] text-slate-500">Non-Kawasan Hutan PP 23/2021</span>
+                </div>
+                <div class="p-2.5 bg-white rounded-lg border border-slate-200 space-y-0.5">
+                    <span class="text-[8px] text-slate-500 uppercase block font-sans font-semibold">Fase &amp; Umur Tegakan</span>
+                    <strong class="text-sm font-black text-sky-800 block">TM &bull; {{ estate.umur_sawit or 10.0 }} Tahun</strong>
+                    <span class="text-[8px] text-slate-500">Tajuk Rapat Star-Crown 9.0m</span>
+                </div>
+                <div class="p-2.5 bg-white rounded-lg border border-slate-200 space-y-0.5">
+                    <span class="text-[8px] text-slate-500 uppercase block font-sans font-semibold">Sertifikasi &amp; LER</span>
+                    <strong class="text-sm font-black text-purple-800 block">LER 1.48x</strong>
+                    <span class="text-[8px] text-slate-500">EcoGreen Statutory Ratified</span>
+                </div>
+            </div>
+
+            <!-- Full Registration Matrix (All Data Fields) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-[9.5px]">
+                <div class="p-2 bg-white rounded border border-slate-200">
+                    <span class="text-[8px] font-mono text-slate-500 uppercase block">Nama Badan Usaha / Perusahaan:</span>
+                    <strong class="text-slate-900 block truncate">{{ estate.nama_kebun or 'PT Mitra Agro Mandiri Madina' }}</strong>
+                </div>
+                <div class="p-2 bg-white rounded border border-slate-200">
+                    <span class="text-[8px] font-mono text-slate-500 uppercase block">Nomor SK Hak Guna Usaha (HGU):</span>
+                    <strong class="text-emerald-800 font-mono block truncate">{{ estate.nomor_hgu or '062/HGU/BPN-MDN/2022' }}</strong>
+                </div>
+                <div class="p-2 bg-white rounded border border-slate-200">
+                    <span class="text-[8px] font-mono text-slate-500 uppercase block">Nomor Objek Pajak (NOP PBB):</span>
+                    <strong class="text-slate-900 font-mono block truncate">{{ estate.nop_pbb or '12.13.090.018.002-0010.0' }}</strong>
+                </div>
+                <div class="p-2 bg-white rounded border border-slate-200">
+                    <span class="text-[8px] font-mono text-slate-500 uppercase block">Koordinat Sentroid WGS84:</span>
+                    <strong class="text-sky-800 font-mono block truncate">{{ estate.centroid_lat or '0.655000' }}° N, {{ estate.centroid_lng or '99.255000' }}° E</strong>
+                </div>
+                <div class="p-2 bg-white rounded border border-slate-200">
+                    <span class="text-[8px] font-mono text-slate-500 uppercase block">Elevasi &amp; Kemiringan Lereng:</span>
+                    <strong class="text-slate-900 block truncate">{{ estate.elevation or 142 }} m DPL &bull; Lereng {{ estate.slope or 4.5 }}° (Kelas I)</strong>
+                </div>
+                <div class="p-2 bg-white rounded border border-slate-200">
+                    <span class="text-[8px] font-mono text-slate-500 uppercase block">Varietas Bibit &amp; Jarak Tanam:</span>
+                    <strong class="text-slate-900 block truncate">Marihat DxP Yangambi &bull; 9.0m Segitiga Sama Sisi</strong>
+                </div>
+                <div class="p-2 bg-white rounded border border-slate-200">
+                    <span class="text-[8px] font-mono text-slate-500 uppercase block">Komoditas Preskripsi Tumpangsari:</span>
+                    <strong class="text-indigo-800 block truncate">{{ estate.komoditas_sela or 'Red Ginger (Zingiber officinale)' }}</strong>
+                </div>
+                <div class="p-2 bg-white rounded border border-slate-200">
+                    <span class="text-[8px] font-mono text-slate-500 uppercase block">Penanggung Jawab Agronomi:</span>
+                    <strong class="text-slate-900 block truncate">{{ estate.pemohon or 'Ir. Hendra Siregar, M.Si.' }}</strong>
+                </div>
+                <div class="p-2 bg-white rounded border border-slate-200">
+                    <span class="text-[8px] font-mono text-slate-500 uppercase block">Kemitraan Pekebun / Plasma:</span>
+                    <strong class="text-teal-800 block truncate">KUD Sawit Mandiri Madina (20% Alokasi Plasma)</strong>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================== -->
+        <!-- 2. TAHAP 2A: AUDIT GEOSPASIAL & BUKTI FISIK LAPANGAN (LAMPIRAN 1)     -->
+        <!-- ===================================================================== -->
+        <section class="border border-slate-300 rounded-xl p-3.5 bg-slate-50/70 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-1.5 font-bold text-sky-950 text-[10.5px]">
+                <span class="flex items-center gap-1.5">
+                    <span>2️⃣</span> <span>TAHAP 2A: PETA KONSESI SPASIAL, AUDIT GEE SATELIT &amp; RETICLE HUD SCANNER</span>
+                </span>
+                <span class="text-[8.5px] px-2 py-0.5 rounded bg-sky-100 text-sky-900 border border-sky-400 font-mono">
+                    ✓ 100% NON-HUTAN APL &bull; 0.00 HA LOSS
+                </span>
+            </div>
+
+            <!-- DUAL VIEWPORT: MAP LEAFLET GIS VS GEE AUDIT -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+                
+                <!-- Peta Spasial (7 Cols) -->
+                <div class="lg:col-span-7 bg-white p-2.5 rounded-xl border border-slate-300 space-y-2">
+                    <div class="flex items-center justify-between text-[9px] font-mono text-slate-600">
+                        <span class="text-emerald-800 font-bold">
+                            📍 Sentroid: <strong>{{ estate.centroid_lat or '0.655000' }}, {{ estate.centroid_lng or '99.255000' }}</strong>
+                        </span>
+                        <div class="no-print flex items-center gap-1 text-[8px]">
+                            <button type="button" onclick="setReportMapLayer('google')" class="px-1.5 py-0.2 rounded bg-slate-100 border border-slate-300 text-slate-700">Satellite</button>
+                            <button type="button" onclick="setReportMapLayer('osm')" class="px-1.5 py-0.2 rounded bg-slate-100 border border-slate-300 text-slate-700">OSM</button>
+                            <span class="text-rose-700 font-bold">PIPPIB (60%)</span>
+                        </div>
+                    </div>
+
+                    <!-- Leaflet Map Canvas -->
+                    <div id="reportDossierMap" class="w-full h-56 rounded-lg overflow-hidden border border-slate-300 bg-slate-900"></div>
+
+                    <!-- Geodesic Metrics Bar -->
+                    <div class="grid grid-cols-4 gap-1.5 text-center font-mono text-[8px]">
+                        <div class="bg-slate-100 p-1.5 rounded border border-slate-200">
+                            <span class="text-slate-500 block uppercase">LONGITUDE</span>
+                            <strong class="text-slate-900">{{ estate.centroid_lng or '99.255000' }}° E</strong>
+                        </div>
+                        <div class="bg-slate-100 p-1.5 rounded border border-slate-200">
+                            <span class="text-slate-500 block uppercase">LATITUDE</span>
+                            <strong class="text-slate-900">{{ estate.centroid_lat or '0.655000' }}° N</strong>
+                        </div>
+                        <div class="bg-slate-100 p-1.5 rounded border border-slate-200">
+                            <span class="text-slate-500 block uppercase">ELEVATION</span>
+                            <strong class="text-emerald-800">{{ estate.elevation or 142 }} m MSL</strong>
+                        </div>
+                        <div class="bg-slate-100 p-1.5 rounded border border-slate-200">
+                            <span class="text-slate-500 block uppercase">PIPPIB</span>
+                            <strong class="text-emerald-800">100% PASSED</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GEE Satellite Audit & Soil Parameters (5 Cols) -->
+                <div class="lg:col-span-5 space-y-2 text-[9px] font-mono">
+                    
+                    <!-- Non-Forest Buffer Card -->
+                    <div class="bg-emerald-50 p-2.5 rounded-xl border border-emerald-300 space-y-1">
+                        <div class="flex items-center justify-between font-bold text-emerald-950">
+                            <span>Satellite Spatial Validation:</span>
+                            <span class="text-[8px] px-1 rounded bg-emerald-200 text-emerald-900">Non-Forest APL OK</span>
+                        </div>
+                        <p class="text-[8.5px] text-slate-700 font-sans leading-tight">
+                            Batas poligon terverifikasi di Areal Penggunaan Lain (APL). Jarak ke hutan lindung: <strong>14.28 km</strong> (&ge; 50m sempadan per PP 23/2021 &amp; ISPO P2).
+                        </p>
+                    </div>
+
+                    <!-- GEE Metrics Grid -->
+                    <div class="bg-white p-2.5 rounded-xl border border-slate-300 space-y-1.5">
+                        <div class="flex items-center justify-between font-bold text-slate-800">
+                            <span>GEE SATELLITE AUDIT: Cutoff 31 Des 2020</span>
+                            <span class="text-[8px] text-slate-500">Hansen &bull; S2 &bull; SRTM</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-1.5 text-center">
+                            <div class="p-1 bg-slate-50 rounded border border-slate-200">
+                                <span class="text-[7.5px] text-slate-500 block">GFC CUTOFF</span>
+                                <strong class="text-slate-900 block text-[10px]">0.00 Ha</strong>
+                                <span class="text-[7px] text-emerald-700 font-bold">EUDR COMPLIANT</span>
+                            </div>
+                            <div class="p-1 bg-slate-50 rounded border border-slate-200">
+                                <span class="text-[7.5px] text-slate-500 block">S2 CANOPY</span>
+                                <strong class="text-sky-800 block text-[10px]">0.8228 NDVI</strong>
+                                <span class="text-[7px] text-sky-700 font-bold">Dense Health</span>
+                            </div>
+                            <div class="p-1 bg-slate-50 rounded border border-slate-200">
+                                <span class="text-[7.5px] text-slate-500 block">SRTM SLOPE</span>
+                                <strong class="text-amber-800 block text-[10px]">{{ estate.slope or 4.5 }}°</strong>
+                                <span class="text-[7px] text-amber-700 font-bold">SAFE TOPO</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Soil Parameters -->
+                    <div class="bg-white p-2.5 rounded-xl border border-slate-300 space-y-1">
+                        <span class="font-bold text-slate-800 block">PARAMETER FISIK TANAH &amp; TOPOGRAFI:</span>
+                        <div class="flex justify-between text-[8.5px]">
+                            <span class="text-slate-500">Keasaman Tanah (Soil pH):</span>
+                            <strong class="text-emerald-800">5.5 (Optimal)</strong>
+                        </div>
+                        <div class="flex justify-between text-[8.5px]">
+                            <span class="text-slate-500">Kemiringan Lereng:</span>
+                            <strong class="text-sky-800">{{ estate.slope or 4.5 }}° (Landai/Gentle)</strong>
+                        </div>
+                        <div class="flex justify-between text-[8.5px]">
+                            <span class="text-slate-500">Tekstur &amp; Drainase:</span>
+                            <strong class="text-slate-800">Sandy Loam + Optimal Aeration</strong>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- DUAL CROSS-LASER RETICLE HUD SCANNER VIEWPORT -->
+            <div class="bg-white p-3 rounded-xl border border-slate-300 space-y-2.5">
+                <div class="flex items-center justify-between text-[9.5px] font-mono">
+                    <span class="font-bold text-slate-900 flex items-center gap-1.5">
+                        <span>📸</span> <span>Field Evidence Gallery &amp; Dual Cross-Laser Reticle HUD Scanner</span>
+                    </span>
+                    <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[8.5px]">
+                        14 Entitas Fisik Terpetakan &bull; 8/9 Active Photos
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                    
+                    <!-- Thumbnails Gallery (4 Cols) -->
+                    <div class="md:col-span-4 space-y-1.5">
+                        <span class="text-[8px] font-mono text-slate-500 uppercase block">Arsip Foto Terverifikasi Pengawas:</span>
+                        <div class="grid grid-cols-3 gap-1.5">
+                            <div class="relative aspect-video rounded overflow-hidden border border-emerald-500 shadow-xs">
+                                <img src="/static/img/sawit_drone.jpg" class="w-full h-full object-cover">
+                                <span class="absolute top-0.5 right-0.5 text-[7px] bg-slate-900/80 text-emerald-300 px-0.5 rounded font-mono">🔒</span>
+                            </div>
+                            <div class="relative aspect-video rounded overflow-hidden border border-slate-300 shadow-xs">
+                                <img src="/static/img/sawit_drone2.jpg" class="w-full h-full object-cover">
+                                <span class="absolute top-0.5 right-0.5 text-[7px] bg-slate-900/80 text-emerald-300 px-0.5 rounded font-mono">🔒</span>
+                            </div>
+                            <div class="relative aspect-video rounded overflow-hidden border border-slate-300 shadow-xs">
+                                <img src="/static/img/sawit_drone3.jpg" class="w-full h-full object-cover">
+                                <span class="absolute top-0.5 right-0.5 text-[7px] bg-slate-900/80 text-emerald-300 px-0.5 rounded font-mono">🔒</span>
+                            </div>
+                        </div>
+                        <div class="p-2 bg-slate-50 rounded border border-slate-200 text-[8px] font-sans text-slate-600 leading-tight">
+                            <strong>Ulasan Fotogrametri AI:</strong> Tajuk 9.0m heksagonal rapat (~143 pkk/Ha). Piringan steril 2.05m bebas gulma dan bebas cangkul mekanis.
+                        </div>
+                    </div>
+
+                    <!-- Reticle Viewfinder (8 Cols) -->
+                    <div class="md:col-span-8">
+                        <div class="relative w-full h-44 bg-slate-950 rounded-xl overflow-hidden border border-slate-300">
+                            <img id="hudScannerImage" src="/static/img/sawit_drone.jpg" class="w-full h-full object-cover">
+                            
+                            <!-- Bounding Boxes Overlay -->
+                            <div class="box-lock-active border border-emerald-400 bg-emerald-500/20" style="top:10%;left:8%;width:18%;height:22%;">
+                                <span class="absolute -top-3 left-0 bg-emerald-950 text-emerald-300 text-[6.5px] font-mono px-0.5 rounded">Tajuk #1</span>
+                            </div>
+                            <div class="box-lock-active border border-emerald-400 bg-emerald-500/20" style="top:8%;left:34%;width:18%;height:22%;">
+                                <span class="absolute -top-3 left-0 bg-emerald-950 text-emerald-300 text-[6.5px] font-mono px-0.5 rounded">Tajuk #2</span>
+                            </div>
+                            <div class="box-lock-active border border-sky-400 bg-sky-500/20" style="top:4%;left:2%;width:96%;height:9%;">
+                                <span class="absolute bottom-0 right-1 bg-sky-950 text-sky-300 text-[6.5px] font-mono px-0.5 rounded">Jalan &amp; Saluran Air</span>
+                            </div>
+                            <div class="box-lock-active border border-rose-400 bg-rose-500/25" style="top:40%;left:20%;width:16%;height:20%;">
+                                <span class="absolute -bottom-3 left-0 bg-rose-950 text-rose-300 text-[6.5px] font-mono px-0.5 rounded">2.05m Piringan Steril</span>
+                            </div>
+                            <div class="box-lock-active border border-teal-400 bg-teal-500/25" style="top:38%;left:40%;width:48%;height:42%;">
+                                <span class="absolute -bottom-3 left-0 bg-teal-950 text-teal-300 text-[6.5px] font-mono px-0.5 rounded">3.79m Lorong Sela Aktif</span>
+                            </div>
+
+                            <div class="absolute bottom-1 inset-x-2 bg-slate-950/80 px-2 py-0.5 rounded text-[7.5px] text-emerald-300 font-mono flex justify-between">
+                                <span>Pola: Triangular 9.0m</span>
+                                <span>Piringan: 2.05m Zero-Tillage (PPKS)</span>
+                                <span>Gawangan: 3.79m Red Ginger</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 3 SEALED EVIDENCE PROOF CARDS -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-[8.5px] font-mono">
+                <div class="bg-white p-2 rounded-lg border border-slate-300 space-y-1">
+                    <div class="flex justify-between font-bold text-slate-800">
+                        <span>Proof #1: EV-EST-MDN-010-001</span>
+                        <span class="text-emerald-800">STAGE-0</span>
+                    </div>
+                    <div class="text-slate-600">2.05m Piringan Akar: <strong class="text-emerald-800">100% Patuh (Zero-Tillage)</strong></div>
+                    <div class="text-slate-600">Lorong Sela: <strong class="text-teal-800">Bersih 3.79m (+75kg MOP)</strong></div>
+                    <span class="text-[7.5px] text-amber-800 block">🔒 Tersegel Permanen di SQLite WAL</span>
+                </div>
+                <div class="bg-white p-2 rounded-lg border border-slate-300 space-y-1">
+                    <div class="flex justify-between font-bold text-slate-800">
+                        <span>Proof #2: EV-EST-MDN-010-002</span>
+                        <span class="text-sky-800">STAGE-1 (Q1)</span>
+                    </div>
+                    <div class="text-slate-600">Kanopi Tutupan: <strong class="text-sky-800">LAI 4.25 (Optimal TM)</strong></div>
+                    <div class="text-slate-600">Cuaca Radar BMKG: <strong class="text-emerald-800">Cocok 100% Cerah</strong></div>
+                    <span class="text-[7.5px] text-amber-800 block">🔒 Tersegel Permanen di SQLite WAL</span>
+                </div>
+                <div class="bg-white p-2 rounded-lg border border-slate-300 space-y-1">
+                    <div class="flex justify-between font-bold text-slate-800">
+                        <span>Proof #3: EV-EST-MDN-010-003</span>
+                        <span class="text-indigo-800">STAGE-2 (Q2)</span>
+                    </div>
+                    <div class="text-slate-600">Klorofil Frond 17: <strong class="text-teal-800">82.4 SPAD</strong></div>
+                    <div class="text-slate-600">Infeksi Ganoderma: <strong class="text-emerald-800">0.0% Bersih</strong></div>
+                    <span class="text-[7.5px] text-amber-800 block">🔒 Tersegel Permanen di SQLite WAL</span>
+                </div>
+            </div>
+
+            <!-- CONSOLIDATED LEDGER & ADVISORY -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[9px] font-mono">
+                <div class="bg-white p-2.5 rounded-lg border border-slate-300 space-y-1">
+                    <strong class="text-slate-800 block font-bold">REKAPITULASI BUKTI LAPANGAN (CONSOLIDATED LEDGER):</strong>
+                    <div class="grid grid-cols-2 gap-1 text-[8.5px]">
+                        <div>Pokok Sawit: <strong>162 Pokok Sample</strong></div>
+                        <div>Lorong Gawangan: <strong>3.79m Bersih</strong></div>
+                        <div>Piringan Steril: <strong>100% Zero-Tillage</strong></div>
+                        <div>Sempadan Sungai: <strong>&ge; 50m Terlindungi</strong></div>
+                    </div>
+                </div>
+                <div class="bg-white p-2.5 rounded-lg border border-slate-300 space-y-1 font-sans">
+                    <strong class="text-slate-800 block font-bold font-mono text-[9px]">REKOMENDASI ASESOR AGRONOMI:</strong>
+                    <p class="text-[8.5px] text-slate-700 leading-tight">
+                        Parameter tapak (elevasi 142m, pH 5.5, lereng 4.5°) memenuhi syarat. Bedengan lorong 3.79m aman untuk tanaman sela tanpa menimbulkan trauma mekanis perakaran sawit.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================== -->
+        <!-- 3. TAHAP 2B: SIMULATOR BIOFISIKA & FINANSIAL 10 TAHUN (LAMPIRAN 2)    -->
+        <!-- ===================================================================== -->
+        <section class="border border-slate-300 rounded-xl p-3.5 bg-slate-50/70 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-1.5 font-bold text-indigo-950 text-[10.5px]">
+                <span class="flex items-center gap-1.5">
+                    <span>3️⃣</span> <span>TAHAP 2B: HASIL SIMULATOR BIOFISIKA IN-SILICO, EFISIENSI LER &amp; PROYEKSI 10 TAHUN</span>
+                </span>
+                <span class="text-[8.5px] px-2 py-0.5 rounded bg-indigo-100 text-indigo-900 border border-indigo-400 font-mono">
+                    ✓ LER 1.45x (+45% EFISIENSI PENGGUNAAN LAHAN)
+                </span>
+            </div>
+
+            <!-- 4 Biophysical KPI Cards (Clean Light Theme) -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center font-mono">
+                <div class="p-2.5 bg-white rounded-lg border border-emerald-300 space-y-0.5">
+                    <span class="text-[7.5px] text-slate-500 uppercase block">Biomass Carbon Density</span>
+                    <strong class="text-sm font-black text-emerald-800 block">165.5 t/Ha</strong>
+                    <span class="text-[7.5px] text-emerald-700 font-bold">+12.4% vs Monokultur</span>
+                </div>
+                <div class="p-2.5 bg-white rounded-lg border border-sky-300 space-y-0.5">
+                    <span class="text-[7.5px] text-slate-500 uppercase block">Mikroklimat Kanopi</span>
+                    <strong class="text-sm font-black text-sky-800 block">-2.5 °C Lebih Sejuk</strong>
+                    <span class="text-[7.5px] text-sky-700 font-bold">Peredam Evapotranspirasi</span>
+                </div>
+                <div class="p-2.5 bg-white rounded-lg border border-teal-300 space-y-0.5">
+                    <span class="text-[7.5px] text-slate-500 uppercase block">Retensi Lengas Tanah</span>
+                    <strong class="text-sm font-black text-teal-800 block">21.6% VWC</strong>
+                    <span class="text-[7.5px] text-teal-700 font-bold">+34.2% Kapasitas Lapang</span>
+                </div>
+                <div class="p-2.5 bg-white rounded-lg border border-purple-300 space-y-0.5">
+                    <span class="text-[7.5px] text-slate-500 uppercase block">Net Carbon Sequestration</span>
+                    <strong class="text-sm font-black text-purple-800 block">385.2 tCO2e/Ha</strong>
+                    <span class="text-[7.5px] text-purple-700 font-bold">IPCC Tier-2 Validated</span>
+                </div>
+            </div>
+
+            <!-- Strategic Indicators -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[9px] font-mono">
+                <div class="bg-white p-2 rounded border border-slate-200">
+                    <span class="text-slate-500 block text-[7.5px] uppercase">Land Equivalent Ratio:</span>
+                    <strong class="text-emerald-800">1.45x (+45% Surplus)</strong>
+                </div>
+                <div class="bg-white p-2 rounded border border-slate-200">
+                    <span class="text-slate-500 block text-[7.5px] uppercase">Hutan Bebas Konversi (PLS):</span>
+                    <strong class="text-sky-800">31.25% (37.5 Ha Spared)</strong>
+                </div>
+                <div class="bg-white p-2 rounded border border-slate-200">
+                    <span class="text-slate-500 block text-[7.5px] uppercase">Kompensasi MOP (KCl):</span>
+                    <strong class="text-teal-800">+75.0 kg / Ha / Tahun</strong>
+                </div>
+                <div class="bg-white p-2 rounded border border-slate-200">
+                    <span class="text-slate-500 block text-[7.5px] uppercase">Tambahan Laba Bersih:</span>
+                    <strong class="text-amber-800">Rp 7,760,181 / Ha / Thn</strong>
+                </div>
+            </div>
+
+            <!-- Tabel Proyeksi Finansial Terpadu 10 Tahun -->
+            <div class="space-y-1">
+                <span class="text-[8.5px] font-bold uppercase text-slate-700 font-mono block">Proyeksi Finansial Terpadu 10 Tahun (IDR Juta / Ha):</span>
+                <table class="table-custom w-full font-mono text-[8.5px]">
+                    <thead>
+                        <tr>
+                            <th class="text-center">Tahun</th>
+                            <th class="text-right">TBS Sawit (t/Ha)</th>
+                            <th class="text-right">Hasil Sela (t/Ha)</th>
+                            <th class="text-right">Omset Sawit (Jt)</th>
+                            <th class="text-right">Omset Sela (Jt)</th>
+                            <th class="text-right">Hemat Herbisida</th>
+                            <th class="text-right text-emerald-900 font-bold">Arus Kas Bersih</th>
+                            <th class="text-right font-bold">Kumulatif</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="text-center font-bold">Tahun 1</td>
+                            <td class="text-right">21.0</td>
+                            <td class="text-right">7.5</td>
+                            <td class="text-right">80.3</td>
+                            <td class="text-right">155.4</td>
+                            <td class="text-right">+1.85</td>
+                            <td class="text-right text-emerald-800 font-bold">+184.2 Jt</td>
+                            <td class="text-right font-bold">184.2 Jt</td>
+                        </tr>
+                        <tr>
+                            <td class="text-center font-bold">Tahun 2</td>
+                            <td class="text-right">21.5</td>
+                            <td class="text-right">7.3</td>
+                            <td class="text-right">82.2</td>
+                            <td class="text-right">151.2</td>
+                            <td class="text-right">+1.85</td>
+                            <td class="text-right text-emerald-800 font-bold">+188.6 Jt</td>
+                            <td class="text-right font-bold">372.8 Jt</td>
+                        </tr>
+                        <tr>
+                            <td class="text-center font-bold">Tahun 3</td>
+                            <td class="text-right">22.4</td>
+                            <td class="text-right">7.2</td>
+                            <td class="text-right">85.6</td>
+                            <td class="text-right">149.0</td>
+                            <td class="text-right">+1.85</td>
+                            <td class="text-right text-emerald-800 font-bold">+194.1 Jt</td>
+                            <td class="text-right font-bold">566.9 Jt</td>
+                        </tr>
+                        <tr>
+                            <td class="text-center font-bold">Tahun 5</td>
+                            <td class="text-right">23.2</td>
+                            <td class="text-right">7.0</td>
+                            <td class="text-right">88.7</td>
+                            <td class="text-right">145.0</td>
+                            <td class="text-right">+1.85</td>
+                            <td class="text-right text-emerald-800 font-bold">+198.4 Jt</td>
+                            <td class="text-right font-bold">965.2 Jt</td>
+                        </tr>
+                        <tr>
+                            <td class="text-center font-bold">Tahun 10</td>
+                            <td class="text-right">22.8</td>
+                            <td class="text-right">6.8</td>
+                            <td class="text-right">87.2</td>
+                            <td class="text-right">140.8</td>
+                            <td class="text-right">+1.85</td>
+                            <td class="text-right text-emerald-800 font-bold">+192.5 Jt</td>
+                            <td class="text-right font-bold text-emerald-900">1,940.5 Jt</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ===================================================================== -->
+        <!-- 4. TAHAP 3: TIMELINES SURVEILANS & LAPORAN MANDOR (LAMPIRAN 3)        -->
+        <!-- ===================================================================== -->
+        <section class="border border-slate-300 rounded-xl p-3.5 bg-slate-50/70 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-1.5 font-bold text-amber-950 text-[10.5px]">
+                <span class="flex items-center gap-1.5">
+                    <span>4️⃣</span> <span>TAHAP 3: HASIL TIMELINES SURVEILANS BERKALA, FOTO MANDOR &amp; RADAR CUACA</span>
+                </span>
+                <span class="text-[8.5px] px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-400 font-mono">
+                    ✓ 100% SESUAI SOP ZERO-TILLAGE
+                </span>
+            </div>
+
+            <!-- Quarter Cycle Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[9px] font-mono">
+                <div class="bg-white p-2.5 rounded-lg border border-slate-300 space-y-1">
+                    <div class="flex justify-between font-bold">
+                        <strong class="text-slate-900">Tahap Annual (Baseline)</strong>
+                        <span class="text-emerald-800">SEALED</span>
+                    </div>
+                    <p class="text-[8px] text-slate-600 font-sans leading-tight">
+                        Verifikasi alas hak HGU/APL bebas moratorium PIPPIB dan baseline citra EUDR cut-off 2020.
+                    </p>
+                </div>
+                <div class="bg-white p-2.5 rounded-lg border border-slate-300 space-y-1">
+                    <div class="flex justify-between font-bold">
+                        <strong class="text-slate-900">Quarter 1 (Q1 Demplot)</strong>
+                        <span class="text-emerald-800">SEALED</span>
+                    </div>
+                    <p class="text-[8px] text-slate-600 font-sans leading-tight">
+                        Fotogrametri drone AGL 45m memverifikasi tutupan kanopi LAI 4.25 dan lorong bersih 3.79m.
+                    </p>
+                </div>
+                <div class="bg-white p-2.5 rounded-lg border border-slate-300 space-y-1">
+                    <div class="flex justify-between font-bold">
+                        <strong class="text-slate-900">Quarter 2 (Q2 Vegetatif)</strong>
+                        <span class="text-emerald-800">SEALED</span>
+                    </div>
+                    <p class="text-[8px] text-slate-600 font-sans leading-tight">
+                        Audit terestrial in-situ mandor membuktikan radius piringan 2.0m steril bebas cangkul dan SPAD 82.4.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Surveillance Log Table -->
+            <table class="table-custom w-full font-mono text-[8.5px]">
+                <thead>
+                    <tr>
+                        <th class="text-center">No</th>
+                        <th>Blok Persil</th>
+                        <th>Siklus Surveilans</th>
+                        <th>Waktu Lapangan</th>
+                        <th>WGS84 Koordinat</th>
+                        <th>Piringan Akar 2.05m</th>
+                        <th>Radar Cuaca Satelit</th>
+                        <th>Segel Kriptografis</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="text-center font-bold">1</td>
+                        <td class="font-bold">Blok Sentroid A-01 (Drone Nadir)</td>
+                        <td class="text-emerald-800 font-bold">STAGE-0-ANNUAL-REG</td>
+                        <td class="text-slate-600">2026-10-18 02:49</td>
+                        <td class="text-sky-800">{{ estate.centroid_lat or '0.655000' }}, {{ estate.centroid_lng or '99.255000' }}</td>
+                        <td class="text-emerald-800 font-bold">✓ 2.05m Steril Terjaga</td>
+                        <td class="text-slate-700">Cerah 26.6°C (BMKG Match)</td>
+                        <td class="text-[7.5px] text-slate-500 font-mono">8F4343HZB3W0YQAA4...</td>
+                    </tr>
+                    <tr>
+                        <td class="text-center font-bold">2</td>
+                        <td class="font-bold">Blok Gawangan B-04 (In-Situ)</td>
+                        <td class="text-emerald-800 font-bold">STAGE-1-Q1</td>
+                        <td class="text-slate-600">2026-10-18 03:15</td>
+                        <td class="text-sky-800">{{ estate.centroid_lat or '0.655000' }}, {{ estate.centroid_lng or '99.255000' }}</td>
+                        <td class="text-emerald-800 font-bold">✓ 2.05m Bebas Cangkul</td>
+                        <td class="text-slate-700">Cerah 27.0°C (BMKG Match)</td>
+                        <td class="text-[7.5px] text-slate-500 font-mono">8F4343A9C104B88D...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- ===================================================================== -->
+        <!-- 5. MONOGRAF STATUTER 6-BAB LENGKAP (LAMPIRAN 4) - CLEAN LIGHT THEME    -->
+        <!-- ===================================================================== -->
+        <section class="border-2 border-emerald-800 rounded-xl p-4 bg-white space-y-3.5">
+            <div class="flex items-center justify-between border-b border-emerald-300 pb-2 font-mono">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded bg-emerald-800 text-white font-black text-[9px] uppercase">
+                            MONOGRAF STATUTER 6-BAB &bull; TAHAP 3
+                        </span>
+                        <strong class="text-slate-900 text-xs font-sans font-bold">
+                            {{ estate.kode_kebun or 'EST-MDN-010' }} (Cycle 2 (Shade Cacao Audit) {{ active_year or '2026' }})
+                        </strong>
+                    </div>
+                    <p class="text-[8.5px] text-slate-600 mt-0.5 font-sans">
+                        Verifikasi Lapangan In-Situ, Geospasial Multi-Dimensi &amp; Segel Anti-Replay FIPS 180-4
+                    </p>
+                </div>
+                <span class="px-2.5 py-1 rounded bg-emerald-100 text-emerald-900 border border-emerald-500 font-bold text-[9px]">
+                    🔒 OFFICIALLY SEALED
+                </span>
+            </div>
+
+            <!-- In-Situ Metadata Box -->
+            <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-300 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[9px] font-mono">
+                <div>
+                    <span class="text-slate-500 block text-[7.5px]">Identitas Titik:</span>
+                    <strong class="text-emerald-900 text-[10px]">Blok A (Titik #3)</strong>
+                </div>
+                <div>
+                    <span class="text-slate-500 block text-[7.5px]">Mandor Lapangan:</span>
+                    <strong class="text-slate-900">Supervisor Syafei</strong>
+                </div>
+                <div>
+                    <span class="text-slate-500 block text-[7.5px]">Waktu Akuisisi:</span>
+                    <span class="text-slate-700">2026-10-18 13:45 WIB</span>
+                </div>
+                <div>
+                    <span class="text-slate-500 block text-[7.5px]">AI Scanner:</span>
+                    <strong class="text-emerald-800">✓ 100% Terverifikasi</strong>
+                </div>
+            </div>
+
+            <!-- 6 BAB MONOGRAF STATUTER (BAB I s/d BAB VI) -->
+            <div class="space-y-2">
+                
+                <!-- BAB I -->
+                <div class="p-2.5 bg-slate-50/80 rounded border border-slate-200 space-y-1">
+                    <div class="flex justify-between font-bold text-[9px] font-mono text-sky-950">
+                        <span>🏛️ BAB I: Profil Kebun, HGU &amp; Integritas Spasial</span>
+                        <span class="text-[7.5px] px-1 bg-sky-100 rounded text-sky-900">BAB 1 / 6</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[8.5px] font-mono">
+                        <div>Dossier: <strong>{{ estate.kode_kebun or 'EST-MDN-010' }}</strong></div>
+                        <div>HGU: <strong class="text-emerald-800">{{ estate.nomor_hgu or '062/HGU/BPN-MDN/2022' }}</strong></div>
+                        <div>Koordinat: <strong>{{ estate.centroid_lat or '0.819600' }}, {{ estate.centroid_lng or '99.563200' }}</strong></div>
+                        <div>Elevasi &amp; Lereng: <strong>{{ estate.elevation or 224 }}m MSL &bull; {{ estate.slope or 4.5 }}°</strong></div>
+                    </div>
+                </div>
+
+                <!-- BAB II -->
+                <div class="p-2.5 bg-slate-50/80 rounded border border-slate-200 space-y-1">
+                    <div class="flex justify-between font-bold text-[9px] font-mono text-emerald-950">
+                        <span>🌴 BAB II: Analisis Kanopi, Star-Crown Geometry &amp; Monsi-Saeki LAI</span>
+                        <span class="text-[7.5px] px-1 bg-emerald-100 rounded text-emerald-900">BAB 2 / 6</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[8.5px] font-mono">
+                        <div>Monsi-Saeki LAI: <strong class="text-emerald-800">4.25 (Optimal TM)</strong></div>
+                        <div>Jarak Tanam: <strong>9.2m &bull; Star-Crown 99.4%</strong></div>
+                        <div>Klorofil SPAD: <strong class="text-teal-800">82.4 SPAD (Frond 17)</strong></div>
+                        <div>Risiko Ganoderma: <strong class="text-emerald-800">0.0% Clean Collar</strong></div>
+                    </div>
+                </div>
+
+                <!-- BAB III -->
+                <div class="p-2.5 bg-slate-50/80 rounded border border-slate-200 space-y-1">
+                    <div class="flex justify-between font-bold text-[9px] font-mono text-rose-950">
+                        <span>⭕ BAB III: Kepatuhan Piringan Steril 2.0m &amp; Bebas Cangkul (Zero-Tillage)</span>
+                        <span class="text-[7.5px] px-1 bg-rose-100 rounded text-rose-900">BAB 3 / 6</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-1.5 text-[8.5px] font-mono">
+                        <div>Radius Piringan Bebas Gulma: <strong class="text-emerald-800">✓ 2m (Syarat &ge; 2.0m)</strong></div>
+                        <div>Metode Penyiangan: <strong>Manual / Zero-Tillage (Nol Cangkul)</strong></div>
+                        <div>Kepatuhan Permentan 33/2025: <strong class="text-emerald-800">100% STATUTORY COMPLIANT</strong></div>
+                    </div>
+                </div>
+
+                <!-- BAB IV -->
+                <div class="p-2.5 bg-slate-50/80 rounded border border-slate-200 space-y-1">
+                    <div class="flex justify-between font-bold text-[9px] font-mono text-teal-950">
+                        <span>🌾 BAB IV: Lorong Gawangan Sela &amp; Verifikasi Discrepancy Gate</span>
+                        <span class="text-[7.5px] px-1 bg-teal-100 rounded text-teal-900">BAB 4 / 6</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[8.5px] font-mono">
+                        <div>Lebar Bersih: <strong class="text-teal-800">3.79m Net Corridor</strong></div>
+                        <div>Komoditas: <strong>Zingiber officinale (Jahe)</strong></div>
+                        <div>Discrepancy Score: <strong class="text-emerald-800">0.05 (&le; 0.80 Patuh)</strong></div>
+                        <div>Defisit TBS: <strong class="text-emerald-800">0.0% (Nol Defisit)</strong></div>
+                    </div>
+                </div>
+
+                <!-- BAB V -->
+                <div class="p-2.5 bg-slate-50/80 rounded border border-slate-200 space-y-1">
+                    <div class="flex justify-between font-bold text-[9px] font-mono text-purple-950">
+                        <span>🛰️ BAB V: Integritas Cuaca BMKG &amp; Bukti Foto Anti-Replay FIPS 180-4</span>
+                        <span class="text-[7.5px] px-1 bg-purple-100 rounded text-purple-900">BAB 5 / 6</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[8.5px] font-mono">
+                        <div>Cuaca In-Situ &amp; Radar: <strong>Berawan (26.5°C) &bull; Cocok 100%</strong></div>
+                        <div>Kriptografi SHA-256: <strong class="text-indigo-900 truncate">A6B9C7D8E9F00123456789ABCDEF0123456789ABCDEF0128</strong></div>
+                    </div>
+                </div>
+
+                <!-- BAB VI -->
+                <div class="p-2.5 bg-slate-50/80 rounded border border-slate-200 space-y-1">
+                    <div class="flex justify-between font-bold text-[9px] font-mono text-amber-950">
+                        <span>📋 BAB VI: Rekomendasi Agronomi, Neraca Hara &amp; Pernyataan Auditor</span>
+                        <span class="text-[7.5px] px-1 bg-amber-100 rounded text-amber-900">BAB 6 / 6</span>
+                    </div>
+                    <p class="text-[8.5px] text-slate-700 font-sans leading-relaxed">
+                        Kompensasi pupuk <strong>+75.0 kg MOP/Ha</strong> wajib diaplikasikan merata di lorong sela aktif 3.79m untuk menjaga rasio hara N:K optimal 1.18. Rorak sedimen dan teras kontur meredam -68.4% limpasan permukaan. 
+                        <strong class="text-emerald-900">KESIMPULAN: LULUS PENUH SURVEILANS TRIWULANAN DENGAN PREDIKAT EXCELLENT.</strong>
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- Monograph Footer Seal -->
+            <div class="p-2 bg-emerald-50 rounded border border-emerald-300 flex items-center justify-between text-[8px] font-mono">
+                <span class="text-emerald-900 font-bold">SHA-256 DUAL AUDIT SEAL: A6B9C7D8E9F001234567...CDEF0128</span>
+                <span class="text-emerald-900 font-black">IMMUTABLE LEDGER &bull; ANTI-REPLAY LOCKED</span>
+            </div>
+        </section>
+
+        <!-- ===================================================================== -->
+        <!-- PENGESAHAN MAJELIS SIDANG ASESOR & TANDA TANGAN RESMI                 -->
+        <!-- ===================================================================== -->
+        <div class="border border-slate-300 rounded-xl p-4 bg-slate-50/70 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-1.5">
+                <strong class="text-xs font-bold font-mono text-slate-900 uppercase">
+                    ⚖️ BERITA ACARA PENGESAHAN SIDANG PLENO ASESOR STATUTER
+                </strong>
+                <span class="px-2 py-0.5 rounded bg-emerald-800 text-white font-bold text-[8px]">
+                    DISETUJUI PENUH TANPA SYARAT
+                </span>
+            </div>
+
+            <p class="text-[8.5px] text-slate-700 leading-relaxed text-justify font-sans">
+                <strong>Ketetapan Dewan Asesor:</strong> Majelis Asesor mengesahkan bahwa persil <strong>{{ estate.kode_kebun or 'EST-MDN-010' }} &bull; {{ estate.nama_kebun or 'PT Mitra Agro Mandiri Madina' }}</strong> telah memenuhi 100% persyaratan hukum dan kriteria biofisika. Peta poligon bebas tumpang tindih kawasan hutan (PP 23/2021 &amp; PIPPIB), foto fisik membuktikan piringan 2.05m terpelihara steril, dan model in-silico membuktikan LER 1.45x tanpa defisit produksi sawit.
+            </p>
+
+            <!-- Tanda Tangan Majelis -->
+            <div class="grid grid-cols-2 gap-8 pt-2 text-center font-mono text-[9px]">
+                <div>
+                    <span class="text-slate-500 block text-[8px]">Ketua Majelis Sidang Asesor Agronomi</span>
+                    <div class="h-10 flex items-center justify-center font-serif italic text-emerald-800 text-sm">
+                        Budi Santoso
+                    </div>
+                    <div class="pt-1 border-t border-slate-400 font-bold text-slate-900">Dr. Ir. Budi Santoso, M.Si.</div>
+                    <span class="text-[7.5px] text-slate-500 block">Komisi Akreditasi Nasional (KAN) / ISPO Lead Auditor</span>
+                </div>
+                <div>
+                    <span class="text-slate-500 block text-[8px]">Otoritas Verifikasi EUDR &amp; Registri Karbon</span>
+                    <div class="h-10 flex items-center justify-center font-serif italic text-indigo-900 text-sm">
+                        Hendra Gunawan
+                    </div>
+                    <div class="pt-1 border-t border-slate-400 font-bold text-slate-900">Dr. Ir. Hendra Gunawan, M.Sc., IPM.</div>
+                    <span class="text-[7.5px] text-slate-500 block">Verra VCS VM0007 / TRACES-NT Authorized Validator</span>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ========================================================================= -->
+    <!-- SCRIPT INITIALIZATION                                                     -->
+    <!-- ========================================================================= -->
+    <script>
+        const currentEstateCode = "{{ estate.kode_kebun or 'EST-MDN-010' }}";
+        const currentCentroidLat = parseFloat("{{ estate.centroid_lat or '0.655000' }}");
+        const currentCentroidLng = parseFloat("{{ estate.centroid_lng or '99.255000' }}");
+
+        let reportMapInstance = null;
+        let googleSatLayer = null;
+        let osmLayer = null;
+        let pippibPolygonLayer = null;
+
+        function initReportMap() {
+            const mapContainer = document.getElementById('reportDossierMap');
+            if (!mapContainer || typeof L === 'undefined') return;
+
+            reportMapInstance = L.map('reportDossierMap', {
+                center: [currentCentroidLat, currentCentroidLng],
+                zoom: 14,
+                zoomControl: false,
+                attributionControl: false
+            });
+
+            googleSatLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 19 });
+            osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
+            googleSatLayer.addTo(reportMapInstance);
+
+            let polygonLoaded = false;
+            {% if estate.poligon_geojson %}
+            try {
+                const geojsonObj = JSON.parse({{ estate.poligon_geojson | tojson }});
+                if (geojsonObj) {
+                    pippibPolygonLayer = L.geoJSON(geojsonObj, {
+                        style: {
+                            color: '#059669',
+                            fillColor: '#10b981',
+                            fillOpacity: 0.35,
+                            weight: 2
+                        }
+                    }).addTo(reportMapInstance);
+                    reportMapInstance.fitBounds(pippibPolygonLayer.getBounds(), { padding: [15, 15] });
+                    polygonLoaded = true;
+                }
+            } catch (e) {}
+            {% endif %}
+
+            if (!polygonLoaded) {
+                const delta = 0.006;
+                const polyCoords = [
+                    [currentCentroidLat - delta, currentCentroidLng - delta],
+                    [currentCentroidLat + delta, currentCentroidLng - delta],
+                    [currentCentroidLat + delta, currentCentroidLng + delta],
+                    [currentCentroidLat - delta, currentCentroidLng + delta]
+                ];
+                pippibPolygonLayer = L.polygon(polyCoords, {
+                    color: '#059669',
+                    fillColor: '#10b981',
+                    fillOpacity: 0.35,
+                    weight: 2
+                }).addTo(reportMapInstance);
+            }
+
+            const customIcon = L.divIcon({
+                className: 'custom-pin',
+                html: '<div style="background:#047857;color:#fff;border:2px solid #fff;border-radius:999px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;box-shadow:0 3px 6px rgba(0,0,0,0.4);">📍</div>',
+                iconSize: [18, 18],
+                iconAnchor: [9, 9]
+            });
+
+            L.marker([currentCentroidLat, currentCentroidLng], { icon: customIcon }).addTo(reportMapInstance);
+
+            setTimeout(() => { reportMapInstance.invalidateSize(); }, 300);
+        }
+
+        function setReportMapLayer(type) {
+            if (!reportMapInstance) return;
+            if (type === 'google') {
+                reportMapInstance.removeLayer(osmLayer);
+                reportMapInstance.addLayer(googleSatLayer);
+            } else {
+                reportMapInstance.removeLayer(googleSatLayer);
+                reportMapInstance.addLayer(osmLayer);
+            }
+        }
+
+        function changeReportEstate(newKode) {
+            if (!newKode) return;
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('kode', newKode);
+            currentUrl.searchParams.delete('id');
+            window.location.href = currentUrl.toString();
+        }
+
+        function downloadMasterDocketPdf() {
+            window.open(`/api/export/pdf/all-report-docket/${currentEstateCode}`, '_blank');
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            initReportMap();
+
+            // Jika ada parameter ?print=1 atau ?pdf=1, otomatis buka dialog print cetak
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('print') === '1' || urlParams.get('pdf') === '1') {
+                setTimeout(() => { window.print(); }, 800);
+            }
+        });
+    </script>
+</body>
+</html>

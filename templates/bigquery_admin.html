@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <!-- Theme Script to Prevent FOUC -->
+    <script>
+        (function () {
+            try {
+                const savedTheme = localStorage.getItem('precision_palm_theme') || 'dark';
+                if (savedTheme === 'light') {
+                    document.documentElement.classList.remove('dark');
+                } else {
+                    document.documentElement.classList.add('dark');
+                }
+            } catch (_) {}
+        })();
+    </script>
+    <script src="/static/js/i18n.js"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="bq_admin_title">BigQuery Enterprise Data Warehouse Manager • Precision Palm</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+                    },
+                    colors: {
+                        brand: {
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            950: '#022c22'
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #1e293b; }
+        ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+        }
+        .dark .glass-card {
+            background: rgba(15, 23, 42, 0.90);
+            border: 1px solid rgba(51, 65, 85, 0.75);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Ensure full-table horizontal scrolling with intact column widths */
+        .table-full-scroll {
+            overflow-x: auto;
+            width: 100%;
+            -webkit-overflow-scrolling: touch;
+        }
+        .table-full-scroll table {
+            min-width: 100%;
+            width: max-content;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen transition-colors duration-200 font-sans selection:bg-blue-500 selection:text-white">
+    <div class="flex min-h-screen w-full">
+        <!-- Sidebar Navigasi Enterprise di Kiri (Rapat Tanpa Celah) -->
+        {% include 'partials/sidebar.html' ignore missing %}
+
+        <!-- Workspace Utama: Lebar Penuh (Zero-Gap ke Sidebar) -->
+        <div id="enterpriseWorkspace" class="flex-1 flex flex-col min-w-0 transition-all duration-300 w-full overflow-hidden">
+            <!-- Persistent Top Context Bar -->
+            {% include 'partials/top_context_bar.html' ignore missing %}
+
+            <!-- Main Content: Layout Metode 3 (Constrained Hybrid Fluid Grid) -->
+            <main class="flex-1 overflow-y-auto w-full">
+                <div class="max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
+
+                    <!-- HERO BANNER BIGQUERY ENTERPRISE -->
+                    <header class="glass-card rounded-2xl p-5 sm:p-6 relative overflow-hidden border border-blue-500/30 shadow-lg w-full">
+                        <div class="absolute -right-16 -top-16 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                        <div class="absolute -left-16 -bottom-16 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+                            <div class="space-y-2 max-w-4xl">
+                                <div class="flex flex-wrap items-center gap-2 font-mono text-[10px] font-bold">
+                                    <span class="px-2.5 py-0.5 rounded-full uppercase bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700 flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400 animate-ping"></span>
+                                        Google Cloud BigQuery
+                                    </span>
+                                    <span class="px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+                                        Dataset: precision_palm_dw
+                                    </span>
+                                    <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                                        Full-Width Schema &bull; 100% Uncut Columns
+                                    </span>
+                                </div>
+                                <h1 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                                    <span>🗄️</span>
+                                    <span data-i18n="bq_header_title">Multi-Table Enterprise Data Warehouse Manager</span>
+                                </h1>
+                                <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed" data-i18n="bq_header_sub">
+                                    Pusat kontrol dan inspeksi data riil seluruh tabel Google Cloud BigQuery Data Warehouse secara penuh. Setiap kolom ditampilkan utuh tanpa pemotongan teks, mendukung penelusuran skema lengkap, pencarian instan, dan pratinjau bukti forensik.
+                                </p>
+                            </div>
+
+                            <div class="flex flex-wrap items-center gap-2 shrink-0">
+                                <button type="button" onclick="refreshCurrentTable()" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold shadow-md transition flex items-center gap-2 cursor-pointer">
+                                    <span>🔄</span> <span>Refresh Data</span>
+                                </button>
+                                <button type="button" onclick="exportTableToCSV()" class="px-3.5 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-mono text-xs font-bold transition flex items-center gap-2 cursor-pointer">
+                                    <span>📥</span> <span>Export CSV (Semua Kolom)</span>
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+
+                    <!-- KPI SUMMARY METRICS (4 CARDS FULL-WIDTH) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
+                        <!-- Card 1: Total DW Tables -->
+                        <div class="glass-card rounded-xl p-3.5 border border-slate-200 dark:border-slate-800 flex items-center gap-3.5">
+                            <div class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-lg shrink-0 text-blue-600 dark:text-blue-400">
+                                📚
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Gudang DW Tables</span>
+                                <span id="kpiTotalTables" class="text-lg font-black font-mono text-slate-900 dark:text-white">12 Tables</span>
+                                <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block">100% Synced ke BigQuery</span>
+                            </div>
+                        </div>
+
+                        <!-- Card 2: Active Dataset -->
+                        <div class="glass-card rounded-xl p-3.5 border border-slate-200 dark:border-slate-800 flex items-center gap-3.5">
+                            <div class="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-lg shrink-0 text-emerald-600 dark:text-emerald-400">
+                                ☁️
+                            </div>
+                            <div class="min-w-0">
+                                <span class="text-[10px] font-bold font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Project &amp; Dataset</span>
+                                <span class="text-xs font-black font-mono text-slate-900 dark:text-white truncate block">palm-project-511008</span>
+                                <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono block">precision_palm_dw</span>
+                            </div>
+                        </div>
+
+                        <!-- Card 3: Storage Engine Status -->
+                        <div class="glass-card rounded-xl p-3.5 border border-slate-200 dark:border-slate-800 flex items-center gap-3.5">
+                            <div class="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-950/80 border border-purple-200 dark:border-purple-800 flex items-center justify-center text-lg shrink-0 text-purple-600 dark:text-purple-400">
+                                ⚡
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Storage Engine</span>
+                                <span id="kpiEngineStatus" class="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400">BigQuery Live API</span>
+                                <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono block">Zero-mock live pipeline</span>
+                            </div>
+                        </div>
+
+                        <!-- Card 4: Loaded Rows & Column Count -->
+                        <div class="glass-card rounded-xl p-3.5 border border-slate-200 dark:border-slate-800 flex items-center gap-3.5">
+                            <div class="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/80 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-lg shrink-0 text-amber-600 dark:text-amber-400">
+                                📊
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Tabel Aktif</span>
+                                <span id="kpiRowCount" class="text-lg font-black font-mono text-slate-900 dark:text-white">0 Baris &bull; 0 Kolom</span>
+                                <span id="kpiSourceBadge" class="text-[10px] text-blue-600 dark:text-blue-400 font-mono font-bold block">Status: Terkoneksi</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB SELECTOR 12 TABEL BIGQUERY (FULL-WIDTH SCROLLABLE) -->
+                    <div class="glass-card rounded-2xl p-4 border border-slate-200 dark:border-slate-800 space-y-2.5 w-full">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm">📑</span>
+                                <h2 class="text-xs font-bold font-mono uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                                    Navigasi Tabel BigQuery Warehouse (12 Tabel Lengkap)
+                                </h2>
+                            </div>
+                            <span id="tabCountLabel" class="text-[11px] font-mono text-blue-600 dark:text-blue-400 font-bold">12 Tabel Tersedia</span>
+                        </div>
+
+                        <!-- Container Tab Dinamis -->
+                        <div id="bqTableTabsContainer" class="flex flex-wrap gap-2 pt-1">
+                            <!-- Rendered dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- MAIN FULL-WIDTH DATA TABLE VIEW (KOLOM TIDAK DIPOTONG) -->
+                    <div class="glass-card rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-xl space-y-3.5 w-full">
+                        <!-- Toolbar Bar: Active Info + Search Filter -->
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3.5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-950/80 border border-blue-300 dark:border-blue-700 flex items-center justify-center text-base text-blue-600 dark:text-blue-400 font-bold shrink-0">
+                                    <span id="currentTableIcon">🏢</span>
+                                </div>
+                                <div>
+                                    <h3 id="currentTableHeading" class="text-sm font-bold font-mono text-slate-900 dark:text-white">
+                                        Tabel: dossiers_master
+                                    </h3>
+                                    <p id="currentTableDesc" class="text-[11px] text-slate-500 dark:text-slate-400">
+                                        Menampilkan seluruh kolom skema tanpa pemotongan.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Real-time Filter & Info Badge -->
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="openCreateModal()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-bold flex items-center gap-1.5 transition shadow-sm cursor-pointer shrink-0">
+                                    <span>+</span> <span>Tambah Dossier</span>
+                                </button>
+                                <div class="relative w-full sm:w-80">
+                                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-xs">🔍</span>
+                                    <input 
+                                        type="text" 
+                                        id="tableFilterInput" 
+                                        oninput="filterCurrentTableRows(this.value)" 
+                                        placeholder="Cari nilai di seluruh kolom tabel ini..." 
+                                        class="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-500 shadow-inner"
+                                    >
+                                </div>
+                                <span id="filteredCountBadge" class="hidden px-2.5 py-1 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 text-[10px] font-mono font-bold shrink-0">
+                                    0 baris cocok
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Data Table Container: Full-Width Horizontal Scroll for Unlimited Columns -->
+                        <div class="table-full-scroll rounded-xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-950 shadow-inner">
+                            <table class="text-left text-xs font-mono border-collapse">
+                                <thead id="bqTableHead" class="bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-800 select-none sticky top-0 z-10 shadow-xs">
+                                    <!-- Dynamic Full Headers -->
+                                </thead>
+                                <tbody id="bqTableBody" class="divide-y divide-slate-200 dark:divide-slate-800/70 text-slate-700 dark:text-slate-300">
+                                    <tr>
+                                        <td colspan="20" class="p-8 text-center text-slate-400 dark:text-slate-500">
+                                            <div class="flex flex-col items-center justify-center gap-2">
+                                                <div class="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                                <span>Menghubungkan ke Google Cloud BigQuery Storage API...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Bottom Table Info Bar -->
+                        <div class="flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono text-slate-500 dark:text-slate-400 pt-2 gap-2 border-t border-slate-200 dark:border-slate-800">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                                <span id="tableDataSourceLabel">Sumber: Google Cloud BigQuery Live</span>
+                                <span>&bull;</span>
+                                <span id="tableColumnsCountLabel" class="font-bold text-slate-700 dark:text-slate-300">0 Kolom Lengkap</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-slate-500 dark:text-slate-400">💡 Seluruh kolom ditampilkan penuh &bull; Geser ke kanan jika melebihi lebar layar</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL EDIT DOSSIER (BIGQUERY DML UPDATE) -->
+    <div id="editModal" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="glass-card rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl font-mono text-xs border border-slate-200 dark:border-slate-800">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>✏️</span> <span>Sunting Catatan Konsesi (BigQuery)</span>
+                </h3>
+                <button type="button" onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer font-bold">✕</button>
+            </div>
+            <input type="hidden" id="editDossierId">
+            <div class="space-y-1">
+                <label class="text-slate-500 dark:text-slate-400 block font-bold">Dossier ID:</label>
+                <input type="text" id="editDossierIdDisplay" disabled class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 text-slate-500 font-bold">
+            </div>
+            <div class="space-y-1">
+                <label class="text-slate-500 dark:text-slate-400 block font-bold">Luas Sertifikasi (Hektar / Ha):</label>
+                <input type="number" step="0.01" id="editAreaHa" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-slate-900 dark:text-white font-bold focus:outline-none focus:border-blue-500">
+            </div>
+            <div class="space-y-1">
+                <label class="text-slate-500 dark:text-slate-400 block font-bold">Status Permohonan Statuter:</label>
+                <select id="editStatus" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-slate-900 dark:text-white font-bold focus:outline-none focus:border-blue-500 cursor-pointer">
+                    <option value="VERIFIED">VERIFIED</option>
+                    <option value="PROVISIONAL_ISSUED">PROVISIONAL_ISSUED</option>
+                    <option value="DRAFT">DRAFT</option>
+                    <option value="SUSPENDED">SUSPENDED</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                <button type="button" onclick="closeEditModal()" class="flex-1 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold transition hover:bg-slate-300 dark:hover:bg-slate-700 cursor-pointer">
+                    Batal
+                </button>
+                <button type="button" onclick="submitBqEdit()" class="flex-1 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition cursor-pointer shadow-md">
+                    Simpan ke BigQuery
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TAMBAH DOSSIER (BIGQUERY DIRECT STREAMING INSERT) -->
+    <div id="createModal" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="glass-card rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-2xl font-mono text-xs border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="text-emerald-500">➕</span> <span>Tambah Dossier Baru (Direct BigQuery API)</span>
+                </h3>
+                <button type="button" onclick="closeCreateModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer font-bold">✕</button>
+            </div>
+            <div class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="text-slate-500 dark:text-slate-400 block font-bold">Dossier ID *:</label>
+                        <input type="text" id="newDossierId" placeholder="EST-MDN-010" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-slate-900 dark:text-white font-bold focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-slate-500 dark:text-slate-400 block font-bold">Tahun Audit:</label>
+                        <input type="number" id="newAuditYear" value="2026" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-slate-900 dark:text-white font-bold focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-slate-500 dark:text-slate-400 block font-bold">Nama Entitas / Perusahaan *:</label>
+                    <input type="text" id="newCompanyName" placeholder="PT Agro Sawit Sejahtera" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-slate-900 dark:text-white font-bold focus:outline-none focus:border-emerald-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-slate-500 dark:text-slate-400 block font-bold">Nama Blok / Kebun:</label>
+                    <input type="text" id="newBlockName" placeholder="Blok Mandiri 01" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-slate-900 dark:text-white font-bold focus:outline-none focus:border-emerald-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="text-slate-500 dark:text-slate-400 block font-bold">Luas Sertifikasi (Ha) *:</label>
+                        <input type="number" step="0.01" id="newAreaHa" placeholder="350.0" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-slate-900 dark:text-white font-bold focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-slate-500 dark:text-slate-400 block font-bold">Umur Tegakan (Tahun):</label>
+                        <input type="number" step="0.1" id="newPalmAge" value="7.5" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-slate-900 dark:text-white font-bold focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="text-slate-500 dark:text-slate-400 block font-bold">Titik Lat Centroid:</label>
+                        <input type="number" step="0.000001" id="newCentroidLat" value="0.824100" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-slate-500 dark:text-slate-400 block font-bold">Titik Lng Centroid:</label>
+                        <input type="number" step="0.000001" id="newCentroidLng" value="99.561200" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-slate-500 dark:text-slate-400 block font-bold">Status Statuter:</label>
+                    <select id="newStatus" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-slate-900 dark:text-white font-bold focus:outline-none focus:border-emerald-500 cursor-pointer">
+                        <option value="VERIFIED">VERIFIED</option>
+                        <option value="PROVISIONAL_ISSUED">PROVISIONAL_ISSUED</option>
+                        <option value="DRAFT">DRAFT</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                <button type="button" onclick="closeCreateModal()" class="flex-1 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold transition hover:bg-slate-300 dark:hover:bg-slate-700 cursor-pointer">
+                    Batal
+                </button>
+                <button type="button" onclick="submitBqCreate()" class="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition cursor-pointer shadow-md">
+                    Kirim Langsung ke BigQuery
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL FOTO BUKTI LAPANGAN -->
+    <div id="imageModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4">
+        <div class="max-w-3xl w-full glass-card rounded-2xl p-5 space-y-4 shadow-2xl border border-slate-200 dark:border-slate-800">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 font-mono text-xs">
+                <div class="flex items-center gap-2">
+                    <span class="text-base">📷</span>
+                    <span id="imgModalTitle" class="text-blue-600 dark:text-blue-400 font-bold text-sm">Pratinjau Bukti Foto Riil Lapangan</span>
+                </div>
+                <button type="button" onclick="closeImageModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-bold cursor-pointer text-sm">✕ Tutup</button>
+            </div>
+            <div class="relative w-full h-[460px] bg-slate-100 dark:bg-slate-950 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-800 p-2">
+                <img id="previewModalImg" src="" alt="Evidence Image Preview" class="max-h-full max-w-full object-contain rounded-lg shadow-lg" onerror="this.onerror=null; this.src='/static/img/logo.svg';">
+            </div>
+        </div>
+    </div>
+
+    <!-- CORE SCRIPT LOGIC -->
+    <script>
+        let currentActiveTable = 'dossiers_master';
+        let currentRowsCache = [];
+        let allTablesMetadata = [];
+        let currentTableColumns = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await fetchAllTablesMetadata();
+            await loadTableData(currentActiveTable);
+        });
+
+        // 1. Ambil seluruh metadata tabel dari /api/bq/tables
+        async function fetchAllTablesMetadata() {
+            try {
+                const res = await fetch('/api/bq/tables');
+                const data = await res.json();
+                if (data.status === 'success' && Array.isArray(data.tables)) {
+                    allTablesMetadata = data.tables;
+                    document.getElementById('kpiTotalTables').textContent = `${data.total_tables || data.tables.length} Tables`;
+                    document.getElementById('tabCountLabel').textContent = `${data.tables.length} Tabel Aktif di precision_palm_dw`;
+                    renderDynamicTabs(data.tables);
+                }
+            } catch (err) {
+                console.warn('[BigQuery Manager] Metadata endpoint notice:', err);
+            }
+        }
+
+        // 2. Render Tabs Dinamis dari BigQuery
+        function renderDynamicTabs(tables) {
+            const container = document.getElementById('bqTableTabsContainer');
+            if (!container || !tables || tables.length === 0) return;
+
+            container.innerHTML = tables.map(t => {
+                const isActive = (t.table_id === currentActiveTable);
+                const activeClasses = "tab-btn px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition flex items-center gap-1.5 bg-blue-600 text-white shadow-md cursor-pointer";
+                const inactiveClasses = "tab-btn px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 cursor-pointer";
+
+                return `
+                    <button type="button" 
+                            onclick="selectBqTable('${t.table_id}')" 
+                            id="btn_${t.table_id}" 
+                            class="${isActive ? activeClasses : inactiveClasses}"
+                            title="${t.description || t.title}">
+                        <span>${t.icon || '📄'}</span> 
+                        <span>${t.title || t.table_id}</span>
+                        <span class="px-1.5 py-0.2 rounded-full ${isActive ? 'bg-blue-900/70' : 'bg-slate-200 dark:bg-slate-800'} text-[10px]">
+                            ${t.num_rows !== undefined ? t.num_rows : ''}
+                        </span>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        // 3. Ganti Tabel Aktif
+        function selectBqTable(tableId) {
+            currentActiveTable = tableId;
+
+            // Update Tab Button Styles
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                const btnTableId = btn.id.replace('btn_', '');
+                if (btnTableId === tableId) {
+                    btn.className = "tab-btn px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition flex items-center gap-1.5 bg-blue-600 text-white shadow-md cursor-pointer";
+                } else {
+                    btn.className = "tab-btn px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 cursor-pointer";
+                }
+            });
+
+            // Update Header Information
+            const meta = allTablesMetadata.find(t => t.table_id === tableId) || {};
+            document.getElementById('currentTableHeading').textContent = `Tabel: ${meta.title || tableId}`;
+            document.getElementById('currentTableDesc').textContent = meta.description || `Menampilkan seluruh kolom skema tanpa pemotongan untuk ${tableId}.`;
+            document.getElementById('currentTableIcon').textContent = meta.icon || '🗄️';
+
+            // Reset search filter
+            const filterInput = document.getElementById('tableFilterInput');
+            if (filterInput) filterInput.value = '';
+            document.getElementById('filteredCountBadge').classList.add('hidden');
+
+            loadTableData(tableId);
+        }
+
+        function refreshCurrentTable() {
+            loadTableData(currentActiveTable);
+        }
+
+        // 4. Memuat Data dari API
+        async function loadTableData(tableName) {
+            const tbody = document.getElementById('bqTableBody');
+            const thead = document.getElementById('bqTableHead');
+            const rowCountKpi = document.getElementById('kpiRowCount');
+            const sourceBadge = document.getElementById('kpiSourceBadge');
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="25" class="p-8 text-center text-slate-400 dark:text-slate-500">
+                        <div class="flex flex-col items-center justify-center gap-2">
+                            <div class="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                            <span>Memuat data riil tabel <b>${tableName}</b> dari BigQuery DW...</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+
+            try {
+                const res = await fetch(`/api/bq/table/${tableName}?limit=100`);
+                const json = await res.json();
+
+                if (json.status === 'success') {
+                    const rows = json.rows || [];
+                    currentRowsCache = rows;
+                    currentTableColumns = json.columns || (rows.length > 0 ? Object.keys(rows[0]) : []);
+
+                    rowCountKpi.textContent = `${rows.length} Baris • ${currentTableColumns.length} Kolom`;
+                    sourceBadge.textContent = json.source === 'bigquery_live' ? '✓ Google BigQuery Live' : '○ SQLite Wal Buffer';
+                    sourceBadge.className = json.source === 'bigquery_live' 
+                        ? 'text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-bold block'
+                        : 'text-[10px] text-amber-600 dark:text-amber-400 font-mono font-bold block';
+
+                    document.getElementById('tableDataSourceLabel').textContent = `Sumber: ${json.source === 'bigquery_live' ? 'Google Cloud BigQuery DW Live' : 'SQLite WAL Offline Buffer'}`;
+                    document.getElementById('tableColumnsCountLabel').textContent = `${currentTableColumns.length} Kolom Skema Lengkap`;
+
+                    if (rows.length === 0) {
+                        thead.innerHTML = `<tr><th class="px-4 py-3">Status</th></tr>`;
+                        tbody.innerHTML = `<tr><td class="p-8 text-center text-slate-400">Tabel ${tableName} belum memiliki data di BigQuery.</td></tr>`;
+                        return;
+                    }
+
+                    renderTableRows(rows, currentTableColumns);
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="25" class="p-8 text-center text-rose-500">Gagal mengambil data: ${json.message || 'Error'}</td></tr>`;
+                }
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="25" class="p-8 text-center text-rose-500">Kesalahan koneksi BigQuery: ${err.message}</td></tr>`;
+            }
+        }
+
+        // 5. Render Baris Tabel: SELURUH KOLOM DITAMPILKAN LENGKAP TANPA POTONGAN
+        function renderTableRows(rows, columns) {
+            const thead = document.getElementById('bqTableHead');
+            const tbody = document.getElementById('bqTableBody');
+
+            if (!rows || rows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="25" class="p-6 text-center text-slate-400">Tidak ada baris yang sesuai pencarian.</td></tr>`;
+                return;
+            }
+
+            // Gunakan SEMUA kolom yang tersedia
+            const cols = (columns && columns.length > 0) ? columns : Object.keys(rows[0]);
+
+            // Cek apakah tabel memiliki dossier_id untuk menambahkan aksi CRUD
+            const hasDossierCrud = (currentActiveTable === 'dossiers_master' || currentActiveTable === 'dossiers' || cols.includes('dossier_id'));
+
+            // BANGUN THEAD LENGKAP (SEMUA KOLOM)
+            let headerHtml = '<tr>';
+            if (hasDossierCrud) {
+                headerHtml += `<th class="px-4 py-3 whitespace-nowrap bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border-r border-slate-200 dark:border-slate-800 sticky left-0 z-20">Aksi (CRUD)</th>`;
+            }
+            cols.forEach(col => {
+                headerHtml += `<th class="px-4 py-3 whitespace-nowrap text-slate-700 dark:text-slate-300 font-bold border-r border-slate-200 dark:border-slate-800/60">${formatColumnHeader(col)}</th>`;
+            });
+            headerHtml += '</tr>';
+            thead.innerHTML = headerHtml;
+
+            // BANGUN TBODY LENGKAP (SEMUA DATA UTUH TANPA POTONGAN)
+            tbody.innerHTML = rows.map(r => {
+                let rowHtml = `<tr class="hover:bg-blue-50/40 dark:hover:bg-slate-900/60 transition">`;
+                
+                // Aksi CRUD Khusus Dossier
+                if (hasDossierCrud) {
+                    const dId = r.dossier_id || '';
+                    const area = r.certified_area_ha || 0;
+                    const st = r.status_permohonan || 'VERIFIED';
+                    rowHtml += `
+                        <td class="px-3 py-2.5 whitespace-nowrap bg-slate-50/90 dark:bg-slate-950/90 border-r border-slate-200 dark:border-slate-800 sticky left-0 z-10">
+                            <div class="flex items-center gap-1.5">
+                                <button type="button" onclick="openEditModal('${dId}', ${area}, '${st}')" class="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900 font-bold transition cursor-pointer text-[10px]">
+                                    Edit
+                                </button>
+                                <button type="button" onclick="deleteBqRecord('${dId}')" class="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 hover:bg-rose-200 dark:hover:bg-rose-900 font-bold transition cursor-pointer text-[10px]">
+                                    Del
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                }
+
+                // Render Seluruh Kolom
+                cols.forEach(col => {
+                    const val = r[col];
+                    rowHtml += `<td class="px-4 py-2.5 align-top border-r border-slate-200 dark:border-slate-800/40 text-xs">${formatFullCellData(col, val, r)}</td>`;
+                });
+
+                rowHtml += `</tr>`;
+                return rowHtml;
+            }).join('');
+        }
+
+        // Format nama kolom agar rapi namun tetap jelas
+        function formatColumnHeader(colName) {
+            return colName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        // Format data sel LENGKAP (tidak dipotong / truncate)
+        function formatFullCellData(colName, val, rowObj) {
+            if (val === null || val === undefined) {
+                return '<span class="text-slate-400 italic">NULL</span>';
+            }
+
+            // 1. Penanganan Kolom Gambar / Base64: jangan cetak jutaan karakter biner, berikan tombol pratinjau foto
+            if (colName === 'image_raw_base64' || (typeof val === 'string' && val.startsWith('data:image'))) {
+                const b64 = String(val);
+                if (b64.length > 50) {
+                    const imgSrc = b64.startsWith('data:image') ? b64 : `data:image/jpeg;base64,${b64}`;
+                    const evidenceId = rowObj.evidence_id || rowObj.dossier_id || 'Foto';
+                    return `
+                        <button type="button" onclick="openImageModal('${imgSrc}', '${evidenceId}')" class="px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900 font-bold transition cursor-pointer inline-flex items-center gap-1 shadow-xs whitespace-nowrap">
+                            <span>📷</span> <span>Lihat Foto (${(b64.length / 1024).toFixed(1)} KB)</span>
+                        </button>
+                    `;
+                }
+                return '<span class="text-slate-400 italic">(Kosong)</span>';
+            }
+
+            // 2. URL Foto
+            if (colName.includes('foto') && typeof val === 'string' && val.length > 5) {
+                return `
+                    <button type="button" onclick="openImageModal('${val}', 'Foto Lapangan')" class="px-2.5 py-1 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900 font-bold transition cursor-pointer inline-flex items-center gap-1 shadow-xs whitespace-nowrap">
+                        <span>📷</span> <span>Lihat Foto URL</span>
+                    </button>
+                `;
+            }
+
+            // 3. Format Float / Integer Lengkap
+            if (typeof val === 'number') {
+                if (Number.isInteger(val)) {
+                    return `<span class="font-bold text-slate-800 dark:text-slate-200 font-mono">${val.toLocaleString()}</span>`;
+                }
+                // Nilai float dengan presisi asli
+                return `<span class="font-bold text-blue-600 dark:text-blue-400 font-mono">${val}</span>`;
+            }
+
+            const strVal = String(val);
+
+            // 4. JSON / GeoJSON / Citations: Tampilkan utuh dalam format expandable / wrap
+            if ((strVal.startsWith('{') && strVal.endsWith('}')) || (strVal.startsWith('[') && strVal.endsWith(']'))) {
+                try {
+                    const parsed = JSON.parse(strVal);
+                    const formatted = JSON.stringify(parsed, null, 2);
+                    return `
+                        <details class="cursor-pointer group">
+                            <summary class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-bold text-[11px] hover:bg-blue-50 dark:hover:bg-blue-950 inline-block border border-slate-200 dark:border-slate-800">
+                                { ... } ${Array.isArray(parsed) ? `Array[${parsed.length}]` : `Object`}
+                            </summary>
+                            <pre class="mt-1.5 p-2 rounded-lg bg-slate-900 text-slate-200 text-[10px] font-mono whitespace-pre-wrap break-all max-h-48 overflow-y-auto border border-slate-800 shadow-lg">${escapeHtml(formatted)}</pre>
+                        </details>
+                    `;
+                } catch (_) {
+                    return `<span class="font-mono text-[11px] break-all select-all">${escapeHtml(strVal)}</span>`;
+                }
+            }
+
+            // 5. Format Status Badge
+            if (colName.includes('status') || colName === 'verdict_answer' || colName === 'verdict_status') {
+                return `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border whitespace-nowrap ${getStatusBadgeClass(strVal)}">${escapeHtml(strVal)}</span>`;
+            }
+
+            // 6. Format ID / Key
+            if (colName.includes('id') || colName.includes('kode') || colName.includes('code')) {
+                return `<span class="font-bold text-blue-600 dark:text-blue-400 font-mono whitespace-nowrap">${escapeHtml(strVal)}</span>`;
+            }
+
+            // 7. Format Nilai Tekstual Biasa (Utuh tanpa truncate)
+            return `<span class="font-mono text-slate-800 dark:text-slate-200 whitespace-nowrap">${escapeHtml(strVal)}</span>`;
+        }
+
+        // Helper format status badge
+        function getStatusBadgeClass(status) {
+            const s = (status || '').toUpperCase();
+            if (s === 'VERIFIED' || s === 'YES' || s === 'ACTIVE' || s === 'PASS') {
+                return 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700';
+            }
+            if (s === 'PROVISIONAL_ISSUED' || s === 'PARTIAL' || s === 'REVIEW') {
+                return 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-700';
+            }
+            if (s === 'SUSPENDED' || s === 'NO' || s === 'REJECTED' || s === 'FAIL') {
+                return 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-700';
+            }
+            return 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700';
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        // 6. Pencarian / Filter Real-Time pada Semua Kolom
+        function filterCurrentTableRows(query) {
+            const q = (query || '').toLowerCase().trim();
+            const badge = document.getElementById('filteredCountBadge');
+
+            if (!q) {
+                badge.classList.add('hidden');
+                renderTableRows(currentRowsCache, currentTableColumns);
+                return;
+            }
+
+            const filtered = currentRowsCache.filter(row => {
+                return Object.values(row).some(v => {
+                    if (v === null || v === undefined) return false;
+                    return String(v).toLowerCase().includes(q);
+                });
+            });
+
+            badge.textContent = `${filtered.length} baris cocok`;
+            badge.classList.remove('hidden');
+            renderTableRows(filtered, currentTableColumns);
+        }
+
+        // 7. Modals: Create & Edit Dossier (Direct to BigQuery)
+        function openCreateModal() {
+            document.getElementById('newDossierId').value = `EST-MDN-${String(Math.floor(Math.random() * 900) + 100)}`;
+            document.getElementById('newCompanyName').value = '';
+            document.getElementById('newBlockName').value = '';
+            document.getElementById('newAreaHa').value = '';
+            document.getElementById('createModal').classList.remove('hidden');
+        }
+
+        function closeCreateModal() {
+            document.getElementById('createModal').classList.add('hidden');
+        }
+
+        async function submitBqCreate() {
+            const dossier_id = document.getElementById('newDossierId').value.trim();
+            const company_name = document.getElementById('newCompanyName').value.trim();
+            const estate_block_name = document.getElementById('newBlockName').value.trim() || company_name;
+            const certified_area_ha = parseFloat(document.getElementById('newAreaHa').value);
+            const audit_year = parseInt(document.getElementById('newAuditYear').value) || 2026;
+            const palm_stand_age_years = parseFloat(document.getElementById('newPalmAge').value) || 7.0;
+            const centroid_lat = parseFloat(document.getElementById('newCentroidLat').value) || 0.8241;
+            const centroid_lng = parseFloat(document.getElementById('newCentroidLng').value) || 99.5612;
+            const status_permohonan = document.getElementById('newStatus').value;
+
+            if (!dossier_id || !company_name || isNaN(certified_area_ha)) {
+                alert("Harap lengkapi Dossier ID, Nama Perusahaan, dan Luas Sertifikasi.");
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/bq/dossier/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        dossier_id,
+                        company_name,
+                        estate_block_name,
+                        certified_area_ha,
+                        audit_year,
+                        palm_stand_age_years,
+                        centroid_lat,
+                        centroid_lng,
+                        status_permohonan
+                    })
+                });
+                const json = await res.json();
+                if (json.status === 'success') {
+                    alert("✓ Berhasil menyisipkan dossier baru langsung ke BigQuery DW & Ledger!");
+                    closeCreateModal();
+                    loadTableData(currentActiveTable);
+                } else {
+                    alert("Gagal menambahkan: " + (json.message || "Unknown error"));
+                }
+            } catch (err) {
+                alert("Kesalahan jaringan: " + err.message);
+            }
+        }
+
+        function openEditModal(dossierId, areaHa, status) {
+            document.getElementById('editDossierId').value = dossierId;
+            document.getElementById('editDossierIdDisplay').value = dossierId;
+            document.getElementById('editAreaHa').value = areaHa;
+            document.getElementById('editStatus').value = status;
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+
+        async function submitBqEdit() {
+            const dossier_id = document.getElementById('editDossierId').value;
+            const certified_area_ha = parseFloat(document.getElementById('editAreaHa').value);
+            const status_permohonan = document.getElementById('editStatus').value;
+
+            try {
+                const res = await fetch('/api/bq/dossier/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dossier_id, certified_area_ha, status_permohonan })
+                });
+                const json = await res.json();
+                if (json.status === 'success') {
+                    alert("✓ Berhasil memperbarui data di BigQuery Data Warehouse!");
+                    closeEditModal();
+                    loadTableData(currentActiveTable);
+                } else {
+                    alert("Gagal update: " + json.message);
+                }
+            } catch (err) {
+                alert("Kesalahan jaringan: " + err.message);
+            }
+        }
+
+        async function deleteBqRecord(dossier_id) {
+            if (!confirm(`Apakah Anda yakin ingin menghapus dossier ${dossier_id} dari BigQuery DW?`)) return;
+
+            try {
+                const res = await fetch('/api/bq/dossier/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dossier_id })
+                });
+                const json = await res.json();
+                if (json.status === 'success') {
+                    alert("✓ Catatan berhasil dihapus dari BigQuery DW.");
+                    loadTableData(currentActiveTable);
+                } else {
+                    alert("Gagal menghapus: " + json.message);
+                }
+            } catch (err) {
+                alert("Kesalahan jaringan: " + err.message);
+            }
+        }
+
+        // 8. Modals: Image Preview
+        function openImageModal(imgSrc, evidenceId) {
+            document.getElementById('previewModalImg').src = imgSrc;
+            document.getElementById('imgModalTitle').textContent = `Pratinjau Bukti Foto Riil • ${evidenceId || 'Inspection Evidence'}`;
+            document.getElementById('imageModal').classList.remove('hidden');
+        }
+
+        function closeImageModal() {
+            document.getElementById('imageModal').classList.add('hidden');
+        }
+
+        // 9. Export Table to CSV: Seluruh Kolom Penuh
+        function exportTableToCSV() {
+            if (!currentRowsCache || currentRowsCache.length === 0) {
+                alert("Tidak ada data untuk diekspor.");
+                return;
+            }
+
+            const cols = currentTableColumns.length > 0 ? currentTableColumns : Object.keys(currentRowsCache[0]);
+            let csvContent = "data:text/csv;charset=utf-8," + cols.join(",") + "\n";
+
+            currentRowsCache.forEach(row => {
+                const rowStr = cols.map(c => {
+                    let v = row[c] === null || row[c] === undefined ? "" : String(row[c]);
+                    v = v.replace(/"/g, '""');
+                    return `"${v}"`;
+                }).join(",");
+                csvContent += rowStr + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `${currentActiveTable}_full_bigquery_export.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>

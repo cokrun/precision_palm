@@ -1,0 +1,331 @@
+<!-- templates/partials/floating_ai_log.html -->
+<script src="/static/js/global_ai_triggers.js"></script>
+
+<style id="ppFloatingAiLogStyle">
+    /* Floating AI Live Telemetry Widget Styling */
+    #floatingAiWidget {
+        position: fixed !important;
+        bottom: 20px !important;
+        right: 20px !important;
+        z-index: 9999 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+        pointer-events: auto !important;
+    }
+
+    @media (max-width: 640px) {
+        #floatingAiWidget {
+            bottom: 16px !important;
+            right: 16px !important;
+        }
+    }
+
+    .pp-ai-live-btn {
+        height: 38px !important;
+        border-radius: 9999px !important;
+        background: linear-gradient(135deg, #059669 0%, #0d9488 50%, #0284c7 100%) !important;
+        border: 1.5px solid rgba(52, 211, 153, 0.7) !important;
+        box-shadow: 0 4px 18px rgba(5, 150, 105, 0.45), 0 2px 6px rgba(0, 0, 0, 0.35) !important;
+        color: #ffffff !important;
+        font-size: 12px !important;
+        font-weight: 800 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 13px !important;
+        cursor: pointer !important;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+        user-select: none !important;
+        box-sizing: border-box !important;
+        line-height: 1 !important;
+        outline: none !important;
+        backdrop-filter: blur(8px) !important;
+        -webkit-backdrop-filter: blur(8px) !important;
+    }
+
+    .pp-ai-live-btn:hover {
+        padding: 0 15px !important;
+        transform: translateY(-2px) scale(1.04) !important;
+        border-color: #6ee7b7 !important;
+        box-shadow: 0 8px 24px rgba(5, 150, 105, 0.6), 0 0 16px rgba(52, 211, 153, 0.5) !important;
+    }
+
+    .pp-ai-live-btn:active {
+        transform: translateY(1px) scale(0.97) !important;
+        box-shadow: 0 2px 8px rgba(5, 150, 105, 0.4) !important;
+    }
+
+    /* Pulse radar container */
+    .pp-ai-pulse-box {
+        position: relative !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 10px !important;
+        height: 10px !important;
+        margin-right: 7px !important;
+    }
+
+    .pp-ai-pulse-ring {
+        position: absolute !important;
+        width: 100% !important;
+        height: 100% !important;
+        border-radius: 9999px !important;
+        background-color: #34d399 !important;
+        opacity: 0.75 !important;
+        animation: ppAiRadar 1.8s cubic-bezier(0, 0, 0.2, 1) infinite !important;
+    }
+
+    .pp-ai-pulse-dot {
+        position: relative !important;
+        width: 7px !important;
+        height: 7px !important;
+        border-radius: 9999px !important;
+        background-color: #34d399 !important;
+        box-shadow: 0 0 6px #34d399, 0 0 10px #10b981 !important;
+    }
+
+    @keyframes ppAiRadar {
+        0% {
+            transform: scale(0.8);
+            opacity: 0.8;
+        }
+        70%, 100% {
+            transform: scale(2.6);
+            opacity: 0;
+        }
+    }
+
+    .pp-ai-short-text {
+        display: inline-block !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.5px !important;
+    }
+
+    .pp-ai-expand-text {
+        max-width: 0 !important;
+        opacity: 0 !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+        display: inline-block !important;
+        margin-left: 0 !important;
+        font-weight: 700 !important;
+        transition: max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, margin-left 0.2s ease !important;
+    }
+
+    .pp-ai-live-btn:hover .pp-ai-expand-text {
+        max-width: 100px !important;
+        opacity: 1 !important;
+        margin-left: 6px !important;
+    }
+
+    /* Modal Animation */
+    #quickAiModal:not(.hidden) > div {
+        animation: ppAiModalEnter 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes ppAiModalEnter {
+        from {
+            opacity: 0;
+            transform: scale(0.95) translateY(8px);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
+</style>
+
+<!-- Floating AI Live Telemetry Widget (Default: 'Ai', Hover: 'Live Logs') -->
+<div id="floatingAiWidget" title="AI Live Logs &amp; Telemetry Stream">
+    <button type="button" 
+            onclick="toggleFloatingAiModal()" 
+            class="pp-ai-live-btn group" 
+            aria-label="Toggle AI Live Logs" 
+            aria-haspopup="dialog">
+        <span class="pp-ai-pulse-box">
+            <span class="pp-ai-pulse-ring"></span>
+            <span class="pp-ai-pulse-dot"></span>
+        </span>
+        <span class="pp-ai-short-text">Ai</span>
+        <span class="pp-ai-expand-text">Live Logs</span>
+    </button>
+</div>
+
+<!-- Modal Quick View Telemetri AI -->
+<div id="quickAiModal" 
+     class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-3 sm:p-6 hidden"
+     onclick="handleQuickAiModalBackdropClick(event)">
+    <div class="bg-slate-900 border border-emerald-500/50 rounded-3xl max-w-2xl w-full flex flex-col shadow-2xl overflow-hidden font-mono text-xs">
+        
+        <!-- Header Bar -->
+        <div class="p-4 border-b border-slate-800 bg-slate-950 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="text-base">⚡</span>
+                <span class="font-bold text-white">Google Cloud AI Live Execution Stream</span>
+                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 uppercase tracking-wider">
+                    LIVE
+                </span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <button type="button" 
+                        onclick="loadQuickLogs()" 
+                        id="btnQuickAiReload"
+                        class="text-slate-400 hover:text-emerald-400 p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer" 
+                        title="Refresh Logs">
+                    🔄
+                </button>
+                <button type="button" 
+                        onclick="toggleFloatingAiModal(false)" 
+                        class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer text-sm" 
+                        title="Close">
+                    ✕
+                </button>
+            </div>
+        </div>
+
+        <!-- Body / Logs Container -->
+        <div class="p-4 space-y-2 max-h-80 overflow-y-auto" id="quickAiLogContainer">
+            <div class="flex items-center justify-center gap-2 py-8 text-slate-400">
+                <span class="animate-spin text-base">🌀</span>
+                <span data-i18n="ai_log_loading">Loading telemetri Process AI...</span>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="p-3 border-t border-slate-800 bg-slate-950 flex items-center justify-between">
+            <a href="/ai-logs" class="text-cyan-400 hover:text-cyan-300 hover:underline font-bold text-[11px] flex items-center gap-1.5 transition">
+                <span>📑</span> <span data-i18n="ai_log_open_full">Open the complete audit page. &rarr;</span>
+            </a>
+            <button type="button" 
+                    onclick="toggleFloatingAiModal(false)" 
+                    class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold transition cursor-pointer" 
+                    data-i18n="btn_close">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function toggleFloatingAiModal(forceState) {
+        const modal = document.getElementById('quickAiModal');
+        if (!modal) return;
+        
+        const isCurrentlyHidden = modal.classList.contains('hidden');
+        const shouldShow = (forceState !== undefined) ? forceState : isCurrentlyHidden;
+
+        if (shouldShow) {
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            await loadQuickLogs();
+        } else {
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+    }
+
+    function handleQuickAiModalBackdropClick(e) {
+        if (e.target && e.target.id === 'quickAiModal') {
+            toggleFloatingAiModal(false);
+        }
+    }
+
+    // Keyboard shortcut Escape to close modal
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('quickAiModal');
+            if (modal && !modal.classList.contains('hidden')) {
+                toggleFloatingAiModal(false);
+            }
+        }
+    });
+
+    async function loadQuickLogs() {
+        const container = document.getElementById('quickAiLogContainer');
+        const reloadBtn = document.getElementById('btnQuickAiReload');
+        if (!container) return;
+
+        const isId = (localStorage.getItem('precision_palm_lang') || 'id') === 'id';
+        
+        if (reloadBtn) {
+            reloadBtn.classList.add('animate-spin');
+        }
+
+        container.innerHTML = `
+            <div class="flex items-center justify-center gap-2 py-8 text-slate-400">
+                <span class="animate-spin text-base">🌀</span>
+                <span>${isId ? 'Memuat telemetri transaksi AI...' : 'Loading AI telemetry stream...'}</span>
+            </div>
+        `;
+
+        try {
+            const res = await fetch('/api/ai/logs?limit=5');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+
+            if (data && data.success && Array.isArray(data.logs) && data.logs.length > 0) {
+                container.innerHTML = data.logs.map(l => {
+                    const isSuccess = (l.status || '').toUpperCase() === 'SUCCESS';
+                    const statusClass = isSuccess 
+                        ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800' 
+                        : 'bg-rose-950/80 text-rose-400 border-rose-800';
+                    const latencyClass = (l.latency_ms && l.latency_ms < 1000) ? 'text-emerald-400' : 'text-amber-400';
+
+                    return `
+                        <div class="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800/90 hover:border-slate-700 flex items-center justify-between gap-3 transition">
+                            <div class="min-w-0 flex-1">
+                                <strong class="text-white block text-[11px] truncate">${escapeHtml(l.feature_name || 'AI Task Execution')}</strong>
+                                <span class="text-slate-400 text-[10px] flex items-center gap-1.5 flex-wrap">
+                                    <span>${escapeHtml(l.timestamp || '-')}</span>
+                                    <span>&bull;</span>
+                                    <span class="text-cyan-400">${escapeHtml(l.model_engine || 'Gemini')}</span>
+                                </span>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <span class="${latencyClass} font-bold block text-[11px]">${l.latency_ms || 0} ms</span>
+                                <span class="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold border ${statusClass}">
+                                    ${escapeHtml(l.status || 'OK')}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                container.innerHTML = `
+                    <div class="text-center py-8 space-y-1">
+                        <span class="text-2xl block">🍃</span>
+                        <p class="text-slate-400">${isId ? 'Belum ada telemetri transaksi AI yang tercatat.' : 'No AI transactions recorded yet.'}</p>
+                    </div>
+                `;
+            }
+        } catch (err) {
+            console.error('[QuickAiModal Error]:', err);
+            container.innerHTML = `
+                <div class="text-center py-6 space-y-1 text-rose-400">
+                    <span class="text-xl block">⚠️</span>
+                    <p>${isId ? 'Gagal memuat log telemetri AI.' : 'Failed to load AI telemetry logs.'}</p>
+                    <span class="text-[10px] text-slate-500 block">${escapeHtml(err.message || '')}</span>
+                </div>
+            `;
+        } finally {
+            if (reloadBtn) {
+                reloadBtn.classList.remove('animate-spin');
+            }
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+</script>

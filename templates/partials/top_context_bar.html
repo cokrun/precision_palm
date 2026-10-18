@@ -1,0 +1,421 @@
+<!-- templates/partials/top_context_bar.html -->
+<!-- Global Sticky Persistent Context Bar (Google Cloud Console Workspace Style) -->
+{% set req_path = (request.path | lower) if (request and request.path) else '' %}
+{% set is_concession_page = (
+    req_path.startswith('/spatial') or 
+    req_path.startswith('/planetary-observatory') or 
+    req_path.startswith('/simulator') or 
+    req_path.startswith('/in-silico') or 
+    req_path.startswith('/proses') or 
+    req_path.startswith('/timelines') or 
+    req_path.startswith('/timeline') or 
+    req_path.startswith('/quarterly-surveillance') or 
+    req_path.startswith('/monitoring') or 
+    req_path.startswith('/roadmap') or 
+    req_path.startswith('/statutory-ratification') or 
+    req_path.startswith('/topologi') or 
+    req_path.startswith('/topology') or 
+    req_path.startswith('/compliance-lineage')
+) %}
+<header id="globalTopContextBar" class="sticky top-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 px-4 py-2.5 transition-all text-xs font-mono shadow-xs">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <!-- 1. BRAND & SYSTEM IDENTITY -->
+        <div class="flex items-center gap-3">
+            <button type="button" onclick="toggleSidebarCollapse()" class="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 transition cursor-pointer" title="Toggle Navigation Sidebar">
+                <span id="topBarSidebarToggleIcon">☰</span>
+            </button>
+            <a href="/" class="flex items-center gap-2 group">
+                <span class="text-base group-hover:scale-110 transition-transform"></span>
+                <div class="flex flex-col">
+                    <span class="font-bold text-emerald-600 dark:text-emerald-400 tracking-wide text-xs group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors">Biophysical &amp; Statutory Intelligence</span>
+                </div>
+            </a>
+            <span class="hidden md:inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/60">
+                Gemini v3.8 Flash
+            </span>
+        </div>
+
+        <!-- 2. SCOPING CONTROLS (SEARCHABLE CONCESSION, YEAR, LANGUAGE, CURRENCY & THEME) -->
+        <div class="flex flex-wrap items-center gap-2 sm:gap-2.5">
+            <!-- Searchable Concession Picker (Visible only on Spatial, Simulator, Timelines, Roadmap, Topologi) -->
+            <div id="topBarConcessionPickerWrapper" class="relative {% if not is_concession_page %}hidden{% else %}flex{% endif %} items-center bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/40 rounded-xl px-2.5 py-1 transition shadow-xs">
+                <span class="text-slate-500 dark:text-slate-400 text-xs mr-1.5">🏢</span>
+                <label for="globalConcessionSearchInput" class="text-[10px] text-slate-500 dark:text-slate-400 hidden lg:inline mr-1">Concession:</label>
+                
+                <!-- Input Pencarian Interaktif Konsesi -->
+                <input 
+                    type="text" 
+                    id="globalConcessionSearchInput" 
+                    oninput="filterGlobalConcessions(this.value)" 
+                    onfocus="openGlobalConcessionDropdown()" 
+                    placeholder="Cari 10 konsesi..." 
+                    class="bg-transparent text-emerald-700 dark:text-emerald-300 font-bold text-xs focus:outline-none w-[160px] sm:w-[210px]"
+                    autocomplete="off"
+                >
+                <input type="hidden" id="globalConcessionSelectedKode" value="EST-MDN-010">
+
+                <!-- Dropdown Hasil Pencarian Konsesi (10 Berkas) -->
+                <div id="globalConcessionDropdownList" class="hidden absolute left-0 top-full mt-1.5 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 max-h-64 overflow-y-auto font-sans text-xs">
+                    <!-- Rendered dynamically -->
+                </div>
+            </div>
+
+            <!-- Statutory Audit Year Selector (Ringkas: Year saja) -->
+            <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/40 rounded-xl px-2.5 py-1 transition shadow-xs">
+                <span class="text-slate-500 dark:text-slate-400 text-xs">📅</span>
+                <label for="globalAuditYearSelector" class="text-[10px] text-slate-500 dark:text-slate-400 hidden xl:inline">Year:</label>
+                <select id="globalAuditYearSelector" onchange="onGlobalAuditYearChange(this.value)" class="bg-transparent text-amber-600 dark:text-amber-300 font-bold text-xs focus:outline-none cursor-pointer">
+                    <option value="2026" selected class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">2026</option>
+                    <option value="2027" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">2027</option>
+                    <option value="2025" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">2025</option>
+                </select>
+            </div>
+
+            <!-- Language Switcher [EN (USD) | ID (IDR)] -->
+            <div class="inline-flex rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-0.5">
+                <button type="button" id="topBtnLangEN" onclick="setGlobalAppLanguage('en')" class="px-2 py-0.5 rounded-lg transition-all bg-emerald-600 text-white font-bold text-[10px] shadow-xs cursor-pointer" title="English • Auto-switches currency to USD ($)">
+                    EN
+                </button>
+                <button type="button" id="topBtnLangID" onclick="setGlobalAppLanguage('id')" class="px-2 py-0.5 rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer font-bold text-[10px]" title="Bahasa Indonesia • Otomatis mata uang ke Rupiah (Rp)">
+                    ID
+                </button>
+            </div>
+
+            <!-- Currency Indicator & Direct Override Toggle -->
+            <button type="button" id="btnGlobalCurrencyToggle" onclick="toggleGlobalCurrencyMode()" class="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/40 transition flex items-center gap-1 text-[11px] font-bold cursor-pointer" title="Market Currency Context">
+                <span id="lblGlobalCurrencyFlag">🌐</span>
+                <span id="lblGlobalCurrencyText">USD ($)</span>
+            </button>
+
+            <!-- Light / Dark Mode Toggle Button -->
+            <button type="button" onclick="toggleGlobalThemeMode()" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:text-emerald-500 border border-slate-200 dark:border-slate-800 transition cursor-pointer shadow-xs" title="Toggle Light/Dark Theme">
+                <span id="globalThemeToggleIcon" class="text-xs">🌙</span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<script>
+    // Data 10 Konsesi Riil Asli dari Basis Data SQLite (kebun_profil / /api/estates)
+    let REAL_ESTATES_CATALOG = [
+        { kode: "EST-MDN-001", nama: "PT Mandailing Agro Sustainable", luas: 1200, hgu: "004/HGU/BPN-MDN/2021" },
+        { kode: "EST-MDN-002", nama: "Koperasi Sawit Swadaya Maju", luas: 450, hgu: "012/HGU/BPN-MDN/2019" },
+        { kode: "EST-MDN-003", nama: "PT Batang Gadis Plantation", luas: 2100, hgu: "088/HGU/BPN-MDN/2020" },
+        { kode: "EST-MDN-004", nama: "PT Sorik Marapi Agro Lestari", luas: 850, hgu: "034/HGU/BPN-MDN/2022" },
+        { kode: "EST-MDN-005", nama: "KUD Harapan Bersama Natal", luas: 380, hgu: "045/HGU/BPN-MDN/2018" },
+        { kode: "EST-MDN-006", nama: "PT Panyabungan Palma Raya", luas: 1450, hgu: "055/HGU/BPN-MDN/2021" },
+        { kode: "EST-MDN-007", nama: "PT Rintis Alam Mandailing", luas: 920, hgu: "071/HGU/BPN-MDN/2023" },
+        { kode: "EST-MDN-008", nama: "Koperasi Tani Tunas Makmur", luas: 310, hgu: "019/HGU/BPN-MDN/2020" },
+        { kode: "EST-MDN-009", nama: "PT Bukit Barisan Agro Sejahtera", luas: 2800, hgu: "099/HGU/BPN-MDN/2024" },
+        { kode: "EST-MDN-010", nama: "PT Mitra Agro Mandiri Madina", luas: 640, hgu: "062/HGU/BPN-MDN/2022" }
+    ];
+
+    function applyConcessionPickerVisibility() {
+        const wrapper = document.getElementById('topBarConcessionPickerWrapper');
+        if (!wrapper) return;
+        const p = (window.location.pathname || '').toLowerCase();
+        const allowedPatterns = [
+            '/spatial',
+            '/planetary-observatory',
+            '/simulator',
+            '/in-silico',
+            '/proses',
+            '/timelines',
+            '/timeline',
+            '/quarterly-surveillance',
+            '/monitoring',
+            '/roadmap',
+            '/statutory-ratification',
+            '/topologi',
+            '/topology',
+            '/compliance-lineage'
+        ];
+        const isAllowed = allowedPatterns.some(pattern => p === pattern || p.startsWith(pattern + '/') || p.startsWith(pattern + '.'));
+        if (isAllowed) {
+            wrapper.classList.remove('hidden');
+            wrapper.classList.add('flex');
+            wrapper.style.display = '';
+        } else {
+            wrapper.classList.add('hidden');
+            wrapper.classList.remove('flex');
+            wrapper.style.display = 'none';
+        }
+    }
+
+    (function initGlobalContextBarSearchable() {
+        applyConcessionPickerVisibility();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const lastCatalog = REAL_ESTATES_CATALOG[REAL_ESTATES_CATALOG.length - 1];
+        const defaultKode = (lastCatalog && lastCatalog.kode) ? lastCatalog.kode : 'EST-MDN-010';
+
+        const savedKode = localStorage.getItem('precision_active_dossier') || localStorage.getItem('precision_palm_active_dossier');
+        let currentKode = urlParams.get('kode') || urlParams.get('estate_code');
+        if (!currentKode) {
+            if (!savedKode || savedKode === 'EST-MDN-001') {
+                currentKode = defaultKode;
+                localStorage.setItem('precision_active_dossier', defaultKode);
+                localStorage.setItem('precision_palm_active_dossier', defaultKode);
+            } else {
+                currentKode = savedKode;
+            }
+        }
+        const currentYear = urlParams.get('audit_year') || localStorage.getItem('precision_active_year') || '2026';
+        
+        syncSelectedConcessionDisplay(currentKode);
+        fetchRealConcessionsFromDB();
+
+        const selYear = document.getElementById('globalAuditYearSelector');
+        if (selYear) selYear.value = currentYear;
+
+        // Default: Bahasa 'en' dan Mata Uang 'USD'
+        const savedLang = localStorage.getItem('precision_palm_lang') || 'en';
+        const savedCurr = (savedLang === 'id') ? 'IDR' : (localStorage.getItem('precision_currency_mode') || 'USD');
+
+        localStorage.setItem('precision_palm_lang', savedLang);
+        localStorage.setItem('precision_currency_mode', savedCurr);
+
+        applyLanguageButtonUI(savedLang);
+        applyCurrencyDisplay(savedCurr);
+        const savedTheme = localStorage.getItem('precision_palm_theme') || (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        if (savedTheme === 'light') {
+            document.documentElement.classList.remove('dark');
+        } else {
+            document.documentElement.classList.add('dark');
+        }
+        applyThemeDisplay(savedTheme);
+
+        // Tutup dropdown jika klik di luar
+        document.addEventListener('click', (e) => {
+            const container = document.getElementById('globalConcessionSearchInput')?.closest('.relative');
+            const list = document.getElementById('globalConcessionDropdownList');
+            if (container && list && !container.contains(e.target)) {
+                list.classList.add('hidden');
+            }
+        });
+    })();
+
+    async function fetchRealConcessionsFromDB() {
+        try {
+            const res = await fetch('/api/estates');
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.success && Array.isArray(data.records) && data.records.length > 0) {
+                    REAL_ESTATES_CATALOG = data.records.map(r => ({
+                        kode: r.kode_kebun || r.kode || r.id,
+                        nama: r.nama_kebun || r.company || r.nama,
+                        luas: parseFloat(r.luas_ha || r.area_ha || r.luas || 0),
+                        hgu: r.nomor_hgu || r.hgu || r.legal_deed_number || '-'
+                    }));
+
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const lastCatalog = REAL_ESTATES_CATALOG[REAL_ESTATES_CATALOG.length - 1];
+                    const defaultKode = (lastCatalog && lastCatalog.kode) ? lastCatalog.kode : 'EST-MDN-010';
+                    const savedKode = localStorage.getItem('precision_active_dossier') || localStorage.getItem('precision_palm_active_dossier');
+                    let currentKode = urlParams.get('kode') || urlParams.get('estate_code');
+                    if (!currentKode) {
+                        if (!savedKode || savedKode === 'EST-MDN-001') {
+                            currentKode = defaultKode;
+                            localStorage.setItem('precision_active_dossier', defaultKode);
+                            localStorage.setItem('precision_palm_active_dossier', defaultKode);
+                        } else {
+                            currentKode = savedKode;
+                        }
+                    }
+
+                    syncSelectedConcessionDisplay(currentKode);
+                }
+            }
+        } catch (e) {
+            console.warn('[TopContextBar] Gagal fetch real concessions dari database:', e);
+        }
+    }
+
+    function syncSelectedConcessionDisplay(forcedKode) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const lastCatalog = REAL_ESTATES_CATALOG[REAL_ESTATES_CATALOG.length - 1];
+        const defaultKode = (lastCatalog && lastCatalog.kode) ? lastCatalog.kode : 'EST-MDN-010';
+
+        const savedKode = localStorage.getItem('precision_active_dossier') || localStorage.getItem('precision_palm_active_dossier');
+        let currentKode = forcedKode || urlParams.get('kode') || urlParams.get('estate_code');
+        if (!currentKode) {
+            if (!savedKode || savedKode === 'EST-MDN-001') {
+                currentKode = defaultKode;
+            } else {
+                currentKode = savedKode;
+            }
+        }
+
+        const inpSearch = document.getElementById('globalConcessionSearchInput');
+        const hidKode = document.getElementById('globalConcessionSelectedKode');
+
+        const found = REAL_ESTATES_CATALOG.find(e => e.kode === currentKode) || lastCatalog || REAL_ESTATES_CATALOG[0];
+        if (inpSearch && found) {
+            inpSearch.value = `${found.kode} • ${found.nama}`;
+        }
+        if (hidKode && found) {
+            hidKode.value = found.kode;
+        }
+        if (found && (!savedKode || savedKode === 'EST-MDN-001')) {
+            localStorage.setItem('precision_active_dossier', found.kode);
+            localStorage.setItem('precision_palm_active_dossier', found.kode);
+        }
+    }
+
+    function openGlobalConcessionDropdown() {
+        renderConcessionDropdownList(REAL_ESTATES_CATALOG);
+        const list = document.getElementById('globalConcessionDropdownList');
+        if (list) list.classList.remove('hidden');
+    }
+
+    function filterGlobalConcessions(query) {
+        const q = (query || '').toLowerCase().trim();
+        const filtered = REAL_ESTATES_CATALOG.filter(e => 
+            e.kode.toLowerCase().includes(q) || 
+            e.nama.toLowerCase().includes(q) || 
+            e.hgu.toLowerCase().includes(q)
+        );
+        renderConcessionDropdownList(filtered);
+        const list = document.getElementById('globalConcessionDropdownList');
+        if (list) list.classList.remove('hidden');
+    }
+
+    function renderConcessionDropdownList(items) {
+        const list = document.getElementById('globalConcessionDropdownList');
+        if (!list) return;
+
+        if (items.length === 0) {
+            list.innerHTML = `<div class="p-3 text-center text-slate-400 text-xs">Konsesi tidak ditemukan</div>`;
+            return;
+        }
+
+        list.innerHTML = items.map(e => `
+            <div onclick="selectGlobalConcession('${e.kode}', '${e.nama}')" class="p-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-400 cursor-pointer transition space-y-0.5 border-b border-slate-100 dark:border-slate-800/60 last:border-0">
+                <div class="flex items-center justify-between font-bold text-slate-900 dark:text-white text-xs">
+                    <span class="text-emerald-600 dark:text-emerald-400 font-mono">${e.kode}</span>
+                    <span class="text-slate-500 font-mono text-[10px]">${e.luas.toLocaleString('id-ID')} Ha</span>
+                </div>
+                <div class="text-[11px] text-slate-600 dark:text-slate-300 font-sans truncate">${e.nama}</div>
+            </div>
+        `).join('');
+    }
+
+    function selectGlobalConcession(kode, nama) {
+        const inpSearch = document.getElementById('globalConcessionSearchInput');
+        const hidKode = document.getElementById('globalConcessionSelectedKode');
+        const list = document.getElementById('globalConcessionDropdownList');
+
+        if (inpSearch) inpSearch.value = `${kode} • ${nama}`;
+        if (hidKode) hidKode.value = kode;
+        if (list) list.classList.add('hidden');
+
+        localStorage.setItem('precision_active_dossier', kode);
+        localStorage.setItem('precision_palm_active_dossier', kode);
+        const url = new URL(window.location.href);
+        url.searchParams.set('kode', kode);
+        window.location.href = url.toString();
+    }
+
+    function setGlobalAppLanguage(lang) {
+        const targetLang = (lang === 'id') ? 'id' : 'en';
+        const targetCurrency = (targetLang === 'id') ? 'IDR' : 'USD';
+
+        localStorage.setItem('precision_palm_lang', targetLang);
+        localStorage.setItem('precision_palm_language', targetLang);
+        localStorage.setItem('precision_currency_mode', targetCurrency);
+        document.documentElement.lang = targetLang;
+
+        applyLanguageButtonUI(targetLang);
+        applyCurrencyDisplay(targetCurrency);
+
+        if (typeof window.setAppLanguage === 'function') {
+            try { window.setAppLanguage(targetLang); } catch (_) {}
+        }
+
+        window.dispatchEvent(new CustomEvent('languagechanged', { detail: { lang: targetLang } }));
+        window.dispatchEvent(new CustomEvent('currencychanged', { detail: { currency: targetCurrency } }));
+    }
+
+    function applyLanguageButtonUI(lang) {
+        const btnEN = document.getElementById('topBtnLangEN');
+        const btnID = document.getElementById('topBtnLangID');
+        const act = "px-2 py-0.5 rounded-lg transition-all bg-emerald-600 text-white font-bold text-[10px] shadow-xs cursor-pointer";
+        const inact = "px-2 py-0.5 rounded-lg transition-all text-slate-400 hover:text-white font-bold text-[10px] cursor-pointer";
+
+        if (btnEN && btnID) {
+            btnEN.className = (lang === 'en') ? act : inact;
+            btnID.className = (lang === 'id') ? act : inact;
+        }
+    }
+
+    function toggleGlobalCurrencyMode() {
+        const cur = localStorage.getItem('precision_currency_mode') || 'USD';
+        const next = (cur === 'IDR') ? 'USD' : 'IDR';
+        const correspondingLang = (next === 'IDR') ? 'id' : 'en';
+        setGlobalAppLanguage(correspondingLang);
+    }
+
+    function applyCurrencyDisplay(mode) {
+        const flagEl = document.getElementById('lblGlobalCurrencyFlag');
+        const textEl = document.getElementById('lblGlobalCurrencyText');
+        if (flagEl && textEl) {
+            if (mode === 'USD') {
+                flagEl.textContent = '🌐';
+                textEl.textContent = 'USD ($)';
+            } else {
+                flagEl.textContent = '🇮🇩';
+                textEl.textContent = 'IDR (Rp)';
+            }
+        }
+    }
+
+    function toggleGlobalThemeMode() {
+        const isDark = document.documentElement.classList.contains('dark');
+        const nextTheme = isDark ? 'light' : 'dark';
+        if (nextTheme === 'dark') {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('precision_palm_theme', 'dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('precision_palm_theme', 'light');
+        }
+        applyThemeDisplay(nextTheme);
+        window.dispatchEvent(new CustomEvent('themechanged', { detail: { theme: nextTheme } }));
+    }
+
+    // Expose global aliases for backward and cross-component compatibility
+    window.toggleThemeMode = toggleGlobalThemeMode;
+    window.toggleTheme = toggleGlobalThemeMode;
+    window.setGlobalAppLanguage = setGlobalAppLanguage;
+    window.applyCurrencyDisplay = applyCurrencyDisplay;
+    window.applyLanguageButtonUI = applyLanguageButtonUI;
+
+    // Cross-component listeners
+    window.addEventListener('languagechanged', (e) => {
+        const lang = e.detail?.lang || localStorage.getItem('precision_palm_lang') || 'en';
+        applyLanguageButtonUI(lang);
+    });
+    window.addEventListener('currencychanged', (e) => {
+        const curr = e.detail?.currency || localStorage.getItem('precision_currency_mode') || 'USD';
+        applyCurrencyDisplay(curr);
+    });
+    window.addEventListener('themechanged', (e) => {
+        const theme = e.detail?.theme || (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        applyThemeDisplay(theme);
+    });
+
+    function applyThemeDisplay(theme) {
+        const icon = document.getElementById('globalThemeToggleIcon');
+        if (icon) {
+            icon.textContent = (theme === 'dark') ? '🌙' : '☀️';
+        }
+    }
+
+    function onGlobalAuditYearChange(newYear) {
+        if (!newYear) return;
+        localStorage.setItem('precision_active_year', newYear);
+        const url = new URL(window.location.href);
+        url.searchParams.set('audit_year', newYear);
+        window.location.href = url.toString();
+    }
+</script>
