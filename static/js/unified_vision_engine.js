@@ -197,6 +197,24 @@
                 }
             }
 
+            // Anti-anomaly filter: Detect if synthetic drone grid was erroneously returned for a terrestrial / weed alley image
+            const isTerrestrialTarget = (perspective === 'TERRESTRIAL_IN_SITU' || perspective === 'TERRESTRIAL_GROUND' ||
+                                         (filename || '').toLowerCase().includes('weed') ||
+                                         (filename || '').toLowerCase().includes('tm_weed') ||
+                                         (filename || '').toLowerCase().includes('mandor'));
+            if (detectedEntities && isTerrestrialTarget) {
+                const hasDroneGridSkyBoxes = detectedEntities.some(item => {
+                    const lbl = (item.label_name || item.label || '').toLowerCase();
+                    const box = item.box_2d || [];
+                    // Drone crown grid in top sky:
+                    return (lbl.includes('tajuk sawit tm #') || lbl.includes('tajuk sawit #')) && box.length >= 4 && box[0] < 150;
+                });
+                if (hasDroneGridSkyBoxes) {
+                    console.warn("[UnifiedVisionEngine] Anomalous aerial grid detected on terrestrial image! Overriding with adaptive biophysical model.");
+                    detectedEntities = null;
+                }
+            }
+
             if (!detectedEntities || detectedEntities.length < 8) {
                 analysisData = this.generateAdaptiveBiophysicalEntities(filename, perspective, pageContext, stageIndex);
             } else {

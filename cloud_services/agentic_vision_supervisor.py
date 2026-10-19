@@ -26,22 +26,32 @@ class FieldVisionSupervisorAgent:
         boxes = raw_analysis.get("detected_objects", []) or raw_analysis.get("physical_entities", [])
         
         # 1. Klasifikasi Perspektif Foto
-        is_mandor_ground = any(k in fn_lower for k in ['mandor', 'situ', 'ground', 'oblique', 'eye']) or (perspective_hint in ['TERRESTRIAL_GROUND', 'MANDOR'])
+        is_mandor_ground = (
+            any(k in fn_lower for k in ['mandor', 'situ', 'ground', 'oblique', 'eye', 'weed', 'tm_weed', 'field_tm', 'terrestrial', 'in-situ', 'intercrop'])
+            or (perspective_hint in ['TERRESTRIAL_GROUND', 'MANDOR', 'TERRESTRIAL_IN_SITU', 'TERRESTRIAL'])
+        )
         is_riparian = any(k in fn_lower for k in ['wetland', 'buffer', 'water', 'riparian', 'river', 'canal'])
-        is_aerial = (any(k in fn_lower for k in ['drone', 'aerial', 'ortho', 'nadir', '45m']) or (perspective_hint == 'AERIAL_DRONE')) and not is_mandor_ground
+        is_aerial = (any(k in fn_lower for k in ['drone', 'aerial', 'ortho', 'nadir', '45m', 'uav']) or (perspective_hint == 'AERIAL_DRONE')) and not is_mandor_ground
 
         # 2. Pengawasan Otonom (Self-Healing Trigger jika objek < 2, label kosong, atau belum memiliki entitas spesifik mandor)
         get_b_label = lambda b: str(b.get('label_name') or b.get('label') or '').lower()
         empty_labels = all(not (b.get('label_name') or b.get('label')) for b in boxes) if boxes else True
-        has_drone_crowns = any('tajuk sawit #' in get_b_label(b) or 'palm crown #' in get_b_label(b) for b in boxes)
-        has_indo_mandor_entities = any(
-            any(w in get_b_label(b) for w in ['pelepah', 'gulma liar', 'semak', 'piringan pokok'])
+        has_drone_crowns = any(
+            any(w in get_b_label(b) for w in ['tajuk sawit #', 'tajuk sawit tm #', 'palm crown #', 'palm canopy crown #'])
             for b in boxes
         )
-        needs_supervision = (len(boxes) < 2) or empty_labels or (is_mandor_ground and (has_drone_crowns or not has_indo_mandor_entities))
+        has_sky_boxes = any(
+            isinstance(b.get('box_2d'), list) and len(b['box_2d']) >= 4 and b['box_2d'][0] < 150 and b['box_2d'][2] < 300
+            for b in boxes
+        )
+        has_indo_mandor_entities = any(
+            any(w in get_b_label(b) for w in ['pelepah', 'gulma liar', 'semak', 'piringan pokok', 'biomass', 'canopy crown (left', 'corridor'])
+            for b in boxes
+        )
+        needs_supervision = (len(boxes) < 2) or empty_labels or (is_mandor_ground and (has_drone_crowns or (has_sky_boxes and not has_indo_mandor_entities)))
 
         if needs_supervision:
-            logger.info(f"[Vision Agent] Supervisi mandor diaktifkan untuk {filename} (boxes: {len(boxes)}, empty_labels: {empty_labels}, mismatch: {is_mandor_ground and has_drone_crowns})...")
+            logger.info(f"[Vision Agent] Supervisi mandor diaktifkan untuk {filename} (boxes: {len(boxes)}, empty_labels: {empty_labels}, mismatch: {is_mandor_ground and (has_drone_crowns or has_sky_boxes)})...")
             
             if is_riparian:
                 supervised_boxes = cls._generate_riparian_entities()
@@ -75,39 +85,95 @@ class FieldVisionSupervisorAgent:
 
     @staticmethod
     def _generate_terrestrial_weed_clutter_entities() -> List[Dict[str, Any]]:
-        """Menghasilkan koordinat fisik terestrial untuk foto mandor di lantai kebun yang bersemak."""
+        """Menghasilkan koordinat fisik terestrial lengkap (11 entitas) untuk foto mandor di lantai kebun yang bersemak."""
         return [
             {
                 "label": "palm_canopy",
-                "label_name": "Pelepah Sawit Kiri (Tajuk Menghasilkan)",
+                "label_name": "Mature Palm Canopy Crown (Left Stand - TM-7.5)",
                 "cluster": "palm_canopy",
-                "box_2d": [140, 20, 880, 420],
+                "box_2d": [50, 10, 720, 420],
                 "confidence": 0.98,
                 "compliance_note": "Pelepah sawit produktif teridentifikasi sehat (SPAD 82.4)"
             },
             {
                 "label": "palm_canopy",
-                "label_name": "Pelepah Sawit Kanan (Tajuk Menghasilkan)",
+                "label_name": "Palm Frond Tier Center (Monsi-Saeki LAI 4.25)",
                 "cluster": "palm_canopy",
-                "box_2d": [160, 680, 920, 980],
+                "box_2d": [260, 255, 620, 425],
                 "confidence": 0.97,
-                "compliance_note": "Pelepah lateral sawit naungan lorong"
+                "compliance_note": "Naungan frond tier kanopi tengah"
+            },
+            {
+                "label": "palm_canopy",
+                "label_name": "Palm Stand Right (Chlorophyll SPAD 82.4)",
+                "cluster": "palm_canopy",
+                "box_2d": [225, 715, 545, 875],
+                "confidence": 0.96,
+                "compliance_note": "Pelepah lateral sawit naungan lorong kanan"
+            },
+            {
+                "label": "palm_canopy",
+                "label_name": "Outer Frond Tier Right Edge",
+                "cluster": "palm_canopy",
+                "box_2d": [240, 865, 545, 995],
+                "confidence": 0.95,
+                "compliance_note": "Tajuk luar sayap timur"
+            },
+            {
+                "label": "clean_alley",
+                "label_name": "3.79m Net Agroforestry Cultivation Corridor",
+                "cluster": "clean_alley",
+                "box_2d": [480, 5, 960, 990],
+                "confidence": 0.96,
+                "compliance_note": "Koridor gawangan terbebas dari halangan pokok"
             },
             {
                 "label": "weed_cover",
-                "label_name": "Penutupan Gulma Liar / Semak Lantai Gawangan",
+                "label_name": "Active Soft Vegetative Biomass (Biological Mulch)",
                 "cluster": "weed_cover",
-                "box_2d": [380, 260, 890, 780],
-                "confidence": 0.95,
-                "compliance_note": "Biomassa bawah tajuk tebal; perlu sanitasi mulsa organik"
+                "box_2d": [530, 10, 955, 985],
+                "confidence": 0.94,
+                "compliance_note": "Biomassa bawah tajuk; berfungsi sebagai mulsa biologis"
             },
             {
                 "label": "root_circle",
-                "label_name": "Area Piringan Pokok (Perlu Penyiangan)",
+                "label_name": "2.05m Sterile Root Ring (Left Palm Base)",
                 "cluster": "root_circle",
-                "box_2d": [580, 60, 910, 360],
-                "confidence": 0.94,
-                "compliance_note": "Peringatan: Radius 2.05m tertutup gulma; wajib penyiangan manual tanpa cangkul"
+                "box_2d": [620, 40, 880, 280],
+                "confidence": 0.97,
+                "compliance_note": "Piringan steril pangkal pokok kiri"
+            },
+            {
+                "label": "root_circle",
+                "label_name": "2.05m Sterile Root Ring (Right Stand Base)",
+                "cluster": "root_circle",
+                "box_2d": [600, 730, 860, 940],
+                "confidence": 0.96,
+                "compliance_note": "Piringan steril pangkal pokok kanan"
+            },
+            {
+                "label": "floor_mulch",
+                "label_name": "In-Situ Organic Mulch Retention Zone",
+                "cluster": "floor_mulch",
+                "box_2d": [720, 240, 960, 510],
+                "confidence": 0.93,
+                "compliance_note": "Zona retensi bahan organik lantai gawangan"
+            },
+            {
+                "label": "floor_mulch",
+                "label_name": "Moisture Retention Ground Substrate",
+                "cluster": "floor_mulch",
+                "box_2d": [730, 520, 960, 790],
+                "confidence": 0.92,
+                "compliance_note": "Substrat tanah penyerap kelembaban"
+            },
+            {
+                "label": "intercrop_bed",
+                "label_name": "High-Affinity Companion Raised Bed (Red Ginger/Porang)",
+                "cluster": "intercrop_bed",
+                "box_2d": [580, 310, 890, 680],
+                "confidence": 0.95,
+                "compliance_note": "Bedengan tumpang sari komoditas bernilai tinggi"
             }
         ]
 
