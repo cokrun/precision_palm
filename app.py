@@ -674,8 +674,14 @@ def get_dossier_evidence_gallery(dossier_id):
         for sr in surv_rows:
             s_ev_id = sr['evidence_id'] or sr['record_id']
             s_url = sr['foto_url']
-            if s_ev_id in seen_ids or s_url in seen_urls:
+            if not s_url or s_ev_id in seen_ids or s_url in seen_urls:
                 continue
+            # Filter out non-existent static paths to prevent 404 errors in browser
+            if '/static/' in s_url or s_url.startswith('static/'):
+                clean_static = s_url.split('?')[0].strip().lstrip('/')
+                abs_static = os.path.join(app.root_path, clean_static.replace('/', os.sep))
+                if not os.path.exists(abs_static):
+                    continue
             seen_ids.add(s_ev_id)
             seen_urls.add(s_url)
             try:
@@ -2602,7 +2608,7 @@ def update_server_with_latest_scan(scan_res, filename, dossier_id="EST-MDN-010",
         
         # 1. Update atau insert ke inspection_evidence
         ev_id = str(filename).replace('.jpg', '').replace('.png', '').replace('.jpeg', '')
-        cur.execute("SELECT id FROM inspection_evidence WHERE evidence_id = ? OR dossier_id = ? ORDER BY uploaded_at DESC LIMIT 1;", (ev_id, dossier_id))
+        cur.execute("SELECT id FROM inspection_evidence WHERE evidence_id = ? OR (dossier_id = ? AND evidence_id = ?) ORDER BY uploaded_at DESC LIMIT 1;", (ev_id, dossier_id, ev_id))
         row = cur.fetchone()
         if row:
             row_id = row['id'] if isinstance(row, sqlite3.Row) else row[0]
@@ -2622,12 +2628,13 @@ def update_server_with_latest_scan(scan_res, filename, dossier_id="EST-MDN-010",
         else:
             cur.execute("""
                 INSERT OR REPLACE INTO inspection_evidence (
-                    evidence_id, dossier_id, block_id, perspective_mode,
+                    id, evidence_id, dossier_id, block_id, perspective_mode,
                     detected_entities_json, diagnostic_matrix_json,
                     chlorophyll_spad_inferred, root_clearance_verified_m,
+                    image_mime_type, image_base64,
                     is_processed, status, sha256_hash, uploaded_at, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 'SEALED', ?, ?, ?);
-            """, (ev_id, dossier_id, block_id, perspective, entities_json, matrix_json, spad, root_clear, sha_hash, now_ts, now_ts))
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'image/jpeg', '', 1, 'SEALED', ?, ?, ?);
+            """, (f"EV-{ev_id}", ev_id, dossier_id, block_id, perspective, entities_json, matrix_json, spad, root_clear, sha_hash, now_ts, now_ts))
 
         # 2. Update field_surveillance_records jika ada
         cur.execute("""
@@ -2640,13 +2647,17 @@ def update_server_with_latest_scan(scan_res, filename, dossier_id="EST-MDN-010",
         # 3. Catat ke agent_experience
         exp_id = f"EXP-{int(time.time()*1000)}"
         summary_txt = scan_res.get("auditor_summary") or scan_res.get("summary") or "Silvicultural canopy and sterile ring verified."
+        coords = scan_res.get("coordinates_wgs84") or json.dumps({"lat": 0.824102, "lng": 99.561214})
+        if isinstance(coords, (dict, list)):
+            coords = json.dumps(coords)
         cur.execute("""
             INSERT INTO agent_experience (
                 session_id, block_id, perspective_mode,
+                coordinates_wgs84, timestamp_iso,
                 detected_entities_json, diagnostic_matrix_json,
-                learned_context_summary, sha256_hash, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
-        """, (exp_id, block_id, perspective, entities_json, matrix_json, summary_txt, sha_hash, now_ts))
+                learned_context_summary, sha256_hash, sync_bigquery, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?);
+        """, (exp_id, block_id, perspective, str(coords), now_ts, entities_json, matrix_json, summary_txt, sha_hash, now_ts))
 
         conn.commit()
         conn.close()
