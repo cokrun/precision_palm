@@ -261,6 +261,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initSandboxModeAndAntiRaceCondition();
     restorePersistedCropSelection();
     selectCanopyPreset('field_tm_weed.jpg', 'Block A: Mature Stand (TM Phase)');
+    initActiveEstateData();
     executeInSilicoCompute();
     initSpatialTrackingControls();
     initDrawingReticles();
@@ -1061,7 +1062,7 @@ window.runDetailedObjectVisionScan = runDetailedObjectVisionScan;
  */
 async function initActiveEstateData() {
     const urlParams = new URLSearchParams(window.location.search);
-    const targetKode = urlParams.get('kode') || urlParams.get('estate_code') || (window.activeEstate && window.activeEstate.kode_kebun) || 'EST-MDN-010';
+    const targetKode = urlParams.get('kode') || urlParams.get('estate_code') || localStorage.getItem('precision_active_dossier') || (window.activeEstate && window.activeEstate.kode_kebun) || 'EST-MDN-010';
 
     let photos = [];
     let estateData = null;
@@ -1103,11 +1104,11 @@ async function initActiveEstateData() {
             const localInspect = localStorage.getItem('precision_palm_active_spatial_inspection');
             if (localInspect) {
                 const parsed = JSON.parse(localInspect);
-                if (parsed && parsed.image_url) {
+                if (parsed && (parsed.image_url || parsed.foto_url)) {
                     photos.push({
                         id: 1,
                         filename: parsed.filename || 'spatial_inspection_evidence.jpg',
-                        file_url: parsed.image_url,
+                        file_url: parsed.image_url || parsed.foto_url,
                         title: "Spatial Inspection Evidence (Stage 2A)",
                         is_sealed: true,
                         tag: "Stage 2A Sealed"
@@ -1119,6 +1120,27 @@ async function initActiveEstateData() {
         }
     }
 
+    // 4. Prioritaskan foto aktif yang baru saja dipindai/dipilih di Stage 2A Spasial
+    const activeSyncedUrl = localStorage.getItem('precision_active_evidence_url');
+    const activeSyncedFilename = localStorage.getItem('precision_active_evidence_filename');
+    if (activeSyncedUrl) {
+        const existingIdx = photos.findIndex(p => (p.file_url === activeSyncedUrl || p.image_gcs_url === activeSyncedUrl || p.url === activeSyncedUrl));
+        if (existingIdx > 0) {
+            const [matched] = photos.splice(existingIdx, 1);
+            photos.unshift(matched);
+        } else if (existingIdx === -1) {
+            photos.unshift({
+                id: 'EV-SYNCED-SPATIAL',
+                filename: activeSyncedFilename || 'spatial_active_evidence.jpg',
+                file_url: activeSyncedUrl,
+                image_gcs_url: activeSyncedUrl,
+                title: "Spatial Active Evidence (Synced)",
+                is_sealed: true,
+                tag: "Stage 2A Active"
+            });
+        }
+    }
+
     // Pasang citra tersegel pertama langsung ke #mainCanopyPreview dan sembunyikan #emptyEvidenceStateSimulator
     const mainImg = document.getElementById('mainCanopyPreview');
     const emptyState = document.getElementById('emptyEvidenceStateSimulator');
@@ -1127,7 +1149,7 @@ async function initActiveEstateData() {
         window.activeEstatePhotos = photos;
         const firstPhoto = photos[0];
         if (mainImg) {
-            mainImg.src = firstPhoto.file_url;
+            mainImg.src = firstPhoto.file_url || firstPhoto.image_gcs_url || firstPhoto.url;
             selectedCanopyFileName = firstPhoto.filename;
             const cap = document.getElementById('active_canopy_img_name');
             if (cap) cap.textContent = firstPhoto.filename;

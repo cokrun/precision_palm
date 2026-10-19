@@ -4011,8 +4011,45 @@
                 } catch (_) {}
             }
 
+            // 4. Sinkronisasi Langsung dari Stage 2A Spasial (localStorage.getItem('precision_active_evidence_url'))
+            const activeSyncedUrl = localStorage.getItem('precision_active_evidence_url');
+            const activeSyncedFilename = localStorage.getItem('precision_active_evidence_filename');
+            if (activeSyncedUrl) {
+                const existingIdx = combinedPhotos.findIndex(cp => (cp.url === activeSyncedUrl || cp.file_url === activeSyncedUrl || cp.image_gcs_url === activeSyncedUrl));
+                if (existingIdx > 0) {
+                    const [matched] = combinedPhotos.splice(existingIdx, 1);
+                    combinedPhotos.unshift(matched);
+                } else if (existingIdx === -1) {
+                    combinedPhotos.unshift({
+                        id: 'EV-SYNCED-SPATIAL',
+                        evidence_id: 'EV-SYNCED-SPATIAL',
+                        name: activeSyncedFilename || 'spatial_active_evidence.jpg',
+                        filename: activeSyncedFilename || 'spatial_active_evidence.jpg',
+                        url: activeSyncedUrl,
+                        file_url: activeSyncedUrl,
+                        label: 'Spatial Active Evidence (Synced)',
+                        tag: 'Stage 2A',
+                        is_sealed: true,
+                        status: 'SEALED'
+                    });
+                }
+            }
+
             if (combinedPhotos.length > 0) {
-                uploadedEvidencePhotos = combinedPhotos.map(p => {
+                // Deduplikasi maksimal 2 foto identik (Quota Capping)
+                const hashCounterMap = new Map();
+                const dedupedPhotos = [];
+                combinedPhotos.forEach(p => {
+                    const pUrl = p.url || p.file_url || p.media_stream_url || `/api/media/evidence/${p.id || p.evidence_id}`;
+                    const pKey = p.image_sha256_hash || p.sha256 || p.name || p.filename || pUrl;
+                    const c = hashCounterMap.get(pKey) || 0;
+                    if (c < 2) {
+                        hashCounterMap.set(pKey, c + 1);
+                        dedupedPhotos.push(p);
+                    }
+                });
+
+                uploadedEvidencePhotos = dedupedPhotos.map(p => {
                     let boxes = p.boxes || p.detected_entities || [];
                     if (typeof boxes === 'string') {
                         try { boxes = JSON.parse(boxes); } catch (_) { boxes = []; }
@@ -4034,8 +4071,9 @@
                             : [];
                     }
                     
-                    let tagText = p.quarter_cycle || p.tag || (isAnnual ? 'ANNUAL' : 'Q1');
-                    let tagLabel = isAnnual 
+                    const isAnnualPhoto = p.process_stage === 'STAGE-0-ANNUAL-REG' || p.quarter_cycle === 'ANNUAL';
+                    let tagText = p.quarter_cycle || p.tag || (isAnnualPhoto ? 'ANNUAL' : 'Q1');
+                    let tagLabel = isAnnualPhoto 
                         ? (isDrone ? 'Annual • Drone' : 'Annual • In-Situ') 
                         : (isDrone ? `${tagText} • Drone` : `${tagText} • Mandor`);
 

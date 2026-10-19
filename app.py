@@ -979,12 +979,20 @@ def get_dossier_evidence_chain(kode_kebun):
         photos = []
         seen_ids = set()
         seen_urls = set()
+        seen_hash_counts = {}
 
         for r in rows:
             d = dict(r)
             ev_id = str(d.get('evidence_id') or '')
             if not ev_id or ev_id in seen_ids:
                 continue
+
+            h_sha = str(d.get('image_sha256_hash') or '').strip()
+            dedup_key = h_sha if (h_sha and len(h_sha) > 8) else f"{d.get('perspective_mode')}_{d.get('audit_year')}"
+            if seen_hash_counts.get(dedup_key, 0) >= 2:
+                continue
+            seen_hash_counts[dedup_key] = seen_hash_counts.get(dedup_key, 0) + 1
+
             seen_ids.add(ev_id)
 
             f_url = f"/api/media/evidence/{ev_id}"
@@ -3379,6 +3387,7 @@ def api_get_estate_spatial_data():
         sealed_foto_urls = {s['foto_url'] for s in sealed_rows if s['foto_url']}
 
         photos = []
+        seen_hash_counts = {}
         for r in ev_rows:
             ev_id = r["evidence_id"] if ("evidence_id" in r.keys() and r["evidence_id"]) else r["id"]
             q_cycle = r["quarter_cycle"] if ("quarter_cycle" in r.keys() and r["quarter_cycle"]) else "Q1"
@@ -3387,6 +3396,12 @@ def api_get_estate_spatial_data():
             h_sha = r["image_sha256_hash"] if ("image_sha256_hash" in r.keys() and r["image_sha256_hash"]) else (r["sha256_hash"] if "sha256_hash" in r.keys() else "")
             up_at = r["uploaded_at"] if ("uploaded_at" in r.keys() and r["uploaded_at"]) else (r["created_at"] if "created_at" in r.keys() else "")
             f_url = f"/api/media/evidence/{ev_id}"
+
+            # Quota Capping: Foto yang identik (berdasarkan hash atau data dasar) dibatasi maksimal 2 entri
+            dedup_key = str(h_sha).strip() if (h_sha and len(str(h_sha).strip()) > 8) else f"{p_mode}_{r.get('file_size_bytes', 0)}"
+            if seen_hash_counts.get(dedup_key, 0) >= 2:
+                continue
+            seen_hash_counts[dedup_key] = seen_hash_counts.get(dedup_key, 0) + 1
 
             is_proc = bool(
                 (r["is_processed"] if "is_processed" in r.keys() else 0) == 1 or

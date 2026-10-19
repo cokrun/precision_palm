@@ -899,10 +899,19 @@ function bindEvidencePhotos(photos, dossier) {
     const sealedHashes = new Set(surveysFullList.map(s => s.sha256_seal || s.image_sha256_hash));
     const sealedUrls = new Set(surveysFullList.map(s => s.foto_url).filter(Boolean));
     const sealedEvIds = new Set(surveysFullList.map(s => s.evidence_id || s.id).filter(Boolean));
+    const photoHashCounts = new Map();
 
     if (Array.isArray(photos) && photos.length > 0) {
         photos.forEach((p, idx) => {
             const streamUrl = p.image_gcs_url || p.file_url || p.image_raw_base64 || ('/api/media/evidence/' + p.evidence_id);
+            const photoKey = p.image_sha256_hash || p.sha256 || p.filename || streamUrl;
+            const currentCount = photoHashCounts.get(photoKey) || 0;
+            if (currentCount >= 2) {
+                // Quota Capping: Batasi foto identik maksimal 2 entri
+                return;
+            }
+            photoHashCounts.set(photoKey, currentCount + 1);
+
             let boxes = [];
             try {
                 boxes = typeof p.detected_entities_json === 'string' ? JSON.parse(p.detected_entities_json) : (p.detected_entities_json || []);
@@ -1093,6 +1102,15 @@ function selectGalleryPhoto(url, filename, shouldRescan = false) {
     const emptyEl = document.getElementById('emptyEvidenceStateSpatial');
     activePhotoUrl = url;
     activeFilename = filename || (url ? url.split('/').pop() : "EV-PHOTO-ACTIVE.jpg");
+
+    try {
+        if (url) {
+            localStorage.setItem('precision_active_evidence_url', url);
+            localStorage.setItem('precision_active_evidence_filename', activeFilename);
+            localStorage.setItem('precision_active_evidence_dossier', activeDossier?.kode_kebun || currentEstateCode || 'EST-MDN-010');
+            window.dispatchEvent(new CustomEvent('precision_palm_evidence_synced', { detail: { url, filename: activeFilename } }));
+        }
+    } catch (_) {}
 
     if (emptyEl) {
         emptyEl.classList.add('hidden');
@@ -1944,8 +1962,13 @@ async function saveSpatialInspectionAndProceed() {
     };
 
     try {
+        if (activePhotoUrl) {
+            localStorage.setItem('precision_active_evidence_url', activePhotoUrl);
+            localStorage.setItem('precision_active_evidence_filename', activeFilename || 'active_evidence.jpg');
+        }
         localStorage.setItem('precision_palm_active_spatial_inspection', JSON.stringify(payload));
         localStorage.setItem('precision_palm_active_dossier', kodeKebun);
+        localStorage.setItem('precision_active_dossier', kodeKebun);
     } catch (_) {}
 
     try {
