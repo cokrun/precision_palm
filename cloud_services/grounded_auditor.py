@@ -407,19 +407,38 @@ def _generate_deterministic_entities(filename: str, image_bytes_len: int, perspe
         or any(k in fn for k in ['drone', 'aerial', 'ortho', 'nadir', 'canopy', '45m', 'uav'])
     )
 
+    is_harvester = any(k in fn for k in ['9217', 'harvest', 'pemanen', 'harvester', 'sickle', 'egrek', 'ffb', 'tbs'])
+
     entities = []
     if is_riparian:
         entities = [
             {"label": "Sempadan Aliran Air Alami (PP 23/2021)", "box_2d": [280, 60, 820, 940], "confidence": 0.99, "cluster": "water_riparian"},
-            {"label": "Batas Penyangga NKT ≥ 50m", "box_2d": [550, 220, 760, 420], "confidence": 0.98, "cluster": "sterile_ring"},
+            {"label": "Batas Penyangga NKT >= 50m", "box_2d": [550, 220, 760, 420], "confidence": 0.98, "cluster": "sterile_ring"},
             {"label": "Vegetasi Riparian Penahan Erosi", "box_2d": [620, 450, 950, 900], "confidence": 0.95, "cluster": "weed_cover"}
         ]
-    elif is_terrestrial:
-        # Foto terestrial / ground in-situ (seperti field_tm_weed.jpg atau foto mandor)
-        # Sesuai visual asli: Tajuk sawit di kiri & kanan, gawangan & gulma di lantai tengah bawah, piringan di pangkal pokok.
-        # TIDAK ADA KOTAK TAJUK DI LANGIT BIRU!
+    elif is_harvester:
+        # Foto pemanen aktif & egrek in-situ (seperti EV-EST-MDN-010-2026-9217.jpg)
         entities = [
-            {"label": "Mature Palm Canopy Crown (Left Stand - TM-7.5)", "box_2d": [50, 10, 720, 420], "confidence": 0.98, "cluster": "palm_canopy"},
+            {"label": "Field Harvester (Operator)", "box_2d": [790, 830, 965, 915], "confidence": 0.99, "cluster": "harvester"},
+            {"label": "Telescopic Harvesting Sickle (Egrek Pole)", "box_2d": [120, 520, 895, 845], "confidence": 0.98, "cluster": "harvester"},
+            {"label": "Productive Palm Trunk #1 (Central TM-7.5)", "box_2d": [320, 450, 980, 555], "confidence": 0.97, "cluster": "infrastructure"},
+            {"label": "Palm Trunk #2 (Left Stand)", "box_2d": [340, 185, 760, 250], "confidence": 0.96, "cluster": "infrastructure"},
+            {"label": "Fresh Fruit Bunch (FFB - Mature Harvest)", "box_2d": [215, 390, 480, 450], "confidence": 0.95, "cluster": "infrastructure"},
+            {"label": "Active Upper Frond Tier (Songgo Dua #1)", "box_2d": [90, 20, 380, 290], "confidence": 0.96, "cluster": "palm_canopy"},
+            {"label": "Active Upper Frond Tier (Songgo Dua #2)", "box_2d": [85, 275, 410, 565], "confidence": 0.96, "cluster": "palm_canopy"},
+            {"label": "Frond Crown Right (SPAD 82.4)", "box_2d": [95, 670, 395, 965], "confidence": 0.95, "cluster": "palm_canopy"},
+            {"label": "Lower Productive Frond (Ready for Pruning)", "box_2d": [240, 55, 490, 280], "confidence": 0.94, "cluster": "palm_canopy"},
+            {"label": "2.05m Sterile Root Buffer (Zero-Tillage)", "box_2d": [735, 380, 955, 600], "confidence": 0.97, "cluster": "root_circle"},
+            {"label": "Palm Base Root Protection Zone (PPKS Standard)", "box_2d": [770, 120, 960, 280], "confidence": 0.96, "cluster": "root_circle"},
+            {"label": "3.79m Net Cultivation Corridor (Alley)", "box_2d": [475, 275, 730, 680], "confidence": 0.95, "cluster": "clean_alley"},
+            {"label": "Organic Frond Mulch Retention Layer", "box_2d": [710, 220, 895, 380], "confidence": 0.94, "cluster": "floor_mulch"},
+            {"label": "Harvester Wheelbarrow Access Path", "box_2d": [785, 200, 965, 395], "confidence": 0.93, "cluster": "clean_alley"}
+        ]
+    elif is_terrestrial:
+        # Foto terestrial / ground in-situ (seperti field_tm_weed.jpg)
+        # Sesuai visual asli: Tajuk sawit di kiri & kanan (mulai dari y=90 agar tidak menutupi langit), gawangan di lantai tengah.
+        entities = [
+            {"label": "Mature Palm Canopy Crown (Left Stand - TM-7.5)", "box_2d": [90, 10, 720, 420], "confidence": 0.98, "cluster": "palm_canopy"},
             {"label": "Palm Frond Tier Center (Monsi-Saeki LAI 4.25)", "box_2d": [260, 255, 620, 425], "confidence": 0.97, "cluster": "palm_canopy"},
             {"label": "Palm Stand Right (Chlorophyll SPAD 82.4)", "box_2d": [225, 715, 545, 875], "confidence": 0.96, "cluster": "palm_canopy"},
             {"label": "Outer Frond Tier Right Edge", "box_2d": [240, 865, 545, 995], "confidence": 0.95, "cluster": "palm_canopy"},

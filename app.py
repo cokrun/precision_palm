@@ -482,19 +482,46 @@ def get_evidence_media_stream(evidence_id):
     conn = get_pure_db_connection()
     try:
         clean_id = str(evidence_id).replace('.jpg', '')
+        
+        # Defensive schema check: pastikan tidak crash bila kolom belum termigrasi
+        cols_info = {r[1] for r in conn.execute("PRAGMA table_info(inspection_evidence);").fetchall()}
+        has_ev_id = 'evidence_id' in cols_info
+        has_id = 'id' in cols_info
+        has_raw_b64 = 'image_raw_base64' in cols_info
+        has_b64 = 'image_base64' in cols_info
+        has_uploaded_at = 'uploaded_at' in cols_info
+
+        select_cols = []
+        if has_ev_id: select_cols.append("evidence_id")
+        if has_id: select_cols.append("id")
+        if has_raw_b64: select_cols.append("image_raw_base64")
+        if has_b64: select_cols.append("image_base64")
+        select_clause = ", ".join(select_cols) if select_cols else "*"
+        order_col = "uploaded_at" if has_uploaded_at else ("created_at" if "created_at" in cols_info else "rowid")
+
         if evidence_id.lower() in ('current', 'latest'):
             dossier_id = request.args.get('dossier_id')
             audit_year = request.args.get('audit_year', 2026, type=int)
             if not dossier_id:
                 return jsonify({"status": "error", "message": "dossier_id required for latest evidence"}), 400
             row = conn.execute(
-                "SELECT evidence_id, id, image_raw_base64, image_base64 FROM inspection_evidence WHERE (dossier_id = ? OR dossier_id = ?) AND (audit_year = ? OR audit_year IS NULL) ORDER BY uploaded_at DESC LIMIT 1;",
+                f"SELECT {select_clause} FROM inspection_evidence WHERE (dossier_id = ? OR dossier_id = ?) AND (audit_year = ? OR audit_year IS NULL) ORDER BY {order_col} DESC LIMIT 1;",
                 (dossier_id, f"{dossier_id}-2026", audit_year)
             ).fetchone()
         else:
+            where_conditions = []
+            params = []
+            if has_ev_id:
+                where_conditions.extend(["evidence_id = ?", "evidence_id = ?"])
+                params.extend([evidence_id, clean_id])
+            if has_id:
+                where_conditions.extend(["id = ?", "id = ?"])
+                params.extend([evidence_id, clean_id])
+            
+            where_clause = " OR ".join(where_conditions) if where_conditions else "1=1"
             row = conn.execute(
-                "SELECT evidence_id, id, image_raw_base64, image_base64 FROM inspection_evidence WHERE evidence_id = ? OR id = ? OR evidence_id = ? OR id = ?;", 
-                (evidence_id, evidence_id, clean_id, clean_id)
+                f"SELECT {select_clause} FROM inspection_evidence WHERE {where_clause} LIMIT 1;", 
+                tuple(params)
             ).fetchone()
 
         raw_b64 = None

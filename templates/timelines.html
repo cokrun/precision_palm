@@ -2002,7 +2002,9 @@
             let data;
             if (window.UnifiedVisionEngine && typeof window.UnifiedVisionEngine.scan === 'function') {
                 data = await window.UnifiedVisionEngine.scan({
+                    imageUrl: currentEvidenceUrl,
                     fotoUrl: currentEvidenceUrl,
+                    filename: currentEvidenceUrl ? currentEvidenceUrl.split('/').pop().split('?')[0] : 'evidence_capture.jpg',
                     latitude: lat,
                     longitude: lng,
                     altAgl: altAgl,
@@ -2011,6 +2013,9 @@
                     evidenceId: currentEvidenceUrl.split('/').pop().replace(/\.[^/.]+$/, ""),
                     perspective: isAerial ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU',
                     pageContext: 'TIMELINES',
+                    containerEl: document.getElementById('monitoringEvidenceContainer') || imgEl.parentElement,
+                    overlayEl: document.getElementById('monitoringBBoxesOverlay'),
+                    statusEl: tagStatus,
                     stageIndex: activeStageIndex !== undefined ? activeStageIndex : 1
                 });
             } else {
@@ -4012,16 +4017,22 @@
                     if (typeof boxes === 'string') {
                         try { boxes = JSON.parse(boxes); } catch (_) { boxes = []; }
                     }
-                    if (!boxes || boxes.length === 0) {
-                        const isAerialDrone = (p.perspective_mode === 'AERIAL_DRONE' || (p.url && p.url.includes('drone')) || (p.file_url && p.file_url.includes('drone')));
-                        boxes = window.UnifiedVisionEngine 
-                            ? window.UnifiedVisionEngine.generateHolisticFallback(p.url || p.file_url || p.name || '', isAerialDrone ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU', 'TIMELINES', activeStageIndex !== undefined ? activeStageIndex : 1).physical_entities 
-                            : [];
+                    const pUrl = p.url || p.file_url || p.media_stream_url || `/api/media/evidence/${p.id || p.evidence_id}`;
+                    const isDrone = p.perspective_mode === 'AERIAL_DRONE' || (pUrl && pUrl.includes('drone'));
+
+                    // Sanity check: if photo is terrestrial/in-situ but contains stale drone grid boxes, reset
+                    if (!isDrone && Array.isArray(boxes) && boxes.length > 0) {
+                        const hasDroneGrid = boxes.some(b => (b.label_name || b.label || '').toLowerCase().includes('tajuk sawit tm #') || (b.label_name || b.label || '').toLowerCase().includes('tajuk sawit #'));
+                        if (hasDroneGrid) {
+                            boxes = [];
+                        }
                     }
 
-                    const pUrl = p.url || p.file_url || p.media_stream_url || `/api/media/evidence/${p.id || p.evidence_id}`;
-                    const isAnnual = (p.quarter_cycle === 'REG' || p.quarter_cycle === 'ANNUAL' || p.tag === 'REG' || p.tag === 'STAGE-0-ANNUAL-REG' || (p.label && p.label.toLowerCase().includes('annual')));
-                    const isDrone = p.perspective_mode === 'AERIAL_DRONE' || pUrl.includes('drone');
+                    if (!boxes || boxes.length === 0) {
+                        boxes = window.UnifiedVisionEngine 
+                            ? (window.UnifiedVisionEngine.generateAdaptiveBiophysicalEntities(p.name || p.filename || pUrl || '', isDrone ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU', 'TIMELINES', activeStageIndex !== undefined ? activeStageIndex : 1).physical_entities) 
+                            : [];
+                    }
                     
                     let tagText = p.quarter_cycle || p.tag || (isAnnual ? 'ANNUAL' : 'Q1');
                     let tagLabel = isAnnual 

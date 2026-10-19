@@ -380,6 +380,35 @@ def init_db(db_path: Optional[str] = None) -> None:
                 cursor.execute("ALTER TABLE inspection_evidence ADD COLUMN audit_year INTEGER DEFAULT 2026;")
             except Exception:
                 pass
+        if "evidence_id" not in existing_ev_cols:
+            try:
+                cursor.execute("ALTER TABLE inspection_evidence ADD COLUMN evidence_id TEXT;")
+                cursor.execute("UPDATE inspection_evidence SET evidence_id = id WHERE evidence_id IS NULL OR evidence_id = '';")
+            except Exception:
+                pass
+        if "image_raw_base64" not in existing_ev_cols:
+            try:
+                cursor.execute("ALTER TABLE inspection_evidence ADD COLUMN image_raw_base64 TEXT;")
+                cursor.execute("UPDATE inspection_evidence SET image_raw_base64 = image_base64 WHERE image_raw_base64 IS NULL;")
+            except Exception:
+                pass
+        if "image_sha256_hash" not in existing_ev_cols:
+            try:
+                cursor.execute("ALTER TABLE inspection_evidence ADD COLUMN image_sha256_hash TEXT;")
+                cursor.execute("UPDATE inspection_evidence SET image_sha256_hash = sha256_hash WHERE image_sha256_hash IS NULL;")
+            except Exception:
+                pass
+        if "mandor_id" not in existing_ev_cols:
+            try:
+                cursor.execute("ALTER TABLE inspection_evidence ADD COLUMN mandor_id TEXT DEFAULT 'MND-001';")
+            except Exception:
+                pass
+        if "uploaded_at" not in existing_ev_cols:
+            try:
+                cursor.execute("ALTER TABLE inspection_evidence ADD COLUMN uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;")
+                cursor.execute("UPDATE inspection_evidence SET uploaded_at = created_at WHERE uploaded_at IS NULL;")
+            except Exception:
+                pass
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_evidence_dossier_year ON inspection_evidence(dossier_id, audit_year, created_at DESC);")
 
         # 10. Application Global & Multi-Tenant Settings (Settings Engine)

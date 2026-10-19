@@ -134,17 +134,30 @@
         /**
          * Primary scanning action invoked by Spatial, Simulator, Timelines, & Mobile
          */
-        async scan({
-            imageUrl,
-            filename = "evidence_capture.jpg",
-            dossierId = "EST-MDN-010",
-            perspective = null,
-            pageContext = "SIMULATOR",
-            containerEl = null,
-            overlayEl = null,
-            statusEl = null,
-            stageIndex = null
-        }) {
+        async scan(options = {}) {
+            let {
+                imageUrl,
+                fotoUrl,
+                filename,
+                dossierId = "EST-MDN-010",
+                perspective = null,
+                pageContext = "SIMULATOR",
+                containerEl = null,
+                overlayEl = null,
+                statusEl = null,
+                stageIndex = null
+            } = (options || {});
+
+            imageUrl = imageUrl || fotoUrl;
+            if (!filename && imageUrl) {
+                try {
+                    filename = imageUrl.split('/').pop().split('?')[0];
+                } catch (_) {
+                    filename = "evidence_capture.jpg";
+                }
+            }
+            filename = filename || "evidence_capture.jpg";
+
             if (this.isScanning) {
                 console.warn("[UnifiedVisionEngine] Scanning is already in progress...");
                 return null;
@@ -476,8 +489,11 @@ const isWeedAlleyScene = !isMacroLandscape && (
                     perspective_classified: 'AERIAL_DRONE_NADIR',
                     auditor_summary: `Aerial Drone Photogrammetry (45m AGL): Mapped ${boxes.length} biophysical entities arranged on a standard 9.0m equilateral triangular grid. Symmetrical canopy closure confirms optimal light attenuation for shade-tolerant alley intercropping.`,
                     sha256_seal: "8F43" + Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('').toUpperCase()
-                };
             }
+        }
+
+        generateHolisticFallback(filename, perspective, pageContext, stageIndex) {
+            return this.generateAdaptiveBiophysicalEntities(filename, perspective, pageContext, stageIndex);
         }
     }
 

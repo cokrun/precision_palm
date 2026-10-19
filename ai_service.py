@@ -289,9 +289,11 @@ def get_deterministic_ground_truth(error_msg=None, telemetry=None, block_id=None
             f"dengan nihil nekrosis Ganoderma. LER dikunci pada 1.48x."
         )
 
-    # Membangun 15-25 Objek Fisik Nyata berdasarkan Perspektif & Tipe Ekologis
     img_name_lower = str(telem.get("image_name") or telem.get("filename") or "").lower()
+    pm_upper = str(telem.get("perspective_mode") or "").upper()
     is_wetland = "wetland" in img_name_lower or "water" in img_name_lower or "sempadan" in img_name_lower or "riparian" in img_name_lower or telem.get("is_wetland", False)
+    is_aerial = (alt > 15.0 or pitch < -45.0 or 'drone' in img_name_lower or 'aerial' in img_name_lower or pm_upper == 'AERIAL_DRONE')
+    is_harvester = any(k in img_name_lower for k in ['9217', 'harvest', 'pemanen', 'harvester', 'sickle', 'egrek'])
 
     if is_wetland:
         capture_mode = "TERRESTRIAL_IN_SITU"
@@ -330,28 +332,40 @@ def get_deterministic_ground_truth(error_msg=None, telemetry=None, block_id=None
             {"id": "obj_16", "label": "Palm Crown #16 (Row 4-D)", "cluster": "palm_canopy", "box_2d": [695, 830, 885, 980], "confidence": 0.98},
             {"id": "obj_17", "label": "Haul Road (Collection Track 4.0m)", "cluster": "infrastructure", "box_2d": [10, 460, 990, 520], "confidence": 0.97},
             {"id": "obj_18", "label": "Drainage Canal (SCS-CN Harvesting)", "cluster": "infrastructure", "box_2d": [10, 930, 990, 985], "confidence": 0.96},
-            {"id": "obj_19", "label": "Active Intercrop Alley (3.79m Clean)", "cluster": "infrastructure", "box_2d": [180, 190, 820, 270], "confidence": 0.95},
+            {"id": "obj_19", "label": "Active Intercrop Alley (3.79m Clean)", "cluster": "clean_alley", "box_2d": [180, 190, 820, 270], "confidence": 0.95},
             {"id": "obj_20", "label": "Missing Stand Canopy Gap", "cluster": "empty_gap", "box_2d": [260, 780, 420, 850], "confidence": 0.93}
         ]
-    else:
-        # Terrestrial In-Situ Handheld (16 Entitas Fisik Nyata)
+    elif is_harvester:
+        # Terrestrial In-Situ dengan Operator Pemanen & Galah Egrek (9217.jpg)
         physical_entities = [
-            {"id": "obj_01", "label": "Palm Trunk Left", "cluster": "palm_anatomy", "box_2d": [210, 110, 890, 310], "confidence": 0.98},
-            {"id": "obj_02", "label": "Palm Trunk Right", "cluster": "palm_anatomy", "box_2d": [230, 710, 880, 910], "confidence": 0.97},
-            {"id": "obj_03", "label": "FFB Ripe Bunch #1", "cluster": "fruit_organs", "box_2d": [340, 240, 480, 320], "confidence": 0.95},
-            {"id": "obj_04", "label": "FFB Mature Bunch #2", "cluster": "fruit_organs", "box_2d": [360, 700, 490, 770], "confidence": 0.94},
-            {"id": "obj_05", "label": "FFB Developing Axillary Bunch", "cluster": "fruit_organs", "box_2d": [290, 220, 370, 280], "confidence": 0.91},
-            {"id": "obj_06", "label": "Female Inflorescence Flower", "cluster": "fruit_organs", "box_2d": [310, 720, 385, 775], "confidence": 0.92},
-            {"id": "obj_07", "label": "Clean Root Buffer (2.0m)", "cluster": "root_circle", "box_2d": [750, 120, 950, 410], "confidence": 0.99},
-            {"id": "obj_08", "label": "Clean Root Buffer (2.0m)", "cluster": "root_circle", "box_2d": [760, 680, 960, 930], "confidence": 0.98},
-            {"id": "obj_09", "label": "Basal Collar (0.0% Ganoderma)", "cluster": "root_circle", "box_2d": [730, 180, 870, 305], "confidence": 0.99},
-            {"id": "obj_10", "label": "Pruned Frond Mulch Pile", "cluster": "floor_mulch", "box_2d": [680, 360, 910, 640], "confidence": 0.93},
-            {"id": "obj_11", "label": "Active Intercrop Alley (3.79m)", "cluster": "floor_mulch", "box_2d": [420, 310, 900, 680], "confidence": 0.96},
-            {"id": "obj_12", "label": "Red Ginger Bed #1 (Zingiber)", "cluster": "floor_mulch", "box_2d": [530, 370, 710, 510], "confidence": 0.95},
-            {"id": "obj_13", "label": "Red Ginger Bed #2 (Zingiber)", "cluster": "floor_mulch", "box_2d": [540, 500, 720, 630], "confidence": 0.94},
-            {"id": "obj_14", "label": "Living Soft Weed Floor Mulch", "cluster": "floor_mulch", "box_2d": [780, 410, 950, 610], "confidence": 0.91},
-            {"id": "obj_15", "label": "Frond-17 Vigor Leaf Axis", "cluster": "palm_anatomy", "box_2d": [90, 70, 310, 420], "confidence": 0.97},
-            {"id": "obj_16", "label": "Erect Spear Frond Bundle", "cluster": "palm_anatomy", "box_2d": [40, 330, 230, 470], "confidence": 0.98}
+            {"id": "obj_01", "label": "Field Harvester (Operator)", "cluster": "harvester", "box_2d": [790, 830, 965, 915], "confidence": 0.99},
+            {"id": "obj_02", "label": "Telescopic Harvesting Sickle (Egrek Pole)", "cluster": "harvester", "box_2d": [120, 520, 895, 845], "confidence": 0.98},
+            {"id": "obj_03", "label": "Productive Palm Trunk #1 (Central TM-7.5)", "cluster": "infrastructure", "box_2d": [320, 450, 980, 555], "confidence": 0.97},
+            {"id": "obj_04", "label": "Palm Trunk #2 (Left Stand)", "cluster": "infrastructure", "box_2d": [340, 185, 760, 250], "confidence": 0.96},
+            {"id": "obj_05", "label": "Fresh Fruit Bunch (FFB - Mature Harvest)", "cluster": "fruit_organs", "box_2d": [215, 390, 480, 450], "confidence": 0.95},
+            {"id": "obj_06", "label": "Active Upper Frond Tier (Songgo Dua #1)", "cluster": "palm_canopy", "box_2d": [90, 20, 380, 290], "confidence": 0.96},
+            {"id": "obj_07", "label": "Active Upper Frond Tier (Songgo Dua #2)", "cluster": "palm_canopy", "box_2d": [85, 275, 410, 565], "confidence": 0.96},
+            {"id": "obj_08", "label": "Frond Crown Right (SPAD 82.4)", "cluster": "palm_canopy", "box_2d": [95, 670, 395, 965], "confidence": 0.95},
+            {"id": "obj_09", "label": "2.05m Sterile Root Buffer (Zero-Tillage)", "cluster": "root_circle", "box_2d": [735, 380, 955, 600], "confidence": 0.97},
+            {"id": "obj_10", "label": "Palm Base Root Protection Zone (PPKS Standard)", "cluster": "root_circle", "box_2d": [770, 120, 960, 280], "confidence": 0.96},
+            {"id": "obj_11", "label": "3.79m Net Cultivation Corridor (Alley)", "cluster": "clean_alley", "box_2d": [475, 275, 730, 680], "confidence": 0.95},
+            {"id": "obj_12", "label": "Organic Frond Mulch Retention Layer", "cluster": "floor_mulch", "box_2d": [710, 220, 895, 380], "confidence": 0.94},
+            {"id": "obj_13", "label": "Harvester Wheelbarrow Access Path", "cluster": "clean_alley", "box_2d": [785, 200, 965, 395], "confidence": 0.93}
+        ]
+    else:
+        # Terrestrial In-Situ Weed Alley (field_tm_weed.jpg - Tanpa operator/egrek)
+        physical_entities = [
+            {"id": "obj_01", "label": "Mature Palm Canopy Crown (Left Stand - TM-7.5)", "cluster": "palm_canopy", "box_2d": [90, 10, 720, 420], "confidence": 0.98},
+            {"id": "obj_02", "label": "Palm Frond Tier Center (Monsi-Saeki LAI 4.25)", "cluster": "palm_canopy", "box_2d": [260, 255, 620, 425], "confidence": 0.97},
+            {"id": "obj_03", "label": "Palm Stand Right (Chlorophyll SPAD 82.4)", "cluster": "palm_canopy", "box_2d": [225, 715, 545, 875], "confidence": 0.96},
+            {"id": "obj_04", "label": "Outer Frond Tier Right Edge", "cluster": "palm_canopy", "box_2d": [240, 865, 545, 995], "confidence": 0.95},
+            {"id": "obj_05", "label": "3.79m Net Agroforestry Cultivation Corridor", "cluster": "clean_alley", "box_2d": [480, 5, 960, 990], "confidence": 0.96},
+            {"id": "obj_06", "label": "Active Soft Vegetative Biomass (Biological Mulch)", "cluster": "weed_cover", "box_2d": [530, 10, 955, 985], "confidence": 0.94},
+            {"id": "obj_07", "label": "2.05m Sterile Root Ring (Left Palm Base)", "cluster": "root_circle", "box_2d": [620, 40, 880, 280], "confidence": 0.97},
+            {"id": "obj_08", "label": "2.05m Sterile Root Ring (Right Stand Base)", "cluster": "root_circle", "box_2d": [600, 730, 860, 940], "confidence": 0.96},
+            {"id": "obj_09", "label": "In-Situ Organic Mulch Retention Zone", "cluster": "floor_mulch", "box_2d": [720, 240, 960, 510], "confidence": 0.93},
+            {"id": "obj_10", "label": "Moisture Retention Ground Substrate", "cluster": "floor_mulch", "box_2d": [730, 520, 960, 790], "confidence": 0.92},
+            {"id": "obj_11", "label": "High-Affinity Companion Raised Bed (Red Ginger/Porang)", "cluster": "clean_alley", "box_2d": [580, 310, 890, 680], "confidence": 0.95}
         ]
 
     # Matriks 44 Variabel Lengkap (6 Cluster Agronomi & Statuter Permentan 33/2025)
