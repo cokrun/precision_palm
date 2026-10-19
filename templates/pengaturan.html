@@ -666,7 +666,8 @@
             biaya_olah: document.getElementById('cfg_biaya_olah').value,
             is_published: document.getElementById('cfg_is_published').checked,
             antifraud_active: document.getElementById('cfg_antifraud_active').checked,
-            active_dossier: document.getElementById('cfg_active_dossier').value
+            active_dossier: document.getElementById('cfg_active_dossier').value,
+            governance_rules: (window.governanceManager ? window.governanceManager.getAll() : {})
         };
 
         localStorage.setItem('precision_palm_settings', JSON.stringify(payload));
@@ -730,6 +731,12 @@
                         const r = document.querySelector(`input[name="market_jurisdiction"][value="${cfg.market_mode}"]`);
                         if (r) r.checked = true;
                         updateJurisdictionSelection(cfg.market_mode);
+                    }
+                    if (cfg.governance_rules && window.governanceManager) {
+                        window.governanceManager.update(cfg.governance_rules);
+                        if (typeof window.renderGovernanceSettingsUI === 'function') {
+                            window.renderGovernanceSettingsUI('governanceSettingsPanel');
+                        }
                     }
                     recalculateTbsLive();
                 }

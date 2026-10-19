@@ -34,6 +34,8 @@ let currentEstateCode = 'EST-MDN-010';
 let registeredPhotos = [];
 let selectedPhotoUrls = new Set();
 let activeProcessStageFilter = 'ALL';
+let spatialGalleryCurrentPage = 1;
+const spatialGalleryPageSize = 4;
 window.registeredPhotos = registeredPhotos;
 window.selectedPhotoUrls = selectedPhotoUrls;
 
@@ -999,65 +1001,183 @@ window.setProcessStageFilter = setProcessStageFilter;
 function renderGalleryThumbnails() {
     const grid = document.getElementById('galleryThumbnailsGrid');
     const countBadge = document.getElementById('galleryCountBadge');
+    const pageIndicator = document.getElementById('lblSpatialGalleryPagination');
+    const btnPrev = document.getElementById('btnPrevSpatialGallery');
+    const btnNext = document.getElementById('btnNextSpatialGallery');
+    const selBadge = document.getElementById('gallerySelectionBadge');
     if (!grid) return;
 
     const isId = isIndonesian();
-    // Prinsip Interactive Sandbox: Seluruh foto ditampilkan dan siap dipindai/diaudit ulang kapan saja
     const visiblePhotos = registeredPhotos.filter(p => (activeProcessStageFilter === 'ALL' || p.tag === activeProcessStageFilter));
 
     if (countBadge) {
         countBadge.textContent = visiblePhotos.length + ' / ' + registeredPhotos.length + (isId ? ' Foto Galeri' : ' Gallery Photos');
     }
 
+    if (selBadge) {
+        selBadge.textContent = `[${selectedPhotoUrls.size} Selected]`;
+    }
+
+    const masterCheck = document.getElementById('galleryMasterCheckbox');
+    if (masterCheck && visiblePhotos.length > 0) {
+        masterCheck.checked = visiblePhotos.every(p => selectedPhotoUrls.has(p.file_url));
+    }
+
     if (visiblePhotos.length === 0) {
-        grid.innerHTML = '<div class="col-span-2 p-3 text-center bg-slate-900/40 rounded-xl border border-slate-800 text-slate-400 font-mono text-[10px]">' +
+        grid.innerHTML = '<div class="p-3 text-center bg-slate-900/40 rounded-xl border border-slate-800 text-slate-400 font-mono text-[10px]">' +
             '<p class="text-slate-300 font-semibold">' + (isId ? 'Tidak ada foto pada filter siklus ini.' : 'No photos found for this cycle filter.') + '</p></div>';
+        if (pageIndicator) pageIndicator.textContent = 'Page 1 of 1';
+        if (btnPrev) { btnPrev.disabled = true; btnPrev.classList.add('opacity-40', 'cursor-not-allowed'); }
+        if (btnNext) { btnNext.disabled = true; btnNext.classList.add('opacity-40', 'cursor-not-allowed'); }
         return;
     }
 
-    grid.innerHTML = visiblePhotos.map(item => {
+    // Default select 1 photo if none selected
+    if (selectedPhotoUrls.size === 0 && visiblePhotos.length > 0) {
+        selectedPhotoUrls.add(visiblePhotos[0].file_url);
+        if (selBadge) selBadge.textContent = `[${selectedPhotoUrls.size} Selected]`;
+    }
+
+    // Calculate pagination
+    const totalPages = Math.max(1, Math.ceil(visiblePhotos.length / spatialGalleryPageSize));
+    if (spatialGalleryCurrentPage > totalPages) spatialGalleryCurrentPage = totalPages;
+    if (spatialGalleryCurrentPage < 1) spatialGalleryCurrentPage = 1;
+
+    if (pageIndicator) {
+        pageIndicator.textContent = `Page ${spatialGalleryCurrentPage} of ${totalPages} (${visiblePhotos.length} Photos)`;
+    }
+
+    if (btnPrev) {
+        btnPrev.disabled = (spatialGalleryCurrentPage <= 1);
+        if (spatialGalleryCurrentPage <= 1) {
+            btnPrev.classList.add('opacity-40', 'cursor-not-allowed');
+            btnPrev.classList.remove('hover:bg-slate-800');
+        } else {
+            btnPrev.classList.remove('opacity-40', 'cursor-not-allowed');
+            btnPrev.classList.add('hover:bg-slate-800');
+        }
+    }
+
+    if (btnNext) {
+        btnNext.disabled = (spatialGalleryCurrentPage >= totalPages);
+        if (spatialGalleryCurrentPage >= totalPages) {
+            btnNext.classList.add('opacity-40', 'cursor-not-allowed');
+            btnNext.classList.remove('hover:bg-slate-800');
+        } else {
+            btnNext.classList.remove('opacity-40', 'cursor-not-allowed');
+            btnNext.classList.add('hover:bg-slate-800');
+        }
+    }
+
+    const startIndex = (spatialGalleryCurrentPage - 1) * spatialGalleryPageSize;
+    const pagePhotos = visiblePhotos.slice(startIndex, startIndex + spatialGalleryPageSize);
+
+    grid.innerHTML = pagePhotos.map(item => {
         const isSelected = selectedPhotoUrls.has(item.file_url);
         const isActive = (activePhotoUrl === item.file_url);
+        const deleteId = item.id || item.filename;
+        const titleText = item.title || item.filename || 'Inspeksi Drone Nadir 45m';
+        const subText = item.tag ? `${item.tag} • ${item.filename}` : `STAGE-1-Q1 • ${item.filename}`;
 
-        let cardContainerClass = 'border-slate-800 opacity-90';
+        let cardContainerClass = 'border-slate-800 bg-slate-900/50 hover:border-slate-700';
         if (isActive) {
-            cardContainerClass = 'border-emerald-400 ring-2 ring-emerald-500/50 shadow-md';
+            cardContainerClass = 'ring-2 ring-emerald-500 border-emerald-400 shadow-md shadow-emerald-500/20 bg-slate-900/90';
         } else if (isSelected) {
-            cardContainerClass = 'border-emerald-500/50';
+            cardContainerClass = 'border-emerald-500/50 bg-slate-900/70';
         }
 
-        const checkedAttr = isSelected ? 'checked' : '';
-        const checkboxHtml = '<input type="checkbox" ' + checkedAttr + ' class="w-3.5 h-3.5 rounded border-slate-600 bg-slate-900 text-emerald-500 focus:ring-emerald-400 cursor-pointer" onchange="togglePhotoSelection(\'' + item.file_url + '\', this.checked, event)">';
-        const deleteId = item.id || item.filename;
-
-        const deleteBtnHtml = `
-            <button type="button" onclick="deleteEvidencePhoto('${deleteId}', '${item.file_url}', event)" 
-                class="absolute top-1 right-1 z-30 p-1 rounded bg-rose-950/90 text-rose-300 hover:bg-rose-600 hover:text-white border border-rose-500/60 transition shadow cursor-pointer" 
-                title="${isId ? 'Hapus foto' : 'Delete photo'}">
-                <span class="text-[10px]">🗑️</span>
-            </button>
-        `;
-
         const statusBadge = item.is_processed ?
-            `<span class="absolute top-1 right-7 z-30 text-[8px] bg-slate-950/90 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/50 font-bold">🔒 ${isId ? 'TERSEGEL' : 'SEALED'}</span>` :
-            `<span class="absolute top-1 right-7 z-30 text-[8px] bg-amber-950/90 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/50 font-bold">⚡ ${isId ? 'SIAP' : 'READY'}</span>`;
+            `<span class="px-1.5 py-0.5 rounded text-[7.5px] font-mono font-bold bg-amber-950/90 text-amber-300 border border-amber-600/60 inline-flex items-center gap-0.5" title="Bukti Tersegel Resmi">🔒 SEALED</span>` :
+            `<span class="px-1.5 py-0.5 rounded text-[7.5px] font-mono font-bold bg-emerald-950/90 text-emerald-300 border border-emerald-600/60 inline-flex items-center gap-0.5">⚡ READY</span>`;
 
-        return '<div class="group relative rounded-xl overflow-hidden border-2 transition h-16 bg-slate-950 ' + cardContainerClass + '">' +
-            '<div class="absolute top-1 left-1 z-30 flex items-center justify-center p-0.5 rounded bg-slate-950/85 backdrop-blur-sm" onclick="event.stopPropagation()">' +
-                checkboxHtml +
-            '</div>' +
-            statusBadge +
-            deleteBtnHtml +
-            '<button type="button" onclick="selectGalleryPhoto(\'' + item.file_url + '\', \'' + item.filename + '\', false)" class="w-full h-full text-left cursor-pointer block relative">' +
-                '<img src="' + item.file_url + '" alt="' + item.title + '" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">' +
-                '<div class="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/40 to-transparent p-1.5 flex flex-col justify-end">' +
-                    '<span class="text-[9px] font-bold text-white truncate pl-5 pr-5">' + item.title + '</span>' +
-                    '<span class="text-[8px] text-emerald-400 font-mono truncate">' + item.tag + '</span>' +
-                '</div>' +
-            '</button>' +
-        '</div>';
+        const deleteBtnHtml = !item.is_processed ? `
+            <button type="button" onclick="deleteEvidencePhoto('${deleteId}', '${item.file_url}', event)" 
+                class="opacity-0 group-hover:opacity-100 p-1 rounded bg-rose-950/90 text-rose-300 hover:bg-rose-600 hover:text-white border border-rose-500/60 transition shadow cursor-pointer" 
+                title="${isId ? 'Hapus foto' : 'Delete photo'}">
+                <span class="text-[9px]">🗑️</span>
+            </button>
+        ` : '';
+
+        return `
+            <div onclick="selectGalleryPhoto('${item.file_url}', '${item.filename}', false)" 
+                class="relative group rounded-2xl p-2.5 border ${cardContainerClass} transition cursor-pointer flex items-center justify-between gap-3 shadow-xs">
+                <div class="flex items-center gap-3 min-w-0">
+                    <!-- Thumbnail -->
+                    <div class="w-16 h-13 rounded-xl overflow-hidden bg-slate-950 flex-shrink-0 border border-slate-800 flex items-center justify-center relative">
+                        <img src="${item.file_url}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform ${item.is_processed ? 'photo-sealed-blur' : ''}" onerror="this.onerror=null; this.src='/static/img/sawit_drone.jpg'">
+                    </div>
+                    <!-- Metadata -->
+                    <div class="min-w-0 space-y-0.5">
+                        <span class="text-xs font-bold text-slate-100 truncate block font-sans" title="${titleText}">
+                            ${titleText}
+                        </span>
+                        <span class="text-[9.5px] font-mono text-emerald-400/90 truncate block" title="${subText}">
+                            ${subText}
+                        </span>
+                        <div class="pt-0.5">
+                            ${statusBadge}
+                        </div>
+                    </div>
+                </div>
+                <!-- Action / Checkbox -->
+                <div class="pr-1 flex-shrink-0 flex items-center gap-1.5" onclick="event.stopPropagation()">
+                    ${deleteBtnHtml}
+                    <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="togglePhotoSelection('${item.file_url}', this.checked, event)" 
+                        class="w-4 h-4 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 accent-indigo-600 cursor-pointer bg-slate-900 shadow" title="Select Photo">
+                </div>
+            </div>
+        `;
     }).join('');
 }
+
+function changeSpatialGalleryPage(delta) {
+    const visiblePhotos = registeredPhotos.filter(p => (activeProcessStageFilter === 'ALL' || p.tag === activeProcessStageFilter));
+    const totalPages = Math.max(1, Math.ceil(visiblePhotos.length / spatialGalleryPageSize));
+    spatialGalleryCurrentPage += delta;
+    if (spatialGalleryCurrentPage < 1) spatialGalleryCurrentPage = 1;
+    if (spatialGalleryCurrentPage > totalPages) spatialGalleryCurrentPage = totalPages;
+    renderGalleryThumbnails();
+}
+window.changeSpatialGalleryPage = changeSpatialGalleryPage;
+
+function togglePhotoSelection(url, checked, event) {
+    if (event) event.stopPropagation();
+    if (checked) {
+        selectedPhotoUrls.add(url);
+    } else {
+        selectedPhotoUrls.delete(url);
+    }
+    updateSelectionBadges();
+    renderGalleryThumbnails();
+}
+window.togglePhotoSelection = togglePhotoSelection;
+
+function toggleSelectAllPhotos(checked) {
+    const visiblePhotos = registeredPhotos.filter(p => (activeProcessStageFilter === 'ALL' || p.tag === activeProcessStageFilter));
+    if (checked) {
+        visiblePhotos.forEach(p => selectedPhotoUrls.add(p.file_url));
+    } else {
+        visiblePhotos.forEach(p => selectedPhotoUrls.delete(p.file_url));
+    }
+    updateSelectionBadges();
+    renderGalleryThumbnails();
+}
+window.toggleSelectAllPhotos = toggleSelectAllPhotos;
+
+function updateSelectionBadges() {
+    const selBadge = document.getElementById('gallerySelectionBadge');
+    if (selBadge) {
+        selBadge.textContent = `[${selectedPhotoUrls.size} Selected]`;
+    }
+    const masterCheck = document.getElementById('galleryMasterCheckbox');
+    const visiblePhotos = registeredPhotos.filter(p => (activeProcessStageFilter === 'ALL' || p.tag === activeProcessStageFilter));
+    if (masterCheck && visiblePhotos.length > 0) {
+        const allVisibleSelected = visiblePhotos.every(p => selectedPhotoUrls.has(p.file_url));
+        masterCheck.checked = allVisibleSelected;
+    }
+    updateScanButtonLabel();
+}
+window.updateSelectionBadges = updateSelectionBadges;
 
 function renderSealedArchiveStrip() {
     const container = document.getElementById('sealedArchiveThumbnailsContainer');

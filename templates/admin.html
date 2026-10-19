@@ -1,0 +1,718 @@
+<!-- simulasi/templates/admin.html -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">Precision Palm • Database & Audit Log Administration Panel</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            900: '#064e3b',
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/static/js/i18n.js"></script>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
+
+    <!-- Modular Universal Header Partial -->
+    {% include 'partials/header.html' %}
+
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+        <!-- 1. BENTO SUMMARY STATS CARDS -->
+        <section class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+            <!-- Card 1: Total Records -->
+            <div class="bg-gradient-to-br from-slate-900 to-slate-850 border border-slate-800 p-4 rounded-2xl shadow-sm space-y-1.5 relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
+                    <span id="lblStatTotal" data-i18n="admin_stat_total">Total Logged Experiments</span>
+                    <span class="text-base">🗄️</span>
+                </div>
+                <div class="text-2xl sm:text-3xl font-black text-white font-mono" id="statTotalVal">{{ total_count if total_count is defined else '-' }}</div>
+                <p class="text-[10px] text-slate-500 font-mono" id="subStatTotal">SQLite experiments (COUNT(*))</p>
+                <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-emerald-500/5 rounded-full blur-xl pointer-events-none"></div>
+            </div>
+
+            <!-- Card 2: Average LER -->
+            <div class="bg-gradient-to-br from-slate-900 to-slate-850 border border-slate-800 p-4 rounded-2xl shadow-sm space-y-1.5 relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
+                    <span id="lblStatLer" data-i18n="admin_stat_ler">Average Historical LER</span>
+                    <span class="text-base">📈</span>
+                </div>
+                <div class="text-2xl sm:text-3xl font-black text-emerald-400 font-mono" id="statLerVal">{{ avg_ler if avg_ler is defined else '-' }}</div>
+                <p class="text-[10px] text-slate-500 font-mono" id="subStatLer">AVG(ler_score)</p>
+                <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-emerald-500/5 rounded-full blur-xl pointer-events-none"></div>
+            </div>
+
+            <!-- Card 3: Avoided Forest Land (PLS) -->
+            <div class="bg-gradient-to-br from-slate-900 to-slate-850 border border-slate-800 p-4 rounded-2xl shadow-sm space-y-1.5 relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
+                    <span id="lblStatForest" data-i18n="admin_stat_forest">Cumulative Forest Saved</span>
+                    <span class="text-base">🌳</span>
+                </div>
+                <div class="text-2xl sm:text-3xl font-black text-sky-400 font-mono" id="statForestVal">{{ sum_forest ~ ' Ha' if sum_forest is defined else '-' }}</div>
+                <p class="text-[10px] text-slate-500 font-mono" id="subStatForest">SUM(forest_saved)</p>
+                <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-sky-500/5 rounded-full blur-xl pointer-events-none"></div>
+            </div>
+
+            <!-- Card 4: Avoided Carbon Asset -->
+            <div class="bg-gradient-to-br from-slate-900 to-slate-850 border border-slate-800 p-4 rounded-2xl shadow-sm space-y-1.5 relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
+                    <span id="lblStatClimate" data-i18n="admin_stat_climate">Avoided Forest Carbon Stock</span>
+                    <span class="text-base">🌿</span>
+                </div>
+                <div class="text-2xl sm:text-3xl font-black text-indigo-400 font-mono" id="statClimateVal">{{ sum_climate ~ ' t' if sum_climate is defined else '-' }}</div>
+                <p class="text-[10px] text-slate-500 font-mono" id="subStatClimate">SUM(climate_benefit)</p>
+                <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-indigo-500/5 rounded-full blur-xl pointer-events-none"></div>
+            </div>
+        </section>
+
+        <!-- 2. DATA TABLE & TOOLBAR SECTION -->
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden flex flex-col">
+            
+            <!-- Toolbar: Search, Limit & Actions -->
+            <div class="p-4 sm:p-5 border-b border-slate-800 bg-slate-900/60 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                
+                <!-- Search Box -->
+                <div class="relative flex-1 max-w-md">
+                    <input 
+                        type="text" 
+                        id="searchInput"
+                        oninput="handleSearchDebounce()"
+                        placeholder="Search by crop, palm age, or record ID..." 
+                        data-i18n-placeholder="admin_ph_search"
+                        class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-4 py-2 pl-9 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition shadow-inner font-mono"
+                    >
+                    <span class="absolute left-3 top-2.5 text-slate-500 text-xs">🔍</span>
+                    <button id="btnClearSearch" onclick="clearSearch()" class="hidden absolute right-3 top-2.5 text-slate-500 hover:text-white text-xs">✕</button>
+                </div>
+
+                <!-- Right Controls: Page Limit & Maintenance Buttons -->
+                <div class="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+                    <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-700/80 px-2.5 py-1.5 rounded-xl text-xs text-slate-400">
+                        <span id="lblPerPage" data-i18n="admin_lbl_show">Show:</span>
+                        <select id="limitSelect" onchange="changeLimit()" class="bg-transparent text-white font-mono font-bold focus:outline-none cursor-pointer">
+                            <option value="10" class="bg-slate-900">10</option>
+                            <option value="25" class="bg-slate-900">25</option>
+                            <option value="50" class="bg-slate-900">50</option>
+                            <option value="100" class="bg-slate-900">100</option>
+                        </select>
+                    </div>
+
+                    <!-- Quick Reload Button (Full Audit Database Refresh) -->
+                    <button onclick="window.location.reload()" class="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white border border-emerald-600 text-xs font-semibold flex items-center gap-1.5 transition shadow-sm" title="Refresh Audit Database">
+                        <span>🔄</span>
+                        <span id="btnReloadDbText" data-i18n="admin_btn_reload_db">Refresh Audit Database</span>
+                    </button>
+
+                    <!-- Refresh Table Button -->
+                    <button onclick="fetchAdminHistory()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition shadow-sm" title="Refresh Table Only">
+                        <span>🔃</span>
+                        <span id="btnRefreshText" data-i18n="admin_btn_refresh">Refresh</span>
+                    </button>
+
+                    <!-- Clean Empty Anomalies Button -->
+                    <button onclick="openCleanModal()" class="px-3 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/80 text-xs font-semibold flex items-center gap-1.5 transition shadow-sm" title="Clean Empty/Anomalous Records">
+                        <span>🧹</span>
+                        <span id="btnCleanEmptyText" data-i18n="admin_btn_clean">Clean Empty / Anomalies</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table Container -->
+            <div class="overflow-x-auto min-h-[350px]">
+                <table class="w-full text-left text-xs sm:text-sm">
+                    <thead>
+                        <tr class="bg-slate-950/80 border-b border-slate-800 text-[10px] sm:text-xs text-slate-400 uppercase tracking-wider font-mono">
+                            <th class="py-3 px-3.5 text-center w-12">ID</th>
+                            <th class="py-3 px-3.5" id="thDate" data-i18n="admin_th_timestamp">Timestamp</th>
+                            <th class="py-3 px-3.5" id="thPalmAge" data-i18n="admin_th_palmage">Palm Age</th>
+                            <th class="py-3 px-3.5" id="thCrop" data-i18n="admin_th_crop">Regenerative Intercrop Species</th>
+                            <th class="py-3 px-3.5" id="thLer" data-i18n="admin_th_ler">Total LER</th>
+                            <th class="py-3 px-3.5" id="thForest" data-i18n="admin_th_forest">Deforestation Avoided (Ha)</th>
+                            <th class="py-3 px-3.5" id="thClimate" data-i18n="admin_th_climate">Climate Benefit</th>
+                            <th class="py-3 px-3.5 text-center w-36" id="thAction" data-i18n="admin_th_actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTbody" class="divide-y divide-slate-800/60 text-slate-300 font-sans">
+                        <!-- Dynamic Rows Injected by JS -->
+                        <tr>
+                            <td colspan="8" class="py-12 text-center text-slate-500">
+                                <span class="animate-spin inline-block text-lg mr-2">🔄</span> Loading admin telemetry logs...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Footer -->
+            <div class="p-4 border-t border-slate-800 bg-slate-900/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+                <div id="paginationInfo" class="font-mono">
+                    Showing 0 to 0 of 0 entries
+                </div>
+
+                <div class="flex items-center gap-1 font-mono">
+                    <button id="btnFirst" onclick="goToPage(1)" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-800 text-slate-300 border border-slate-700 transition" title="First Page">
+                        <span id="lblFirst">First</span>
+                    </button>
+                    <button id="btnPrev" onclick="goToPage(currentPage - 1)" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-800 text-slate-300 border border-slate-700 transition" title="Previous Page">
+                        <span id="lblPrev">Prev</span>
+                    </button>
+                    
+                    <span id="pageIndicator" class="px-3 py-1 font-bold text-white bg-slate-950 border border-slate-800 rounded">
+                        Page 1 of 1
+                    </span>
+
+                    <button id="btnNext" onclick="goToPage(currentPage + 1)" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-800 text-slate-300 border border-slate-700 transition" title="Next Page">
+                        <span id="lblNext">Next</span>
+                    </button>
+                    <button id="btnLast" onclick="goToPage(totalPages)" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-800 text-slate-300 border border-slate-700 transition" title="Last Page">
+                        <span id="lblLast">Last</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modular Universal Footer Partial -->
+    {% include 'partials/footer.html' %}
+
+
+    <!-- 4. MODAL: LOG DETAIL INSPECTION -->
+    <div id="detailModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Modal Header -->
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-emerald-400">🔍</span>
+                    <h3 class="text-sm sm:text-base font-bold text-white" id="modalDetailTitle">
+                        Simulation Record Detail & AI Audit Trace
+                    </h3>
+                    <span id="modalDetailIdTag" class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">#0</span>
+                </div>
+                <button onclick="closeDetailModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 text-base">✕</button>
+            </div>
+            <!-- Modal Body (Scrollable) -->
+            <div class="p-4 sm:p-6 overflow-y-auto space-y-4 text-xs" id="modalDetailBody">
+                <!-- Injected by JS -->
+            </div>
+            <!-- Modal Footer -->
+            <div class="p-3.5 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <a id="btnModalCertificate" href="#" target="_blank" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow">
+                        <span>📜</span> <span id="lblModalCert">Official Digital Passport</span>
+                    </a>
+                    <a id="btnModalPdfAudit" href="#" target="_blank" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow">
+                        <span>📄</span> <span id="lblModalPdf">Download AI Audit (PDF)</span>
+                    </a>
+                </div>
+                <button onclick="closeDetailModal()" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-700 transition">
+                    <span id="lblModalClose">Close</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. MODAL: CLEAN EMPTY CONFIRMATION -->
+    <div id="cleanModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-rose-900/60 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+            <div class="flex items-center gap-2 text-rose-400">
+                <span class="text-xl">⚠️</span>
+                <h3 class="font-bold text-white text-sm" id="modalCleanTitle">Clean Empty & Anomalous Logs</h3>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed" id="modalCleanDesc">
+                This action will permanently delete all entries in the SQLite database that have zero LER, empty crops, or anomalous test records.
+            </p>
+            <div class="p-3 rounded-xl bg-rose-950/40 border border-rose-900/80 text-[11px] text-rose-300" id="modalCleanWarning">
+                Warning: This process cannot be undone. Valid historical experiments will be preserved.
+            </div>
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button onclick="closeCleanModal()" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-700 transition">
+                    <span id="btnCleanCancel">Cancel</span>
+                </button>
+                <button id="btnExecuteClean" onclick="executeCleanEmpty()" class="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow transition">
+                    <span id="btnCleanConfirm">Clean Now</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. TOAST NOTIFICATION CONTAINER -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+    <!-- JAVASCRIPT LOGIC ENGINE -->
+    <script>
+        const i18nAdmin = {
+            en: {
+                pageTitle: "Precision Palm • Database & Audit Log Administration Panel",
+                navBackText: "Dashboard",
+                headerSubtitle: "Database & Audit Log Administration Panel • SQLite Traceability",
+                lblStatTotal: "Total Logged Experiments",
+                subStatTotal: "SQLite experiments (COUNT(*))",
+                lblStatLer: "Average Historical LER",
+                subStatLer: "AVG(ler_score)",
+                lblStatForest: "Cumulative Forest Saved",
+                subStatForest: "SUM(forest_saved)",
+                lblStatClimate: "Avoided Forest Carbon Stock",
+                subStatClimate: "SUM(climate_benefit)",
+                searchPlaceholder: "Search by crop, palm age, or record ID...",
+                lblPerPage: "Show:",
+                btnRefreshText: "Refresh",
+                btnCleanEmptyText: "Clean Empty / Anomalies",
+                thDate: "Timestamp",
+                thPalmAge: "Palm Age",
+                thCrop: "Regenerative Intercrop Species",
+                thLer: "Total LER",
+                thForest: "Deforestation Avoided (Ha)",
+                thClimate: "Climate Benefit",
+                thAction: "Actions",
+                txtLoading: "Loading admin telemetry logs...",
+                txtEmptyLogs: "No telemetry records found matching your query.",
+                lblFirst: "First",
+                lblPrev: "Prev",
+                lblNext: "Next",
+                lblLast: "Last",
+                btnView: "View",
+                btnCert: "Digital Passport",
+                btnPdf: "AI Review (PDF)",
+                btnDelete: "Delete",
+                modalDetailTitle: "Simulation Record Detail & AI Audit Trace",
+                modalCleanTitle: "Clean Empty & Anomalous Logs",
+                modalCleanDesc: "This action will permanently delete all entries in the SQLite database that have zero LER or missing crop names.",
+                modalCleanWarning: "Warning: This process cannot be undone. Valid historical experiments will be preserved.",
+                btnCleanCancel: "Cancel",
+                btnCleanConfirm: "Clean Now",
+                confirmDelete: "Are you sure you want to permanently delete record #{id}?",
+                toastDeleteSuccess: "Record #{id} deleted successfully from database.",
+                toastCleanSuccess: "Cleaned {n} empty/anomalous records successfully.",
+                lblModalCert: "Official Digital Passport",
+                lblModalPdf: "Download AI Audit (PDF)",
+                lblModalClose: "Close",
+                footerText1: "Precision Palm Agroforestry Computational Engine • Admin Log & Verification Suite",
+                footerText2: "ISO/IEC 19790 Compliant • IPCC Tier 3 AFOLU • EUDR Article 9 Validated"
+            }
+        };
+
+        const currentLang = 'en';
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentLimit = 10;
+        let searchQuery = '';
+        let searchDebounceTimer = null;
+        let cachedRecords = [];
+
+        function initLanguage() {
+            try {
+                localStorage.setItem('precision_palm_lang', 'en');
+                localStorage.setItem('preferred_palm_admin_lang', 'en');
+                localStorage.setItem('preferred_palm_lang', 'en');
+            } catch (e) {
+                console.warn('LocalStorage error:', e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initLanguage();
+            fetchAnalyticsSummary();
+            fetchAdminHistory();
+        });
+
+        // 1. ANALYTICS SUMMARY
+        async function fetchAnalyticsSummary() {
+            try {
+                const resp = await fetch('/api/experiments/analytics');
+                if (resp.ok) {
+                    const res = await resp.json();
+                    if (res.status === 'success' && res.analytics) {
+                        const a = res.analytics;
+                        document.getElementById('statTotalVal').innerText = a.total_experiment_sessions || 0;
+                        document.getElementById('statLerVal').innerText = a.average_historical_ler ? a.average_historical_ler.toFixed(4) : '-';
+                        document.getElementById('statForestVal').innerText = a.cumulative_avoided_forest_ha ? a.cumulative_avoided_forest_ha.toFixed(2) + ' Ha' : '-';
+                        document.getElementById('statClimateVal').innerText = a.cumulative_climate_benefit_tco2e ? a.cumulative_climate_benefit_tco2e.toLocaleString() + ' t' : '-';
+                        document.getElementById('txtDbTotalBadge').innerText = `${a.total_experiment_sessions || 0} Records`;
+                    }
+                }
+            } catch (e) {
+                console.warn("Analytics fetch error:", e);
+            }
+        }
+
+        // 2. FETCH ADMIN HISTORY DATA
+        async function fetchAdminHistory() {
+            const tbody = document.getElementById('historyTbody');
+            const t = i18nAdmin.en;
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="py-10 text-center text-slate-500 space-y-2">
+                        <span class="text-xl block animate-spin">🔄</span>
+                        <span>${t.txtLoading}</span>
+                    </td>
+                </tr>
+            `;
+
+            try {
+                const url = `/api/admin/history?page=${currentPage}&limit=${currentLimit}&q=${encodeURIComponent(searchQuery)}`;
+                const resp = await fetch(url);
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                
+                const data = await resp.json();
+                cachedRecords = data.data || [];
+                totalPages = data.total_pages || 1;
+                currentPage = data.current_page || 1;
+                const totalRecords = data.total_records || 0;
+
+                document.getElementById('txtDbTotalBadge').innerText = `${totalRecords} Records`;
+                renderTableRows(cachedRecords);
+                updatePaginationUI(totalRecords, data.limit);
+            } catch (err) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="py-8 text-center text-rose-400">
+                            Failed to load history: ${err.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // 3. RENDER TABLE ROWS
+        function renderTableRows(records) {
+            const tbody = document.getElementById('historyTbody');
+            const t = i18nAdmin.en;
+
+            if (!records || records.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="py-12 text-center text-slate-500">
+                            <span class="text-2xl block mb-1">📭</span>
+                            <span>${t.txtEmptyLogs}</span>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = records.map(item => {
+                const lerVal = Number(item.total_ler || 0);
+                const isAdv = (lerVal > 1.0);
+                const avoidedVal = Number(item.avoided_land_ha || 0);
+                const climateVal = Number(item.total_climate_benefit_tco2e || 0);
+                const palmAgeVal = Number(item.palm_age || 0);
+
+                return `
+                    <tr class="hover:bg-slate-850/80 transition group border-b border-slate-800/60">
+                        <td class="py-3 px-3.5 text-center font-mono text-emerald-400 font-bold text-[11px]">
+                            #${item.id}
+                        </td>
+                        <td class="py-3 px-3.5 font-mono text-slate-300 whitespace-nowrap text-[11px]">
+                            ${formatTimestamp(item.created_at)}
+                        </td>
+                        <td class="py-3 px-3.5 font-mono text-slate-300 whitespace-nowrap text-[11px]">
+                            ${palmAgeVal.toFixed(1)} Yrs
+                        </td>
+                        <td class="py-3 px-3.5 font-medium text-white">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-emerald-400">🌱</span>
+                                <span class="truncate max-w-[180px] block" title="${item.crop_name}">${item.crop_name}</span>
+                            </div>
+                        </td>
+                        <td class="py-3 px-3.5 font-mono font-bold whitespace-nowrap text-[11px]">
+                            <span class="px-2 py-0.5 rounded-full border ${isAdv ? 'bg-emerald-950/80 text-emerald-300 border-emerald-700/80' : 'bg-rose-950/80 text-rose-300 border-rose-700/80'}">
+                                ${lerVal.toFixed(4)}
+                            </span>
+                        </td>
+                        <td class="py-3 px-3.5 font-mono text-sky-300 whitespace-nowrap text-[11px]">
+                            ${avoidedVal.toFixed(2)} Ha
+                        </td>
+                        <td class="py-3 px-3.5 font-mono text-indigo-300 whitespace-nowrap text-[11px]">
+                            ${climateVal.toLocaleString()} t
+                        </td>
+                        <td class="py-3 px-3.5 text-center whitespace-nowrap">
+                            <div class="inline-flex items-center gap-1.5">
+                                <!-- 1. View Detail Modal -->
+                                <button onclick="viewLogDetail(${item.id})" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-[10px] flex items-center gap-1 transition" title="View Details">
+                                    <span>👁️</span> <span>${t.btnView}</span>
+                                </button>
+                                <!-- 2. View Certificate -->
+                                <a href="/certificate/${item.id}" target="_blank" class="px-2 py-1 rounded bg-emerald-950/70 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 font-semibold text-[10px] flex items-center gap-1 transition" title="Digital Passport">
+                                    <span>📜</span> <span class="hidden sm:inline">${t.btnCert}</span>
+                                </a>
+                                <!-- 3. Review AI (PDF) -->
+                                <a href="/audit-report/${item.id}" target="_blank" class="px-2 py-1 rounded bg-indigo-950/70 hover:bg-indigo-900 text-indigo-300 border border-indigo-800 font-semibold text-[10px] flex items-center gap-1 transition" title="Review AI (PDF)">
+                                    <span>🤖</span> <span class="hidden md:inline">${t.btnPdf}</span>
+                                </a>
+                                <!-- 4. Delete Record -->
+                                <button onclick="deleteRecordPrompt(${item.id})" class="px-2 py-1 rounded bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/80 font-semibold text-[10px] flex items-center gap-1 transition" title="Delete Log">
+                                    <span>🗑️</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 4. UPDATE PAGINATION CONTROLS
+        function updatePaginationUI(totalRecords, limit) {
+            const start = totalRecords === 0 ? 0 : (currentPage - 1) * limit + 1;
+            const end = Math.min(currentPage * limit, totalRecords);
+
+            document.getElementById('paginationInfo').innerText = `Showing ${start} to ${end} of ${totalRecords} entries`;
+            document.getElementById('pageIndicator').innerText = `Page ${currentPage} of ${totalPages}`;
+
+            document.getElementById('btnFirst').disabled = (currentPage <= 1);
+            document.getElementById('btnPrev').disabled = (currentPage <= 1);
+            document.getElementById('btnNext').disabled = (currentPage >= totalPages);
+            document.getElementById('btnLast').disabled = (currentPage >= totalPages);
+        }
+
+        function goToPage(page) {
+            if (page < 1 || page > totalPages || page === currentPage) return;
+            currentPage = page;
+            fetchAdminHistory();
+        }
+
+        function changeLimit() {
+            currentLimit = parseInt(document.getElementById('limitSelect').value) || 10;
+            currentPage = 1;
+            fetchAdminHistory();
+        }
+
+        // 5. SEARCH LOGIC
+        function handleSearchDebounce() {
+            clearTimeout(searchDebounceTimer);
+            const inputVal = document.getElementById('searchInput').value.trim();
+            document.getElementById('btnClearSearch').classList.toggle('hidden', inputVal === '');
+
+            searchDebounceTimer = setTimeout(() => {
+                searchQuery = inputVal;
+                currentPage = 1;
+                fetchAdminHistory();
+            }, 300);
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('btnClearSearch').classList.add('hidden');
+            searchQuery = '';
+            currentPage = 1;
+            fetchAdminHistory();
+        }
+
+        // 6. DELETE SINGLE RECORD
+        async function deleteRecordPrompt(logId) {
+            const t = i18nAdmin.en;
+            const msg = t.confirmDelete.replace('{id}', logId);
+            if (!confirm(msg)) return;
+
+            try {
+                const resp = await fetch(`/api/admin/history/delete/${logId}`, {
+                    method: 'DELETE'
+                });
+                const res = await resp.json();
+                if (resp.ok && res.status === 'success') {
+                    showToast('✅', t.toastDeleteSuccess.replace('{id}', logId));
+                    fetchAdminHistory();
+                    fetchAnalyticsSummary();
+                } else {
+                    alert(`Error: ${res.message || 'Failed to delete'}`);
+                }
+            } catch (err) {
+                alert(`Network error: ${err.message}`);
+            }
+        }
+
+        // 7. CLEAN EMPTY ANOMALIES
+        function openCleanModal() {
+            document.getElementById('cleanModal').classList.remove('hidden');
+        }
+
+        function closeCleanModal() {
+            document.getElementById('cleanModal').classList.add('hidden');
+        }
+
+        async function executeCleanEmpty() {
+            const btn = document.getElementById('btnExecuteClean');
+            btn.disabled = true;
+            btn.innerText = "Cleaning...";
+
+            try {
+                const resp = await fetch('/api/admin/history/clean-empty', {
+                    method: 'POST'
+                });
+                const res = await resp.json();
+                if (resp.ok && res.status === 'success') {
+                    closeCleanModal();
+                    const t = i18nAdmin.en;
+                    showToast('🧹', t.toastCleanSuccess.replace('{n}', res.cleaned_count || 0));
+                    fetchAdminHistory();
+                    fetchAnalyticsSummary();
+                } else {
+                    alert(`Error: ${res.message || 'Clean failed'}`);
+                }
+            } catch (err) {
+                alert(`Network error: ${err.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = i18nAdmin.en.btnCleanConfirm;
+            }
+        }
+
+        // 8. VIEW DETAIL MODAL
+        function viewLogDetail(logId) {
+            const item = cachedRecords.find(r => r.id === logId);
+            if (!item) return;
+
+            const ai = item.ai_response || {};
+
+            document.getElementById('modalDetailIdTag').innerText = `RECORD #${item.id}`;
+            document.getElementById('btnModalCertificate').href = `/certificate/${item.id}`;
+            document.getElementById('btnModalPdfAudit').href = `/audit-report/${item.id}`;
+
+            const container = document.getElementById('modalDetailBody');
+            const hasPhoto = item.image_path && item.image_path !== 'none' && item.image_path !== '' && item.inference_mode !== 'parameter';
+            container.innerHTML = `
+                <!-- Core Biophysical Parameters -->
+                <div class="bg-slate-950/80 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                    <div class="font-bold text-emerald-400 border-b border-slate-800 pb-1 flex items-center justify-between text-xs">
+                        <span>Plot & Canopy Parameters</span>
+                        <span class="font-mono text-slate-400 text-[11px]">${formatTimestamp(item.created_at)}</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 font-mono text-[11px] text-slate-300">
+                        <div><span class="text-slate-500 block text-[9px] uppercase">Inference Mode</span><span class="text-amber-400 uppercase font-bold">${item.inference_mode || 'parameter'}</span></div>
+                        <div><span class="text-slate-500 block text-[9px] uppercase">Crop</span>${item.crop_name}</div>
+                        <div><span class="text-slate-500 block text-[9px] uppercase">Palm Age</span>${Number(item.palm_age).toFixed(1)} Years</div>
+                        <div><span class="text-slate-500 block text-[9px] uppercase">Land Area</span>${Number(item.land_area).toFixed(1)} Ha</div>
+                        <div><span class="text-slate-500 block text-[9px] uppercase">LAI</span>${Number(item.leaf_area_index || 0).toFixed(2)}</div>
+                        <div><span class="text-slate-500 block text-[9px] uppercase">Surface PAR</span>${Number(item.surface_par || 0).toFixed(1)} µmol</div>
+                        <div class="col-span-2 sm:col-span-1"><span class="text-slate-500 block text-[9px] uppercase">Total LER</span><strong class="text-emerald-400">${Number(item.total_ler || 0).toFixed(4)}</strong></div>
+                    </div>
+                </div>
+
+                ${hasPhoto ? `
+                <!-- Canopy Inspection Photo Preview -->
+                <div class="bg-slate-950/80 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                    <div class="font-bold text-cyan-400 border-b border-slate-800 pb-1 text-xs flex items-center justify-between">
+                        <span>📷 Drone Orthophoto / Inspection Photo</span>
+                        <span class="font-mono text-slate-400 text-[10px]">${item.image_path}</span>
+                    </div>
+                    <div class="rounded-lg overflow-hidden border border-slate-800 max-h-48 flex items-center justify-center bg-black/60">
+                        <img src="/static/${item.image_path}" class="max-h-44 object-contain mx-auto" onerror="this.onerror=null; this.src='/static/field_tm_weed.jpg';" />
+                    </div>
+                </div>
+                ` : `
+                <!-- In-Silico Parameter Notice -->
+                <div class="bg-emerald-950/40 p-3 rounded-xl border border-emerald-800/60 text-xs text-emerald-300">
+                    <span class="font-bold block mb-0.5">🌱 In-Silico Parameter Mode</span>
+                    <span class="text-[11px] text-slate-300">Simulation executed via pure in-silico mathematical modeling with 2.0m sterile circle buffer.</span>
+                </div>
+                `}
+
+                <!-- Climate & Carbon Valuation -->
+                <div class="bg-slate-950/80 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                    <div class="font-bold text-sky-400 border-b border-slate-800 pb-1 text-xs">
+                        Climate & Deforestation Claims
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 font-mono text-[11px] text-slate-300">
+                        <div><span class="text-slate-500 block text-[9px] uppercase">Avoided Tropical Deforestation (PLS)</span>${Number(item.avoided_land_ha || 0).toFixed(2)} Ha</div>
+                        <div><span class="text-slate-500 block text-[9px] uppercase">Climate Benefit</span>${Number(item.total_climate_benefit_tco2e || 0).toLocaleString()} tCO2e</div>
+                    </div>
+                </div>
+
+                <!-- AI Evaluation Snippet -->
+                <div class="bg-slate-950/80 p-3.5 rounded-xl border border-slate-800 space-y-2 text-xs">
+                    <div class="font-bold text-indigo-400 border-b border-slate-800 pb-1 flex items-center justify-between">
+                        <span>Gemini Multimodal AI Inference</span>
+                        <span class="text-[10px] font-mono text-emerald-400 font-bold">${ai.verification_status || 'VERIFIED'}</span>
+                    </div>
+                    <div class="space-y-1.5 text-[11px] text-slate-300 leading-relaxed">
+                        <div>
+                            <strong class="text-slate-200 block">System Efficiency Evaluation:</strong>
+                            <p class="text-slate-400">${ai.system_efficiency?.en || ai.system_efficiency || '-'}</p>
+                        </div>
+                        <div>
+                            <strong class="text-slate-200 block">Canopy & Agronomic Review:</strong>
+                            <p class="text-slate-400">${ai.agronomic_and_canopy_evaluation?.en || ai.agronomic_and_canopy_evaluation || '-'}</p>
+                        </div>
+                        <div>
+                            <strong class="text-slate-200 block">Operational Recommendations:</strong>
+                            <p class="text-slate-400">${ai.operational_recommendations?.en || ai.operational_recommendations || '-'}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+        }
+
+        // 9. HELPER FUNCTIONS
+        function formatTimestamp(isoStr) {
+            if (!isoStr) return '-';
+            try {
+                const d = new Date(isoStr);
+                if (isNaN(d.getTime())) return isoStr;
+                return d.toLocaleDateString('en-US', {
+                    year: 'numeric', month: 'short', day: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                });
+            } catch (e) {
+                return isoStr;
+            }
+        }
+
+        function showToast(icon, message) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = "bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-semibold animate-bounce pointer-events-auto";
+            toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('animate-bounce');
+                toast.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
+    </script>
+
+    <!-- Modular Floating AI Execution Terminal Partial -->
+    {% include 'partials/floating_terminal.html' %}
+</body>
+</html>

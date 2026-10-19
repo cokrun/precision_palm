@@ -2465,14 +2465,29 @@ def api_admin_history():
                 pls_percentage,
                 forest_saved_ha AS avoided_land_ha, forest_saved_ha,
                 carbon_tco2e AS total_climate_benefit_tco2e, carbon_tco2e,
-                sha256_hash AS sha256, sha256_hash
+                sha256_hash AS sha256, sha256_hash,
+                photo_urls, image_path, coords, slope, elevation,
+                soil_ph, soil_texture, ai_reasoning, vision_summary,
+                leaf_area_index, surface_par, canopy_cover,
+                biomass_t_ha, microclimate_cooling, soil_moisture_vwc,
+                recharge_m3_ha, potassium_recovered_kg, economic_benefit_usd
             FROM compute_audit_logs
             {where_clause}
             ORDER BY id DESC
             LIMIT ? OFFSET ?;
         """, params + [limit, offset])
         rows = cur.fetchall()
-        records = [dict(r) for r in rows]
+        records = []
+        for r in rows:
+            d = dict(r)
+            if d.get('photo_urls'):
+                try:
+                    d['photo_urls'] = json.loads(d['photo_urls'])
+                except Exception:
+                    d['photo_urls'] = [d['photo_urls']]
+            else:
+                d['photo_urls'] = [d.get('image_path')] if d.get('image_path') else []
+            records.append(d)
         conn.close()
     except Exception as e:
         records = [s for s in OFFICIAL_TELEMETRY_SEEDS if not search_q or search_q.lower() in s['crop_type'].lower() or search_q in str(s['id'])]
@@ -2575,8 +2590,21 @@ def record_unified_ai_log(feature_name, model_engine, latency_ms, status, prompt
 
 @app.route('/api/ai/logs', methods=['GET'])
 def api_get_ai_logs():
-    limit = min(1000, max(1, int(request.args.get('limit', 200))))
-    logs_map = {}  # keyed by sha256_hash or fallback unique key for clean deduplication
+    limit = min(1000, max(1, int(request.args.get('limit', 500))))
+    force_bq = request.args.get('source') == 'bigquery'
+    logs_map = {}
+    seen_hashes = set()
+
+    def _normalize_ts_epoch(ts_str):
+        if not ts_str:
+            return 0.0
+        s = str(ts_str).strip()
+        s_clean = s.replace(' WIB', '').replace(' UTC', '').strip()
+        try:
+            dt = datetime.fromisoformat(s_clean)
+            return dt.timestamp()
+        except Exception:
+            return 0.0
 
     # 1. Baca data dari SQLite lokal (sumber data paling aktual & real-time)
     try:
@@ -2604,7 +2632,10 @@ def api_get_ai_logs():
         rows = cur.fetchall()
         for r in rows:
             d = dict(r)
-            key = d.get('sha256_hash') or f"{d.get('timestamp')}_{d.get('feature_name')}_{d.get('id')}"
+            if d.get('sha256_hash'):
+                seen_hashes.add(d.get('sha256_hash'))
+            # Use unique SQLite ID key so no individual records are lost
+            key = f"SQLITE_{d.get('id')}"
             logs_map[key] = d
 
         # Juga gabungkan transaksi komputasi biofisika & karbon dari compute_audit_logs
@@ -2618,10 +2649,13 @@ def api_get_ai_logs():
             c_rows = cur.fetchall()
             for cr in c_rows:
                 h = cr['sha256_hash'] or f"COMPUTE_{cr['id']}"
-                if h not in logs_map:
-                    logs_map[h] = {
+                if h not in seen_hashes:
+                    ts_val = cr['created_at'] or get_wib_now()
+                    if 'WIB' not in str(ts_val) and 'UTC' not in str(ts_val):
+                        ts_val = f"{ts_val} WIB"
+                    logs_map[f"COMPUTE_{cr['id']}"] = {
                         "id": cr['id'],
-                        "timestamp": cr['created_at'] or get_wib_now(),
+                        "timestamp": ts_val,
                         "feature_name": "Agroecological Intercrop Compatibility Audit",
                         "model_engine": "Biophysical LER & Carbon Computation",
                         "latency_ms": 115,
@@ -2630,6 +2664,8 @@ def api_get_ai_logs():
                         "raw_response": f"LER Score: {cr['ler_score']} | Forest Saved: {cr['forest_saved_ha']} Ha | Carbon: {cr['carbon_tco2e']} tCO2e | PLS: {cr['pls_percentage']}%",
                         "sha256_hash": cr['sha256_hash']
                     }
+                    if cr['sha256_hash']:
+                        seen_hashes.add(cr['sha256_hash'])
         except Exception:
             pass
 
@@ -2637,55 +2673,61 @@ def api_get_ai_logs():
     except Exception as e_sql:
         print(f"[SQLite AI Logs Read Error]: {e_sql}")
 
-    # 2. Coba baca dari BigQuery (jika online) dan gabungkan entri yang belum ada
-    try:
-        from cloud_services.bigquery_logger import _get_bq_client
-        client = _get_bq_client()
-        if client:
-            project_id = Config.PROJECT_ID
-            dataset_id = Config.BQ_DATASET
-            query = f"""
-                SELECT id, timestamp, feature_name, model_engine, latency_ms, status, prompt_input, raw_response, sha256_hash
-                FROM `{project_id}.{dataset_id}.ai_execution_logs`
-                ORDER BY timestamp DESC
-                LIMIT {limit}
-            """
-            results = client.query(query).result(timeout=4.0)
-            for r in results:
-                k = r.sha256_hash or f"{r.timestamp}_{r.feature_name}_{r.id}"
-                if k not in logs_map:
-                    logs_map[k] = {
-                        "id": r.id,
-                        "timestamp": str(r.timestamp),
-                        "feature_name": r.feature_name,
-                        "model_engine": r.model_engine,
-                        "latency_ms": r.latency_ms,
-                        "status": r.status,
-                        "prompt_input": r.prompt_input,
-                        "raw_response": r.raw_response,
-                        "sha256_hash": r.sha256_hash
-                    }
-    except Exception as e_bq:
-        # Graceful fallback: SQLite sudah terisi
-        pass
+    # 2. Hanya baca dari BigQuery jika data lokal kosong (< 5 records) atau diminta eksplisit
+    if force_bq or len(logs_map) < 5:
+        try:
+            from cloud_services.bigquery_logger import _get_bq_client
+            client = _get_bq_client()
+            if client:
+                project_id = Config.PROJECT_ID
+                dataset_id = Config.BQ_DATASET
+                query = f"""
+                    SELECT id, timestamp, feature_name, model_engine, latency_ms, status, prompt_input, raw_response, sha256_hash
+                    FROM `{project_id}.{dataset_id}.ai_execution_logs`
+                    ORDER BY timestamp DESC
+                    LIMIT {limit}
+                """
+                results = client.query(query).result(timeout=2.5)
+                for r in results:
+                    k = r.sha256_hash or f"{r.timestamp}_{r.feature_name}_{r.id}"
+                    if k not in seen_hashes and f"BQ_{r.id}" not in logs_map:
+                        logs_map[f"BQ_{r.id}"] = {
+                            "id": r.id,
+                            "timestamp": str(r.timestamp),
+                            "feature_name": r.feature_name,
+                            "model_engine": r.model_engine,
+                            "latency_ms": r.latency_ms,
+                            "status": r.status,
+                            "prompt_input": r.prompt_input,
+                            "raw_response": r.raw_response,
+                            "sha256_hash": r.sha256_hash
+                        }
+                        if r.sha256_hash:
+                            seen_hashes.add(r.sha256_hash)
+        except Exception as e_bq:
+            pass
 
     logs = list(logs_map.values())
-    # Sort descending by timestamp / id
-    logs.sort(key=lambda x: str(x.get('timestamp') or ''), reverse=True)
+    # Sort descending by timestamp parsed epoch, with numeric ID as secondary tie-breaker
+    logs.sort(key=lambda x: (_normalize_ts_epoch(x.get('timestamp')), int(x.get('id') or 0)), reverse=True)
     logs = logs[:limit]
 
     total = len(logs)
     avg_latency = round(sum(l.get('latency_ms', 0) for l in logs) / max(1, total), 1) if total > 0 else 0
     success_count = sum(1 for l in logs if l.get('status') == 'SUCCESS')
 
-    return jsonify({
+    resp = jsonify({
         "success": True,
         "status": "success",
         "total": total,
         "avg_latency_ms": avg_latency,
         "success_rate_pct": round((success_count / max(1, total)) * 100, 1) if total > 0 else 100,
         "logs": logs
-    }), 200
+    })
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp, 200
 
 @app.route('/api/ai/test-ping', methods=['POST'])
 def api_test_ai_ping():
@@ -5408,27 +5450,107 @@ def run_simulation():
     raw_hash_seed = f"COMPUTE|AGE:{palm_age}|AREA:{land_area}|CROP:{crop_name}|LER:{ler_res['total_ler']}|TIME:{now_wib}"
     sha256_seal = hashlib.sha256(raw_hash_seed.encode('utf-8')).hexdigest().upper()
 
+    # Parse photo_urls from multi-photo selection
+    raw_photo_urls = data.get('photo_urls') or ([data.get('image_sample')] if data.get('image_sample') else ['sawit_drone.jpg'])
+    if isinstance(raw_photo_urls, (list, tuple, set)):
+        photo_urls = list(raw_photo_urls)
+    else:
+        photo_urls = [str(raw_photo_urls)]
+
+    # Compute key biophysical metrics for persistent dossier
+    palm_agb = round(92.4 * ((max(1.0, palm_age) / 6.0) ** 0.6), 1)
+    comp_agb = 36.0
+    total_agb = round(palm_agb + comp_agb, 1)
+    cover_pct = float(geometry_res.get('canopy_cover_percentage', 65.4))
+    delta_temp = round(-3.8 * (cover_pct / 100.0), 1)
+    sponge_boost = 12.8 if ler_res.get('total_ler', 1.0) > 1.0 else 7.7
+    vwc_total = round(22.0 + sponge_boost, 1)
+    annual_rain = 2188.0
+    cn_post = round(82.0 - (18.0 * (1.0 if ler_res.get('total_ler', 1.0) > 1.0 else 0.5)))
+    recharge_per_ha = round((annual_rain * (1.0 - (cn_post / 100.0))) * 10.0 * (1.25 if ler_res.get('total_ler', 1.0) > 1.0 else 1.0))
+    fronds_per_ha = round(10.8 * (1.0 if palm_age > 4.0 else 0.6), 1)
+    k_recovered_kg = round(fronds_per_ha * 3.35, 1)
+    econ_total = float(economic_res.get('total_economic_benefit_usd', 4900.0))
+
     record_id = None
     try:
         record_id = save_simulation_record(
             palm_age=palm_age, land_area=land_area, crop_name=crop_name,
             leaf_area_index=canopy_res.get('leaf_area_index', 0.0), surface_par=canopy_res.get('surface_par_umol_m2_s', 0.0),
             total_ler=ler_res.get('total_ler', 0.0), avoided_land_ha=climate_res.get('avoided_land_ha', 0.0),
-            total_climate_benefit_tco2e=climate_res.get('total_climate_benefit_tco2e', 0.0), sha256_hash=sha256_seal
+            total_climate_benefit_tco2e=climate_res.get('total_climate_benefit_tco2e', 0.0), sha256_hash=sha256_seal,
+            ai_response_json=data.get('ai_reasoning'),
+            image_path=data.get('image_sample'),
+            photo_urls=photo_urls,
+            coords=data.get('coords', '0.824100, 99.561200'),
+            slope=float(data.get('slope', 4.5)),
+            elevation=float(data.get('elevation', 220.0)),
+            soil_ph=soil_ph,
+            soil_texture=soil_texture,
+            ai_reasoning=data.get('ai_reasoning'),
+            vision_summary=data.get('vision_summary'),
+            canopy_cover=cover_pct,
+            biomass_t_ha=total_agb,
+            microclimate_cooling=delta_temp,
+            soil_moisture_vwc=vwc_total,
+            recharge_m3_ha=recharge_per_ha,
+            potassium_recovered_kg=k_recovered_kg,
+            economic_benefit_usd=econ_total
         )
     except Exception as e_sql:
         print(f"[Sim SQLite Warning]: {e_sql}")
-    # Consistent sequential simulation ID assignment
+    # Consistent sequential simulation ID assignment fallback if DB write failed
+    if not record_id:
+        try:
+            store = read_local_store()
+            existing_sim_ids = [int(s.get('id')) for s in store.get('simulator_history', []) if str(s.get('id', '')).isdigit()]
+            if existing_sim_ids and max(existing_sim_ids) >= 90000:
+                record_id = max(existing_sim_ids) + 1
+            else:
+                record_id = 90292
+        except Exception:
+            record_id = 90292
+
+    # Persist complete simulation package to store['simulator_history']
     try:
         store = read_local_store()
-        existing_sim_ids = [int(s.get('id')) for s in store.get('simulator_history', []) if str(s.get('id', '')).isdigit()]
-        if existing_sim_ids and max(existing_sim_ids) >= 90000:
-            record_id = max(existing_sim_ids) + 1
-        elif not record_id:
-            record_id = 90258
-    except Exception:
-        if not record_id:
-            record_id = 90273
+        sim_history = store.setdefault('simulator_history', [])
+        new_sim_record = {
+            "id": record_id,
+            "created_at": now_wib,
+            "id_kebun": data.get('id_kebun', 10),
+            "kode_kebun": data.get('kode_kebun', 'EST-MDN-010'),
+            "palm_age": palm_age,
+            "land_area": land_area,
+            "crop_name": crop_name,
+            "total_ler": ler_res.get('total_ler', 0.0),
+            "avoided_land_ha": climate_res.get('avoided_land_ha', 0.0),
+            "total_climate_benefit_tco2e": climate_res.get('total_climate_benefit_tco2e', 0.0),
+            "leaf_area_index": canopy_res.get('leaf_area_index', 0.0),
+            "surface_par": canopy_res.get('surface_par_umol_m2_s', 0.0),
+            "canopy_cover": cover_pct,
+            "biomass_t_ha": total_agb,
+            "microclimate_cooling": delta_temp,
+            "soil_moisture_vwc": vwc_total,
+            "recharge_m3_ha": recharge_per_ha,
+            "potassium_recovered_kg": k_recovered_kg,
+            "economic_benefit_usd": econ_total,
+            "sha256": sha256_seal,
+            "vision_summary": data.get('vision_summary', {}),
+            "ai_reasoning": data.get('ai_reasoning', {}),
+            "image_sample": data.get('image_sample', 'sawit_drone.jpg'),
+            "photo_urls": photo_urls,
+            "coords": data.get('coords', '0.824100, 99.561200'),
+            "slope": float(data.get('slope', 4.5)),
+            "elevation": float(data.get('elevation', 220.0)),
+            "soil_ph": soil_ph,
+            "soil_texture": soil_texture
+        }
+        sim_history.insert(0, new_sim_record)
+        store['simulator_history'] = sim_history[:100]
+        save_local_store(store)
+    except Exception as e_store:
+        print(f"[Store Simulator History Warning]: {e_store}")
 
     try:
         record_unified_ai_log(

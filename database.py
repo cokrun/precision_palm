@@ -211,6 +211,35 @@ def init_db(db_path: Optional[str] = None) -> None:
             );
         """)
 
+        cursor.execute("PRAGMA table_info(compute_audit_logs);")
+        existing_comp_cols = [row[1] for row in cursor.fetchall()]
+        needed_comp_cols = [
+            ("photo_urls", "TEXT"),
+            ("image_path", "TEXT"),
+            ("coords", "TEXT DEFAULT '0.824100, 99.561200'"),
+            ("slope", "REAL DEFAULT 4.5"),
+            ("elevation", "REAL DEFAULT 220.0"),
+            ("soil_ph", "REAL DEFAULT 5.5"),
+            ("soil_texture", "TEXT DEFAULT 'sandy_loam'"),
+            ("ai_reasoning", "TEXT"),
+            ("vision_summary", "TEXT"),
+            ("leaf_area_index", "REAL DEFAULT 5.27"),
+            ("surface_par", "REAL DEFAULT 218.5"),
+            ("canopy_cover", "REAL DEFAULT 65.4"),
+            ("biomass_t_ha", "REAL DEFAULT 128.4"),
+            ("microclimate_cooling", "REAL DEFAULT -2.8"),
+            ("soil_moisture_vwc", "REAL DEFAULT 34.8"),
+            ("recharge_m3_ha", "REAL DEFAULT 1850.0"),
+            ("potassium_recovered_kg", "REAL DEFAULT 36.2"),
+            ("economic_benefit_usd", "REAL DEFAULT 4900.0")
+        ]
+        for col_name, col_def in needed_comp_cols:
+            if col_name not in existing_comp_cols:
+                try:
+                    cursor.execute(f"ALTER TABLE compute_audit_logs ADD COLUMN {col_name} {col_def};")
+                except Exception:
+                    pass
+
         # 5. EcoGreen Compliance Certificates Table with 4-Quarter Dynamic State Columns
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS kebun_sertifikat_ecogreen (
@@ -1422,6 +1451,21 @@ def save_simulation_record(
     compliance_badges: Any = None,
     sha256_hash: Optional[str] = None,
     db_path: Optional[str] = None,
+    photo_urls: Optional[Any] = None,
+    coords: Optional[str] = None,
+    slope: Optional[float] = None,
+    elevation: Optional[float] = None,
+    soil_ph: Optional[float] = None,
+    soil_texture: Optional[str] = None,
+    ai_reasoning: Optional[Any] = None,
+    vision_summary: Optional[Any] = None,
+    canopy_cover: Optional[float] = None,
+    biomass_t_ha: Optional[float] = None,
+    microclimate_cooling: Optional[float] = None,
+    soil_moisture_vwc: Optional[float] = None,
+    recharge_m3_ha: Optional[float] = None,
+    potassium_recovered_kg: Optional[float] = None,
+    economic_benefit_usd: Optional[float] = None,
     **kwargs
 ) -> int:
     """
@@ -1438,17 +1482,47 @@ def save_simulation_record(
 
     pls_pct = round((1.0 - (1.0 / total_ler)) * 100.0, 2) if total_ler > 1.0 else 0.0
 
+    # Format photo_urls into JSON array string
+    photo_urls_val = None
+    if photo_urls is not None:
+        if isinstance(photo_urls, (list, tuple, set)):
+            photo_urls_val = json.dumps(list(photo_urls))
+        else:
+            photo_urls_val = str(photo_urls)
+    elif image_path:
+        photo_urls_val = json.dumps([str(image_path)])
+
+    ai_reasoning_val = None
+    if ai_reasoning is not None:
+        ai_reasoning_val = json.dumps(ai_reasoning) if isinstance(ai_reasoning, (dict, list)) else str(ai_reasoning)
+    elif ai_response_json is not None:
+        ai_reasoning_val = json.dumps(ai_response_json) if isinstance(ai_response_json, (dict, list)) else str(ai_response_json)
+
+    vision_summary_val = None
+    if vision_summary is not None:
+        vision_summary_val = json.dumps(vision_summary) if isinstance(vision_summary, (dict, list)) else str(vision_summary)
+
     conn = get_db_connection(db_path)
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO compute_audit_logs (
             request_id, stand_age, land_area, crop_type, ler_score,
-            pls_percentage, forest_saved_ha, carbon_tco2e, sha256_hash, sync_bigquery
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0);
+            pls_percentage, forest_saved_ha, carbon_tco2e, sha256_hash, sync_bigquery, created_at,
+            photo_urls, image_path, coords, slope, elevation, soil_ph, soil_texture,
+            ai_reasoning, vision_summary, leaf_area_index, surface_par, canopy_cover,
+            biomass_t_ha, microclimate_cooling, soil_moisture_vwc, recharge_m3_ha,
+            potassium_recovered_kg, economic_benefit_usd
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     """, (
         req_id, float(palm_age), float(land_area), str(crop_name), float(total_ler),
         float(pls_pct), float(avoided_land_ha), float(total_climate_benefit_tco2e),
-        str(sha256_hash)
+        str(sha256_hash), now_str,
+        photo_urls_val, str(image_path or ''), str(coords or '0.824100, 99.561200'),
+        float(slope or 4.5), float(elevation or 220.0), float(soil_ph or 5.5), str(soil_texture or 'sandy_loam'),
+        ai_reasoning_val, vision_summary_val, float(leaf_area_index or 5.27), float(surface_par or 218.5),
+        float(canopy_cover or 65.4), float(biomass_t_ha or 128.4), float(microclimate_cooling or -2.8),
+        float(soil_moisture_vwc or 34.8), float(recharge_m3_ha or 1850.0), float(potassium_recovered_kg or 36.2),
+        float(economic_benefit_usd or 4900.0)
     ))
     record_id = cursor.lastrowid
     conn.commit()
@@ -1459,6 +1533,18 @@ def save_simulation_record(
 def save_experiment(*args, **kwargs) -> int:
     """Convenience alias for save_simulation_record guaranteeing zero regression."""
     return save_simulation_record(*args, **kwargs)
+
+def _parse_sim_row(row: Any) -> Dict[str, Any]:
+    """Helper to deserialize JSON fields in a simulation row dict."""
+    d = dict(row)
+    if 'photo_urls' in d and d['photo_urls']:
+        try:
+            d['photo_urls'] = json.loads(d['photo_urls'])
+        except Exception:
+            d['photo_urls'] = [d['photo_urls']]
+    else:
+        d['photo_urls'] = [d.get('image_path')] if d.get('image_path') else []
+    return d
 
 def get_recent_simulations(limit: int = 10, db_path: Optional[str] = None) -> List[Dict[str, Any]]:
     """Retrieves recent simulation audit records ordered by ID DESC."""
@@ -1472,14 +1558,18 @@ def get_recent_simulations(limit: int = 10, db_path: Optional[str] = None) -> Li
             ler_score AS total_ler, pls_percentage,
             forest_saved_ha AS avoided_land_ha,
             carbon_tco2e AS total_climate_benefit_tco2e,
-            sha256_hash
+            sha256_hash, photo_urls, image_path, coords, slope, elevation,
+            soil_ph, soil_texture, ai_reasoning, vision_summary,
+            leaf_area_index, surface_par, canopy_cover,
+            biomass_t_ha, microclimate_cooling, soil_moisture_vwc,
+            recharge_m3_ha, potassium_recovered_kg, economic_benefit_usd
         FROM compute_audit_logs
         ORDER BY id DESC
         LIMIT ?;
     """, (int(limit),))
     rows = cursor.fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    return [_parse_sim_row(r) for r in rows]
 
 def get_simulation_log_by_id(log_id: int, db_path: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Retrieves a single computation record by its numeric primary key."""
@@ -1493,13 +1583,17 @@ def get_simulation_log_by_id(log_id: int, db_path: Optional[str] = None) -> Opti
             ler_score AS total_ler, pls_percentage,
             forest_saved_ha AS avoided_land_ha,
             carbon_tco2e AS total_climate_benefit_tco2e,
-            sha256_hash
+            sha256_hash, photo_urls, image_path, coords, slope, elevation,
+            soil_ph, soil_texture, ai_reasoning, vision_summary,
+            leaf_area_index, surface_par, canopy_cover,
+            biomass_t_ha, microclimate_cooling, soil_moisture_vwc,
+            recharge_m3_ha, potassium_recovered_kg, economic_benefit_usd
         FROM compute_audit_logs
         WHERE id = ?;
     """, (int(log_id),))
     row = cursor.fetchone()
     conn.close()
-    return dict(row) if row else None
+    return _parse_sim_row(row) if row else None
 
 def get_unsynced_bigquery_records(table_name: str, limit: int = 50, db_path: Optional[str] = None) -> List[Dict[str, Any]]:
     """Fetches records marked with sync_bigquery = 0 for streaming ingestion."""

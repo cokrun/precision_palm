@@ -160,8 +160,8 @@
                                     <span class="text-slate-500">Baris:</span>
                                     <select id="aiLogPageSizeSelect" onchange="onPageSizeChanged(this.value)" class="bg-transparent text-slate-900 dark:text-white font-bold focus:outline-none cursor-pointer">
                                         <option value="10" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">10</option>
-                                        <option value="25" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">25</option>
-                                        <option value="50" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white" selected>50</option>
+                                        <option value="20" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white" selected>20</option>
+                                        <option value="50" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">50</option>
                                         <option value="100" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">100</option>
                                     </select>
                                 </div>
@@ -278,7 +278,7 @@
         let cachedLogs = [];
         let filteredLogs = [];
         let currentPage = 1;
-        let pageSize = 50;
+        let pageSize = 20;
         let activeModalLog = null;
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -295,7 +295,7 @@
         // 1. Fetch Real-Time AI Execution Logs dari Endpoint Backend
         async function loadLiveAiLogs(isSilent = false) {
             try {
-                const res = await fetch('/api/ai/logs?limit=500');
+                const res = await fetch(`/api/ai/logs?limit=500&_t=${Date.now()}`, { cache: 'no-store' });
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 
                 const data = await res.json();
@@ -497,7 +497,7 @@
         }
 
         function onPageSizeChanged(newSize) {
-            pageSize = parseInt(newSize, 10) || 50;
+            pageSize = parseInt(newSize, 10) || 20;
             currentPage = 1;
             applyFiltersAndRender();
         }

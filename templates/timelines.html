@@ -379,31 +379,43 @@
     </div>
 
     <!-- STREAMING_CHUNK:Rendering main layout with foreman input form and AI Vision scanner -->
-    <!-- TATA LETAK UTAMA: FORMULIR INPUT LAPANGAN (KIRI) VS SCANNER AI RETICLE HUD (KANAN) -->
+    <!-- ============================================================== -->
+    <!-- ROW 1: 1/4 GALERI THUMBNAILS KIRI & 3/4 SCANNER AI KANAN       -->
+    <!-- ============================================================== -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         
-        <!-- KOLOM KIRI (5 SPAN): DRONE EVIDENCE GALLERY (ATAS) & STATUTORY COMPLIANCE SUITE (BAWAH) -->
-        <div class="lg:col-span-5 space-y-4">
+        <!-- KOLOM 1 (1/4 = lg:col-span-3): DRONE EVIDENCE & IN-SITU PHOTOS GALLERY -->
+        <div class="lg:col-span-3 space-y-3">
             
             <!-- 1. DRONE EVIDENCE GALLERY (COMPACT THUMBNAILS & PAGINATION) -->
-            <div id="containerEvidenceThumbnails" class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3.5">
+            <div id="containerEvidenceThumbnails" class="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
                 <!-- Header -->
-                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                     <div class="flex items-center gap-2 text-xs font-mono font-bold text-slate-800 dark:text-slate-200">
                         <span>📷</span>
                         <span class="tracking-wider uppercase">DRONE EVIDENCE</span>
                     </div>
-                    <span class="px-2.5 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-700/60 font-mono text-[10px] font-bold">
+                    <span class="px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-700/60 font-mono text-[9px] font-bold">
                         Gemini 3.8
                     </span>
                 </div>
 
+                <!-- Biophysical & Statutory Intelligence Sub-Pill (Image Parity) -->
+                <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950/70 border border-slate-800 text-[10px] font-mono">
+                    <span class="text-emerald-400 font-bold flex items-center gap-1.5 truncate">
+                        <span class="text-xs">≡</span> <span>Biophysical &amp; Statutory Intelligence</span>
+                    </span>
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-600/70 text-[9px] font-bold shrink-0">
+                        Gemini v3.8 Flash
+                    </span>
+                </div>
+
                 <!-- Dashed Upload Drone Telemetry Box -->
-                <div onclick="document.getElementById('fileInputMonitoringPhoto').click()" class="border-2 border-dashed border-slate-300 dark:border-slate-800 hover:border-emerald-500 rounded-2xl p-4 text-center cursor-pointer transition bg-slate-50 dark:bg-slate-950/70 group">
+                <div onclick="document.getElementById('fileInputMonitoringPhoto').click()" class="border-2 border-dashed border-slate-300 dark:border-slate-800 hover:border-emerald-500 rounded-2xl p-3 text-center cursor-pointer transition bg-slate-50 dark:bg-slate-950/70 group">
                     <div class="flex flex-col items-center justify-center gap-1">
-                        <span class="text-2xl group-hover:scale-110 transition-transform">📷</span>
+                        <span class="text-xl group-hover:scale-110 transition-transform">📷</span>
                         <span class="text-xs font-bold text-slate-800 dark:text-slate-200 font-sans">Upload Drone Telemetry</span>
-                        <span class="text-[9.5px] text-slate-400 font-mono">JPG/PNG/GeoTIFF</span>
+                        <span class="text-[9px] text-slate-400 font-mono">JPG/PNG/GeoTIFF</span>
                     </div>
                 </div>
                 <input type="file" id="fileInputMonitoringPhoto" multiple accept="image/*,.tif,.tiff" class="hidden" onchange="handleMonitoringMultiPhotosSelected(event)">
@@ -423,14 +435,14 @@
                 <div id="hudThumbnailsStrip" class="space-y-2 py-1"></div>
 
                 <!-- Pagination Footer Bar -->
-                <div class="flex items-center justify-between pt-1 font-mono text-[11px] text-slate-400">
-                    <button type="button" id="btnPrevEvidencePage" onclick="changeEvidenceGalleryPage(-1)" class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 font-bold transition cursor-pointer flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
+                <div class="flex items-center justify-between pt-1 font-mono text-[10px] text-slate-400">
+                    <button type="button" id="btnPrevEvidencePage" onclick="changeEvidenceGalleryPage(-1)" class="px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 font-bold transition cursor-pointer flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
                         <span>◀</span> <span>Prev</span>
                     </button>
-                    <span id="lblGalleryPaginationInfo" class="text-slate-300 text-[10.5px] font-medium text-center">
+                    <span id="lblGalleryPaginationInfo" class="text-slate-300 text-[10px] font-medium text-center">
                         Page 1 of 1 (1 Photos)
                     </span>
-                    <button type="button" id="btnNextEvidencePage" onclick="changeEvidenceGalleryPage(1)" class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 font-bold transition cursor-pointer flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <button type="button" id="btnNextEvidencePage" onclick="changeEvidenceGalleryPage(1)" class="px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 font-bold transition cursor-pointer flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
                         <span>Next</span> <span>▶</span>
                     </button>
                 </div>
@@ -439,7 +451,124 @@
                 <button type="button" id="btnRemoveSelectedPhotos" onclick="removeSelectedEvidencePhotos()" class="hidden"></button>
             </div>
 
-            <!-- 2. AUDIT & STATUTORY COMPLIANCE SUITE (POSISI DI BAWAH GALERI) -->
+        </div>
+
+        <!-- KOLOM 2 (3/4 = lg:col-span-9): SCANNER AI VISION RETICLE HUD -->
+        <div class="lg:col-span-9 space-y-3">
+            
+            <!-- 1. MULTIMODAL AI VISION RETICLE HUD & IN-SITU SCANNER -->
+            <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3.5">
+                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5 flex-wrap gap-2">
+                    <div>
+                        <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                            MULTIMODAL AI VISION RETICLE HUD &bull; IN-SITU SCANNER
+                        </span>
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 font-sans">
+                            <span>🎯</span> <span data-i18n="time_ai_scan_heading">Field Activity Evidence Object Scanning</span>
+                        </h3>
+                    </div>
+                    <span id="tagAiScannerStatus" class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold" data-i18n="time_ai_scanner_ready">
+                        Physical Entities Verified (7 Localized)
+                    </span>
+                </div>
+
+                <!-- Persistent 4D Telemetry HUD Banner & Perspective Readout -->
+                <div id="timelines4dTelemetryHud" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 text-[10px] font-mono flex flex-wrap items-center justify-between gap-1.5 text-slate-700 dark:text-slate-200 shadow-sm">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-sky-500 dark:text-sky-400">🛰️</span>
+                        <span id="txtTimelines4dCoords">4D GPS: 0.824100° N, 99.561200° E</span>
+                        <span class="text-slate-400 dark:text-slate-600">&bull;</span>
+                        <span id="txtTimelines4dAlt" class="text-emerald-600 dark:text-emerald-400 font-bold">Alt AGL: 1.6m</span>
+                        <span class="text-slate-400 dark:text-slate-600">&bull;</span>
+                        <span id="txtTimelines4dPitch" class="text-teal-600 dark:text-teal-400 font-bold">Pitch: -12.0°</span>
+                    </div>
+                    <span id="badgeTimelinesPerspective" class="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500 font-bold text-[9px] flex items-center gap-1 shadow-sm">
+                        <span id="iconTimelinesPerspective">📱</span>
+                        <span id="textTimelinesPerspective">Perspective: Terrestrial In-Situ Handheld</span>
+                    </span>
+                </div>
+
+                <!-- Kanvas Foto & Retikel Laser HUD -->
+                <div id="timelinePhotoContainer" class="relative w-full min-h-[380px] sm:min-h-[460px] max-h-[520px] rounded-2xl overflow-hidden bg-slate-950 border border-slate-300 dark:border-slate-700 shadow-inner group flex items-center justify-center">
+                    <img id="imgMonitoringEvidencePreview" 
+                         src="/static/img/sawit_drone.jpg" 
+                         alt="Field Evidence Dynamically Loaded from Database" 
+                         class="w-full h-full min-h-[380px] sm:min-h-[460px] max-h-[520px] object-cover"
+                         onerror="handleImgEvidenceError(this)">
+
+                    <!-- Empty State Fallback -->
+                    <div id="emptyEvidenceStateTimelines" class="hidden absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 space-y-2 text-center z-15">
+                        <span class="text-3xl">📷</span>
+                        <p class="text-xs text-slate-300 font-mono" data-i18n="empty_evidence_text">Belum ada foto inspeksi lapangan untuk berkas ini. Silakan lakukan pengambilan foto melalui modul Mobile PWA.</p>
+                        <a href="/mobile" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow transition cursor-pointer">
+                            Buka Mobile PWA
+                        </a>
+                    </div>
+
+                    <!-- Canvas Reticle -->
+                    <canvas id="reticleMonitoringCanvas" class="absolute inset-0 w-full h-full pointer-events-none z-10"></canvas>
+
+                    <!-- Dual Cross-Laser Grid Sweeper (Stage 2A Baseline Standard) -->
+                    <div id="laserSweepV" class="laser-sweep-v hidden pointer-events-none z-25"></div>
+                    <div id="laserSweepH" class="laser-sweep-h hidden pointer-events-none z-25"></div>
+
+                    <!-- 2D Bounding Boxes Overlay Containers (Unified Vision Engine Integration) -->
+                    <div id="timelineBBoxesOverlay" class="absolute inset-0 pointer-events-none z-20"></div>
+                    <div id="stageBBoxesOverlay" class="absolute inset-0 pointer-events-none z-20"></div>
+                    <div id="monitoringBBoxesOverlay" class="absolute inset-0 pointer-events-none z-20"></div>
+                    <div id="aiReticleSvgOverlay" class="absolute inset-0 pointer-events-none z-20"></div>
+
+                    <!-- Top-Left Badge: Audit Ratified by AI Agent (Image 1 Parity) -->
+                    <div class="absolute top-3 left-3 bg-slate-950/85 backdrop-blur-md border border-emerald-500/60 px-3 py-1.5 rounded-xl text-xs font-mono text-emerald-400 font-bold flex items-center gap-2 shadow-lg z-30">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span id="timelineScanStatusText">Audit Ratified by AI Agent</span>
+                    </div>
+
+                    <!-- Bottom-Left Filename Pill -->
+                    <div class="absolute bottom-3 left-3 bg-slate-950/85 backdrop-blur-md border border-cyan-500/50 px-3 py-1.5 rounded-lg text-xs font-mono text-cyan-300 flex items-center gap-2 shadow z-30">
+                        <span>📷</span> <span id="lblActiveEvidenceFilename">EV-EST-MDN-010-2026-9217.jpg</span>
+                    </div>
+
+                    <!-- Top-Right Rescan Button: Rescan Single (Image 1 Parity) -->
+                    <div class="absolute top-3 right-3 flex items-center gap-1.5 z-30">
+                        <button type="button" onclick="triggerAiVisionRescan()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/30 transition flex items-center gap-2 cursor-pointer">
+                            <span class="text-base">⚡</span> <span data-i18n="time_btn_rescan">Rescan With Ai</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Segel Kriptografis FIPS 180-4 & Ringkasan Auditor Lapangan AI (Stage Evidence Seal) -->
+                <div class="flex flex-wrap items-center justify-between gap-2.5 p-3 rounded-2xl bg-slate-900/90 border border-emerald-500/40 text-xs font-mono shadow-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm">🔒</span>
+                        <div>
+                            <span class="text-[9px] text-slate-400 uppercase tracking-wider block">FIPS 180-4 SHA-256 SEAL:</span>
+                            <span id="stageShaSealBadge" class="text-[10px] text-cyan-400 font-bold tracking-wider font-mono">8F43Q1BFAPML</span>
+                        </div>
+                    </div>
+                    <button type="button" onclick="triggerAiVisionRescan()" class="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-emerald-400 transition cursor-pointer" title="Refresh Analysis">
+                        <span class="text-base">🔄</span>
+                    </button>
+                    <div class="flex items-center gap-2 max-w-sm">
+                        <span class="text-sm">📝</span>
+                        <div>
+                            <span class="text-[9px] text-emerald-400 uppercase tracking-wider block font-bold">AUTONOMOUS AUDITOR CRITIQUE:</span>
+                            <p id="stageAuditorSummaryText" class="text-[10.5px] text-slate-300 font-sans leading-tight">Silvicultural integrity ratified.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- ROW 2: STATUTORY COMPLIANCE SUITE (7 SPAN) & FORMULIR MANDOR (5 SPAN) -->
+    <!-- ============================================================== -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start mt-5">
+        
+        <!-- KOLOM 1 (7 SPAN): AUDIT & STATUTORY COMPLIANCE SUITE -->
+        <div class="lg:col-span-7 space-y-4">
             <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3.5">
                 <div class="bg-white dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 p-3 sm:p-4 space-y-3 shadow-inner">
                     <!-- Tab Switcher Navigation -->
@@ -585,116 +714,10 @@
                     </div>
                 </div>
             </div>
-
         </div>
 
-        <!-- KOLOM KANAN (7 SPAN): SCANNER AI VISION RETICLE HUD (ATAS) & FORMULIR MANDOR (BAWAH) -->
-        <div class="lg:col-span-7 space-y-4">
-            
-            <!-- 1. MULTIMODAL AI VISION RETICLE HUD & IN-SITU SCANNER -->
-            <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3.5">
-                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
-                    <div>
-                        <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
-                            MULTIMODAL AI VISION RETICLE HUD &bull; IN-SITU SCANNER
-                        </span>
-                        <h3 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 font-sans">
-                            <span>🎯</span> <span data-i18n="time_ai_scan_heading">Field Activity Evidence Object Scanning</span>
-                        </h3>
-                    </div>
-                    <span id="tagAiScannerStatus" class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold" data-i18n="time_ai_scanner_ready">
-                        Physical Entities Verified (7 Localized)
-                    </span>
-                </div>
-
-                <!-- Persistent 4D Telemetry HUD Banner & Perspective Readout -->
-                <div id="timelines4dTelemetryHud" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 text-[10px] font-mono flex flex-wrap items-center justify-between gap-1.5 text-slate-700 dark:text-slate-200 shadow-sm">
-                    <div class="flex items-center gap-1.5">
-                        <span class="text-sky-500 dark:text-sky-400">🛰️</span>
-                        <span id="txtTimelines4dCoords">4D GPS: 0.824100° N, 99.561200° E</span>
-                        <span class="text-slate-400 dark:text-slate-600">&bull;</span>
-                        <span id="txtTimelines4dAlt" class="text-emerald-600 dark:text-emerald-400 font-bold">Alt AGL: 1.6m</span>
-                        <span class="text-slate-400 dark:text-slate-600">&bull;</span>
-                        <span id="txtTimelines4dPitch" class="text-teal-600 dark:text-teal-400 font-bold">Pitch: -12.0°</span>
-                    </div>
-                    <span id="badgeTimelinesPerspective" class="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500 font-bold text-[9px] flex items-center gap-1 shadow-sm">
-                        <span id="iconTimelinesPerspective">📱</span>
-                        <span id="textTimelinesPerspective">Perspective: Terrestrial In-Situ Handheld</span>
-                    </span>
-                </div>
-
-                <!-- Kanvas Foto & Retikel Laser HUD -->
-                <div id="timelinePhotoContainer" class="relative w-full h-64 sm:h-84 rounded-2xl overflow-hidden bg-slate-950 border border-slate-300 dark:border-slate-700 shadow-inner group flex items-center justify-center">
-                    <img id="imgMonitoringEvidencePreview" 
-                         src="/api/media/evidence/current?dossier_id=EST-MDN-001&perspective=TERRESTRIAL_IN_SITU" 
-                         alt="Field Evidence Dynamically Loaded from Database" 
-                         class="w-full h-full object-cover"
-                         onerror="handleEmptyEvidenceState(this)">
-
-                    <!-- Empty State Fallback -->
-                    <div id="emptyEvidenceStateTimelines" class="hidden absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 space-y-2 text-center z-15">
-                        <span class="text-3xl">📷</span>
-                        <p class="text-xs text-slate-300 font-mono" data-i18n="empty_evidence_text">Belum ada foto inspeksi lapangan untuk berkas ini. Silakan lakukan pengambilan foto melalui modul Mobile PWA.</p>
-                        <a href="/mobile" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow transition cursor-pointer">
-                            Buka Mobile PWA
-                        </a>
-                    </div>
-
-                    <!-- Canvas Reticle -->
-                    <canvas id="reticleMonitoringCanvas" class="absolute inset-0 w-full h-full pointer-events-none z-10"></canvas>
-
-                    <!-- Dual Cross-Laser Grid Sweeper (Stage 2A Baseline Standard) -->
-                    <div id="laserSweepV" class="laser-sweep-v hidden pointer-events-none z-25"></div>
-                    <div id="laserSweepH" class="laser-sweep-h hidden pointer-events-none z-25"></div>
-
-                    <!-- 2D Bounding Boxes Overlay Containers (Unified Vision Engine Integration) -->
-                    <div id="timelineBBoxesOverlay" class="absolute inset-0 pointer-events-none z-20"></div>
-                    <div id="stageBBoxesOverlay" class="absolute inset-0 pointer-events-none z-20"></div>
-                    <div id="monitoringBBoxesOverlay" class="absolute inset-0 pointer-events-none z-20"></div>
-                    <div id="aiReticleSvgOverlay" class="absolute inset-0 pointer-events-none z-20"></div>
-
-                    <!-- Top-Left Badge: Audit Ratified by AI Agent (Image 1 Parity) -->
-                    <div class="absolute top-3 left-3 bg-slate-950/85 backdrop-blur-md border border-emerald-500/60 px-3 py-1.5 rounded-xl text-xs font-mono text-emerald-400 font-bold flex items-center gap-2 shadow-lg z-30">
-                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                        <span id="timelineScanStatusText">Audit Ratified by AI Agent</span>
-                    </div>
-
-                    <!-- Bottom-Left Filename Pill -->
-                    <div class="absolute bottom-3 left-3 bg-slate-950/85 backdrop-blur-md border border-cyan-500/50 px-3 py-1.5 rounded-lg text-xs font-mono text-cyan-300 flex items-center gap-2 shadow z-30">
-                        <span>📷</span> <span id="lblActiveEvidenceFilename">EV-EST-MDN-010-2026-9217.jpg</span>
-                    </div>
-
-                    <!-- Top-Right Rescan Button: Rescan Single (Image 1 Parity) -->
-                    <div class="absolute top-3 right-3 flex items-center gap-1.5 z-30">
-                        <button type="button" onclick="triggerAiVisionRescan()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/30 transition flex items-center gap-2 cursor-pointer">
-                            <span class="text-base">⚡</span> <span data-i18n="time_btn_rescan">Rescan Single</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Segel Kriptografis FIPS 180-4 & Ringkasan Auditor Lapangan AI (Stage Evidence Seal) -->
-                <div class="flex flex-wrap items-center justify-between gap-2.5 p-3 rounded-2xl bg-slate-900/90 border border-emerald-500/40 text-xs font-mono shadow-xs">
-                    <div class="flex items-center gap-2">
-                        <span class="text-sm">🔒</span>
-                        <div>
-                            <span class="text-[9px] text-slate-400 uppercase tracking-wider block">FIPS 180-4 SHA-256 SEAL:</span>
-                            <span id="stageShaSealBadge" class="text-[10px] text-cyan-400 font-bold tracking-wider font-mono">8F43Q1BFAPML</span>
-                        </div>
-                    </div>
-                    <button type="button" onclick="triggerAiVisionRescan()" class="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-emerald-400 transition cursor-pointer" title="Refresh Analysis">
-                        <span class="text-base">🔄</span>
-                    </button>
-                    <div class="flex items-center gap-2 max-w-sm">
-                        <span class="text-sm">📝</span>
-                        <div>
-                            <span class="text-[9px] text-emerald-400 uppercase tracking-wider block font-bold">AUTONOMOUS AUDITOR CRITIQUE:</span>
-                            <p id="stageAuditorSummaryText" class="text-[10.5px] text-slate-300 font-sans leading-tight">Silvicultural integrity ratified.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 2. FIELD FOREMAN REPORT FORM (KINI DI BAWAH SCANNER AI) -->
+        <!-- KOLOM 2 (5 SPAN): FIELD FOREMAN REPORT FORM -->
+        <div class="lg:col-span-5 space-y-4">
             <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                 <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
                     <span class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase font-mono tracking-wider flex items-center gap-1.5">
@@ -2390,6 +2413,10 @@
             // HANYA RENDER KOTAK DETEKSI GEMINI 3.8 FLASH JIKA GAMBAR BINER FISIK SUDAH SELESAI DIMUAT
             imgEl.onload = function() {
                 if (!imgEl.complete || imgEl.naturalWidth === 0) {
+                    if (imgEl.src !== '/static/img/sawit_drone.jpg' && !imgEl.src.endsWith('/static/img/sawit_drone.jpg')) {
+                        imgEl.src = '/static/img/sawit_drone.jpg';
+                        return;
+                    }
                     handleEmptyEvidenceState(imgEl);
                     return;
                 }
@@ -2404,8 +2431,14 @@
                 runAiVisionScanAnimation(photo.boxes || null);
             };
             imgEl.onerror = function() {
+                if (imgEl.src !== '/static/img/sawit_drone.jpg' && !imgEl.src.endsWith('/static/img/sawit_drone.jpg')) {
+                    imgEl.src = '/static/img/sawit_drone.jpg';
+                    return;
+                }
                 handleEmptyEvidenceState(imgEl);
             };
+            imgEl.style.display = 'block';
+            imgEl.classList.remove('hidden');
             imgEl.src = photo.url;
             if (imgEl.complete && imgEl.naturalWidth > 0 && imgEl.src.includes(photo.url)) {
                 imgEl.onload();
@@ -3887,6 +3920,16 @@
     window.openTerminalWindow = openTerminalWindow;
     window.closeTerminalWindow = closeTerminalWindow;
     window.toggleTerminalWindow = toggleTerminalWindow;
+    function handleImgEvidenceError(imgEl) {
+        if (!imgEl) return;
+        if (imgEl.src !== '/static/img/sawit_drone.jpg' && !imgEl.src.endsWith('/static/img/sawit_drone.jpg')) {
+            imgEl.src = '/static/img/sawit_drone.jpg';
+            return;
+        }
+        handleEmptyEvidenceState(imgEl);
+    }
+    window.handleImgEvidenceError = handleImgEvidenceError;
+
     function handleEmptyEvidenceState(imgEl) {
         if (imgEl) {
             imgEl.style.display = 'none';
@@ -3896,7 +3939,10 @@
         currentDisplayedBoxes = [];
 
         const emptyEl = document.getElementById('emptyEvidenceStateTimelines');
-        if (emptyEl) emptyEl.classList.remove('hidden');
+        if (emptyEl) {
+            emptyEl.classList.remove('hidden');
+            emptyEl.style.display = 'flex';
+        }
 
         // PASTIKAN JANGAN GAMBAR BOUNDING BOX MENUMPUK DI ATAS KOTAK KOSONG!
         const overlay = document.getElementById('monitoringBBoxesOverlay');
@@ -4128,6 +4174,10 @@
                 if (imgEl) {
                     imgEl.onload = function() {
                         if (!imgEl.complete || imgEl.naturalWidth === 0) {
+                            if (imgEl.src !== '/static/img/sawit_drone.jpg' && !imgEl.src.endsWith('/static/img/sawit_drone.jpg')) {
+                                imgEl.src = '/static/img/sawit_drone.jpg';
+                                return;
+                            }
                             handleEmptyEvidenceState(imgEl);
                             return;
                         }
@@ -4139,9 +4189,13 @@
                         }
                         renderMonitoringBoundingBoxes(activeP.boxes);
                         const tagStatus = document.getElementById('tagAiScannerStatus');
-                        if (tagStatus) tagStatus.textContent = `Physical Entities Verified (${activeP.boxes.length} Localized)`;
+                        if (tagStatus) tagStatus.textContent = `Physical Entities Verified (${(activeP.boxes || []).length} Localized)`;
                     };
                     imgEl.onerror = function() {
+                        if (imgEl.src !== '/static/img/sawit_drone.jpg' && !imgEl.src.endsWith('/static/img/sawit_drone.jpg')) {
+                            imgEl.src = '/static/img/sawit_drone.jpg';
+                            return;
+                        }
                         handleEmptyEvidenceState(imgEl);
                     };
                     imgEl.style.display = 'block';
