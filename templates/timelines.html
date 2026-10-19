@@ -16,6 +16,7 @@
         })();
     </script>
     <script src="/static/js/i18n.js"></script>
+    <script src="/static/js/unified_vision_engine.js"></script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1995,34 +1996,52 @@
         });
 
         try {
-            const scanFetchPromise = fetch('/api/ai/scan-image', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    feature_name: "Canopy & Parcel Vision Scanner",
-                    meta_info: `Rescan In-Situ 4D: ${activeEstate?.kode_kebun || 'EST-MDN-001'}`,
-                    foto_url: currentEvidenceUrl,
-                    latitude: lat,
-                    longitude: lng,
-                    altitude_agl_m: altAgl,
-                    camera_pitch_deg: pitchDeg,
-                    timestamp_iso: new Date().toISOString()
-                })
-            });
-
             await new Promise(r => setTimeout(r, pass1Duration));
             if (tagStatus) tagStatus.textContent = "[Pass 2] Autonomous Agroecological Agent ratifying silvicultural geometry (9.0m spacing & 2.05m root ring)...";
 
-            const res = await scanFetchPromise;
+            let data;
+            if (window.UnifiedVisionEngine && typeof window.UnifiedVisionEngine.scan === 'function') {
+                data = await window.UnifiedVisionEngine.scan({
+                    fotoUrl: currentEvidenceUrl,
+                    latitude: lat,
+                    longitude: lng,
+                    altAgl: altAgl,
+                    pitchDeg: pitchDeg,
+                    dossierId: activeEstate?.kode_kebun || 'EST-MDN-010',
+                    evidenceId: currentEvidenceUrl.split('/').pop().replace(/\.[^/.]+$/, ""),
+                    perspective: isAerial ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU',
+                    pageContext: 'TIMELINES',
+                    stageIndex: activeStageIndex !== undefined ? activeStageIndex : 1
+                });
+            } else {
+                const res = await fetch('/api/ai/scan-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        feature_name: "Canopy & Parcel Vision Scanner",
+                        meta_info: `Rescan In-Situ 4D: ${activeEstate?.kode_kebun || 'EST-MDN-001'}`,
+                        foto_url: currentEvidenceUrl,
+                        latitude: lat,
+                        longitude: lng,
+                        altitude_agl_m: altAgl,
+                        camera_pitch_deg: pitchDeg,
+                        perspective_mode: isAerial ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU',
+                        timestamp_iso: new Date().toISOString()
+                    })
+                });
+                data = await res.json();
+            }
+
             await new Promise(r => setTimeout(r, pass2Duration));
 
-            const data = await res.json();
             const analysis = data.analysis || {};
-            const detectedBoxes = (Array.isArray(data.physical_entities) && data.physical_entities.length > 0)
+            let detectedBoxes = (Array.isArray(data.physical_entities) && data.physical_entities.length > 0)
                 ? data.physical_entities
                 : (Array.isArray(analysis.detected_objects) && analysis.detected_objects.length > 0
                     ? analysis.detected_objects
-                    : (isAerial ? TIMELINES_DRONE_AERIAL_ENTITIES : TIMELINES_REAL_PHYSICAL_ENTITIES));
+                    : (window.UnifiedVisionEngine 
+                        ? window.UnifiedVisionEngine.generateHolisticFallback(currentEvidenceUrl, isAerial ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU', 'TIMELINES', activeStageIndex !== undefined ? activeStageIndex : 1).physical_entities 
+                        : []));
 
             await runAiVisionScanAnimation(detectedBoxes);
 
@@ -2452,7 +2471,9 @@
                 label: tagLabel,
                 tag: tagShort,
                 url: dataUrl,
-                boxes: TIMELINES_REAL_PHYSICAL_ENTITIES,
+                boxes: window.UnifiedVisionEngine 
+                    ? window.UnifiedVisionEngine.generateHolisticFallback(file.name, 'TERRESTRIAL_IN_SITU', 'TIMELINES', activeStageIndex !== undefined ? activeStageIndex : 1).physical_entities 
+                    : [],
                 sha256: fileHash,
                 image_sha256_hash: fileHash,
                 selected: true
@@ -3992,9 +4013,10 @@
                         try { boxes = JSON.parse(boxes); } catch (_) { boxes = []; }
                     }
                     if (!boxes || boxes.length === 0) {
-                        boxes = (p.perspective_mode === 'AERIAL_DRONE' || (p.url && p.url.includes('drone')) || (p.file_url && p.file_url.includes('drone'))) 
-                            ? TIMELINES_DRONE_AERIAL_ENTITIES 
-                            : TIMELINES_REAL_PHYSICAL_ENTITIES;
+                        const isAerialDrone = (p.perspective_mode === 'AERIAL_DRONE' || (p.url && p.url.includes('drone')) || (p.file_url && p.file_url.includes('drone')));
+                        boxes = window.UnifiedVisionEngine 
+                            ? window.UnifiedVisionEngine.generateHolisticFallback(p.url || p.file_url || p.name || '', isAerialDrone ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU', 'TIMELINES', activeStageIndex !== undefined ? activeStageIndex : 1).physical_entities 
+                            : [];
                     }
 
                     const pUrl = p.url || p.file_url || p.media_stream_url || `/api/media/evidence/${p.id || p.evidence_id}`;
@@ -4303,7 +4325,11 @@
 
         const isAnnual = (p.quarter_cycle === 'REG' || p.quarter_cycle === 'ANNUAL' || p.tag === 'REG' || p.tag === 'STAGE-0-ANNUAL-REG' || (p.label && p.label.toLowerCase().includes('annual')));
         const isDrone = p.perspective_mode === 'AERIAL_DRONE' || (p.url && p.url.includes('drone'));
-        const boxes = (p.boxes && p.boxes.length > 0) ? p.boxes : (isDrone ? TIMELINES_DRONE_AERIAL_ENTITIES : TIMELINES_REAL_PHYSICAL_ENTITIES);
+        const boxes = (p.boxes && p.boxes.length > 0) 
+            ? p.boxes 
+            : (window.UnifiedVisionEngine 
+                ? window.UnifiedVisionEngine.generateHolisticFallback(p.url || p.name || '', isDrone ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU', 'TIMELINES', activeStageIndex !== undefined ? activeStageIndex : 1).physical_entities 
+                : []);
         const entityCount = boxes.length || 20;
 
         // Update Header Kartu

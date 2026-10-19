@@ -41,64 +41,19 @@ let adminCachedRecords = [];
 const SIM_HISTORY_STORAGE_KEY = 'precision_palm_sim_history_records';
 const DEFINITIVE_CROP_STORAGE_KEY = 'precision_palm_definitive_crop_choice';
 
+window.isUserSimulating = false;
+window.calibratedCanopyCoverPct = null;
+
 function calibrateHolisticFieldEntities(filename, isAerialDrone = true) {
-    const fn = (filename || '').toLowerCase();
+    if (window.UnifiedVisionEngine && typeof window.UnifiedVisionEngine.generateHolisticFallback === 'function') {
+        const pers = isAerialDrone ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU';
+        const res = window.UnifiedVisionEngine.generateHolisticFallback(filename, pers, 'SIMULATOR');
+        return res.physical_entities || res.detected_objects || [];
+    }
     const isId = typeof isIndonesian === 'function' ? isIndonesian() : false;
-
-    // 1. Jika nama file adalah foto mandor / terestrial / setinggi mata:
-    const isMandorGround = fn.includes('mandor') || fn.includes('situ') || fn.includes('ground') || fn.includes('eye');
-
-    if (isMandorGround) {
-        return [
-            {
-                label: 'palm_canopy',
-                label_name: isId ? 'Pelepah Sawit Kiri (TM-7)' : 'Left Palm Fronds (TM-7)',
-                cluster: 'palm_canopy',
-                box_2d: [140, 20, 880, 420],
-                confidence: 0.98
-            },
-            {
-                label: 'palm_canopy',
-                label_name: isId ? 'Pelepah Sawit Kanan (TM-7)' : 'Right Palm Fronds (TM-7)',
-                cluster: 'palm_canopy',
-                box_2d: [160, 680, 920, 980],
-                confidence: 0.97
-            },
-            {
-                label: 'weed_cover',
-                label_name: isId ? 'Semak / Gulma Lantai Gawangan' : 'Alley Weed Clutter Cover',
-                cluster: 'floor_mulch',
-                box_2d: [380, 260, 890, 780],
-                confidence: 0.95
-            },
-            {
-                label: 'root_circle',
-                label_name: isId ? 'Piringan 2.05m (Perlu Penyiangan)' : '2.05m Root Ring (Weed Alert)',
-                cluster: 'root_circle',
-                box_2d: [580, 60, 910, 360],
-                confidence: 0.94
-            }
-        ];
-    }
-
-    // 2. Jika nama file adalah sempadan riparian:
-    if (fn.includes('wetland') || fn.includes('buffer') || fn.includes('riparian') || fn.includes('water')) {
-        return [
-            { label: 'water_riparian', label_name: isId ? 'Sempadan Aliran Air Alami (PP 23/2021)' : 'Natural Watercourse (PP 23/2021)', cluster: 'water_riparian', box_2d: [280, 60, 820, 940], confidence: 0.99 },
-            { label: 'root_buffer', label_name: isId ? 'Batas Penyangga NKT ≥ 50m' : 'HCV Buffer Setback ≥ 50m', cluster: 'root_circle', box_2d: [550, 220, 760, 420], confidence: 0.98 }
-        ];
-    }
-
-    // 3. Default: Ortomosaik Drone Nadir 45m AGL (Tajuk bintang melingkar):
-    const pPrefix = isId ? 'Tajuk Sawit #' : 'Palm Crown #';
     return [
-        { label: 'palm_canopy', label_name: pPrefix + '01', cluster: 'palm_canopy', box_2d: [50, 40, 220, 200], confidence: 0.98 },
-        { label: 'palm_canopy', label_name: pPrefix + '02', cluster: 'palm_canopy', box_2d: [45, 240, 215, 400], confidence: 0.97 },
-        { label: 'palm_canopy', label_name: pPrefix + '03', cluster: 'palm_canopy', box_2d: [40, 460, 210, 620], confidence: 0.99 },
-        { label: 'palm_canopy', label_name: pPrefix + '04', cluster: 'palm_canopy', box_2d: [50, 660, 220, 820], confidence: 0.96 },
-        { label: 'haul_road', label_name: isId ? 'Jalan Angkut 6.0m' : 'Haul Road 6.0m', cluster: 'infrastructure', box_2d: [30, 10, 960, 110], confidence: 0.99 },
-        { label: 'clean_alley', label_name: isId ? 'Koridor Gawangan 3.79m' : '3.79m Alley Corridor', cluster: 'floor_mulch', box_2d: [320, 420, 760, 640], confidence: 0.96 },
-        { label: 'root_buffer', label_name: isId ? 'Piringan Bebas Cangkul 2.05m' : '2.05m Root Buffer', cluster: 'root_circle', box_2d: [350, 260, 480, 390], confidence: 0.99 }
+        { label: 'palm_canopy', label_name: isId ? 'Tajuk Sawit Utama' : 'Main Palm Canopy', cluster: 'palm_canopy', box_2d: [50, 40, 220, 200], confidence: 0.98 },
+        { label: 'clean_alley', label_name: isId ? 'Koridor Gawangan 3.79m' : '3.79m Alley Corridor', cluster: 'floor_mulch', box_2d: [320, 420, 760, 640], confidence: 0.96 }
     ];
 }
 
@@ -211,8 +166,11 @@ function applyVisionDataToSimulator(data) {
     if (!data) return;
     console.log("[Simulator] Menerima data UnifiedVisionEngine:", data);
 
-    // 1. Perbarui nilai Persentase Naungan Kanopi (misal 48% - 58%)
-    const shadePct = typeof data.shadeRatioPercent === 'number' ? data.shadeRatioPercent : 52;
+    // 1. Perbarui nilai Persentase Naungan Kanopi
+    const shadePct = typeof data.calculatedShadePercent === 'number' 
+        ? data.calculatedShadePercent 
+        : (typeof data.shadeRatioPercent === 'number' ? data.shadeRatioPercent : 52);
+
     window.calibratedCanopyCoverPct = shadePct;
 
     const setSafe = (id, val) => {
@@ -223,61 +181,27 @@ function applyVisionDataToSimulator(data) {
     setSafe('lblMachineCanopyDensity', `${shadePct}%`);
     setSafe('res_canopy_cover', `${shadePct}%`);
     setSafe('m44_canopy', `52.4 cm | ${shadePct}%`);
-    setSafe('cross_par_trans', `PAR Transmission: ${Math.round(100 - shadePct)}%`);
-    setSafe('lblCanopyDensity', `${shadePct}%`);
+    setSafe('cross_par_transmitted', `Surface PAR Transmitted: ~${Math.round(1800 * (1 - shadePct/100))} µmol/m²/s`);
 
     // 2. Perbarui Rekomendasi Tanaman Sela
-    // Jahe Merah jika naungan tinggi (> 50%), Porang jika naungan sedang (<= 50%)
     const recCrop = data.recommendedIntercrop || (shadePct > 50 ? "Jahe Merah" : "Porang");
     const isHighShade = shadePct > 50 || recCrop.toLowerCase().includes('jahe') || recCrop.toLowerCase().includes('ginger');
     const targetCropKey = isHighShade ? 'red_ginger' : 'porang';
-    const targetPresetKey = isHighShade ? 'ginger' : 'porang';
 
-    // Kunci tanaman definitif di gerbang rekomendasi kandidat
-    if (typeof selectDefinitiveCrop === 'function') {
-        try {
-            selectDefinitiveCrop(targetCropKey);
-        } catch (_) {}
-    }
-
-    // Sinkronkan dropdown pilihan tanaman sela
     const cropSelect = document.getElementById('crop_select');
-    if (cropSelect) {
-        if (cropSelect.querySelector(`option[value="${targetCropKey}"]`)) {
-            cropSelect.value = targetCropKey;
-        } else if (cropSelect.querySelector(`option[value="${targetPresetKey}"]`)) {
-            cropSelect.value = targetPresetKey;
-        }
+    if (cropSelect && cropSelect.querySelector(`option[value="${targetCropKey}"]`)) {
+        cropSelect.value = targetCropKey;
     }
 
-    // Perbarui display input nama tanaman
     const cropNameInput = document.getElementById('crop_name');
     if (cropNameInput) {
         cropNameInput.value = isHighShade 
             ? "Red Ginger (Zingiber officinale var. rubrum)" 
-            : "Porang / Konjac (Amorphophallus muelleri)";
+            : "Konjac Tuber / Porang (Amorphophallus muelleri)";
     }
 
-    // 3. Tetapkan Lebar Lorong Bersih ke 3.79 m
-    const alleyMeters = data.effectiveAlleyWidthM || 3.79;
-    window.effectiveAlleyWidthM = alleyMeters;
-
-    const alleyBadges = document.querySelectorAll('[data-alley-width], #disp_alley_width, #m44_corridor');
-    alleyBadges.forEach(el => el.textContent = `${alleyMeters} m`);
-
-    // 4. Jalankan ulang kalkulasi simulasi agar grafik LER, serapan karbon (450 tCO2e/ha), dan proyeksi ter-update
-    if (typeof executeInSilicoCompute === 'function') {
-        executeInSilicoCompute();
-    }
-    if (typeof recalculateCombinedAccumulation === 'function') {
-        recalculateCombinedAccumulation();
-    }
-    if (typeof renderCropsMatrixTable === 'function') {
-        renderCropsMatrixTable();
-    }
-    if (typeof updateLiveTbsPricing === 'function') {
-        updateLiveTbsPricing();
-    }
+    // 3. Jalankan ulang kalkulasi biofisik (LER & Karbon)
+    executeInSilicoCompute();
 
     if (typeof showNotificationToast === 'function') {
         showNotificationToast(`✓ Sinkronisasi Visi AI: Naungan ${shadePct}% • Rekomendasi: ${isHighShade ? 'Jahe Merah' : 'Porang'}`, '🌿');
@@ -789,21 +713,24 @@ function executeInSilicoCompute() {
     const lai = 5.5 / (1.0 + Math.exp(-0.7 * (age - 3.5)));
     const transRatio = Math.exp(-0.45 * lai);
     const surfacePar = 1800.0 * transRatio;
+    const frondRadius = 5.5 / (1.0 + Math.exp(-0.6 * (age - 3.5)));
     const computedCoverPct = Math.min(95.0, ((136 * Math.PI * Math.pow(frondRadius, 2)) / 10000.0) * 100.0);
     const coverPct = (typeof window.calibratedCanopyCoverPct === 'number') ? window.calibratedCanopyCoverPct : computedCoverPct;
 
     // 2. Mead & Willey LER & Land Sparing (PLS)
+
+    // 2. Mead & Willey LER & Penghematan Lahan (PLS)
     const pLerPalm = ypm > 0 ? (ypi / ypm) : 0;
     const pLerCrop = ycm > 0 ? (yci / ycm) : 0;
     const totalLer = pLerPalm + pLerCrop;
     const plsPct = totalLer > 1.0 ? (1.0 - (1.0 / totalLer)) * 100.0 : 0.0;
     const sparedHa = totalLer > 1.0 ? area * (totalLer - 1.0) : 0.0;
 
-    // 3. IPCC Tier 3 & Verra VM0007 Carbon Accounting (450 tCO2e/ha)
+    // 3. Akuntansi Karbon IPCC Tier 3 & Verra VM0007 (450 tCO2e/ha)
     const totalCarbon = (sparedHa * 450.0) + (area * 1.8);
     const carbonUsd = totalCarbon * 12.0;
 
-    // 4. Update DOM KPI widgets
+    // 4. Perbarui DOM KPI Widget
     const setSafe = (id, val) => {
         const el = document.getElementById(id);
         if (el) el.innerText = val;
@@ -827,7 +754,7 @@ function executeInSilicoCompute() {
     const barPls = document.getElementById('bar_pls_progress');
     if (barPls) barPls.style.width = Math.min(100, plsPct) + '%';
 
-    // 5. Bio-Economic Revenues
+    // 5. Pendapatan Bio-Ekonomi
     const grossCropRevUsd = yci * 1000.0 * 1.56 * (area * 0.829);
     const totalBenefitUsd = grossCropRevUsd + carbonUsd;
     setSafe('kpi_res_total_economic_benefit', '$ ' + totalBenefitUsd.toLocaleString('en-US', { maximumFractionDigits: 0 }));
@@ -836,7 +763,7 @@ function executeInSilicoCompute() {
     const parDisp = document.getElementById('cross_par_transmitted');
     if (parDisp) parDisp.innerText = `Surface PAR Transmitted: ~${Math.round(surfacePar)} µmol/m²/s`;
 
-    // 6. USDA SCS-CN Eco-Hydrology & Circular Mulch
+    // 6. USDA SCS-CN Eko-Hidrologi & Daur Ulang Pelepah
     const annualRain = 2188.0;
     const cnPost = Math.round(82.0 - (18.0 * (totalLer > 1.0 ? 1.0 : 0.5)));
     const rechargePerHa = Math.round((annualRain * (1.0 - (cnPost / 100.0))) * 10.0 * (totalLer > 1.0 ? 1.25 : 1.0));
@@ -849,9 +776,9 @@ function executeInSilicoCompute() {
     setSafe('res_biocirc_fronds', `${frondsRecycledPerHa} t/Ha/Yr`);
     setSafe('res_biocirc_potassium', `+${potassiumRecoveredKg} kg K₂O`);
 
-    // Ensure candidate recommendation gate is refreshed
-    if (candidateRecommendations.length === 0) {
-        generateMultiCandidateRecommendations(age, surfacePar);
+    // Render Tabel Proyeksi Kas 10 Tahun jika tersedia fungsinya
+    if (typeof render10YearCashflowTable === 'function') {
+        render10YearCashflowTable(age, area, ypi, ypm, yci, ycm, totalLer, sparedHa, totalCarbon);
     }
 
     return {
@@ -870,6 +797,7 @@ function executeInSilicoCompute() {
         potassiumRecoveredKg
     };
 }
+window.executeInSilicoCompute = executeInSilicoCompute;
 
 /**
  * Main action handler triggered by the primary execute button.
@@ -1089,126 +1017,42 @@ async function runDetailedObjectVisionScan(forceRescan = false) {
     const mainImg = document.getElementById('mainCanopyPreview');
     if (!mainImg || !mainImg.src || mainImg.src.includes('undefined')) return;
 
-    const laserV = document.getElementById('laserSweepV');
-    const laserH = document.getElementById('laserSweepH');
-    const scanBadge = document.getElementById('aiScanBadge');
-    const summaryBadge = document.getElementById('aiDetectionSummaryBadge');
-    const age = parseFloat(document.getElementById('palm_age')?.value) || 6.0;
+    const currentImgName = selectedCanopyFileName || (mainImg.src ? mainImg.src.split('/').pop() : 'field_tm_weed.jpg');
+    const isMandor = currentImgName.toLowerCase().includes('mandor') || currentImgName.toLowerCase().includes('in-situ') || currentImgName.toLowerCase().includes('tm_weed');
+    const activeKode = (window.activeEstate && window.activeEstate.kode_kebun) || 'EST-MDN-010';
 
-    if (laserV) { laserV.classList.remove('hidden'); laserV.classList.add('laser-sweep-v'); }
-    if (laserH) { laserH.classList.remove('hidden'); laserH.classList.add('laser-sweep-h'); }
-    if (scanBadge) scanBadge.classList.remove('hidden');
+    let tailoredData = null;
 
-    // Jalankan animasi 5 langkah AI Pipeline Ticker
-    await animateSingleSentenceAiPipeline(1);
-    await new Promise(r => setTimeout(r, 400));
-    await animateSingleSentenceAiPipeline(2);
-    await new Promise(r => setTimeout(r, 400));
+    if (window.UnifiedVisionEngine) {
+        tailoredData = await window.UnifiedVisionEngine.scan({
+            imageUrl: mainImg.src,
+            filename: currentImgName,
+            dossierId: activeKode,
+            perspective: isMandor ? 'TERRESTRIAL_IN_SITU' : 'AERIAL_DRONE',
+            pageContext: 'SIMULATOR',
+            containerEl: document.getElementById('mainCanopyContainer') || mainImg.parentElement,
+            overlayEl: document.getElementById('droneBBoxesOverlay'),
+            statusEl: document.getElementById('aiScanBadge') || document.getElementById('aiDetectionSummaryBadge')
+        });
+    }
 
-    const currentImgName = selectedCanopyFileName || 'sawit_drone.jpg';
-    let detectedBoxes = [];
-    let aiResult = null;
+    if (tailoredData) {
+        latestDetectedObjects = tailoredData.boxes || [];
+        applyVisionDataToSimulator(tailoredData);
 
-    // Jika forceRescan, panggil API Vision backend
-    if (forceRescan) {
-        try {
-            const resp = await fetch('/api/ai/scan-image', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    image_url: mainImg.src,
-                    filename: currentImgName,
-                    dossier_id: (window.activeEstate && window.activeEstate.kode_kebun) || 'EST-MDN-010',
-                    force_refresh: true,
-                    feature_name: "In-Silico Canopy & Root Buffer Vision Scan",
-                    meta_info: `Palm Stand Age: ${age.toFixed(1)} Yrs`
-                })
-            });
-            if (resp.ok) {
-                const data = await resp.json();
-                if (data.status === 'success' && data.analysis) {
-                    aiResult = data.analysis;
-                    detectedBoxes = data.physical_entities || data.analysis?.detected_objects || [];
-                }
-            }
-        } catch (e) {
-            console.warn("[Rescan Notice]:", e);
+        const summaryBadge = document.getElementById('aiDetectionSummaryBadge');
+        if (summaryBadge) {
+            summaryBadge.textContent = `${tailoredData.totalEntities} Objects Mapped (100% Conf)`;
+            summaryBadge.className = 'text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-600';
+        }
+
+        const machineDiag = document.getElementById('aiMachineDiagnosticText');
+        if (machineDiag) {
+            machineDiag.innerHTML = `<strong class="text-emerald-400 font-bold">AI Multimodal Diagnostic:</strong> ${tailoredData.auditorCritique}`;
         }
     }
 
-    await animateSingleSentenceAiPipeline(3);
-    await new Promise(r => setTimeout(r, 350));
-    await animateSingleSentenceAiPipeline(4);
-    await new Promise(r => setTimeout(r, 350));
-
-    // Fallback heuristik mandor/drone jika backend offline (Zero Empty Box Rule)
-    if (!detectedBoxes || detectedBoxes.length === 0) {
-        detectedBoxes = calibrateHolisticFieldEntities(currentImgName, true);
-    }
-
-    latestDetectedObjects = detectedBoxes;
-    renderDetectedBoundingBoxes(detectedBoxes);
-    drawReticles();
-
-    // Persist hasil pembaruan deteksi objek AI Vision ke basis data via /api/evidence/<id>/update-entities
-    const activePhotoItem = Array.isArray(window.activeEstatePhotos) ? window.activeEstatePhotos.find(p => p.filename === currentImgName || (p.file_url && p.file_url.includes(currentImgName))) : null;
-    if (activePhotoItem && activePhotoItem.id) {
-        activePhotoItem.boxes = detectedBoxes;
-        activePhotoItem.detected_entities = detectedBoxes;
-        try {
-            fetch(`/api/evidence/${encodeURIComponent(activePhotoItem.id)}/update-entities`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    detected_entities: detectedBoxes,
-                    detected_entities_json: JSON.stringify(detectedBoxes)
-                })
-            }).then(r => r.json()).then(res => {
-                if (res && res.status === 'success' && typeof showNotificationToast === 'function') {
-                    showNotificationToast(`✓ Objek AI Vision diperbarui & tersimpan (${detectedBoxes.length} entitas)`, '💾');
-                }
-            }).catch(eUpd => console.warn("[Update Entities DB Notice]:", eUpd));
-        } catch (_) {}
-    }
-
-    await animateSingleSentenceAiPipeline(5);
-    await new Promise(r => setTimeout(r, 300));
-
-    // Matikan laser
-    if (laserV) { laserV.classList.add('hidden'); laserV.classList.remove('laser-sweep-v'); }
-    if (laserH) { laserH.classList.add('hidden'); laserH.classList.remove('laser-sweep-h'); }
-    if (scanBadge) scanBadge.classList.add('hidden');
-
-    if (summaryBadge) {
-        summaryBadge.textContent = `${detectedBoxes.length} Objects Mapped (100% Conf)`;
-        summaryBadge.className = 'text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-600';
-    }
-
-    const badgeEl = document.getElementById('aiPipelineStepBadge');
-    if (badgeEl) badgeEl.textContent = "In-Silico Calibrated";
-
-    const textEl = document.getElementById('telemetryCurrentSentence');
-    if (textEl) textEl.textContent = `✓ [RESCAN SELESAI] Terpetakan ${detectedBoxes.length} entitas biofisika. Status piringan 2.05m steril & koridor 3.79m siap tumpang sari.`;
-
-    const diagAge = document.getElementById('res_diag_age_years');
-    const diagClass = document.getElementById('res_diag_age_class');
-    const diagHealth = document.getElementById('res_diag_health_status');
-    const badgeAudit = document.getElementById('ai_badge');
-
-    if (diagAge) diagAge.innerText = age.toFixed(1) + " Years";
-    if (diagClass) {
-        diagClass.innerText = aiResult?.stand_classification || (age <= 3.5 ? "Immature / TBM" : (age <= 8.5 ? "Early Producing TM" : "Prime Producing TM"));
-    }
-    if (diagHealth) {
-        diagHealth.innerText = aiResult?.visual_health_score ? `Lush Green (${aiResult.visual_health_score}/100 Vigor)` : "Lush Green (Optimal Vigor)";
-    }
-    if (badgeAudit) {
-        badgeAudit.innerText = "✓ Audit Certified (Gemini 3.8 Flash)";
-    }
-
-    if (forceRescan && typeof showNotificationToast === 'function') {
-        showNotificationToast(`✓ Rescan Berhasil: ${detectedBoxes.length} Entitas Fisik Terkalibrasi!`, "🎯");
-    }
+    return tailoredData;
 }
 window.runDetailedObjectVisionScan = runDetailedObjectVisionScan;
 
@@ -1315,6 +1159,10 @@ window.initActiveEstateData = initActiveEstateData;
 /**
  * Draws HUD reticles on target canvas
  */
+function initDrawingReticles() {
+    drawReticles();
+    window.addEventListener('resize', drawReticles);
+}
 function drawReticles() {
     const canvas = document.getElementById('reticleCanvas');
     if (!canvas) return;
