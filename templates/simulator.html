@@ -344,7 +344,7 @@
                             </button>
                         </div>
 
-                        <div class="relative inline-block w-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 group min-h-[380px] sm:min-h-[460px] max-h-[520px] bg-slate-950 flex items-center justify-center">
+                        <div id="mainCanopyContainer" class="relative inline-block w-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 group min-h-[380px] sm:min-h-[460px] max-h-[520px] bg-slate-950 flex items-center justify-center">
                             <img id="mainCanopyPreview" 
                                  src="/api/media/evidence/current?dossier_id=EST-MDN-001" 
                                  alt="Field Telemetry Preview Dynamically Loaded from Database" 
@@ -2429,11 +2429,11 @@
         let latestSimulationData = null;
         let selectedCropKeys = ["red_ginger"];
         let isMatrixTableExpanded = false;
-        let isAuditRunning = false;
-        let selectedCanopyFileName = 'sawit_drone.jpg';
-        let isVisionOverlayVisible = true;
-        let latestDetectedObjects = null;
-        const photoScanResultsCache = {};
+        var isAuditRunning = false;
+        var selectedCanopyFileName = 'sawit_drone.jpg';
+        var isVisionOverlayVisible = true;
+        var latestDetectedObjects = null;
+        var photoScanResultsCache = {};
 
         function getCachedVisionBoxes(filename, url) {
             const fName = filename || selectedCanopyFileName || 'sawit_drone.jpg';
@@ -2507,13 +2507,13 @@
             displayPhotoScanState(selectedCanopyFileName, document.getElementById('selected_image_url')?.value);
         }
 
-        let adminCurrentPage = 1;
-        let adminTotalPages = 1;
-        let adminCurrentLimit = 10;
-        let adminSearchQuery = '';
-        let adminDebounceTimer = null;
-        let adminCachedRecords = [];
-        const SIM_HISTORY_STORAGE_KEY = 'precision_palm_sim_history_records';
+        var adminCurrentPage = 1;
+        var adminTotalPages = 1;
+        var adminCurrentLimit = 10;
+        var adminSearchQuery = '';
+        var adminDebounceTimer = null;
+        var adminCachedRecords = [];
+        var SIM_HISTORY_STORAGE_KEY = 'precision_palm_sim_history_records';
 
         const PRESETS = {
             // Immature Stage (TBM)
@@ -2808,6 +2808,28 @@
             // Sync live Open-Meteo field agroclimate telemetry
             updateBioclimaticTelemetry(latVal, lngVal);
 
+            // Prioritaskan foto aktif yang baru saja dipindai/dipilih di Stage 2A Spasial
+            const activeSyncedUrl = localStorage.getItem('precision_active_evidence_url');
+            const activeSyncedFilename = localStorage.getItem('precision_active_evidence_filename');
+            if (activeSyncedUrl && Array.isArray(activeEstatePhotos)) {
+                const existingIdx = activeEstatePhotos.findIndex(p => (p.file_url === activeSyncedUrl || p.image_gcs_url === activeSyncedUrl || p.url === activeSyncedUrl));
+                if (existingIdx > 0) {
+                    const [matched] = activeEstatePhotos.splice(existingIdx, 1);
+                    activeEstatePhotos.unshift(matched);
+                } else if (existingIdx === -1) {
+                    activeEstatePhotos.unshift({
+                        id: 'EV-SYNCED-SPATIAL',
+                        filename: activeSyncedFilename || 'spatial_active_evidence.jpg',
+                        file_url: activeSyncedUrl,
+                        image_gcs_url: activeSyncedUrl,
+                        title: "Spatial Active Evidence (Synced)",
+                        is_sealed: true,
+                        tag: "Stage 2A Active"
+                    });
+                }
+            }
+            window.activeEstatePhotos = activeEstatePhotos;
+
             // Render Galeri Foto Lapangan Riil
             renderEstatePhotosGallery(activeEstatePhotos);
 
@@ -2967,12 +2989,21 @@
                 updateAggregatedBadges();
             }
             const mainImg = document.getElementById('mainCanopyPreview');
+            const emptyEl = document.getElementById('emptyEvidenceStateSimulator');
+            if (emptyEl) {
+                emptyEl.style.display = 'none';
+                emptyEl.classList.add('hidden');
+            }
+
             const nameEl = document.getElementById('active_canopy_img_name');
             const captionEl = document.getElementById('image_caption');
             const imgSampleInput = document.getElementById('image_sample');
             const selectedUrlInput = document.getElementById('selected_image_url');
 
-            if (mainImg) mainImg.src = url;
+            if (mainImg) {
+                mainImg.src = url;
+                mainImg.style.display = 'block';
+            }
             if (nameEl) nameEl.textContent = filename;
             if (captionEl) captionEl.textContent = `${title || 'Field Telemetry'} • In-Situ 4D`;
             if (imgSampleInput) imgSampleInput.value = filename;
@@ -2986,6 +3017,10 @@
                 displayPhotoScanState(filename, url);
             }
         }
+        window.selectEstatePhoto = selectEstatePhoto;
+        window.renderEstatePhotosGallery = renderEstatePhotosGallery;
+        window.togglePhotoSelection = togglePhotoSelection;
+        window.updateAggregatedBadges = updateAggregatedBadges;
 
         async function handleCanopyFileUpload(event) {
             const file = event.target && event.target.files && event.target.files[0];
@@ -4594,6 +4629,7 @@ IMMUTABLE AUDIT TRAIL CERTIFIED VIA PRECISION PALM AGROECOLOGY ENGINE
                     dossierId: activeKode,
                     perspective: isMandor ? 'TERRESTRIAL_IN_SITU' : 'AERIAL_DRONE',
                     pageContext: 'SIMULATOR',
+                    forceRescan: forceRescan,
                     containerEl: document.getElementById('mainCanopyContainer') || (mainImg ? mainImg.parentElement : null),
                     overlayEl: document.getElementById('droneBBoxesOverlay'),
                     statusEl: document.getElementById('aiScanBadge') || document.getElementById('aiDetectionSummaryBadge')
@@ -5272,46 +5308,51 @@ IMMUTABLE AUDIT TRAIL CERTIFIED VIA PRECISION PALM AGROECOLOGY ENGINE
             }
         });
     // Gemini Multimodal Vision API Ingestion
-async function scanFieldImageWithGemini(fileOrBlob) {
-    const formData = new FormData();
-    formData.append('image', fileOrBlob, 'field_parcel_inspection.jpg');
+    async function scanFieldImageWithGemini(fileOrBlob) {
+        const formData = new FormData();
+        formData.append('image', fileOrBlob, 'field_parcel_inspection.jpg');
 
-    const statusPill = document.getElementById('aiScanStatusPill');
-    if (statusPill) statusPill.innerText = "Gemini Vision Audit Complete";
-    }
+        const statusPill = document.getElementById('aiScanStatusPill');
+        if (statusPill) statusPill.innerText = "Gemini Vision Audit Scanning...";
 
-    try {
-        const resp = await fetch('/api/ai/scan-image', {
-            method: 'POST',
-            body: formData
-        });
+        try {
+            const resp = await fetch('/api/ai/scan-image', {
+                method: 'POST',
+                body: formData
+            });
 
-        const data = await resp.json();
-        if (data.status === 'success') {
-            const ai = data.analysis;
-            
-            // Update UI with verified AI audit metrics
-            document.getElementById('lblCanopyDensity').innerText = `${ai.canopy_density_pct}%`;
-            document.getElementById('lblStandClass').innerText = ai.stand_classification;
-            document.getElementById('lblHealthScore').innerText = `${ai.visual_health_score}/100`;
-            document.getElementById('lblAuditorSummary').innerText = ai.auditor_summary;
-            
-            // 2.0m root buffer compliance indicator
-            const circleBadge = document.getElementById('badgeSterileCircle');
-            if (circleBadge) {
-                circleBadge.className = ai.sterile_circle_2m_compliant 
-                    ? "px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold"
-                    : "px-2 py-0.5 rounded text-[10px] bg-rose-950 text-rose-300 border border-rose-600 font-bold";
-                circleBadge.innerText = ai.sterile_circle_2m_compliant ? "✓ 2.0m ROOT BUFFER COMPLIANT" : "🚨 ROOT BUFFER VIOLATION";
+            const data = await resp.json();
+            if (data.status === 'success') {
+                const ai = data.analysis;
+                
+                // Update UI with verified AI audit metrics
+                const elDensity = document.getElementById('lblCanopyDensity');
+                if (elDensity) elDensity.innerText = `${ai.canopy_density_pct}%`;
+                const elStand = document.getElementById('lblStandClass');
+                if (elStand) elStand.innerText = ai.stand_classification;
+                const elHealth = document.getElementById('lblHealthScore');
+                if (elHealth) elHealth.innerText = `${ai.visual_health_score}/100`;
+                const elSummary = document.getElementById('lblAuditorSummary');
+                if (elSummary) elSummary.innerText = ai.auditor_summary;
+                
+                // 2.0m root buffer compliance indicator
+                const circleBadge = document.getElementById('badgeSterileCircle');
+                if (circleBadge) {
+                    circleBadge.className = ai.sterile_circle_2m_compliant 
+                        ? "px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold"
+                        : "px-2 py-0.5 rounded text-[10px] bg-rose-950 text-rose-300 border border-rose-600 font-bold";
+                    circleBadge.innerText = ai.sterile_circle_2m_compliant ? "✓ 2.0m ROOT BUFFER COMPLIANT" : "🚨 ROOT BUFFER VIOLATION";
+                }
+            } else {
+                alert("AI Vision Processing Failed: " + (data.message || 'Unknown error'));
             }
-        } else {
-            alert("AI Vision Processing Failed: " + data.message);
+        } catch (err) {
+            console.error("Failed to connect to Google Cloud AI service:", err);
+        } finally {
+            if (statusPill) statusPill.innerText = "Gemini Vision Audit Complete";
         }
-    } catch (err) {
-        console.error("Failed to connect to Google Cloud AI service:", err);
-    } finally {
-        if (statusPill) statusPill.innerText = "Gemini Vision Audit Complete";
     }
+    window.scanFieldImageWithGemini = scanFieldImageWithGemini;
 
 
 function handleEmptyEvidenceStateSimulator(imgEl) {

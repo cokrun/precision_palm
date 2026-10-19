@@ -159,10 +159,16 @@
             filename = filename || "evidence_capture.jpg";
 
             if (this.isScanning) {
-                console.warn("[UnifiedVisionEngine] Scanning is already in progress...");
-                return null;
+                if ((options && options.forceRescan) || (Date.now() - (this._scanStartTime || 0) > 4000)) {
+                    console.log("[UnifiedVisionEngine] Force rescan requested, resetting active scan state...");
+                    this.isScanning = false;
+                } else {
+                    console.warn("[UnifiedVisionEngine] Scanning is already in progress...");
+                    return null;
+                }
             }
 
+            this._scanStartTime = Date.now();
             this.isScanning = true;
             this.currentDossier = dossierId;
             if (containerEl) this.startHUDAnimation(containerEl, statusEl);
@@ -171,85 +177,88 @@
             let analysisData = null;
 
             try {
-                if (statusEl) {
-                    statusEl.textContent = "[Pass 2] Autonomous Agroecological Agent Ratifying Silvicultural Geometry...";
+                try {
+                    if (statusEl) {
+                        statusEl.textContent = "[Pass 2] Autonomous Agroecological Agent Ratifying Silvicultural Geometry...";
+                    }
+
+                    const response = await fetch('/api/ai/scan-image', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            image_url: imageUrl,
+                            foto_url: imageUrl,
+                            filename: filename,
+                            dossier_id: dossierId,
+                            perspective_hint: perspective,
+                            perspective_mode: perspective,
+                            page_context: pageContext,
+                            stage_index: stageIndex,
+                            force_live_agent: true,
+                            feature_name: "Unified Multimodal Vision Scanner"
+                        })
+                    });
+
+                    if (response.ok) {
+                        analysisData = await response.json();
+                    }
+                } catch (err) {
+                    console.warn("[UnifiedVisionEngine] Falling back to biophysical model:", err);
                 }
 
-                const response = await fetch('/api/ai/scan-image', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        image_url: imageUrl,
-                        foto_url: imageUrl,
-                        filename: filename,
-                        dossier_id: dossierId,
-                        perspective_hint: perspective,
-                        perspective_mode: perspective,
-                        page_context: pageContext,
-                        stage_index: stageIndex,
-                        force_live_agent: true,
-                        feature_name: "Unified Multimodal Vision Scanner"
-                    })
-                });
-
-                if (response.ok) {
-                    analysisData = await response.json();
+                let detectedEntities = null;
+                if (analysisData) {
+                    if (Array.isArray(analysisData.physical_entities) && analysisData.physical_entities.length >= 8) {
+                        detectedEntities = analysisData.physical_entities;
+                    } else if (Array.isArray(analysisData.detected_objects) && analysisData.detected_objects.length >= 8) {
+                        detectedEntities = analysisData.detected_objects;
+                    } else if (analysisData.analysis && Array.isArray(analysisData.analysis.physical_entities) && analysisData.analysis.physical_entities.length >= 8) {
+                        detectedEntities = analysisData.analysis.physical_entities;
+                    }
                 }
-            } catch (err) {
-                console.warn("[UnifiedVisionEngine] Falling back to biophysical model:", err);
-            }
 
-            let detectedEntities = null;
-            if (analysisData) {
-                if (Array.isArray(analysisData.physical_entities) && analysisData.physical_entities.length >= 8) {
-                    detectedEntities = analysisData.physical_entities;
-                } else if (Array.isArray(analysisData.detected_objects) && analysisData.detected_objects.length >= 8) {
-                    detectedEntities = analysisData.detected_objects;
-                } else if (analysisData.analysis && Array.isArray(analysisData.analysis.physical_entities) && analysisData.analysis.physical_entities.length >= 8) {
-                    detectedEntities = analysisData.analysis.physical_entities;
+                // Anti-anomaly filter: Detect if synthetic drone grid was erroneously returned for a terrestrial / weed alley image
+                const isTerrestrialTarget = (perspective === 'TERRESTRIAL_IN_SITU' || perspective === 'TERRESTRIAL_GROUND' ||
+                                             (filename || '').toLowerCase().includes('weed') ||
+                                             (filename || '').toLowerCase().includes('tm_weed') ||
+                                             (filename || '').toLowerCase().includes('mandor'));
+                if (detectedEntities && isTerrestrialTarget) {
+                    const hasDroneGridSkyBoxes = detectedEntities.some(item => {
+                        const lbl = (item.label_name || item.label || '').toLowerCase();
+                        const box = item.box_2d || [];
+                        // Drone crown grid in top sky:
+                        return (lbl.includes('tajuk sawit tm #') || lbl.includes('tajuk sawit #')) && box.length >= 4 && box[0] < 150;
+                    });
+                    if (hasDroneGridSkyBoxes) {
+                        console.warn("[UnifiedVisionEngine] Anomalous aerial grid detected on terrestrial image! Overriding with adaptive biophysical model.");
+                        detectedEntities = null;
+                    }
                 }
-            }
 
-            // Anti-anomaly filter: Detect if synthetic drone grid was erroneously returned for a terrestrial / weed alley image
-            const isTerrestrialTarget = (perspective === 'TERRESTRIAL_IN_SITU' || perspective === 'TERRESTRIAL_GROUND' ||
-                                         (filename || '').toLowerCase().includes('weed') ||
-                                         (filename || '').toLowerCase().includes('tm_weed') ||
-                                         (filename || '').toLowerCase().includes('mandor'));
-            if (detectedEntities && isTerrestrialTarget) {
-                const hasDroneGridSkyBoxes = detectedEntities.some(item => {
-                    const lbl = (item.label_name || item.label || '').toLowerCase();
-                    const box = item.box_2d || [];
-                    // Drone crown grid in top sky:
-                    return (lbl.includes('tajuk sawit tm #') || lbl.includes('tajuk sawit #')) && box.length >= 4 && box[0] < 150;
-                });
-                if (hasDroneGridSkyBoxes) {
-                    console.warn("[UnifiedVisionEngine] Anomalous aerial grid detected on terrestrial image! Overriding with adaptive biophysical model.");
-                    detectedEntities = null;
+                if (!detectedEntities || detectedEntities.length < 8) {
+                    analysisData = this.generateAdaptiveBiophysicalEntities(filename, perspective, pageContext, stageIndex);
+                } else {
+                    analysisData.physical_entities = detectedEntities;
+                    analysisData.detected_objects = detectedEntities;
                 }
+
+                const elapsed = Date.now() - startTime;
+                if (elapsed < 1400) {
+                    await new Promise(r => setTimeout(r, 1400 - elapsed));
+                }
+
+                if (containerEl) this.stopHUDAnimation(containerEl, statusEl, "Audit Ratified by AI Agent");
+
+                if (overlayEl) {
+                    const boxes = analysisData.physical_entities || analysisData.detected_objects || [];
+                    this.renderBoundingBoxes(overlayEl, boxes);
+                }
+
+                this.notifySubscribers(analysisData);
+                return this.adaptForPageContext(analysisData, pageContext);
+            } finally {
+                this.isScanning = false;
             }
-
-            if (!detectedEntities || detectedEntities.length < 8) {
-                analysisData = this.generateAdaptiveBiophysicalEntities(filename, perspective, pageContext, stageIndex);
-            } else {
-                analysisData.physical_entities = detectedEntities;
-                analysisData.detected_objects = detectedEntities;
-            }
-
-            const elapsed = Date.now() - startTime;
-            if (elapsed < 1400) {
-                await new Promise(r => setTimeout(r, 1400 - elapsed));
-            }
-
-            if (containerEl) this.stopHUDAnimation(containerEl, statusEl, "Audit Ratified by AI Agent");
-            this.isScanning = false;
-
-            if (overlayEl) {
-                const boxes = analysisData.physical_entities || analysisData.detected_objects || [];
-                this.renderBoundingBoxes(overlayEl, boxes);
-            }
-
-            this.notifySubscribers(analysisData);
-            return this.adaptForPageContext(analysisData, pageContext);
         }
 
         adaptForPageContext(data, pageContext) {
@@ -489,6 +498,7 @@ const isWeedAlleyScene = !isMacroLandscape && (
                     perspective_classified: 'AERIAL_DRONE_NADIR',
                     auditor_summary: `Aerial Drone Photogrammetry (45m AGL): Mapped ${boxes.length} biophysical entities arranged on a standard 9.0m equilateral triangular grid. Symmetrical canopy closure confirms optimal light attenuation for shade-tolerant alley intercropping.`,
                     sha256_seal: "8F43" + Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('').toUpperCase()
+                };
             }
         }
 
