@@ -43,14 +43,15 @@
             margin: 8mm;
         }
         @media print {
-            body {
-                background: white !important;
+            html, html.dark, body, body.dark {
+                background: #ffffff !important;
+                background-color: #ffffff !important;
                 color: #0f172a !important;
                 padding: 0 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
-            .no-print {
+            .no-print, [data-no-print="true"] {
                 display: none !important;
             }
             .cert-container {
@@ -509,6 +510,17 @@
                 revEl.textContent = "$ 17,925.00 USD / Ha / Thn";
             }
         }
+
+        // Force pure light theme during print/PDF generation
+        window.addEventListener('beforeprint', function () {
+            document.documentElement.classList.remove('dark');
+        });
+        window.addEventListener('afterprint', function () {
+            const savedTheme = localStorage.getItem('precision_palm_theme') || (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+            }
+        });
     </script>
 </body>
 </html>

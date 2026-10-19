@@ -1,4 +1,35 @@
 <!-- templates/partials/header.html -->
+<style>
+    @media print {
+        html, html.dark, body, body.dark {
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        html.dark *, .dark * {
+            box-shadow: none !important;
+            text-shadow: none !important;
+        }
+        html.dark .bg-slate-900, html.dark .bg-slate-950, html.dark .bg-slate-800,
+        html.dark [class*="bg-slate-"], html.dark [class*="dark:bg-"] {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+        }
+        html.dark [class*="text-white"], html.dark [class*="text-slate-100"], 
+        html.dark [class*="text-slate-200"], html.dark [class*="text-slate-300"], 
+        html.dark [class*="dark:text-"] {
+            color: #0f172a !important;
+        }
+        html.dark [class*="border-slate-"], html.dark [class*="dark:border-"] {
+            border-color: #cbd5e1 !important;
+        }
+        header, .no-print, [data-no-print="true"], #primaryNavMenu, #floatingTerminalModal, #floatingTerminalLauncher {
+            display: none !important;
+        }
+    }
+</style>
 <header class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-3.5 sm:p-4 shadow-sm transition-colors duration-200">
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <!-- BRAND LOGO & SYSTEM IDENTITY -->
@@ -127,6 +158,7 @@
     function setAppLanguage(lang) {
         const targetLang = (lang === 'id' || lang === 'en') ? lang : 'en';
         localStorage.setItem('precision_palm_lang', targetLang);
+        localStorage.setItem('precision_palm_language', targetLang);
         document.documentElement.lang = targetLang;
 
         const btnEN = document.getElementById('btnLangEN');
@@ -140,8 +172,48 @@
                 btnEN.className = "px-2 py-1 rounded-lg transition-all text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer font-bold text-[10px]";
             }
         }
+
+        if (window.PRECISION_PALM_I18N && typeof window.PRECISION_PALM_I18N.set === 'function') {
+            try { window.PRECISION_PALM_I18N.set(targetLang); } catch (_) {}
+        }
+        if (typeof window.applyTranslations === 'function') {
+            try { window.applyTranslations(targetLang); } catch (_) {}
+        }
         window.dispatchEvent(new CustomEvent('languagechanged', { detail: { lang: targetLang } }));
     }
+
+    // Keep header UI in sync with external events (e.g. top context bar)
+    window.addEventListener('languagechanged', (e) => {
+        const lang = e.detail?.lang || localStorage.getItem('precision_palm_lang') || 'en';
+        const btnEN = document.getElementById('btnLangEN');
+        const btnID = document.getElementById('btnLangID');
+        if (btnEN && btnID) {
+            if (lang === 'en') {
+                btnEN.className = "px-2 py-1 rounded-lg transition-all bg-emerald-600 text-white font-bold shadow-xs cursor-pointer text-[10px]";
+                btnID.className = "px-2 py-1 rounded-lg transition-all text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer font-bold text-[10px]";
+            } else {
+                btnID.className = "px-2 py-1 rounded-lg transition-all bg-emerald-600 text-white font-bold shadow-xs cursor-pointer text-[10px]";
+                btnEN.className = "px-2 py-1 rounded-lg transition-all text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer font-bold text-[10px]";
+            }
+        }
+    });
+
+    window.addEventListener('themechanged', (e) => {
+        const theme = e.detail?.theme || (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        const icon = document.getElementById('themeToggleIcon');
+        if (icon) icon.textContent = (theme === 'dark') ? '🌙' : '☀️';
+    });
+
+    // Strip dark theme during print/PDF export
+    window.addEventListener('beforeprint', function () {
+        document.documentElement.classList.remove('dark');
+    });
+    window.addEventListener('afterprint', function () {
+        const savedTheme = localStorage.getItem('precision_palm_theme') || (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        if (savedTheme === 'dark') {
+            document.documentElement.classList.add('dark');
+        }
+    });
 
     // Penanda tautan aktif pada header
     (function initHeaderActiveLink() {
@@ -160,7 +232,7 @@
     })();
 
     document.addEventListener('DOMContentLoaded', () => {
-        const savedTheme = localStorage.getItem('precision_palm_theme') || 'dark';
+        const savedTheme = localStorage.getItem('precision_palm_theme') || (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
         applyThemeMode(savedTheme);
         const savedLang = localStorage.getItem('precision_palm_lang') || 'en';
         setAppLanguage(savedLang);

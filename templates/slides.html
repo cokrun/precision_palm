@@ -102,8 +102,8 @@
 
             html,
             body {
-                background: #090d16 !important;
-                color: #f1f5f9 !important;
+                background: #ffffff !important;
+                color: #0f172a !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 width: 100% !important;
@@ -111,11 +111,6 @@
                 font-family: 'Inter', sans-serif !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-            }
-
-            body.print-theme-light {
-                background: #ffffff !important;
-                color: #0f172a !important;
             }
 
             /* Hide interactive on-screen elements during print */
@@ -133,6 +128,7 @@
             #printDeckContainer {
                 display: block !important;
                 width: 100% !important;
+                background: #ffffff !important;
             }
 
             .print-slide-item {
@@ -150,9 +146,9 @@
                 flex-direction: column !important;
                 justify-content: space-between !important;
                 position: relative !important;
-                background: #0b1120 !important;
-                color: #f1f5f9 !important;
-                border: 1px solid #1e293b !important;
+                background: #ffffff !important;
+                color: #0f172a !important;
+                border: 1px solid #cbd5e1 !important;
                 border-radius: 16px !important;
                 overflow: hidden !important;
             }
@@ -163,33 +159,27 @@
             }
 
             /* Light theme adjustments for physical paper print */
-            body.print-theme-light .print-slide-item {
-                background: #ffffff !important;
-                color: #0f172a !important;
-                border: 1px solid #cbd5e1 !important;
-            }
-
-            body.print-theme-light .print-slide-item .text-slate-100,
-            body.print-theme-light .print-slide-item .text-slate-200,
-            body.print-theme-light .print-slide-item .text-slate-300 {
+            .print-slide-item .text-slate-100,
+            .print-slide-item .text-slate-200,
+            .print-slide-item .text-slate-300 {
                 color: #1e293b !important;
             }
 
-            body.print-theme-light .print-slide-item .text-slate-400,
-            body.print-theme-light .print-slide-item .text-slate-500 {
+            .print-slide-item .text-slate-400,
+            .print-slide-item .text-slate-500 {
                 color: #475569 !important;
             }
 
-            body.print-theme-light .print-slide-item .bg-slate-950,
-            body.print-theme-light .print-slide-item .bg-slate-900,
-            body.print-theme-light .print-slide-item .bg-slate-950\/70,
-            body.print-theme-light .print-slide-item .bg-slate-900\/80 {
+            .print-slide-item .bg-slate-950,
+            .print-slide-item .bg-slate-900,
+            .print-slide-item .bg-slate-950\/70,
+            .print-slide-item .bg-slate-900\/80 {
                 background: #f8fafc !important;
                 border-color: #cbd5e1 !important;
             }
 
-            body.print-theme-light .print-slide-item .border-slate-800,
-            body.print-theme-light .print-slide-item .border-slate-700 {
+            .print-slide-item .border-slate-800,
+            .print-slide-item .border-slate-700 {
                 border-color: #e2e8f0 !important;
             }
         }

@@ -3740,6 +3740,16 @@ function syncLanguageButtonsUI() {
             btnTopID.className = "px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white cursor-pointer text-[10px]";
         }
     }
+
+    // Synchronize report_all floating header buttons if present
+    const reportBtnEN = document.getElementById('btnReportLangEN');
+    const reportBtnID = document.getElementById('btnReportLangID');
+    if (reportBtnEN && reportBtnID) {
+        const repAct = "px-2.5 py-1 rounded-lg transition-all bg-emerald-600 text-white font-bold text-[10px] shadow-xs cursor-pointer";
+        const repInact = "px-2.5 py-1 rounded-lg transition-all text-slate-500 hover:text-slate-900 font-bold text-[10px] cursor-pointer";
+        reportBtnEN.className = (currentLang === 'en') ? repAct : repInact;
+        reportBtnID.className = (currentLang === 'id') ? repAct : repInact;
+    }
 }
 
 /**

@@ -17,6 +17,39 @@
     req_path.startswith('/topology') or 
     req_path.startswith('/compliance-lineage')
 ) %}
+<style>
+    /* UNIVERSAL PURE LIGHT CLEAN PRINT / PDF RULES */
+    @media print {
+        html, html.dark, body, body.dark {
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        html.dark *, .dark * {
+            box-shadow: none !important;
+            text-shadow: none !important;
+        }
+        html.dark .bg-slate-900, html.dark .bg-slate-950, html.dark .bg-slate-800,
+        html.dark [class*="bg-slate-"], html.dark [class*="dark:bg-"] {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+        }
+        html.dark [class*="text-white"], html.dark [class*="text-slate-100"], 
+        html.dark [class*="text-slate-200"], html.dark [class*="text-slate-300"], 
+        html.dark [class*="dark:text-"] {
+            color: #0f172a !important;
+        }
+        html.dark [class*="border-slate-"], html.dark [class*="dark:border-"] {
+            border-color: #cbd5e1 !important;
+        }
+        #globalTopContextBar, .no-print, [data-no-print="true"],
+        #floatingTerminalModal, #floatingTerminalLauncher, #floatingDevNotesModal, #toastNotification {
+            display: none !important;
+        }
+    }
+</style>
 <header id="globalTopContextBar" class="sticky top-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 px-4 py-2.5 transition-all text-xs font-mono shadow-xs">
     <div class="flex flex-wrap items-center justify-between gap-3">
         <!-- 1. BRAND & SYSTEM IDENTITY -->
@@ -173,10 +206,19 @@
         const savedCurr = (savedLang === 'id') ? 'IDR' : (localStorage.getItem('precision_currency_mode') || 'USD');
 
         localStorage.setItem('precision_palm_lang', savedLang);
+        localStorage.setItem('precision_palm_language', savedLang);
         localStorage.setItem('precision_currency_mode', savedCurr);
+        document.documentElement.lang = savedLang;
 
         applyLanguageButtonUI(savedLang);
         applyCurrencyDisplay(savedCurr);
+
+        if (window.PRECISION_PALM_I18N && typeof window.PRECISION_PALM_I18N.set === 'function') {
+            try { window.PRECISION_PALM_I18N.set(savedLang); } catch (_) {}
+        } else if (typeof window.applyTranslations === 'function') {
+            try { window.applyTranslations(savedLang); } catch (_) {}
+        }
+
         const savedTheme = localStorage.getItem('precision_palm_theme') || (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
         if (savedTheme === 'light') {
             document.documentElement.classList.remove('dark');
@@ -328,7 +370,13 @@
         applyLanguageButtonUI(targetLang);
         applyCurrencyDisplay(targetCurrency);
 
-        if (typeof window.setAppLanguage === 'function') {
+        if (window.PRECISION_PALM_I18N && typeof window.PRECISION_PALM_I18N.set === 'function') {
+            try { window.PRECISION_PALM_I18N.set(targetLang); } catch (_) {}
+        } else if (typeof window.applyTranslations === 'function') {
+            try { window.applyTranslations(targetLang); } catch (_) {}
+        }
+
+        if (typeof window.setAppLanguage === 'function' && window.setAppLanguage !== setGlobalAppLanguage) {
             try { window.setAppLanguage(targetLang); } catch (_) {}
         }
 
@@ -418,4 +466,15 @@
         url.searchParams.set('audit_year', newYear);
         window.location.href = url.toString();
     }
+
+    // Force pure light theme during print/PDF generation
+    window.addEventListener('beforeprint', function () {
+        document.documentElement.classList.remove('dark');
+    });
+    window.addEventListener('afterprint', function () {
+        const savedTheme = localStorage.getItem('precision_palm_theme') || (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        if (savedTheme === 'dark') {
+            document.documentElement.classList.add('dark');
+        }
+    });
 </script>

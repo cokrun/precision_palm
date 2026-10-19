@@ -406,6 +406,7 @@
                         <span class="text-[9.5px] text-slate-400 font-mono">JPG/PNG/GeoTIFF</span>
                     </div>
                 </div>
+                <input type="file" id="fileInputMonitoringPhoto" multiple accept="image/*,.tif,.tiff" class="hidden" onchange="handleMonitoringMultiPhotosSelected(event)">
 
                 <!-- Selection Bar: [1 Selected] & Select All -->
                 <div class="flex items-center justify-between text-xs font-mono px-0.5">
@@ -652,16 +653,21 @@
                     <div id="monitoringBBoxesOverlay" class="absolute inset-0 pointer-events-none z-20"></div>
                     <div id="aiReticleSvgOverlay" class="absolute inset-0 pointer-events-none z-20"></div>
 
-                    <!-- HUD Tag Foto & Vision Status -->
-                    <div class="absolute bottom-2.5 left-2.5 bg-slate-950/85 backdrop-blur-md border border-slate-700 px-2.5 py-1 rounded-lg text-[10px] font-mono text-slate-200 flex items-center gap-2 shadow z-30">
-                        <span>📸</span> <span id="lblActiveEvidenceFilename">Memuat Foto Bukti...</span>
-                        <span class="text-slate-600">|</span>
-                        <span id="timelineScanStatusText" class="text-emerald-400 font-bold truncate max-w-[200px]">Vision Engine Active</span>
+                    <!-- Top-Left Badge: Audit Ratified by AI Agent (Image 1 Parity) -->
+                    <div class="absolute top-3 left-3 bg-slate-950/85 backdrop-blur-md border border-emerald-500/60 px-3 py-1.5 rounded-xl text-xs font-mono text-emerald-400 font-bold flex items-center gap-2 shadow-lg z-30">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span id="timelineScanStatusText">Audit Ratified by AI Agent</span>
                     </div>
 
-                    <div class="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-30">
-                        <button type="button" onclick="triggerAiVisionRescan()" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-[10px] font-bold shadow-md transition flex items-center gap-1 cursor-pointer">
-                            <span>⚡</span> <span data-i18n="time_btn_rescan">Rescan with AI</span>
+                    <!-- Bottom-Left Filename Pill -->
+                    <div class="absolute bottom-3 left-3 bg-slate-950/85 backdrop-blur-md border border-cyan-500/50 px-3 py-1.5 rounded-lg text-xs font-mono text-cyan-300 flex items-center gap-2 shadow z-30">
+                        <span>📷</span> <span id="lblActiveEvidenceFilename">EV-EST-MDN-010-2026-9217.jpg</span>
+                    </div>
+
+                    <!-- Top-Right Rescan Button: Rescan Single (Image 1 Parity) -->
+                    <div class="absolute top-3 right-3 flex items-center gap-1.5 z-30">
+                        <button type="button" onclick="triggerAiVisionRescan()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/30 transition flex items-center gap-2 cursor-pointer">
+                            <span class="text-base">⚡</span> <span data-i18n="time_btn_rescan">Rescan Single</span>
                         </button>
                     </div>
                 </div>
@@ -1315,6 +1321,7 @@
 <!-- SKRIP KONTROLER TAHAP 3: TIMELINES & MONITORING MANDOR -->
 <script>
     let activeEstate = null;
+    let activeStageIndex = 1;
     let cachedSurveillanceLogs = [];
     let currentEvidenceUrl = null;
     let surveillanceSearchQuery = '';
@@ -2016,7 +2023,7 @@
                     containerEl: document.getElementById('monitoringEvidenceContainer') || imgEl.parentElement,
                     overlayEl: document.getElementById('monitoringBBoxesOverlay'),
                     statusEl: tagStatus,
-                    stageIndex: activeStageIndex !== undefined ? activeStageIndex : 1
+                    stageIndex: (typeof activeStageIndex !== 'undefined' ? activeStageIndex : 1)
                 });
             } else {
                 const res = await fetch('/api/ai/scan-image', {
@@ -2045,7 +2052,7 @@
                 : (Array.isArray(analysis.detected_objects) && analysis.detected_objects.length > 0
                     ? analysis.detected_objects
                     : (window.UnifiedVisionEngine 
-                        ? window.UnifiedVisionEngine.generateHolisticFallback(currentEvidenceUrl, isAerial ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU', 'TIMELINES', activeStageIndex !== undefined ? activeStageIndex : 1).physical_entities 
+                        ? window.UnifiedVisionEngine.generateHolisticFallback(currentEvidenceUrl, isAerial ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU', 'TIMELINES', typeof activeStageIndex !== 'undefined' ? activeStageIndex : 1).physical_entities 
                         : []));
 
             await runAiVisionScanAnimation(detectedBoxes);
@@ -2477,7 +2484,7 @@
                 tag: tagShort,
                 url: dataUrl,
                 boxes: window.UnifiedVisionEngine 
-                    ? window.UnifiedVisionEngine.generateHolisticFallback(file.name, 'TERRESTRIAL_IN_SITU', 'TIMELINES', activeStageIndex !== undefined ? activeStageIndex : 1).physical_entities 
+                    ? window.UnifiedVisionEngine.generateHolisticFallback(file.name, 'TERRESTRIAL_IN_SITU', 'TIMELINES', typeof activeStageIndex !== 'undefined' ? activeStageIndex : 1).physical_entities 
                     : [],
                 sha256: fileHash,
                 image_sha256_hash: fileHash,
@@ -2492,6 +2499,27 @@
             switchActiveEvidencePhoto(activeEvidenceIndex);
             renderEvidenceThumbnails();
             showNotificationToast(`Berhasil menambahkan ${newItems.length} foto bukti aktual!`, "📸");
+
+            // Simpan ke localStorage & backend agar persisten
+            try {
+                const estCode = (activeEstate && (activeEstate.kode_kebun || activeEstate.kode)) || 'EST-MDN-010';
+                localStorage.setItem(`precision_timeline_photos_${estCode}`, JSON.stringify(uploadedEvidencePhotos));
+                newItems.forEach(item => {
+                    fetch('/api/spatial/save-inspection', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            dossier_id: estCode,
+                            evidence_id: item.id,
+                            foto_url: item.url,
+                            detected_entities: item.boxes,
+                            sha256_seal: item.sha256 || '8F43-SEALED'
+                        })
+                    }).catch(() => {});
+                });
+            } catch (pErr) {
+                console.warn("[Persist Uploaded Photo Notice]:", pErr);
+            }
         }
     }
 
@@ -4067,7 +4095,7 @@
 
                     if (!boxes || boxes.length === 0) {
                         boxes = window.UnifiedVisionEngine 
-                            ? (window.UnifiedVisionEngine.generateAdaptiveBiophysicalEntities(p.name || p.filename || pUrl || '', isDrone ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU', 'TIMELINES', activeStageIndex !== undefined ? activeStageIndex : 1).physical_entities) 
+                            ? (window.UnifiedVisionEngine.generateAdaptiveBiophysicalEntities(p.name || p.filename || pUrl || '', isDrone ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU', 'TIMELINES', typeof activeStageIndex !== 'undefined' ? activeStageIndex : 1).physical_entities) 
                             : [];
                     }
                     
@@ -4377,7 +4405,7 @@
         const boxes = (p.boxes && p.boxes.length > 0) 
             ? p.boxes 
             : (window.UnifiedVisionEngine 
-                ? window.UnifiedVisionEngine.generateHolisticFallback(p.url || p.name || '', isDrone ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU', 'TIMELINES', activeStageIndex !== undefined ? activeStageIndex : 1).physical_entities 
+                ? window.UnifiedVisionEngine.generateHolisticFallback(p.url || p.name || '', isDrone ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU', 'TIMELINES', typeof activeStageIndex !== 'undefined' ? activeStageIndex : 1).physical_entities 
                 : []);
         const entityCount = boxes.length || 20;
 
