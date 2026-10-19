@@ -367,11 +367,23 @@
                             <div id="aiScanningLaser" class="hidden absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_#34d399] z-25 pointer-events-none transition-all duration-700"></div>
                             <div id="droneBBoxesOverlay" class="absolute inset-0 pointer-events-none z-20"></div>
 
-                            <div class="absolute bottom-2 left-2 bg-slate-950/85 backdrop-blur-md border border-slate-700 px-2.5 py-1 rounded-lg text-[10px] font-mono text-slate-200 flex items-center gap-1.5 shadow z-30">
-                                <span>📸</span> <span id="active_canopy_img_name">sawit_drone.jpg</span>
+                            <!-- Top-Left Badge: Audit Ratified by AI Agent -->
+                            <div class="absolute top-3 left-3 bg-slate-950/85 backdrop-blur-md border border-emerald-500/60 px-3 py-1.5 rounded-xl text-xs font-mono text-emerald-400 font-bold flex items-center gap-2 shadow-lg z-30">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span>Audit Ratified by AI Agent</span>
                             </div>
-                            <div class="absolute bottom-2 right-2 bg-emerald-600/90 backdrop-blur-md px-2.5 py-1 rounded-lg text-[9px] text-white font-mono z-30">
-                                <span id="image_caption">Foto Pendaftaran HGU (EST-MDN-010) &bull; In-Situ 4D</span>
+
+                            <!-- Top-Right Rescan Button: Rescan Single (Image 1 Parity) -->
+                            <button type="button" onclick="runDetailedObjectVisionScan(true)" class="absolute top-3 right-3 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/30 transition flex items-center gap-2 cursor-pointer z-30">
+                                <span class="text-base">⚡</span> <span>Rescan Single</span>
+                            </button>
+
+                            <!-- Bottom-Left Filename Pill -->
+                            <div class="absolute bottom-3 left-3 bg-slate-950/85 backdrop-blur-md border border-cyan-500/50 px-3 py-1.5 rounded-lg text-xs font-mono text-cyan-300 flex items-center gap-2 shadow z-30">
+                                <span>📷</span> <span id="active_canopy_img_name">EV-EST-MDN-010-2026-9217.jpg</span>
+                            </div>
+                            <div class="absolute bottom-3 right-3 bg-emerald-600/90 backdrop-blur-md px-2.5 py-1 rounded-lg text-[9px] text-white font-mono z-30">
+                                <span id="image_caption">Foto In-Situ 4D &bull; Silvikultur TM</span>
                             </div>
                         </div>
 
@@ -2708,20 +2720,21 @@
                 }
             }
 
-            if (!activeEstate) {
-                try {
-                    const res = await fetch(`/api/spatial/estate-data?kode=${encodeURIComponent(targetKode || 'EST-MDN-010')}&id=${encodeURIComponent(targetId || '')}`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data && data.success && data.estate) {
+            const lookupKode = targetKode || (activeEstate && activeEstate.kode_kebun) || 'EST-MDN-010';
+            try {
+                const res = await fetch(`/api/spatial/estate-data?kode=${encodeURIComponent(lookupKode)}&id=${encodeURIComponent(targetId || '')}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.success) {
+                        if (data.estate && !activeEstate) {
                             activeEstate = data.estate;
-                            if (!activeEstatePhotos || activeEstatePhotos.length === 0) {
-                                activeEstatePhotos = data.photos || [];
-                            }
+                        }
+                        if (Array.isArray(data.photos) && data.photos.length > 0) {
+                            activeEstatePhotos = data.photos;
                         }
                     }
-                } catch (_) {}
-            }
+                }
+            } catch (_) {}
 
             if (!activeEstate) {
                 activeEstate = {
@@ -3424,7 +3437,9 @@
                 coordinates: coordsVal
             });
 
+            // 1. TAHAP 1: Eksekusi Komputasi Biofisika Deterministik
             const computeResult = executeInSilicoCompute();
+            if (typeof recalculateCombinedAccumulation === 'function') recalculateCombinedAccumulation();
             const currentLai = (5.5 / (1.0 + Math.exp(-0.7 * (ageVal - 3.5)))).toFixed(2);
 
             safeTerminalLog('PROCESS', 'Beer-Lambert Dynamics & Gemini Vision Reasoning', {
@@ -3433,6 +3448,10 @@
                 weeded_circle_verification: "Zero mechanical tillage inside 2.0m active root feeder zone"
             });
 
+            // 2. TAHAP 2: Pemindaian Multimodal AI & Validasi Fisik Lapangan
+            await runDetailedObjectVisionScan(true);
+
+            // 3. TAHAP 3: Sinkronisasi Backend & Ledger Kriptografis
             let recordSha = "8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4";
             let effectiveRecordId = Date.now() % 100000;
             const selectedPhotosArray = (selectedPhotoUrls.size > 0 ? Array.from(selectedPhotoUrls) : [imageSample]);
@@ -3512,9 +3531,16 @@
                 sha256: recordSha
             });
 
+            // 4. TAHAP 4: Render UI Berurutan
             renderAuditResultCard(computeResult, cropNameVal, recordSha, effectiveRecordId);
-            await runDetailedObjectVisionScan();
+            render10YearCashflowTable(ageVal, areaVal, ypiVal, ypmVal, yciVal, ycmVal, computeResult.totalLer, computeResult.sparedHa, computeResult.totalCarbon);
             fetchAdminHistory();
+
+            // Gulir halus ke tampilan hasil komputasi
+            const resultDossier = document.getElementById('zona_2_biophysical_dossier') || document.getElementById('auditResultsContainer');
+            if (resultDossier) {
+                resultDossier.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
 
             if (btnMain) {
                 btnMain.disabled = false;

@@ -801,8 +801,8 @@ function executeInSilicoCompute() {
 window.executeInSilicoCompute = executeInSilicoCompute;
 
 /**
- * Main action handler triggered by the primary execute button.
- * Dispatches 3-phase telemetry, calls local backend, and saves audit records.
+ * RECOVERED: Full-Stack Pipeline Execution
+ * Menghitung deterministik biofisika -> Rescan Objek AI -> Update Matriks 44 -> Kirim API -> Render UI
  */
 async function executeInferenceAction() {
     if (isAuditRunning) return;
@@ -816,14 +816,14 @@ async function executeInferenceAction() {
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
             </svg>
-            <span>Executing In-Silico &amp; Multimodal AI Pipeline...</span>
+            <span>Memproses Komputasi Biofisika & Audit AI...</span>
         `;
     }
 
     try {
-        // Open terminal window if available
         if (typeof openTerminalWindow === 'function') openTerminalWindow();
 
+        // 1. Ambil nilai input terbaru dari DOM
         const ageVal = parseFloat(document.getElementById('palm_age')?.value) || 6.0;
         const areaVal = parseFloat(document.getElementById('land_area')?.value) || 100.0;
         const cropNameVal = document.getElementById('crop_name')?.value || "Red Ginger (Zingiber officinale var. rubrum)";
@@ -836,35 +836,40 @@ async function executeInferenceAction() {
         const slopeVal = parseFloat(document.getElementById('sim_slope')?.value) || 4.5;
         const soilPhVal = parseFloat(document.getElementById('sim_soil_ph')?.value) || 5.5;
 
-        // 1. FASE REQUEST
-        if (typeof logAiInteraction === 'function') {
-            logAiInteraction('REQUEST', 'In-Silico Biophysical & Vision Pipeline Dispatched', {
-                target_engine: "Precision Palm Local Engine & Vertex AI Contracts",
-                palm_age_years: ageVal,
-                land_area_ha: areaVal,
-                definitive_crop: cropNameVal,
-                canopy_orthophoto: imageSample,
-                coordinates: coordsVal,
-                corridor_spec: "3.79m Net Cultivation Avenue (82.91% Net Area)",
-                sterile_buffer: "2.0m Radial Feeder Root Circle (Zero-Tillage)"
-            });
-        }
-
+        // 2. TAHAP 1: Eksekusi Komputasi Biofisika Deterministik (Single Source of Truth)
         const computeResult = executeInSilicoCompute();
+        if (typeof recalculateCombinedAccumulation === 'function') {
+            recalculateCombinedAccumulation();
+        }
         const currentLai = (5.5 / (1.0 + Math.exp(-0.7 * (ageVal - 3.5)))).toFixed(2);
 
-        // 2. FASE PROCESS
         if (typeof logAiInteraction === 'function') {
-            logAiInteraction('PROCESS', 'Beer-Lambert Dynamics & Spatial Grounding Check', {
-                optical_extinction_k: 0.45,
-                calculated_lai: currentLai,
-                attenuation_formula: "I = I_0 * exp(-k * LAI)",
-                root_protection_check: "Zero mechanical tillage inside 2.0m active root feeder zone",
-                statutory_moratorium_check: "PIPPIB 2024 Arable APL & EUDR Dec 31, 2020 Cut-off Verification"
+            logAiInteraction('REQUEST', 'In-Silico Biophysical Calculation Dispatched', {
+                palm_age: ageVal,
+                land_area_ha: areaVal,
+                lai: currentLai,
+                total_ler: computeResult.totalLer.toFixed(4),
+                forest_spared_ha: computeResult.sparedHa.toFixed(2),
+                carbon_tco2e: Math.round(computeResult.totalCarbon)
             });
         }
 
+        // 3. TAHAP 2: Pemindaian Multimodal AI & Validasi Fisik Lapangan
+        if (typeof logAiInteraction === 'function') {
+            logAiInteraction('PROCESS', 'Computer Vision Scanning & Statutory Check', {
+                image_target: imageSample,
+                root_buffer_gap: "2.0m Zero-Tillage Validation",
+                framework: "ISPO Principle 2 & EUDR Art. 9"
+            });
+        }
+        if (typeof runDetailedObjectVisionScan === 'function') {
+            await runDetailedObjectVisionScan(true);
+        }
+
+        // 4. TAHAP 3: Sinkronisasi Backend & Ledger Kriptografis
         const payload = {
+            id_kebun: (window.activeEstate && window.activeEstate.id_kebun) || 10,
+            kode_kebun: (window.activeEstate && window.activeEstate.kode_kebun) || "EST-MDN-010",
             palm_age: ageVal,
             land_area: areaVal,
             crop_name: cropNameVal,
@@ -872,16 +877,13 @@ async function executeInferenceAction() {
             yield_palm_mono: ypmVal,
             yield_crop_inter: yciVal,
             yield_crop_mono: ycmVal,
-            image_sample: imageSample,
-            planting_density: 136,
             soil_ph: soilPhVal,
             soil_texture: 'sandy_loam',
-            latitude: 0.8241,
-            longitude: 99.5612,
+            image_sample: imageSample,
             inference_mode: 'hybrid'
         };
 
-        let recordSha = "4f9c82b0178e23f95e55b6a71dc912a7bf89d34208a5f82613b5e40e2cf73062";
+        let recordSha = "8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4";
         let effectiveRecordId = Date.now() % 100000;
 
         try {
@@ -890,61 +892,61 @@ async function executeInferenceAction() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-
             if (resp.ok) {
                 const resJson = await resp.json();
                 recordSha = resJson.sha256_seal || resJson.sha256_hash || recordSha;
                 effectiveRecordId = resJson.id || resJson.record_id || effectiveRecordId;
             }
         } catch (err) {
-            console.warn("[Simulator] Local backend notice, falling back to client ledger:", err);
+            console.warn("[Simulator] Backend fallback to local ledger:", err);
         }
 
-        // 3. FASE RESULT
-        if (typeof logAiInteraction === 'function') {
-            logAiInteraction('RESULT', 'Audit Certified & Telemetry Sealed in Local Database', {
-                total_ler: `${computeResult.totalLer.toFixed(4)}x`,
-                primary_forest_spared_ha: `${computeResult.sparedHa.toFixed(2)} Ha`,
-                climate_asset_tco2e: `${Math.round(computeResult.totalCarbon).toLocaleString()} tCO2e`,
-                sha256_seal: recordSha,
-                status: "Committed to SQLite Database & Ready for BigQuery Ledger Stream"
+        // 5. TAHAP 4: Simpan ke Ledger Lokal & Render Ulang Seluruh Komponen UI
+        if (typeof saveSimulationRecordLocally === 'function') {
+            saveSimulationRecordLocally({
+                id: effectiveRecordId,
+                created_at: new Date().toISOString(),
+                palm_age: ageVal,
+                land_area: areaVal,
+                crop_name: cropNameVal,
+                total_ler: computeResult.totalLer,
+                avoided_land_ha: computeResult.sparedHa,
+                total_climate_benefit_tco2e: Math.round(computeResult.totalCarbon),
+                leaf_area_index: currentLai,
+                surface_par: computeResult.surfacePar,
+                canopy_cover: computeResult.coverPct,
+                sha256: recordSha,
+                image_sample: imageSample,
+                coords: coordsVal,
+                slope: slopeVal,
+                soil_ph: soilPhVal
             });
         }
 
-        // Persist to client-side localStorage ledger
-        saveSimulationRecordLocally({
-            id: effectiveRecordId,
-            created_at: new Date().toISOString(),
-            palm_age: ageVal,
-            land_area: areaVal,
-            crop_name: cropNameVal,
-            total_ler: computeResult.totalLer,
-            avoided_land_ha: computeResult.sparedHa,
-            total_climate_benefit_tco2e: Math.round(computeResult.totalCarbon),
-            leaf_area_index: currentLai,
-            surface_par: computeResult.surfacePar,
-            canopy_cover: computeResult.coverPct,
-            sha256: recordSha,
-            image_sample: imageSample,
-            coords: coordsVal,
-            slope: slopeVal,
-            soil_ph: soilPhVal
-        });
+        if (typeof renderAuditResultCard === 'function') {
+            renderAuditResultCard(computeResult, cropNameVal, recordSha, effectiveRecordId);
+        }
+        if (typeof render10YearCashflowTable === 'function') {
+            render10YearCashflowTable(ageVal, areaVal, ypiVal, ypmVal, yciVal, ycmVal, computeResult.totalLer, computeResult.sparedHa, computeResult.totalCarbon);
+        }
+        if (typeof fetchAdminHistory === 'function') {
+            fetchAdminHistory();
+        }
 
-        renderAuditResultCard(computeResult, cropNameVal, recordSha, effectiveRecordId);
-        
-        // Auto-expand Step 2 and Step 3
-        document.getElementById('stepContent_2')?.classList.remove('hidden');
-        document.getElementById('stepContent_3')?.classList.remove('hidden');
-        setTimeout(() => {
-            document.getElementById('zona_2_biophysical_dossier')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 150);
+        // Gulir halus ke tampilan hasil komputasi
+        const resultDossier = document.getElementById('zona_2_biophysical_dossier') || document.getElementById('auditResultsContainer');
+        if (resultDossier) {
+            resultDossier.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
 
-        fetchAdminHistory();
-
-        runDetailedObjectVisionScan().catch(e => console.warn(e));
+        if (typeof logAiInteraction === 'function') {
+            logAiInteraction('RESULT', 'Full-Stack Simulation Completed & Sealed', {
+                record_id: `#REC-${effectiveRecordId}`,
+                sha256_seal: recordSha
+            });
+        }
     } catch (err) {
-        console.error("[Simulator] Execution notice:", err);
+        console.error("[Simulator] Critical Failure:", err);
     } finally {
         if (btnMain) {
             btnMain.disabled = false;
