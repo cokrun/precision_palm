@@ -15,3 +15,4 @@ class Config:
     BQ_AUDIT_TABLE = os.getenv("BIGQUERY_TABLE_AUDIT", "audit_events")
     BQ_LOGS_TABLE = os.getenv("BIGQUERY_TABLE_LOGS", "system_logs")
     PORT = int(os.getenv("PORT", 8080))
+    APP_BASE_URL = os.getenv("APP_BASE_URL", "")
