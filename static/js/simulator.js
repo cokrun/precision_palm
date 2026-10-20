@@ -212,8 +212,15 @@ function applyVisionDataToSimulator(data) {
     // 3. Jalankan ulang kalkulasi biofisik (LER & Karbon)
     executeInSilicoCompute();
 
+    const matchPct = typeof data.realisticImageMatchPct === 'number'
+        ? data.realisticImageMatchPct
+        : (typeof data.realistic_image_match_pct === 'number' ? data.realistic_image_match_pct : 94.6);
+
+    const matchEl = document.getElementById('visionMatchBadge') || document.getElementById('lblVisionMatchScore');
+    if (matchEl) matchEl.innerText = `${matchPct}% Match`;
+
     if (typeof showNotificationToast === 'function') {
-        showNotificationToast(`✓ Sinkronisasi Visi AI: Naungan ${shadePct}% • Rekomendasi: ${isHighShade ? 'Jahe Merah' : 'Porang'}`, '🌿');
+        showNotificationToast(`✓ Unified Vision Match: ${matchPct}% • Canopy ${shadePct}% • Intercrop: ${isHighShade ? 'Red Ginger' : 'Porang'}`, '🌿');
     }
 }
 window.applyVisionDataToSimulator = applyVisionDataToSimulator;

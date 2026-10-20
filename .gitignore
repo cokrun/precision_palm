@@ -1,68 +1,29 @@
-# =========================================================================
-# PRECISION PALM CLOUD - PRODUCTION GITIGNORE
-# =========================================================================
-
-# 1. Kunci Rahasia & Environment Variables (WAJIB DILINDUNGI)
+# Secrets & Credentials (JANGAN SAMPAI BOCOR KE GITHUB)
 .env
-.env.local
-.env.*.local
-*.json.key
-*service_account*.json
+*.pem
+*.key
+service-account*.json
 credentials.json
-client_secret*.json
 
-# 2. Python Caches & Virtual Environments
+# Kecualikan file data aplikasi yang valid
+!mobile/manifest.json
+!data/precision_store.json
+!static/data/*.json
+
+# Python Cache & Virtual Environments
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-env/
 venv/
 .venv/
-ENV/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+env/
 
-# 3. File Database Operasional Lokal & Journal
+# Database temporary locks
 *.db-journal
 *.db-wal
-# precision_palm.db diabaikan jika memuat data riil, 
-# atau sertakan jika berfungsi sebagai database demo/seed default
+*.db-shm
 
-# 4. File MBTiles Ukuran Raksasa (>100MB dilarang oleh GitHub)
-*.mbtiles
-!static/asean.mbtiles
-japac.mbtiles
-
-# 5. File Unggahan Lokal User & Dokumen Privat
-static/uploads/legal_docs/*
-!static/uploads/legal_docs/sample_*.pdf
-!static/uploads/legal_docs/hgu_est_*.pdf
-static/uploads/canopy/*
-!static/uploads/canopy/sawit_drone.jpg
-!static/uploads/canopy/field_tm_weed.jpg
-!static/uploads/canopy/field_wetland_buffer.jpg
-
-# 6. IDE, OS & Editor Temp Files
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
+# IDE & OS Junk
 .DS_Store
 Thumbs.db
-desktop.ini
+.vscode/
+.idea/

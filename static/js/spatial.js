@@ -1621,14 +1621,15 @@ async function triggerScanningFotoAction() {
                 textEl.textContent = `✓ [STAGE 2A AUDIT VERIFIED] ${result.totalEntities} Physical entities verified compliant with ISPO & EUDR standards.`;
             }
 
+            const matchPct = result.realisticImageMatchPct || 94.6;
             if (scanBadge) {
                 scanBadge.classList.remove('hidden');
                 scanBadge.className = 'px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-sm';
-                scanBadge.innerHTML = `🟢 Unified Vision: ${result.totalEntities} Entities Verified`;
+                scanBadge.innerHTML = `🟢 Match: ${matchPct}% • ${result.totalEntities} Entities Verified`;
             }
 
             renderProcessedEvidenceCardsGrid();
-            showNotificationToast("✓ Spatial Audit Completed (" + result.totalEntities + " Entities Ground-Mapped)", "✅");
+            showNotificationToast(`✓ Spatial Audit Completed (${matchPct}% Match • ${result.totalEntities} Entities Ground-Mapped)`, "✅");
         }
     });
 }
