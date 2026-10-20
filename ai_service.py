@@ -37,7 +37,7 @@ except Exception as e_init:
 DB_PATH = os.path.join(ROOT_DIR, 'precision_palm.db')
 
 
-def record_ai_log(feature_name, model_engine, latency_ms, status, prompt_input, raw_response):
+def record_ai_log(feature_name, model_engine, latency_ms, status, prompt_input, raw_response, engine_mode=None, status_message=None):
     """
     Mencatat telemetri AI ke SQLite lokal dan secara asinkron
     mengalirkannya ke Google BigQuery (precision_palm_dw).
@@ -49,34 +49,18 @@ def record_ai_log(feature_name, model_engine, latency_ms, status, prompt_input, 
     clean_prompt = str(prompt_input or "")[:1500]
     clean_response = str(raw_response or "")[:3500]
 
-    # 1. Simpan ke SQLite lokal
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cur = conn.cursor()
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS ai_execution_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT NOT NULL,
-                feature_name TEXT NOT NULL,
-                model_engine TEXT NOT NULL,
-                latency_ms INTEGER NOT NULL,
-                status TEXT NOT NULL,
-                prompt_input TEXT,
-                raw_response TEXT,
-                sha256_hash TEXT
-            );
-        """)
-        cur.execute("""
-            INSERT INTO ai_execution_logs 
-            (timestamp, feature_name, model_engine, latency_ms, status, prompt_input, raw_response, sha256_hash)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?);
-        """, (ts_now, feature_name, model_engine, latency_ms, status, clean_prompt, clean_response, sha_hex))
-        conn.commit()
-        conn.close()
-    except Exception as e_sql:
-        print(f"[Record AI Log SQLite Error]: {e_sql}")
+    if not engine_mode:
+        if "fallback" in str(model_engine).lower() or "rule engine" in str(model_engine).lower() or str(status).upper() == "FALLBACK":
+            eff_engine_mode = "AUTONOMOUS_STATUTORY_RULE_ENGINE"
+            eff_status_msg = status_message or "[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)"
+        else:
+            eff_engine_mode = "LIVE_GEMINI"
+            eff_status_msg = status_message or "Verified via Gemini Multimodal Inference"
+    else:
+        eff_engine_mode = str(engine_mode)
+        eff_status_msg = str(status_message or ("Verified via Gemini Multimodal Inference" if eff_engine_mode == "LIVE_GEMINI" else "[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)"))
 
-    # 2. Kirim asinkron ke BigQuery (Aman & Tidak Memblokir)
+    # 1. Simpan ke SQLite lokal & kirim asinkron ke BigQuery via bigquery_logger
     try:
         send_ai_log_to_bigquery_async(
             feature_name,
@@ -86,7 +70,9 @@ def record_ai_log(feature_name, model_engine, latency_ms, status, prompt_input, 
             clean_prompt,
             clean_response,
             ts_now,
-            sha_hex
+            sha_hex,
+            engine_mode=eff_engine_mode,
+            status_message=eff_status_msg
         )
     except Exception as e_bq:
         print(f"[Record AI Log BigQuery Error]: {e_bq}")

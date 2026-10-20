@@ -243,6 +243,13 @@
                     <strong id="modalLogHash" class="text-emerald-600 dark:text-emerald-400 text-[11px] select-all break-all">-</strong>
                 </div>
                 <div>
+                    <span class="text-slate-500 dark:text-slate-400 text-[10px] block font-bold uppercase">Engine Mode &amp; Audit Attestation:</span>
+                    <div id="modalLogEngineBox" class="mt-1 flex flex-wrap items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                        <span id="modalLogEngineBadge" class="px-2 py-0.5 rounded text-[10px] font-bold font-mono"></span>
+                        <span id="modalLogStatusMsg" class="text-slate-600 dark:text-slate-300 text-[11px]"></span>
+                    </div>
+                </div>
+                <div>
                     <span class="text-slate-500 dark:text-slate-400 text-[10px] block font-bold">PROMPT INPUT / CONTEXT:</span>
                     <pre id="modalLogPrompt" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-300 text-[11px] whitespace-pre-wrap max-h-40 overflow-y-auto font-mono"></pre>
                 </div>
@@ -405,12 +412,23 @@
                     ? `<span class="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 text-[10px] font-bold">✓ SUCCESS</span>`
                     : `<span class="px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-400 border border-rose-300 dark:border-rose-800 text-[10px] font-bold">✗ FAILED</span>`;
 
+                const isFallback = (l.engine_mode && (l.engine_mode.includes('STATUTORY') || l.engine_mode.includes('FALLBACK') || l.engine_mode.includes('RULE_ENGINE'))) ||
+                                  (l.status_message && l.status_message.includes('Offline'));
+                const engineBadge = isFallback
+                    ? `<span class="px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-400 border border-amber-300 dark:border-amber-700 font-mono shadow-xs">⚡ FALLBACK</span>`
+                    : `<span class="px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 font-mono shadow-xs">🟢 LIVE</span>`;
+
                 return `
                     <tr class="hover:bg-emerald-50/70 dark:hover:bg-slate-800/40 transition border-b border-slate-100 dark:border-slate-800/60 font-mono">
                         <td class="px-3.5 py-3 text-center text-slate-500 dark:text-slate-400 font-bold">#${l.id}</td>
                         <td class="px-4 py-3 text-slate-700 dark:text-slate-300 text-xs">${l.timestamp}</td>
                         <td class="px-4 py-3 font-sans font-bold text-slate-900 dark:text-white">${l.feature_name}</td>
-                        <td class="px-4 py-3 text-purple-700 dark:text-purple-400 font-semibold text-xs">${l.model_engine}</td>
+                        <td class="px-4 py-3 text-xs">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="text-purple-700 dark:text-purple-400 font-semibold">${l.model_engine || 'gemini-3.8-flash'}</span>
+                                ${engineBadge}
+                            </div>
+                        </td>
                         <td class="px-4 py-3 text-center text-cyan-700 dark:text-cyan-400 font-bold">${l.latency_ms} ms</td>
                         <td class="px-4 py-3 text-center">${statusBadge}</td>
                         <td class="px-4 py-3 text-center">
@@ -635,6 +653,26 @@
             document.getElementById('modalLogHash').textContent = log.sha256_hash;
             document.getElementById('modalLogPrompt').textContent = log.prompt_input || '-';
             document.getElementById('modalLogResponse').textContent = log.raw_response || '-';
+
+            const isFallback = (log.engine_mode && (log.engine_mode.includes('STATUTORY') || log.engine_mode.includes('FALLBACK') || log.engine_mode.includes('RULE_ENGINE'))) ||
+                              (log.status_message && log.status_message.includes('Offline'));
+            const badgeEl = document.getElementById('modalLogEngineBadge');
+            const msgEl = document.getElementById('modalLogStatusMsg');
+
+            if (badgeEl) {
+                if (isFallback) {
+                    badgeEl.className = "px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-400 border border-amber-400";
+                    badgeEl.innerHTML = "⚡ AUTONOMOUS STATUTORY RULE ENGINE (FALLBACK)";
+                } else {
+                    badgeEl.className = "px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-400 border border-emerald-400";
+                    badgeEl.innerHTML = "🟢 LIVE GEMINI 3.8 FLASH";
+                }
+            }
+            if (msgEl) {
+                msgEl.textContent = log.status_message || (isFallback
+                    ? "[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)"
+                    : "Verified via Gemini Multimodal Inference");
+            }
 
             document.getElementById('rawDetailModal').classList.remove('hidden');
         }

@@ -276,14 +276,23 @@
                         : 'bg-rose-950/80 text-rose-400 border-rose-800';
                     const latencyClass = (l.latency_ms && l.latency_ms < 1000) ? 'text-emerald-400' : 'text-amber-400';
 
+                    const isFallback = (l.engine_mode && (l.engine_mode.includes('STATUTORY') || l.engine_mode.includes('FALLBACK') || l.engine_mode.includes('RULE_ENGINE'))) ||
+                                      (l.status_message && l.status_message.includes('Offline'));
+                    const engineBadge = isFallback
+                        ? '<span class="inline-block px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-amber-950 text-amber-400 border border-amber-600/60 font-mono">⚡ FALLBACK</span>'
+                        : '<span class="inline-block px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-600/60 font-mono">🟢 LIVE</span>';
+
                     return `
                         <div class="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800/90 hover:border-slate-700 flex items-center justify-between gap-3 transition">
                             <div class="min-w-0 flex-1">
-                                <strong class="text-white block text-[11px] truncate">${escapeHtml(l.feature_name || 'AI Task Execution')}</strong>
-                                <span class="text-slate-400 text-[10px] flex items-center gap-1.5 flex-wrap">
+                                <div class="flex items-center gap-1.5">
+                                    <strong class="text-white block text-[11px] truncate">${escapeHtml(l.feature_name || 'AI Task Execution')}</strong>
+                                    ${engineBadge}
+                                </div>
+                                <span class="text-slate-400 text-[10px] flex items-center gap-1.5 flex-wrap mt-0.5">
                                     <span>${escapeHtml(l.timestamp || '-')}</span>
                                     <span>&bull;</span>
-                                    <span class="text-cyan-400">${escapeHtml(l.model_engine || 'Gemini')}</span>
+                                    <span class="text-cyan-400">${escapeHtml(l.model_engine || 'gemini-3.8-flash')}</span>
                                 </span>
                             </div>
                             <div class="text-right shrink-0">

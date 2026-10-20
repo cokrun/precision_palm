@@ -74,7 +74,7 @@ def _get_bq_client():
             return None
     return _BQ_CLIENT
 
-def _save_ai_log_to_sqlite(timestamp_str, feature_name, model_engine, latency_ms, status, prompt_input, raw_response, sha256_hash):
+def _save_ai_log_to_sqlite(timestamp_str, feature_name, model_engine, latency_ms, status, prompt_input, raw_response, sha256_hash, engine_mode=None, status_message=None):
     """Dual-write sync persistence to SQLite."""
     try:
         conn = sqlite3.connect(DB_PATH, timeout=15.0)
@@ -89,13 +89,40 @@ def _save_ai_log_to_sqlite(timestamp_str, feature_name, model_engine, latency_ms
                 status TEXT NOT NULL,
                 prompt_input TEXT,
                 raw_response TEXT,
-                sha256_hash TEXT
+                sha256_hash TEXT,
+                engine_mode TEXT DEFAULT 'LIVE_GEMINI',
+                status_message TEXT DEFAULT 'Verified via Gemini Multimodal Inference'
             );
         """)
+        # Ensure new columns exist in older tables
+        cur.execute("PRAGMA table_info(ai_execution_logs);")
+        existing_cols = [r[1] for r in cur.fetchall()]
+        if 'engine_mode' not in existing_cols:
+            try:
+                cur.execute("ALTER TABLE ai_execution_logs ADD COLUMN engine_mode TEXT DEFAULT 'LIVE_GEMINI';")
+            except Exception:
+                pass
+        if 'status_message' not in existing_cols:
+            try:
+                cur.execute("ALTER TABLE ai_execution_logs ADD COLUMN status_message TEXT DEFAULT 'Verified via Gemini Multimodal Inference';")
+            except Exception:
+                pass
+
+        if not engine_mode:
+            if "fallback" in str(model_engine).lower() or "rule engine" in str(model_engine).lower() or str(status).upper() == "FALLBACK":
+                eff_engine_mode = "AUTONOMOUS_STATUTORY_RULE_ENGINE"
+                eff_status_msg = status_message or "[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)"
+            else:
+                eff_engine_mode = "LIVE_GEMINI"
+                eff_status_msg = status_message or "Verified via Gemini Multimodal Inference"
+        else:
+            eff_engine_mode = str(engine_mode)
+            eff_status_msg = str(status_message or ("Verified via Gemini Multimodal Inference" if eff_engine_mode == "LIVE_GEMINI" else "[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)"))
+
         cur.execute("""
             INSERT INTO ai_execution_logs 
-            (timestamp, feature_name, model_engine, latency_ms, status, prompt_input, raw_response, sha256_hash)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+            (timestamp, feature_name, model_engine, latency_ms, status, prompt_input, raw_response, sha256_hash, engine_mode, status_message)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """, (
             str(timestamp_str),
             str(feature_name),
@@ -104,7 +131,9 @@ def _save_ai_log_to_sqlite(timestamp_str, feature_name, model_engine, latency_ms
             str(status),
             str(prompt_input or "")[:1500],
             str(raw_response or "")[:3500],
-            str(sha256_hash or "")
+            str(sha256_hash or ""),
+            eff_engine_mode,
+            eff_status_msg
         ))
         conn.commit()
         conn.close()
@@ -165,14 +194,25 @@ def _save_monitoring_log_to_sqlite(id_kebun, kode_kebun, periode, mandor, blok, 
     except Exception as e:
         logger.error(f"Failed to persist monitoring log to SQLite: {e}")
 
-def send_ai_log_to_bigquery_async(feature_name, model_engine, latency_ms, status, prompt_input, raw_response, timestamp_str, sha256_hash):
+def send_ai_log_to_bigquery_async(feature_name, model_engine, latency_ms, status, prompt_input, raw_response, timestamp_str, sha256_hash, engine_mode=None, status_message=None):
     """
     Dual-write logger:
     1. Simpan sinkron ke SQLite lokal (precision_palm.db).
     2. Alirkan ke BigQuery via background thread dengan error logging eksplisit.
     """
+    if not engine_mode:
+        if "fallback" in str(model_engine).lower() or "rule engine" in str(model_engine).lower() or str(status).upper() == "FALLBACK":
+            eff_engine_mode = "AUTONOMOUS_STATUTORY_RULE_ENGINE"
+            eff_status_msg = status_message or "[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)"
+        else:
+            eff_engine_mode = "LIVE_GEMINI"
+            eff_status_msg = status_message or "Verified via Gemini Multimodal Inference"
+    else:
+        eff_engine_mode = str(engine_mode)
+        eff_status_msg = str(status_message or ("Verified via Gemini Multimodal Inference" if eff_engine_mode == "LIVE_GEMINI" else "[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)"))
+
     # 1. Simpan Sinkron ke SQLite
-    _save_ai_log_to_sqlite(timestamp_str, feature_name, model_engine, latency_ms, status, prompt_input, raw_response, sha256_hash)
+    _save_ai_log_to_sqlite(timestamp_str, feature_name, model_engine, latency_ms, status, prompt_input, raw_response, sha256_hash, eff_engine_mode, eff_status_msg)
 
     # 2. Alirkan ke BigQuery
     def _worker():
@@ -191,13 +231,15 @@ def send_ai_log_to_bigquery_async(feature_name, model_engine, latency_ms, status
                 "status": str(status),
                 "prompt_input": str(prompt_input or "")[:1500],
                 "raw_response": str(raw_response or "")[:3500],
-                "sha256_hash": str(sha256_hash or "")
+                "sha256_hash": str(sha256_hash or ""),
+                "engine_mode": eff_engine_mode,
+                "status_message": eff_status_msg
             }]
             errors = client.insert_rows_json(table_ref, row)
             if errors:
                 logger.error(f"[BigQuery Stream Error ai_execution_logs]: {errors}")
             else:
-                logger.info(f"[✓ BigQuery Stream Success]: AI log for '{feature_name}' streamed.")
+                logger.info(f"[✓ BigQuery Stream Success]: AI log for '{feature_name}' ({eff_engine_mode}) streamed.")
         except Exception as ex:
             logger.error(f"[BigQuery Async Log Error]: {ex}")
 

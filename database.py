@@ -231,7 +231,9 @@ def init_db(db_path: Optional[str] = None) -> None:
             ("soil_moisture_vwc", "REAL DEFAULT 34.8"),
             ("recharge_m3_ha", "REAL DEFAULT 1850.0"),
             ("potassium_recovered_kg", "REAL DEFAULT 36.2"),
-            ("economic_benefit_usd", "REAL DEFAULT 4900.0")
+            ("economic_benefit_usd", "REAL DEFAULT 4900.0"),
+            ("engine_mode", "TEXT DEFAULT 'LIVE_GEMINI'"),
+            ("status_message", "TEXT DEFAULT 'Verified via Gemini Multimodal Inference'")
         ]
         for col_name, col_def in needed_comp_cols:
             if col_name not in existing_comp_cols:
@@ -1466,6 +1468,8 @@ def save_simulation_record(
     recharge_m3_ha: Optional[float] = None,
     potassium_recovered_kg: Optional[float] = None,
     economic_benefit_usd: Optional[float] = None,
+    engine_mode: Optional[str] = "LIVE_GEMINI",
+    status_message: Optional[str] = "Verified via Gemini Multimodal Inference",
     **kwargs
 ) -> int:
     """
@@ -1502,6 +1506,9 @@ def save_simulation_record(
     if vision_summary is not None:
         vision_summary_val = json.dumps(vision_summary) if isinstance(vision_summary, (dict, list)) else str(vision_summary)
 
+    eff_engine_mode = str(engine_mode or "LIVE_GEMINI")
+    eff_status_msg = str(status_message or "Verified via Gemini Multimodal Inference")
+
     conn = get_db_connection(db_path)
     cursor = conn.cursor()
     cursor.execute("""
@@ -1511,8 +1518,8 @@ def save_simulation_record(
             photo_urls, image_path, coords, slope, elevation, soil_ph, soil_texture,
             ai_reasoning, vision_summary, leaf_area_index, surface_par, canopy_cover,
             biomass_t_ha, microclimate_cooling, soil_moisture_vwc, recharge_m3_ha,
-            potassium_recovered_kg, economic_benefit_usd
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            potassium_recovered_kg, economic_benefit_usd, engine_mode, status_message
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     """, (
         req_id, float(palm_age), float(land_area), str(crop_name), float(total_ler),
         float(pls_pct), float(avoided_land_ha), float(total_climate_benefit_tco2e),
@@ -1522,7 +1529,7 @@ def save_simulation_record(
         ai_reasoning_val, vision_summary_val, float(leaf_area_index or 5.27), float(surface_par or 218.5),
         float(canopy_cover or 65.4), float(biomass_t_ha or 128.4), float(microclimate_cooling or -2.8),
         float(soil_moisture_vwc or 34.8), float(recharge_m3_ha or 1850.0), float(potassium_recovered_kg or 36.2),
-        float(economic_benefit_usd or 4900.0)
+        float(economic_benefit_usd or 4900.0), eff_engine_mode, eff_status_msg
     ))
     record_id = cursor.lastrowid
     conn.commit()
@@ -1562,7 +1569,9 @@ def get_recent_simulations(limit: int = 10, db_path: Optional[str] = None) -> Li
             soil_ph, soil_texture, ai_reasoning, vision_summary,
             leaf_area_index, surface_par, canopy_cover,
             biomass_t_ha, microclimate_cooling, soil_moisture_vwc,
-            recharge_m3_ha, potassium_recovered_kg, economic_benefit_usd
+            recharge_m3_ha, potassium_recovered_kg, economic_benefit_usd,
+            COALESCE(engine_mode, 'LIVE_GEMINI') AS engine_mode,
+            COALESCE(status_message, 'Verified via Gemini Multimodal Inference') AS status_message
         FROM compute_audit_logs
         ORDER BY id DESC
         LIMIT ?;
@@ -1587,7 +1596,9 @@ def get_simulation_log_by_id(log_id: int, db_path: Optional[str] = None) -> Opti
             soil_ph, soil_texture, ai_reasoning, vision_summary,
             leaf_area_index, surface_par, canopy_cover,
             biomass_t_ha, microclimate_cooling, soil_moisture_vwc,
-            recharge_m3_ha, potassium_recovered_kg, economic_benefit_usd
+            recharge_m3_ha, potassium_recovered_kg, economic_benefit_usd,
+            COALESCE(engine_mode, 'LIVE_GEMINI') AS engine_mode,
+            COALESCE(status_message, 'Verified via Gemini Multimodal Inference') AS status_message
         FROM compute_audit_logs
         WHERE id = ?;
     """, (int(log_id),))

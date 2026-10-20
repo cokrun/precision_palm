@@ -167,6 +167,7 @@ function logAiInteraction(phase, title, detail) {
 function logAiTerminal(message, type = 'sys') {
     let phase = 'PROCESS';
     if (type === 'req' || String(message).includes('[REQUEST]')) phase = 'REQUEST';
+    else if (type === 'fb' || String(message).includes('[FALLBACK]')) phase = 'FALLBACK';
     else if (type === 'res' || String(message).includes('[RESULT]')) phase = 'RESULT';
     else if (type === 'err' || String(message).includes('[ERROR]')) phase = 'ERROR';
 
@@ -194,9 +195,14 @@ function appendLogToTerminalDOM(logItem) {
         icon = '📤';
         titleCls = 'text-sky-300 font-bold';
     } else if (logItem.phase === 'PROCESS') {
-        borderCls = 'border-amber-800/80 bg-amber-950/20';
-        badgeCls = 'bg-amber-950 text-amber-400 border-amber-800';
+        borderCls = 'border-blue-800/80 bg-blue-950/20';
+        badgeCls = 'bg-blue-950 text-blue-400 border-blue-800';
         icon = '⚙️';
+        titleCls = 'text-blue-300 font-bold';
+    } else if (logItem.phase === 'FALLBACK') {
+        borderCls = 'border-amber-600/80 bg-amber-950/30';
+        badgeCls = 'bg-amber-950 text-amber-400 border border-amber-500/60 font-bold';
+        icon = '⚡';
         titleCls = 'text-amber-300 font-bold';
     } else if (logItem.phase === 'RESULT') {
         borderCls = 'border-emerald-800/80 bg-emerald-950/20';
@@ -258,7 +264,7 @@ function setTerminalFilter(phaseFilter) {
  * Updates filter button styling
  */
 function updateTerminalFilterUI(activeFilter) {
-    const filters = ['ALL', 'REQUEST', 'PROCESS', 'RESULT'];
+    const filters = ['ALL', 'REQUEST', 'PROCESS', 'FALLBACK', 'RESULT'];
     filters.forEach(f => {
         const btn = document.getElementById(`btnTermFilter_${f}`);
         if (!btn) return;
@@ -372,8 +378,11 @@ function updateTerminalStatusBadge(phase) {
     if (!badge) return;
 
     if (phase === 'PROCESS') {
-        badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span> Reasoning';
-        badge.className = "text-[9px] font-mono px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-700 flex items-center gap-1 font-bold";
+        badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span> Reasoning';
+        badge.className = "text-[9px] font-mono px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-700 flex items-center gap-1 font-bold";
+    } else if (phase === 'FALLBACK') {
+        badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span> Fallback';
+        badge.className = "text-[9px] font-mono px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-600 flex items-center gap-1 font-bold";
     } else if (phase === 'RESULT') {
         badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Sealed';
         badge.className = "text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 flex items-center gap-1 font-bold";
