@@ -8,7 +8,9 @@ import sys
 import sqlite3
 import json
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "precision_palm.db")
+_local_db = os.path.join(os.path.dirname(__file__), "precision_palm.db")
+_root_db = os.path.join(os.path.dirname(__file__), "..", "precision_palm.db")
+DB_PATH = _local_db if os.path.exists(_local_db) else _root_db
 
 def run_database_health_check():
     print("=" * 70)
@@ -94,8 +96,9 @@ def run_database_health_check():
                             entities = json.loads(ev["detected_entities_json"])
                         except:
                             pass
+                        b64_len = ev['b64_len'] or 0
                         print(f"    -> Evidence ID : {ev['evidence_id']} ({ev['quarter_cycle']} • {ev['perspective_mode']})")
-                        print(f"       Ukuran Data : {ev['b64_len']:,} chars Base64 biner murni")
+                        print(f"       Ukuran Data : {b64_len:,} chars Base64 biner murni")
                         print(f"       SHA256 Hash : {ev['image_sha256_hash']}")
                         print(f"       Deteksi AI  : {len(entities)} objek fisik nyata teridentifikasi")
 

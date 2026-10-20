@@ -214,7 +214,7 @@
                     <div class="grid grid-cols-2 gap-2 text-[10px] font-mono">
                         <div class="p-2 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
                             <span class="text-slate-500 block text-[9px]" data-i18n="lbl_lat">LATITUDE (N)</span>
-                            <strong id="valDispLat" class="text-emerald-600 dark:text-emerald-400 text-xs font-bold">[Waiting for GPS Satellite Lock]</strong>
+                            <strong id="valDispLat" class="text-emerald-600 dark:text-emerald-400 text-xs font-bold" data-i18n="val_disp_lat">[Menunggu Kunci Satelit GPS]</strong>
                         </div>
                         <div class="p-2 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
                             <span class="text-slate-500 block text-[9px]" data-i18n="lbl_lng">LONGITUDE (E)</span>
@@ -2281,8 +2281,8 @@
                 ctx.font = 'bold 9px monospace';
                 ctx.textAlign = 'left';
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                const latStr = (liveCoords.lat !== null && liveCoords.lat !== undefined) ? Number(liveCoords.lat).toFixed(6) : '0.824100';
-                const lngStr = (liveCoords.lng !== null && liveCoords.lng !== undefined) ? Number(liveCoords.lng).toFixed(6) : '99.561200';
+                const latStr = (liveCoords.lat !== null && liveCoords.lat !== undefined) ? Number(liveCoords.lat).toFixed(6) : '0.000000';
+                const lngStr = (liveCoords.lng !== null && liveCoords.lng !== undefined) ? Number(liveCoords.lng).toFixed(6) : '0.000000';
                 const elevStr = (liveCoords.elev !== null && liveCoords.elev !== undefined) ? Math.round(liveCoords.elev) : '142';
                 ctx.fillText(`WGS84 ${latStr}°N, ${lngStr}°E`, pad + 4, pad + 14);
 
@@ -2587,8 +2587,8 @@
                             formData.append('feature_name', `Mobile Geotag Vision (${activeEstateCode})`);
                             formData.append('block_id', blockId);
                             formData.append('declared_crop', 'Jagung');
-                            formData.append('latitude', liveCoords.lat || 0.824102);
-                            formData.append('longitude', liveCoords.lng || 99.561214);
+                            formData.append('latitude', liveCoords.lat || 0.0);
+                            formData.append('longitude', liveCoords.lng || 0.0);
                             formData.append('altitude_agl_m', liveCoords.altitude_agl_m || 1.45);
                             formData.append('camera_pitch_deg', liveCoords.camera_pitch_deg || -12.4);
                             formData.append('timestamp_iso', liveCoords.timestamp_iso || new Date().toISOString());
@@ -2603,8 +2603,8 @@
                                         feature_name: `Mobile Geotag Vision (${activeEstateCode})`,
                                         block_id: blockId,
                                         declared_crop: 'Jagung',
-                                        latitude: liveCoords.lat || 0.824102,
-                                        longitude: liveCoords.lng || 99.561214,
+                                        latitude: liveCoords.lat || 0.0,
+                                        longitude: liveCoords.lng || 0.0,
                                         altitude_agl_m: liveCoords.altitude_agl_m || 1.45,
                                         camera_pitch_deg: liveCoords.camera_pitch_deg || -12.4,
                                         timestamp_iso: liveCoords.timestamp_iso || new Date().toISOString()

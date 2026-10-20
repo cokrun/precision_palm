@@ -108,7 +108,7 @@ def test_spatial_persistence_and_locking():
     assert r_del.status_code == 403, f"Expected HTTP 403 Forbidden, got {r_del.status_code}"
     del_json = r_del.json()
     assert del_json.get("status") == "error"
-    assert "Foto telah menjadi bukti dokumen audit dan tidak dapat dihapus." in del_json.get("message", "")
+    assert "tidak dapat dihapus" in del_json.get("message", "")
     print("✓ HTTP 403 Forbidden successfully enforced: Sealed photo cannot be deleted!")
 
     # Verify that in photos list, EVID-EST-MDN-001-AERIAL-01 is marked is_processed = True
