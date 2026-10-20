@@ -2690,10 +2690,10 @@ def api_ai_terminal_execute():
         output = (
             "[⚡ FALLBACK TRIGGER AUDIT]\n"
             "Degradation Protocol : AUTONOMOUS STATUTORY RULE ENGINE ACTIVE\n"
-            "Audit Notice         : [AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)\n"
-            "Deterministic Rule 1 : Piringan Steril 2.0m di sekeliling pangkal batang (ISPO Prinsip 2 GAP)\n"
-            "Deterministic Rule 2 : Lorong Sela 3.79m terverifikasi (Jarak Tanam Segitiga 9.0m x 9.0m x 9.0m)\n"
-            "Deterministic Rule 3 : Kompensasi Kalium MOP (+75 kg/Ha) gawangan mati untuk mencegah defisit TBS (<4.5%)\n"
+            "Audit Notice         : [AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)\n"
+            "Deterministic Rule 1 : 2.0m Sterile Weed Circle surrounding palm base (ISPO Principle 2 GAP)\n"
+            "Deterministic Rule 2 : 3.79m Alley Corridor verified (9.0m x 9.0m x 9.0m Equilateral Triangular Grid)\n"
+            "Deterministic Rule 3 : Potassium MOP Compensation (+75 kg/Ha) on frond stack to prevent FFB deficit (<4.5%)\n"
             "Status               : PASSED STATUTORY VERIFICATION"
         )
         engine_mode = "AUTONOMOUS_STATUTORY_RULE_ENGINE"
@@ -2768,7 +2768,7 @@ def api_ai_terminal_execute():
         prompt_input=cmd,
         raw_response=output,
         engine_mode=engine_mode,
-        status_message="Verified via Gemini Multimodal Inference" if engine_mode == "LIVE_GEMINI" else "[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)"
+        status_message="Verified via Gemini Multimodal Inference" if engine_mode == "LIVE_GEMINI" else "[AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)"
     )
 
     return jsonify({
@@ -2834,7 +2834,7 @@ def api_get_ai_logs():
         cur.execute("""
             SELECT id, timestamp, feature_name, model_engine, latency_ms, status, prompt_input, raw_response, sha256_hash,
                    COALESCE(engine_mode, CASE WHEN LOWER(model_engine) LIKE '%fallback%' OR LOWER(model_engine) LIKE '%rule engine%' THEN 'AUTONOMOUS_STATUTORY_RULE_ENGINE' ELSE 'LIVE_GEMINI' END) AS engine_mode,
-                   COALESCE(status_message, CASE WHEN LOWER(model_engine) LIKE '%fallback%' OR LOWER(model_engine) LIKE '%rule engine%' THEN '[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)' ELSE 'Verified via Gemini Multimodal Inference' END) AS status_message
+                   COALESCE(status_message, CASE WHEN LOWER(model_engine) LIKE '%fallback%' OR LOWER(model_engine) LIKE '%rule engine%' THEN '[AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)' ELSE 'Verified via Gemini Multimodal Inference' END) AS status_message
             FROM ai_execution_logs
             ORDER BY id DESC
             LIMIT ?;
@@ -2865,7 +2865,7 @@ def api_get_ai_logs():
                     if 'WIB' not in str(ts_val) and 'UTC' not in str(ts_val):
                         ts_val = f"{ts_val} WIB"
                     eng_mode = cr['engine_mode'] or "LIVE_GEMINI"
-                    stat_msg = cr['status_message'] or ("Verified via Gemini Multimodal Inference" if eng_mode == "LIVE_GEMINI" else "[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)")
+                    stat_msg = cr['status_message'] or ("Verified via Gemini Multimodal Inference" if eng_mode == "LIVE_GEMINI" else "[AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)")
                     logs_map[f"COMPUTE_{cr['id']}"] = {
                         "id": cr['id'],
                         "timestamp": ts_val,
@@ -2908,7 +2908,7 @@ def api_get_ai_logs():
                     k = r.sha256_hash or f"{r.timestamp}_{r.feature_name}_{r.id}"
                     if k not in seen_hashes and f"BQ_{r.id}" not in logs_map:
                         eng_mode = getattr(r, 'engine_mode', None) or ("AUTONOMOUS_STATUTORY_RULE_ENGINE" if "fallback" in str(r.model_engine).lower() else "LIVE_GEMINI")
-                        stat_msg = getattr(r, 'status_message', None) or ("Verified via Gemini Multimodal Inference" if eng_mode == "LIVE_GEMINI" else "[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)")
+                        stat_msg = getattr(r, 'status_message', None) or ("Verified via Gemini Multimodal Inference" if eng_mode == "LIVE_GEMINI" else "[AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)")
                         logs_map[f"BQ_{r.id}"] = {
                             "id": r.id,
                             "timestamp": str(r.timestamp),
@@ -3517,8 +3517,8 @@ def api_ai_scan_image():
             logger.warning(f"[Vision Agent Fallback Error]: {e_sup}")
 
         fallback["mode"] = "AUTONOMOUS_RULE_ENGINE"
-        fallback["engine"] = "Autonomous Statutory Rule Engine (Baku Silvikultur PPKS, ISPO Prinsip 2, & EUDR Art. 9)"
-        fallback["audit_notice"] = "[AUDIT NOTICE] Sesi Gemini Vision/Reasoner tidak terjangkau (Offline / Kuota Terlampaui). Sistem beralih ke Autonomous Statutory Rule Engine (Baku Silvikultur PPKS, ISPO Prinsip 2, & EUDR Art. 9) secara deterministik."
+        fallback["engine"] = "Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9)"
+        fallback["audit_notice"] = "[AUDIT NOTICE] Gemini Vision / Reasoner session unreachable (Offline / Quota Exceeded). System deterministically switched to Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9)."
 
         try:
             eff_dossier = json_data.get('dossier_id') or request.form.get('dossier_id') or request.args.get('kode') or 'EST-MDN-010'
@@ -3562,8 +3562,8 @@ def api_ai_scan_image():
         return jsonify({
             "status": "success", 
             "mode": "AUTONOMOUS_RULE_ENGINE",
-            "engine": "Autonomous Statutory Rule Engine (Baku Silvikultur PPKS, ISPO Prinsip 2, & EUDR Art. 9)",
-            "audit_notice": "[AUDIT NOTICE] Sesi Gemini Vision/Reasoner tidak terjangkau (Offline / Kuota Terlampaui). Sistem beralih ke Autonomous Statutory Rule Engine (Baku Silvikultur PPKS, ISPO Prinsip 2, & EUDR Art. 9) secara deterministik.",
+            "engine": "Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9)",
+            "audit_notice": "[AUDIT NOTICE] Gemini Vision / Reasoner session unreachable (Offline / Quota Exceeded). System deterministically switched to Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9).",
             "api_telemetry": fallback_telemetry,
             "warning": str(e),
             "analysis": fallback,
@@ -5742,7 +5742,7 @@ def run_simulation():
             raw_engine_mode = "LIVE_GEMINI"
     engine_mode = str(raw_engine_mode)
     if engine_mode == "AUTONOMOUS_STATUTORY_RULE_ENGINE":
-        status_message = data.get('status_message') or "[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)"
+        status_message = data.get('status_message') or "[AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)"
     else:
         status_message = data.get('status_message') or "Verified via Gemini Multimodal Inference"
 

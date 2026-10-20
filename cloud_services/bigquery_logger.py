@@ -111,13 +111,13 @@ def _save_ai_log_to_sqlite(timestamp_str, feature_name, model_engine, latency_ms
         if not engine_mode:
             if "fallback" in str(model_engine).lower() or "rule engine" in str(model_engine).lower() or str(status).upper() == "FALLBACK":
                 eff_engine_mode = "AUTONOMOUS_STATUTORY_RULE_ENGINE"
-                eff_status_msg = status_message or "[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)"
+                eff_status_msg = status_message or "[AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)"
             else:
                 eff_engine_mode = "LIVE_GEMINI"
                 eff_status_msg = status_message or "Verified via Gemini Multimodal Inference"
         else:
             eff_engine_mode = str(engine_mode)
-            eff_status_msg = str(status_message or ("Verified via Gemini Multimodal Inference" if eff_engine_mode == "LIVE_GEMINI" else "[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)"))
+            eff_status_msg = str(status_message or ("Verified via Gemini Multimodal Inference" if eff_engine_mode == "LIVE_GEMINI" else "[AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)"))
 
         cur.execute("""
             INSERT INTO ai_execution_logs 
@@ -203,13 +203,13 @@ def send_ai_log_to_bigquery_async(feature_name, model_engine, latency_ms, status
     if not engine_mode:
         if "fallback" in str(model_engine).lower() or "rule engine" in str(model_engine).lower() or str(status).upper() == "FALLBACK":
             eff_engine_mode = "AUTONOMOUS_STATUTORY_RULE_ENGINE"
-            eff_status_msg = status_message or "[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)"
+            eff_status_msg = status_message or "[AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)"
         else:
             eff_engine_mode = "LIVE_GEMINI"
             eff_status_msg = status_message or "Verified via Gemini Multimodal Inference"
     else:
         eff_engine_mode = str(engine_mode)
-        eff_status_msg = str(status_message or ("Verified via Gemini Multimodal Inference" if eff_engine_mode == "LIVE_GEMINI" else "[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)"))
+        eff_status_msg = str(status_message or ("Verified via Gemini Multimodal Inference" if eff_engine_mode == "LIVE_GEMINI" else "[AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)"))
 
     # 1. Simpan Sinkron ke SQLite
     _save_ai_log_to_sqlite(timestamp_str, feature_name, model_engine, latency_ms, status, prompt_input, raw_response, sha256_hash, eff_engine_mode, eff_status_msg)

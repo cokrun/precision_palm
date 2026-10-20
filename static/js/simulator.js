@@ -1016,9 +1016,9 @@ async function executeAiMultiCropReview() {
             logAiInteraction('FALLBACK', 'Autonomous Statutory Rule Engine Activated', {
                 fallback_status: '[⚡ FALLBACK / ⚙️ LOCAL_ENGINE]',
                 statutory_references: [
-                    'Aturan Silvikultur Baku PPKS & ISPO Prinsip 2 (Piringan steril 2.0m)',
-                    'Persamaan Matematika Deterministik: Beer-Lambert (k=0.45)',
-                    'Mead & Willey Land Equivalent Ratio (LER)',
+                    'PPKS Silviculture Standards & ISPO Principle 2 (2.0m sterile root circle)',
+                    'Deterministic Biophysical Equation: Beer-Lambert Canopy Attenuation (k=0.45)',
+                    'Mead & Willey Land Equivalent Ratio (LER) Model',
                     'SCS-CN Hydrological Sponge & Chave 2014 AGB Allometrics'
                 ],
                 deterministic_mode: 'Enforced Zero-Tillage & Nutrient Balancing Formula'
@@ -1067,36 +1067,36 @@ async function executeAiMultiCropReview() {
                 <div class="p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/50 text-[11px] text-amber-200 font-mono leading-relaxed mb-2 shadow-xs flex items-start gap-2">
                     <span class="text-base shrink-0">⚠️</span>
                     <div>
-                        <strong class="text-amber-300 block mb-0.5">[AUDIT NOTICE] Sesi Gemini Vision/Reasoner tidak terjangkau (Offline / Kuota Terlampaui).</strong>
-                        <span>Sistem beralih ke <strong>Autonomous Statutory Rule Engine</strong> (Baku Silvikultur PPKS, ISPO Prinsip 2, &amp; EUDR Art. 9) secara deterministik.</span>
+                        <strong class="text-amber-300 block mb-0.5">[AUDIT NOTICE] Gemini Vision / Reasoner session unreachable (Offline / Quota Exceeded).</strong>
+                        <span>System deterministically switched to <strong>Autonomous Statutory Rule Engine</strong> (PPKS Silviculture Standards, ISPO Principle 2, &amp; EUDR Art. 9).</span>
                     </div>
                 </div>
                 <p class="font-bold text-white text-xs">
-                    Evaluasi Baku Silvikultur PPKS: [${names}] (Tegakan Sawit TM ${palmAge} Thn)
+                    PPKS Silvicultural Standard Evaluation: [${names}] (Palm Stand Age ${palmAge} Yrs)
                 </p>
                 <div class="space-y-2 text-slate-300 text-xs">
                     <p>
-                        <strong>1. Transmisi Radiasi Tajuk Beer-Lambert:</strong> Pada tegakan sawit umur ${palmAge} tahun (LAI ${(5.5 / (1.0 + Math.exp(-0.7 * (palmAge - 3.5)))).toFixed(2)}), transmisi PAR ke lorong sela 3.79m terukur 650–850 µmol/m²/s, mencukupi fotosintesis tanpa memicu kompetisi tajuk sawit.
+                        <strong>1. Beer-Lambert Canopy Radiation Attenuation:</strong> At palm stand age ${palmAge} years (LAI ${(5.5 / (1.0 + Math.exp(-0.7 * (palmAge - 3.5)))).toFixed(2)}), PAR transmission to the 3.79m alleyway measures 650–850 µmol/m²/s, sustaining photosynthetically active radiation without triggering crown competition.
                     </p>
                     <p>
-                        <strong>2. Perlindungan Perakaran Piringan 2.0m (ISPO Prinsip 2):</strong> Radius piringan steril 2.05m di sekeliling batang terbebas 100% dari pengolahan tanah mekanis (*zero-tillage*), mencegah laserasi akar penyerap sawit (*feeder roots*).
+                        <strong>2. 2.0m Weed Circle Root Exclusion Zone (ISPO Principle 2):</strong> The 2.05m sterile circle radius around the palm stipe is strictly maintained under 100% zero-tillage, completely safeguarding fragile feeder roots from laceration.
                     </p>
                     <p>
-                        <strong>3. Neraca Hara &amp; Kompensasi Kalium MOP:</strong> Reaksi tanah pH ${soilPh} dengan LER ${computeResult.totalLer.toFixed(4)}x dan PLS ${plsScore}% mewajibkan aplikasi kompensasi kalium MOP (+75 kg/Ha) di gawangan mati guna meniadakan defisit hasil TBS (&lt;4.5%).
+                        <strong>3. Nutrient Budget &amp; Potassium MOP Compensation:</strong> Soil reaction pH ${soilPh} with LER ${computeResult.totalLer.toFixed(4)}x and PLS ${plsScore}% mandates targeted potassium MOP application (+75 kg/Ha) along dead furrows to eliminate fresh fruit bunch (FFB) yield drag (&lt;4.5%).
                     </p>
                     <p>
-                        <strong>4. Stok Karbon &amp; Biomassa AGB Chave 2014:</strong> Akumulasi biomassa total ${totalAgb} t/Ha (Sawit: ${palmAgb} t, Sela: 36.0 t) menghasilkan aset iklim avoided deforestation setara ${Math.round(computeResult.totalCarbon)} tCO₂e.
+                        <strong>4. Carbon Stock &amp; AGB Biomass (Chave 2014):</strong> Total biomass accumulation of ${totalAgb} t/Ha (Oil Palm: ${palmAgb} t, Intercrop: 36.0 t) generates avoided deforestation climate assets equal to ${Math.round(computeResult.totalCarbon)} tCO₂e.
                     </p>
                     <p class="text-[11px] text-emerald-400 font-mono border-t border-slate-800 pt-1.5 flex items-center justify-between">
-                        <span>⚖️ <strong>Statutory Compliance:</strong> LULUS Baku Agronomi PPKS &bull; ISPO Perpres 44/2020 Prinsip 2 &bull; EUDR Regulasi 2023/1115 Art. 9</span>
-                        <span class="text-[10px] text-amber-400 font-bold">[Baku PPKS]</span>
+                        <span>⚖️ <strong>Statutory Compliance:</strong> PASSED PPKS Agronomic Standards &bull; ISPO Presidential Reg 44/2020 Principle 2 &bull; EUDR Regulation 2023/1115 Art. 9</span>
+                        <span class="text-[10px] text-amber-400 font-bold">[PPKS Standard]</span>
                     </p>
                 </div>
             `;
             auditData = {
                 verdict: "VERIFIED COMPLIANT",
                 mode: "AUTONOMOUS_RULE_ENGINE",
-                title: `Evaluasi Baku Silvikultur PPKS: [${names}]`,
+                title: `PPKS Silvicultural Standard Evaluation: [${names}]`,
                 sha256_seal: shaCode
             };
         }
@@ -1316,12 +1316,12 @@ async function executeInferenceAction() {
                 if (resJson.status_message) statusMsgSaved = resJson.status_message;
             } else {
                 engineModeSaved = 'AUTONOMOUS_STATUTORY_RULE_ENGINE';
-                statusMsgSaved = '[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)';
+                statusMsgSaved = '[AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)';
             }
         } catch (err) {
             console.warn("[Simulator] Backend fallback to local ledger:", err);
             engineModeSaved = 'AUTONOMOUS_STATUTORY_RULE_ENGINE';
-            statusMsgSaved = '[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)';
+            statusMsgSaved = '[AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)';
         }
 
         const simRecordData = {
@@ -2638,7 +2638,7 @@ async function viewAdminLogDetail(logId) {
                         }
                     </div>
                     <span class="text-[9.5px] italic text-slate-300 dark:text-slate-400 max-w-md truncate">
-                        ${escapeHtml(item.status_message || (item.engine_mode === 'LIVE_GEMINI' ? 'Verified via Gemini Multimodal Inference' : '[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)'))}
+                        ${escapeHtml(item.status_message || (item.engine_mode === 'LIVE_GEMINI' ? 'Verified via Gemini Multimodal Inference' : '[AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)'))}
                     </span>
                 </div>
             </div>

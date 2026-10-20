@@ -72,7 +72,7 @@ class TestAiTerminalAndDualEngineLogging(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         data = json.loads(resp.data.decode('utf-8'))
         self.assertIn('Statutory Rule Engine', data['output'])
-        self.assertIn('ISPO Prinsip 2', data['output'])
+        self.assertTrue('ISPO Principle 2' in data['output'] or 'ISPO Prinsip 2' in data['output'])
 
     def test_03_audit_persistence_dual_engine_fields(self):
         """Ensure engine_mode and status_message are stored and retrieved from SQLite"""
@@ -106,14 +106,14 @@ class TestAiTerminalAndDualEngineLogging(unittest.TestCase):
             soil_ph=5.5,
             soil_texture="Sandy Loam",
             engine_mode="AUTONOMOUS_STATUTORY_RULE_ENGINE",
-            status_message="[AUDIT NOTICE] Sesi Gemini Offline. Tervalidasi melalui Autonomous Statutory Rule Engine (Baku Silvikultur PPKS & ISPO Prinsip 2)"
+            status_message="[AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)"
         )
         self.assertIsNotNone(record_id)
 
         rec = get_simulation_log_by_id(record_id)
         self.assertIsNotNone(rec)
         self.assertEqual(rec.get('engine_mode'), "AUTONOMOUS_STATUTORY_RULE_ENGINE")
-        self.assertIn("Baku Silvikultur PPKS", rec.get('status_message', ''))
+        self.assertTrue("PPKS" in rec.get('status_message', ''))
 
     def test_04_simulate_endpoint_records_engine_attestation(self):
         """Ensure /api/simulate returns and persists engine_mode and status_message"""

@@ -315,8 +315,8 @@
             const isLiveAI = !!(data && (data.mode === 'LIVE_GEMINI' || (data.api_telemetry && data.api_telemetry.is_live_gemini_called === true && data.api_telemetry.api_call_status === 'LIVE_GOOGLE_CLOUD_SUCCESS')));
             const mode = isLiveAI ? 'LIVE_GEMINI' : 'AUTONOMOUS_RULE_ENGINE';
             const isFallback = !isLiveAI;
-            const engine = isLiveAI ? 'Google Gemini 3.8 Flash (Multimodal Vision 4D)' : 'Autonomous Statutory Rule Engine (Baku Silvikultur PPKS, ISPO Prinsip 2, & EUDR Art. 9)';
-            const auditNotice = isFallback ? (data.audit_notice || '[AUDIT NOTICE] Sesi Gemini Vision/Reasoner tidak terjangkau (Offline / Kuota Terlampaui). Sistem beralih ke Autonomous Statutory Rule Engine (Baku Silvikultur PPKS, ISPO Prinsip 2, & EUDR Art. 9) secara deterministik.') : null;
+            const engine = isLiveAI ? 'Google Gemini 3.8 Flash (Multimodal Vision 4D)' : 'Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9)';
+            const auditNotice = isFallback ? (data.audit_notice || '[AUDIT NOTICE] Gemini Vision / Reasoner session unreachable (Offline / Quota Exceeded). System deterministically switched to Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9).') : null;
 
             const basePayload = {
                 raw: data,
@@ -444,8 +444,8 @@
                 boxes.push({ label: "main_haul_road", label_name: "Main All-Weather Haul Road (Haulage Corridor)", cluster: "infrastructure", box_2d: [20, 305, 510, 425] });
 
                 boxes.forEach(b => {
-                    if (b.label_name && !b.label_name.includes('[Baku PPKS]')) {
-                        b.label_name = `${b.label_name} [Baku PPKS]`;
+                    if (b.label_name && !b.label_name.includes('[PPKS Standard]')) {
+                        b.label_name = `${b.label_name} [PPKS Standard]`;
                     }
                 });
 
@@ -455,34 +455,34 @@
                     perspective_classified: 'AERIAL_CONCESSION_MACRO',
                     is_fallback: true,
                     mode: 'AUTONOMOUS_RULE_ENGINE',
-                    engine: 'Autonomous Statutory Rule Engine (Baku Silvikultur PPKS, ISPO Prinsip 2, & EUDR Art. 9)',
-                    audit_notice: '[AUDIT NOTICE] Sesi Gemini Vision/Reasoner tidak terjangkau (Offline / Kuota Terlampaui). Sistem beralih ke Autonomous Statutory Rule Engine (Baku Silvikultur PPKS, ISPO Prinsip 2, & EUDR Art. 9) secara deterministik.',
-                    auditor_summary: `Macro Concession Photogrammetry [Baku PPKS]: Verified ${boxes.length} structural agronomic units. Contour terraces and primary drainage canals mitigate erosion runoff (-68.4%), while riparian watercourse buffers adhere strictly to statutory >=50m setbacks.`,
+                    engine: 'Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9)',
+                    audit_notice: '[AUDIT NOTICE] Gemini Vision / Reasoner session unreachable (Offline / Quota Exceeded). System deterministically switched to Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9).',
+                    auditor_summary: `Macro Concession Photogrammetry [PPKS Standard]: Verified ${boxes.length} structural agronomic units. Contour terraces and primary drainage canals mitigate erosion runoff (-68.4%), while riparian watercourse buffers adhere strictly to statutory >=50m setbacks.`,
                     sha256_seal: "8F43" + Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('').toUpperCase()
                 };
 
             } else if (isHarvesterScene) {
                 // SCENE B1: Terrestrial In-Situ with Field Harvester Operator & Telescopic Sickle (Image 1: 9217.jpg)
                 // 12 Symmetrical TM Crown detections matching Image 1:
-                boxes.push({ label: "tajuk_sawit_tm", label_name: "Tajuk Sawit TM #1", cluster: "palm_canopy", box_2d: [15, 18, 215, 205] });
-                boxes.push({ label: "tajuk_sawit_tm", label_name: "Tajuk Sawit TM #2", cluster: "palm_canopy", box_2d: [15, 274, 215, 444] });
-                boxes.push({ label: "tajuk_sawit_tm", label_name: "Tajuk Sawit TM #3", cluster: "palm_canopy", box_2d: [15, 532, 215, 650] });
-                boxes.push({ label: "tajuk_sawit_tm", label_name: "Tajuk Sawit TM #4", cluster: "palm_canopy", box_2d: [15, 788, 215, 930] });
-                boxes.push({ label: "tajuk_sawit_tm", label_name: "Tajuk Sawit TM #5", cluster: "palm_canopy", box_2d: [275, 18, 470, 205] });
-                boxes.push({ label: "tajuk_sawit_tm", label_name: "Tajuk Sawit TM #6", cluster: "palm_canopy", box_2d: [275, 274, 470, 444] });
-                boxes.push({ label: "tajuk_sawit_tm", label_name: "Tajuk Sawit TM #7", cluster: "palm_canopy", box_2d: [275, 532, 470, 672] });
-                boxes.push({ label: "tajuk_sawit_tm", label_name: "Tajuk Sawit TM #8", cluster: "palm_canopy", box_2d: [275, 788, 470, 930] });
-                boxes.push({ label: "tajuk_sawit_tm", label_name: "Tajuk Sawit TM #9", cluster: "palm_canopy", box_2d: [545, 18, 748, 205] });
-                boxes.push({ label: "tajuk_sawit_tm", label_name: "Tajuk Sawit TM #10", cluster: "palm_canopy", box_2d: [545, 274, 748, 444] });
-                boxes.push({ label: "tajuk_sawit_tm", label_name: "Tajuk Sawit TM #11", cluster: "palm_canopy", box_2d: [545, 530, 748, 680] });
-                boxes.push({ label: "tajuk_sawit_tm", label_name: "Tajuk Sawit TM #12", cluster: "palm_canopy", box_2d: [545, 788, 748, 938] });
+                boxes.push({ label: "tajuk_sawit_tm", label_name: "Mature Palm Crown TM #1", cluster: "palm_canopy", box_2d: [15, 18, 215, 205] });
+                boxes.push({ label: "tajuk_sawit_tm", label_name: "Mature Palm Crown TM #2", cluster: "palm_canopy", box_2d: [15, 274, 215, 444] });
+                boxes.push({ label: "tajuk_sawit_tm", label_name: "Mature Palm Crown TM #3", cluster: "palm_canopy", box_2d: [15, 532, 215, 650] });
+                boxes.push({ label: "tajuk_sawit_tm", label_name: "Mature Palm Crown TM #4", cluster: "palm_canopy", box_2d: [15, 788, 215, 930] });
+                boxes.push({ label: "tajuk_sawit_tm", label_name: "Mature Palm Crown TM #5", cluster: "palm_canopy", box_2d: [275, 18, 470, 205] });
+                boxes.push({ label: "tajuk_sawit_tm", label_name: "Mature Palm Crown TM #6", cluster: "palm_canopy", box_2d: [275, 274, 470, 444] });
+                boxes.push({ label: "tajuk_sawit_tm", label_name: "Mature Palm Crown TM #7", cluster: "palm_canopy", box_2d: [275, 532, 470, 672] });
+                boxes.push({ label: "tajuk_sawit_tm", label_name: "Mature Palm Crown TM #8", cluster: "palm_canopy", box_2d: [275, 788, 470, 930] });
+                boxes.push({ label: "tajuk_sawit_tm", label_name: "Mature Palm Crown TM #9", cluster: "palm_canopy", box_2d: [545, 18, 748, 205] });
+                boxes.push({ label: "tajuk_sawit_tm", label_name: "Mature Palm Crown TM #10", cluster: "palm_canopy", box_2d: [545, 274, 748, 444] });
+                boxes.push({ label: "tajuk_sawit_tm", label_name: "Mature Palm Crown TM #11", cluster: "palm_canopy", box_2d: [545, 530, 748, 680] });
+                boxes.push({ label: "tajuk_sawit_tm", label_name: "Mature Palm Crown TM #12", cluster: "palm_canopy", box_2d: [545, 788, 748, 938] });
                 // Alley Corridor & Sterile Root Ring:
                 boxes.push({ label: "alley_corridor", label_name: "3.79m Alley Corridor", cluster: "clean_alley", box_2d: [90, 508, 875, 650] });
                 boxes.push({ label: "root_ring", label_name: "2.05m Sterile Root Ring", cluster: "root_circle", box_2d: [320, 378, 565, 600] });
 
                 boxes.forEach(b => {
-                    if (b.label_name && !b.label_name.includes('[Baku PPKS]')) {
-                        b.label_name = `${b.label_name} [Baku PPKS]`;
+                    if (b.label_name && !b.label_name.includes('[PPKS Standard]')) {
+                        b.label_name = `${b.label_name} [PPKS Standard]`;
                     }
                 });
 
@@ -492,9 +492,9 @@
                     perspective_classified: 'TERRESTRIAL_IN_SITU',
                     is_fallback: true,
                     mode: 'AUTONOMOUS_RULE_ENGINE',
-                    engine: 'Autonomous Statutory Rule Engine (Baku Silvikultur PPKS, ISPO Prinsip 2, & EUDR Art. 9)',
-                    audit_notice: '[AUDIT NOTICE] Sesi Gemini Vision/Reasoner tidak terjangkau (Offline / Kuota Terlampaui). Sistem beralih ke Autonomous Statutory Rule Engine (Baku Silvikultur PPKS, ISPO Prinsip 2, & EUDR Art. 9) secara deterministik.',
-                    auditor_summary: `Audit Terestrial In-Situ [Baku PPKS] (EV-EST-MDN-010-2026-9217.jpg): 14 Entitas Fisik Terpetakan. Tajuk Sawit TM #1 s/d #12 terverifikasi sehat, Lorong Gawangan 3.79m aktif untuk tanaman sela, dan Piringan Steril 2.05m bebas gulma serta zero-tillage (0.0% Ganoderma).`,
+                    engine: 'Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9)',
+                    audit_notice: '[AUDIT NOTICE] Gemini Vision / Reasoner session unreachable (Offline / Quota Exceeded). System deterministically switched to Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9).',
+                    auditor_summary: `Terrestrial In-Situ Audit [PPKS Standard] (EV-EST-MDN-010-2026-9217.jpg): 14 Physical Entities Mapped. Oil palm crowns TM #1 to #12 verified healthy, 3.79m alley corridor active for intercropping, and 2.05m sterile weed ring confirmed zero-tillage (0.0% Ganoderma).`,
                     sha256_seal: "8F43" + Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('').toUpperCase()
                 };
 
@@ -513,8 +513,8 @@
                 boxes.push({ label: "intercrop_bed", label_name: "High-Affinity Companion Raised Bed (Red Ginger/Porang)", cluster: "clean_alley", box_2d: [580, 310, 890, 680] });
 
                 boxes.forEach(b => {
-                    if (b.label_name && !b.label_name.includes('[Baku PPKS]')) {
-                        b.label_name = `${b.label_name} [Baku PPKS]`;
+                    if (b.label_name && !b.label_name.includes('[PPKS Standard]')) {
+                        b.label_name = `${b.label_name} [PPKS Standard]`;
                     }
                 });
 
@@ -524,9 +524,9 @@
                     perspective_classified: 'TERRESTRIAL_IN_SITU',
                     is_fallback: true,
                     mode: 'AUTONOMOUS_RULE_ENGINE',
-                    engine: 'Autonomous Statutory Rule Engine (Baku Silvikultur PPKS, ISPO Prinsip 2, & EUDR Art. 9)',
-                    audit_notice: '[AUDIT NOTICE] Sesi Gemini Vision/Reasoner tidak terjangkau (Offline / Kuota Terlampaui). Sistem beralih ke Autonomous Statutory Rule Engine (Baku Silvikultur PPKS, ISPO Prinsip 2, & EUDR Art. 9) secara deterministik.',
-                    auditor_summary: `Terrestrial In-Situ Canopy Audit [Baku PPKS]: Mapped ${boxes.length} biophysical entities. Canopy shade ratio measured at 40-52% (Beer-Lambert k=0.45). Net 3.79m alley corridor with soft vegetative ground cover preserves microclimate soil water (+32% retention). 2.05m sterile buffer verified zero-tillage.`,
+                    engine: 'Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9)',
+                    audit_notice: '[AUDIT NOTICE] Gemini Vision / Reasoner session unreachable (Offline / Quota Exceeded). System deterministically switched to Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9).',
+                    auditor_summary: `Terrestrial In-Situ Canopy Audit [PPKS Standard]: Mapped ${boxes.length} biophysical entities. Canopy shade ratio measured at 40-52% (Beer-Lambert k=0.45). Net 3.79m alley corridor with soft vegetative ground cover preserves microclimate soil water (+32% retention). 2.05m sterile buffer verified zero-tillage.`,
                     sha256_seal: "8F43" + Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('').toUpperCase()
                 };
 
@@ -555,8 +555,8 @@
                 boxes.push({ label: "floor_mulch", label_name: "Systematic Frond Mulch Blanket in Alleyway", cluster: "floor_mulch", box_2d: [290, 200, 440, 420] });
 
                 boxes.forEach(b => {
-                    if (b.label_name && !b.label_name.includes('[Baku PPKS]')) {
-                        b.label_name = `${b.label_name} [Baku PPKS]`;
+                    if (b.label_name && !b.label_name.includes('[PPKS Standard]')) {
+                        b.label_name = `${b.label_name} [PPKS Standard]`;
                     }
                 });
 
@@ -566,9 +566,9 @@
                     perspective_classified: 'AERIAL_DRONE_NADIR',
                     is_fallback: true,
                     mode: 'AUTONOMOUS_RULE_ENGINE',
-                    engine: 'Autonomous Statutory Rule Engine (Baku Silvikultur PPKS, ISPO Prinsip 2, & EUDR Art. 9)',
-                    audit_notice: '[AUDIT NOTICE] Sesi Gemini Vision/Reasoner tidak terjangkau (Offline / Kuota Terlampaui). Sistem beralih ke Autonomous Statutory Rule Engine (Baku Silvikultur PPKS, ISPO Prinsip 2, & EUDR Art. 9) secara deterministik.',
-                    auditor_summary: `Aerial Drone Photogrammetry [Baku PPKS] (45m AGL): Mapped ${boxes.length} biophysical entities arranged on a standard 9.0m equilateral triangular grid. Symmetrical canopy closure confirms optimal light attenuation for shade-tolerant alley intercropping.`,
+                    engine: 'Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9)',
+                    audit_notice: '[AUDIT NOTICE] Gemini Vision / Reasoner session unreachable (Offline / Quota Exceeded). System deterministically switched to Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9).',
+                    auditor_summary: `Aerial Drone Photogrammetry [PPKS Standard] (45m AGL): Mapped ${boxes.length} biophysical entities arranged on a standard 9.0m equilateral triangular grid. Symmetrical canopy closure confirms optimal light attenuation for shade-tolerant alley intercropping.`,
                     sha256_seal: "8F43" + Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('').toUpperCase()
                 };
             }

@@ -158,7 +158,7 @@ class TestAllPagesAndFallbacks(unittest.TestCase):
                 )
                 self.assertEqual(result.get("mode"), "AUTONOMOUS_RULE_ENGINE")
                 self.assertIn("[AUDIT NOTICE]", result.get("audit_notice", ""))
-                self.assertIn("Baku Silvikultur PPKS", result.get("engine", ""))
+                self.assertTrue("PPKS" in result.get("engine", ""))
                 self.assertIn("canopy_par_evaluation", result)
                 self.assertIn("root_buffer_protection", result)
 
