@@ -22,6 +22,13 @@ class FieldVisionSupervisorAgent:
         Memeriksa hasil analisis mentah model. Jika objek minim atau tertutup gulma,
         agen melakukan inferensi heuristik dan melengkapi entitas fisik lapangan.
         """
+        telemetry = raw_analysis.get("api_telemetry") or {}
+        if (
+            telemetry.get("is_live_gemini_called") is True
+            and telemetry.get("api_call_status") == "LIVE_GOOGLE_CLOUD_SUCCESS"
+        ):
+            return raw_analysis
+
         fn_lower = (filename or "").lower()
         boxes = raw_analysis.get("detected_objects", []) or raw_analysis.get("physical_entities", [])
         

@@ -79,6 +79,20 @@ function isIndonesian() {
 }
 window.isIndonesian = isIndonesian;
 
+async function readApiJson(response, actionLabel) {
+    const responseText = await response.text();
+    let result;
+    try {
+        result = responseText ? JSON.parse(responseText) : {};
+    } catch (_) {
+        throw new Error(`${actionLabel} failed (HTTP ${response.status}): server returned a non-JSON response.`);
+    }
+    if (!response.ok || result.status === 'error') {
+        throw new Error(result.message || `${actionLabel} failed (HTTP ${response.status}).`);
+    }
+    return result;
+}
+
 function initSpatialMapCanvas() {
     const container = document.getElementById('telemetryMap');
     if (!container || typeof L === 'undefined' || telemetryMap) return;
@@ -435,15 +449,18 @@ function renderSurveysTable() {
     }
 
     tbody.innerHTML = paginatedList.map((s, idx) => {
-        const fotoSrc = s.foto_url || s.image_gcs_url || DEFAULT_FALLBACK_IMAGE;
-        const blockName = s.block_id || s.blok || (isId ? 'Blok Sentroid' : 'Centroid Block');
-        const stageName = s.process_stage || 'STAGE-0-ANNUAL-REG';
-        const dateStr = s.recorded_at || s.timestamp || '2026-10-18 02:49:41';
-        const latVal = parseFloat(s.latitude || s.lat || currentPinLat).toFixed(6);
-        const lngVal = parseFloat(s.longitude || s.lng || currentPinLng).toFixed(6);
-        const elevVal = (s.elevation_m || 142) + 'm • ' + (s.slope_deg || 4.5) + '°';
-        const weatherStr = s.weather_condition || (isId ? 'Cerah 26.6°C' : 'Sunny 26.6°C');
-        const shaStr = (s.sha256_seal || 'SHA256').substring(0, 10) + '...';
+        const fotoSrc = s.foto_url || s.image_gcs_url || '';
+        const blockName = s.block_id || s.blok || 'Evidence record';
+        const stageName = s.process_stage || (isId ? 'Tidak tercatat' : 'Not recorded');
+        const dateStr = s.recorded_at || s.timestamp || (isId ? 'Tidak tercatat' : 'Not recorded');
+        const formatCoordinate = value => value === null || value === undefined || value === '' || !Number.isFinite(Number(value))
+            ? '—'
+            : Number(value).toFixed(6);
+        const latVal = formatCoordinate(s.latitude ?? s.lat);
+        const lngVal = formatCoordinate(s.longitude ?? s.lng);
+        const elevVal = `${s.elevation_m ?? '—'} • ${s.slope_deg ?? '—'}`;
+        const weatherStr = s.weather_condition || (isId ? 'Tidak tercatat' : 'Not recorded');
+        const shaStr = s.sha256_seal ? s.sha256_seal.substring(0, 10) + '...' : 'Not available';
         
         const absoluteIndex = surveysFullList.findIndex(item => item === s) + 1;
 
@@ -451,7 +468,7 @@ function renderSurveysTable() {
             '<td class="px-3 py-3 text-center text-slate-400 font-bold">' + (startIndex + idx + 1) + '</td>' +
             '<td class="px-4 py-2.5">' +
                 '<div class="flex items-center gap-2">' +
-                    '<img src="' + fotoSrc + '" class="w-10 h-8 rounded-lg object-cover border border-slate-700 cursor-pointer hover:scale-105 transition" onclick="selectGalleryPhoto(\'' + fotoSrc + '\', \'' + blockName + '\', false)">' +
+                    '<img src="' + fotoSrc + '" onerror="this.onerror=null; this.classList.add(\'hidden\')" class="w-10 h-8 rounded-lg object-cover border border-slate-700 cursor-pointer hover:scale-105 transition" onclick="selectGalleryPhoto(\'' + fotoSrc + '\', \'' + blockName + '\', false)">' +
                     '<span class="text-[9px] text-emerald-400 font-bold">' + (isId ? 'Tersegel' : 'Sealed') + '</span>' +
                 '</div>' +
             '</td>' +
@@ -465,7 +482,7 @@ function renderSurveysTable() {
             '<td class="px-4 py-3 font-bold text-white">' + blockName + '</td>' +
             '<td class="px-4 py-3 text-emerald-400">' + latVal + ', ' + lngVal + '</td>' +
             '<td class="px-4 py-3 text-center">' + elevVal + '</td>' +
-            '<td class="px-4 py-3 text-emerald-300 font-bold">' + (isId ? '✓ 2.05m Piringan Steril Terjaga' : '✓ 2.05m Sterile Maintained') + '</td>' +
+            '<td class="px-4 py-3 text-amber-300 font-bold">' + (isId ? 'Tidak dinilai' : 'Not assessed') + '</td>' +
             '<td class="px-4 py-3 text-center text-[10px] text-cyan-300">' + weatherStr + '</td>' +
             '<td class="px-4 py-3 text-center font-mono text-[9px] text-slate-400">' + shaStr + '</td>' +
         '</tr>';
@@ -490,22 +507,23 @@ function openSurveySummaryModal(surveyIndex) {
     const isId = isIndonesian();
     if (idTag) idTag.textContent = `#SURV-2026-0${surveyIndex}`;
 
-    const boxes = s.detected_entities || calibrateHolisticFieldEntities(s.foto_url, true);
-
-    const narrativeHtml = isId ? `
-        <strong>AUTONOMOUS BIO-ECOLOGICAL AUDIT &amp; REGTECH REGULATION NO. 33/2025:</strong> Multimodal imagery verification confirms the prime <em>Elaeis guineensis</em> TM-7 oil palm parcel laid out in an equilateral triangular grid (actual density ~138 palms/Ha). The 3.79m intercrop corridor is maintained with stacked organic frond mulch piles (#1 &amp; #2) supporting microclimatic soil retention (+32% water retention). The 2.05m root ring is sterile and free of mechanical hoe tillage, mitigating <em>Ganoderma boninense</em> fungal pathogen transmission down to 0.0%. Natural riparian buffer drainage is preserved &ge; 50 meters in accordance with Govt Reg PP 23/2021 &amp; ISPO Principle 2.
-    ` : `
-        <strong>AUTONOMOUS BIO-ECOLOGICAL AUDIT &amp; REGTECH REGULATION NO. 33/2025:</strong> Multimodal imagery verification confirms the prime <em>Elaeis guineensis</em> TM-7 oil palm parcel laid out in an equilateral triangular grid (actual density ~138 palms/Ha). The 3.79m intercrop corridor is maintained with stacked organic frond mulch piles (#1 &amp; #2) supporting microclimatic soil retention (+32% water retention). The 2.05m root ring is sterile and free of mechanical hoe tillage, mitigating <em>Ganoderma boninense</em> fungal pathogen transmission down to 0.0%. Natural riparian buffer drainage is preserved &ge; 50 meters in accordance with Govt Reg PP 23/2021 &amp; ISPO Principle 2.
-    `;
+    const boxes = Array.isArray(s.detected_entities) ? s.detected_entities : [];
+    const displayMetadata = value => value === null || value === undefined || value === '' ? 'Not recorded' : value;
+    const formatCoordinate = value => value === null || value === undefined || value === '' || !Number.isFinite(Number(value))
+        ? 'Not recorded'
+        : Number(value).toFixed(6);
+    const validBoxEntities = boxes.filter(b =>
+        b && Array.isArray(b.box_2d) && b.box_2d.length === 4 && b.box_2d.every(Number.isFinite)
+    );
 
     body.innerHTML = `
         <div class="p-4 sm:p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
                 <div class="sm:col-span-5 relative rounded-xl overflow-hidden border border-slate-700 h-48 bg-slate-900 shadow">
-                    <img src="${s.foto_url || DEFAULT_FALLBACK_IMAGE}" alt="Evidence Photo" class="w-full h-full object-cover">
+                    ${s.foto_url ? `<img src="${s.foto_url}" alt="Evidence Photo" class="w-full h-full object-cover">` : ''}
                     <div class="absolute inset-0 pointer-events-none">
-                        ${boxes.map(b => {
-                            const box = b.box_2d || [100, 100, 300, 300];
+                        ${validBoxEntities.map(b => {
+                            const box = b.box_2d;
                             const top = (box[0] / 10.0).toFixed(1);
                             const left = (box[1] / 10.0).toFixed(1);
                             const height = ((box[2] - box[0]) / 10.0).toFixed(1);
@@ -513,42 +531,42 @@ function openSurveySummaryModal(surveyIndex) {
                             return `<div class="absolute border border-emerald-400 bg-emerald-500/20 rounded" style="top: ${top}%; left: ${left}%; width: ${width}%; height: ${height}%;"></div>`;
                         }).join('')}
                     </div>
-                    <span class="absolute bottom-1.5 left-1.5 bg-slate-950/90 text-[8.5px] font-mono px-2 py-0.5 rounded border border-slate-700 text-emerald-300">📸 ${boxes.length} Physical Entities Mapped</span>
+                    <span class="absolute bottom-1.5 left-1.5 bg-slate-950/90 text-[8.5px] font-mono px-2 py-0.5 rounded border border-slate-700 text-emerald-300">📸 ${boxes.length} image detections</span>
                 </div>
 
                 <div class="sm:col-span-7 space-y-2.5 font-mono">
                     <div class="flex items-center justify-between border-b border-slate-800 pb-2">
                         <div>
-                            <span class="text-[9px] uppercase text-emerald-500 font-bold tracking-wider">FIELD FORENSIC OBSERVATION REPORT</span>
-                            <h4 class="text-sm font-bold text-white font-sans mt-0.5">${s.block_id || s.blok || 'Centroid Block - STAGE-0-ANNUAL-REG • AERIAL_DRONE'}</h4>
+                            <span class="text-[9px] uppercase text-emerald-500 font-bold tracking-wider">IMAGE SCAN RECORD</span>
+                            <h4 class="text-sm font-bold text-white font-sans mt-0.5">${s.block_id || s.blok || 'Evidence record'}</h4>
                         </div>
-                        <span class="px-2.5 py-1 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-400">
-                            ✓ VERIFIED AI GROUND TRUTH
+                        <span class="px-2.5 py-1 rounded text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-500">
+                            NOT GROUND-TRUTH VERIFIED
                         </span>
                     </div>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-[10px]">
-                        <div><span class="text-slate-400 block">Cycle Stage:</span><strong class="text-emerald-400 font-bold">${s.process_stage || 'STAGE-0-ANNUAL-REG'}</strong></div>
-                        <div><span class="text-slate-400 block">Timestamp:</span><strong class="text-slate-200">${s.recorded_at || s.timestamp}</strong></div>
-                        <div><span class="text-slate-400 block">WGS84 GPS:</span><strong class="text-sky-300 font-mono">${parseFloat(s.latitude || s.lat).toFixed(6)}, ${parseFloat(s.longitude || s.lng).toFixed(6)}</strong></div>
-                        <div><span class="text-slate-400 block">Elevation &bull; Slope:</span><strong class="text-white">${s.elevation_m || 75}m ASL &bull; ${s.slope_deg || 4.5}°</strong></div>
-                        <div><span class="text-slate-400 block">Root Buffer 2.05m:</span><strong class="text-emerald-400 font-bold">✓ 100% Zero-Tillage</strong></div>
-                        <div><span class="text-slate-400 block">Weather Match:</span><strong class="text-amber-300">${s.weather_condition || 'Clear 26.6°C (Sat Match)'}</strong></div>
+                        <div><span class="text-slate-400 block">Cycle Stage:</span><strong class="text-emerald-400 font-bold">${displayMetadata(s.process_stage)}</strong></div>
+                        <div><span class="text-slate-400 block">Timestamp:</span><strong class="text-slate-200">${displayMetadata(s.recorded_at || s.timestamp)}</strong></div>
+                        <div><span class="text-slate-400 block">WGS84 GPS:</span><strong class="text-sky-300 font-mono">${formatCoordinate(s.latitude ?? s.lat)}, ${formatCoordinate(s.longitude ?? s.lng)}</strong></div>
+                        <div><span class="text-slate-400 block">Elevation &bull; Slope metadata:</span><strong class="text-white">${displayMetadata(s.elevation_m)} &bull; ${displayMetadata(s.slope_deg)}</strong></div>
+                        <div><span class="text-slate-400 block">Field compliance:</span><strong class="text-amber-300">Not assessed</strong></div>
+                        <div><span class="text-slate-400 block">Weather:</span><strong class="text-amber-300">${displayMetadata(s.weather_condition)}</strong></div>
                     </div>
                 </div>
             </div>
 
             <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5 font-mono text-xs">
                 <span class="text-[10px] font-bold uppercase text-emerald-400 flex items-center gap-1.5">
-                    <span>🤖</span> <span>LEARNED NOTES &amp; STATUTORY COMPLIANCE REVIEW (BENCHMARK AUDIT):</span>
+                    <span>🤖</span> <span>SCAN RESULT LIMITATIONS:</span>
                 </span>
                 <p class="text-[10.5px] leading-relaxed text-slate-300 font-sans text-justify">
-                    ${narrativeHtml}
+                    Gemini object detections are model output, not independently verified ground truth. Image detections do not measure field dimensions or establish regulatory compliance.
                 </p>
             </div>
 
             <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[10px] font-mono text-slate-400">
-                <span class="truncate">🔐 FIPS 180-4 SHA-256 SEAL: <strong class="text-indigo-300 font-bold">${s.sha256_seal || '8F4343HZB3W0YQAA4'}</strong></span>
-                <span class="text-emerald-400 font-bold shrink-0">IMMUTABLE FORENSIC BENCHMARK</span>
+                <span class="truncate">Image SHA-256: <strong class="text-indigo-300 font-bold">${s.sha256_seal || 'Not available'}</strong></span>
+                <span class="text-amber-400 font-bold shrink-0">GROUND-TRUTH REVIEW REQUIRED</span>
             </div>
         </div>
     `;
@@ -573,15 +591,19 @@ function downloadForensicProofPdf() {
         return;
     }
 
-    const boxes = s.detected_entities || calibrateHolisticFieldEntities(s.foto_url, true);
+    const boxes = Array.isArray(s.detected_entities) ? s.detected_entities : [];
     const estCode = currentEstateCode || 'EST-MDN-010';
-    const blockTitle = s.block_id || s.blok || 'Centroid Block - STAGE-0-ANNUAL-REG • AERIAL_DRONE';
-    const stageName = s.process_stage || 'STAGE-0-ANNUAL-REG';
-    const timestampStr = s.recorded_at || s.timestamp || '2026-10-18 02:49:41';
-    const gpsCoords = `${parseFloat(s.latitude || s.lat || 0.655000).toFixed(6)}, ${parseFloat(s.longitude || s.lng || 99.255000).toFixed(6)}`;
-    const elevSlope = `${s.elevation_m || 75}m ASL • ${s.slope_deg || 4.5}°`;
-    const weatherStr = s.weather_condition || 'Clear 26.6°C (Sat Match)';
-    const shaCode = s.sha256_seal || '8F4343HZB3W0YQAA4';
+    const displayMetadata = value => value === null || value === undefined || value === '' ? 'Not recorded' : value;
+    const formatCoordinate = value => value === null || value === undefined || value === '' || !Number.isFinite(Number(value))
+        ? 'Not recorded'
+        : Number(value).toFixed(6);
+    const blockTitle = s.block_id || s.blok || 'Evidence record';
+    const stageName = displayMetadata(s.process_stage);
+    const timestampStr = displayMetadata(s.recorded_at || s.timestamp);
+    const gpsCoords = `${formatCoordinate(s.latitude ?? s.lat)}, ${formatCoordinate(s.longitude ?? s.lng)}`;
+    const elevSlope = `${displayMetadata(s.elevation_m)} • ${displayMetadata(s.slope_deg)}`;
+    const weatherStr = displayMetadata(s.weather_condition);
+    const shaCode = s.sha256_seal || 'Not available';
     const proofId = `#SURV-2026-0${activeModalSurveyIndex || 1}`;
 
     const printWin = window.open('', '_blank', 'width=1000,height=800');
@@ -590,8 +612,10 @@ function downloadForensicProofPdf() {
         return;
     }
 
-    const boxesHtml = boxes.map(b => {
-        const box = b.box_2d || [100, 100, 300, 300];
+    const boxesHtml = boxes.filter(b =>
+        b && Array.isArray(b.box_2d) && b.box_2d.length === 4 && b.box_2d.every(Number.isFinite)
+    ).map(b => {
+        const box = b.box_2d;
         const top = (box[0] / 10.0).toFixed(1);
         const left = (box[1] / 10.0).toFixed(1);
         const height = ((box[2] - box[0]) / 10.0).toFixed(1);
@@ -799,28 +823,28 @@ function downloadForensicProofPdf() {
                     <h2>Forensic Ground-Truth Evidence &amp; AI Telemetry Review</h2>
                     <span class="badge-id">${proofId}</span>
                 </div>
-                <div class="header-sub">4D Sensor Perspective, Physical Bounding Boxes &bull; ISPO Principle 2 &bull; EUDR Article 9 Benchmark</div>
+                <div class="header-sub">Gemini object detections from this image &bull; ground-truth review required</div>
             </div>
             <div style="font-family:monospace;font-size:10px;color:#94a3b8;text-align:right;">
                 Concession: <strong style="color:#ffffff;">${estCode}</strong><br>
-                Status: <strong style="color:#34d399;">CERTIFIED</strong>
+                Status: <strong style="color:#fbbf24;">NOT GROUND-TRUTH VERIFIED</strong>
             </div>
         </div>
 
         <div class="grid-main">
             <div class="img-container">
-                <img src="${s.foto_url || DEFAULT_FALLBACK_IMAGE}" alt="Evidence Photo">
+                ${s.foto_url ? `<img src="${s.foto_url}" alt="Evidence Photo">` : ''}
                 <div style="position:absolute;inset:0;pointer-events:none;">${boxesHtml}</div>
-                <div class="img-badge">📸 ${boxes.length} Physical Entities Mapped</div>
+                <div class="img-badge">📸 ${boxes.length} image detections</div>
             </div>
 
             <div class="meta-col">
                 <div class="meta-header">
                     <div>
-                        <span class="meta-category">FIELD FORENSIC OBSERVATION REPORT</span>
+                        <span class="meta-category">IMAGE SCAN RECORD</span>
                         <h4 class="meta-block-name">${blockTitle}</h4>
                     </div>
-                    <span class="badge-verified">✓ VERIFIED AI GROUND TRUTH</span>
+                    <span style="background:#451a03;color:#fbbf24;border:1px solid #d97706;padding:3px 8px;border-radius:6px;">NOT GROUND-TRUTH VERIFIED</span>
                 </div>
 
                 <div class="meta-grid">
@@ -841,11 +865,11 @@ function downloadForensicProofPdf() {
                         <strong style="color:#f8fafc;">${elevSlope}</strong>
                     </div>
                     <div class="meta-cell">
-                        <span>Root Buffer 2.05m:</span>
-                        <strong style="color:#34d399;">✓ 100% Zero-Tillage</strong>
+                        <span>Field compliance:</span>
+                        <strong style="color:#fbbf24;">Not assessed</strong>
                     </div>
                     <div class="meta-cell">
-                        <span>Weather Match:</span>
+                        <span>Weather metadata:</span>
                         <strong style="color:#fcd34d;">${weatherStr}</strong>
                     </div>
                 </div>
@@ -854,19 +878,19 @@ function downloadForensicProofPdf() {
 
         <div class="review-box">
             <div class="review-header">
-                <span>🤖</span> <span>LEARNED NOTES &amp; STATUTORY COMPLIANCE REVIEW (BENCHMARK AUDIT):</span>
+                <span>🤖</span> <span>SCAN RESULT LIMITATIONS:</span>
             </div>
             <p class="review-text">
-                <strong>AUTONOMOUS BIO-ECOLOGICAL AUDIT &amp; REGTECH REGULATION NO. 33/2025:</strong> Multimodal imagery verification confirms the prime <em>Elaeis guineensis</em> TM-7 oil palm parcel laid out in an equilateral triangular grid (actual density ~138 palms/Ha). The 3.79m intercrop corridor is maintained with stacked organic frond mulch piles (#1 &amp; #2) supporting microclimatic soil retention (+32% water retention). The 2.05m root ring is sterile and free of mechanical hoe tillage, mitigating <em>Ganoderma boninense</em> fungal pathogen transmission down to 0.0%. Natural riparian buffer drainage is preserved &ge; 50 meters in accordance with Govt Reg PP 23/2021 &amp; ISPO Principle 2.
+                Gemini detections are model output, not independently verified ground truth. Object detections do not measure field dimensions or establish regulatory compliance.
             </p>
         </div>
 
         <div class="seal-strip">
             <div>
-                🔐 FIPS 180-4 SHA-256 SEAL: <span class="seal-hash">${shaCode}</span>
+                Image SHA-256: <span class="seal-hash">${shaCode}</span>
             </div>
             <div class="seal-status">
-                IMMUTABLE FORENSIC BENCHMARK
+                GROUND-TRUTH REVIEW REQUIRED
             </div>
         </div>
     </div>
@@ -919,13 +943,10 @@ function bindEvidencePhotos(photos, dossier) {
                 boxes = typeof p.detected_entities_json === 'string' ? JSON.parse(p.detected_entities_json) : (p.detected_entities_json || []);
             } catch (_) {}
 
-            if (!boxes || boxes.length === 0) {
-                boxes = calibrateHolisticFieldEntities(p.filename, true);
-            }
-
-            const isAlreadyProcessed = Boolean(
-                p.is_processed ||
+            const hasScanResult = Boolean(p.is_processed || (Array.isArray(boxes) && boxes.length > 0));
+            const isLocked = Boolean(
                 p.is_locked ||
+                String(p.status || '').toUpperCase() === 'SEALED' ||
                 sealedHashes.has(p.image_sha256_hash) ||
                 sealedHashes.has(p.sha256) ||
                 sealedUrls.has(streamUrl) ||
@@ -941,23 +962,9 @@ function bindEvidencePhotos(photos, dossier) {
                 tag: p.process_stage || 'STAGE-0-ANNUAL-REG',
                 sha256: p.image_sha256_hash || '',
                 boxes: boxes,
-                is_processed: isAlreadyProcessed,
-                is_locked: isAlreadyProcessed
+                is_processed: hasScanResult,
+                is_locked: isLocked
             });
-        });
-    }
-
-    if (registeredPhotos.length === 0) {
-        registeredPhotos.push({
-            id: 'EV-DEFAULT-01',
-            filename: 'sawit_drone.jpg',
-            file_url: DEFAULT_FALLBACK_IMAGE,
-            title: 'STAGE-0-ANNUAL-REG • Aerial Orthophoto 45m AGL',
-            tag: 'STAGE-0-ANNUAL-REG',
-            sha256: '8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4',
-            boxes: calibrateHolisticFieldEntities('sawit_drone.jpg', true),
-            is_processed: false,
-            is_locked: false
         });
     }
 
@@ -1086,17 +1093,18 @@ function renderGalleryThumbnails() {
             cardContainerClass = 'border-emerald-500/50 bg-slate-900/70';
         }
 
-        const statusBadge = item.is_processed ?
+        const statusBadge = item.is_locked ?
             `<span class="px-1.5 py-0.5 rounded text-[7.5px] font-mono font-bold bg-amber-950/90 text-amber-300 border border-amber-600/60 inline-flex items-center gap-0.5" title="Bukti Tersegel Resmi">🔒 SEALED</span>` :
-            `<span class="px-1.5 py-0.5 rounded text-[7.5px] font-mono font-bold bg-emerald-950/90 text-emerald-300 border border-emerald-600/60 inline-flex items-center gap-0.5">⚡ READY</span>`;
+            `<span class="px-1.5 py-0.5 rounded text-[7.5px] font-mono font-bold ${item.is_processed ? 'bg-sky-950/90 text-sky-300 border border-sky-600/60' : 'bg-emerald-950/90 text-emerald-300 border border-emerald-600/60'} inline-flex items-center gap-0.5">${item.is_processed ? '✓ SCANNED' : '⚡ READY'}</span>`;
 
-        const deleteBtnHtml = !item.is_processed ? `
+        const deleteBtnHtml = `
+            ${item.is_locked ? `<button type="button" onclick="unsealEvidencePhoto('${deleteId}', event)" class="p-1 rounded bg-amber-950/90 text-amber-300 hover:bg-amber-600 hover:text-white border border-amber-500/60 transition shadow cursor-pointer" title="${isId ? 'Buka segel untuk scan ulang' : 'Unlock for rescanning'}"><span class="text-[9px]">🔓</span></button>` : ''}
             <button type="button" onclick="deleteEvidencePhoto('${deleteId}', '${item.file_url}', event)" 
-                class="opacity-0 group-hover:opacity-100 p-1 rounded bg-rose-950/90 text-rose-300 hover:bg-rose-600 hover:text-white border border-rose-500/60 transition shadow cursor-pointer" 
+                class="p-1 rounded bg-rose-950/90 text-rose-300 hover:bg-rose-600 hover:text-white border border-rose-500/60 transition shadow cursor-pointer" 
                 title="${isId ? 'Hapus foto' : 'Delete photo'}">
                 <span class="text-[9px]">🗑️</span>
             </button>
-        ` : '';
+        `;
 
         return `
             <div onclick="selectGalleryPhoto('${item.file_url}', '${item.filename}', false)" 
@@ -1104,7 +1112,7 @@ function renderGalleryThumbnails() {
                 <div class="flex items-center gap-3 min-w-0">
                     <!-- Thumbnail -->
                     <div class="w-16 h-13 rounded-xl overflow-hidden bg-slate-950 flex-shrink-0 border border-slate-800 flex items-center justify-center relative">
-                        <img src="${item.file_url}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform ${item.is_processed ? 'photo-sealed-blur' : ''}" onerror="this.onerror=null; this.src='/static/img/sawit_drone.jpg'">
+                        <img src="${item.file_url}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform ${item.is_locked ? 'photo-sealed-blur' : ''}" onerror="this.onerror=null; this.classList.add('hidden')">
                     </div>
                     <!-- Metadata -->
                     <div class="min-w-0 space-y-0.5">
@@ -1185,7 +1193,7 @@ function renderSealedArchiveStrip() {
     if (!container) return;
 
     const isId = isIndonesian();
-    const sealedPhotos = registeredPhotos.filter(p => p.is_processed && (activeProcessStageFilter === 'ALL' || p.tag === activeProcessStageFilter));
+    const sealedPhotos = registeredPhotos.filter(p => p.is_locked && (activeProcessStageFilter === 'ALL' || p.tag === activeProcessStageFilter));
 
     if (badge) badge.textContent = `${sealedPhotos.length} ` + (isId ? 'Foto Tersegel' : 'Sealed');
 
@@ -1201,7 +1209,7 @@ function renderSealedArchiveStrip() {
             <div onclick="reviewArchivedPhoto('${item.file_url}', '${item.filename}')" 
                  class="relative shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 cursor-pointer transition transform hover:scale-105 ${isActive ? 'border-emerald-400 ring-2 ring-emerald-500/50' : 'border-slate-700 opacity-80'}"
                  title="${item.title || item.filename} (Klik untuk review objek)">
-                <img src="${item.file_url}" alt="Archive" class="w-full h-full object-cover photo-sealed-blur" onerror="this.src='${DEFAULT_FALLBACK_IMAGE}'">
+                <img src="${item.file_url}" alt="Archive" class="w-full h-full object-cover photo-sealed-blur" onerror="this.onerror=null; this.classList.add('hidden')">
                 <span class="absolute top-0.5 right-0.5 text-[8px] bg-slate-950/90 text-amber-300 px-1 rounded border border-amber-600/50">🔒</span>
                 <span class="absolute bottom-0 inset-x-0 bg-slate-950/90 text-emerald-300 text-[7px] truncate px-0.5 text-center">${item.tag}</span>
             </div>
@@ -1254,9 +1262,7 @@ function selectGalleryPhoto(url, filename, shouldRescan = false) {
         drawReticles();
 
         const photoObj = registeredPhotos.find(p => p.file_url === url) || { filename, file_url: url };
-        let boxes = (photoObj.boxes && Array.isArray(photoObj.boxes) && photoObj.boxes.length > 0) 
-            ? photoObj.boxes 
-            : calibrateHolisticFieldEntities(filename || url, true);
+        let boxes = (photoObj.boxes && Array.isArray(photoObj.boxes)) ? photoObj.boxes : [];
         
         photoObj.boxes = boxes;
         renderDetectedBoundingBoxes(boxes);
@@ -1267,7 +1273,8 @@ function selectGalleryPhoto(url, filename, shouldRescan = false) {
     };
 
     imgEl.onerror = function() {
-        imgEl.src = DEFAULT_FALLBACK_IMAGE;
+        imgEl.classList.add('hidden');
+        if (emptyEl) emptyEl.classList.remove('hidden');
     };
 
     renderGalleryThumbnails();
@@ -1279,26 +1286,33 @@ async function deleteEvidencePhoto(photoId, photoUrl, event) {
     const isId = isIndonesian();
     
     const target = registeredPhotos.find(p => p.file_url === photoUrl || p.id === photoId);
-    if (target && target.is_processed) {
-        alert(isId ? "Foto telah menjadi bukti dokumen audit dan tidak dapat dihapus." : "Photo is locked as audit documentary evidence and cannot be deleted.");
-        return;
-    }
-
-    if (!confirm(isId ? "Hapus foto aktif ini sebelum dipindai?" : "Delete this unsealed photo?")) return;
+    const confirmation = target?.is_locked
+        ? (isId ? "Foto ini SEALED dan dapat terhubung ke rekaman surveilans. Hapus foto serta tautan auditnya secara permanen?" : "This photo is SEALED and may be linked to surveillance records. Permanently delete the photo and its audit links?")
+        : (isId ? "Hapus foto ini secara permanen?" : "Permanently delete this photo?");
+    if (!confirm(confirmation)) return;
 
     showNotificationToast(isId ? "Menghapus foto..." : "Deleting photo...", "⏳");
 
     try {
-        await fetch('/api/spatial/delete-photo', {
+        const response = await fetch('/api/spatial/delete-photo', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 photo_id: photoId,
                 photo_url: photoUrl,
+                confirm_sealed_delete: true,
                 kode_kebun: activeDossier?.kode_kebun || 'EST-MDN-010'
             })
         });
-    } catch (_) {}
+        const result = await readApiJson(response, isId ? 'Penghapusan foto' : 'Photo deletion');
+        if (result.status !== 'success') throw new Error(result.message || (isId ? 'Penghapusan foto gagal.' : 'Photo deletion failed.'));
+        if (result.bigquery_sync !== 'SYNCED') {
+            showNotificationToast(isId ? "Foto terhapus lokal; BigQuery belum tersinkron." : "Photo deleted locally; BigQuery is not synced.", "⚠️");
+        }
+    } catch (error) {
+        showNotificationToast(error.message || (isId ? "Gagal menghapus foto." : "Failed to delete photo."), "⚠️");
+        return;
+    }
 
     registeredPhotos = registeredPhotos.filter(p => p.file_url !== photoUrl && p.id !== photoId);
     selectedPhotoUrls.delete(photoUrl);
@@ -1318,6 +1332,41 @@ async function deleteEvidencePhoto(photoId, photoUrl, event) {
     }
 }
 
+async function unsealEvidencePhoto(evidenceId, event) {
+    if (event) event.stopPropagation();
+    const isId = isIndonesian();
+    if (!confirm(isId
+        ? "Buka segel foto? Tautan rekaman surveilans terkait akan dilepas dan dicatat di audit log."
+        : "Unlock this photo? Linked surveillance records will be detached and the action logged.")) return;
+    try {
+        const response = await fetch('/api/spatial/unseal-photo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                evidence_id: evidenceId,
+                photo_url: registeredPhotos.find(photo => String(photo.id) === String(evidenceId))?.file_url || '',
+                reason: 'User requested rescan'
+            })
+        });
+        const result = await readApiJson(response, isId ? 'Buka segel foto' : 'Unlock photo');
+        if (result.status !== 'success') throw new Error(result.message || (isId ? 'Buka segel gagal.' : 'Unlock failed.'));
+        const target = registeredPhotos.find(photo => photo.id === evidenceId);
+        if (target) target.is_locked = false;
+        surveysFullList = surveysFullList.filter(survey =>
+            String(survey.evidence_id || '') !== String(evidenceId) &&
+            String(survey.id || '') !== String(evidenceId) &&
+            (!target || survey.foto_url !== target.file_url)
+        );
+        cachedMobileSurveys = surveysFullList;
+        renderGalleryThumbnails();
+        renderSealedArchiveStrip();
+        renderProcessedEvidenceCardsGrid();
+        showNotificationToast(isId ? "Segel dibuka; hasil scan lama tetap tersimpan." : "Unlocked; the previous scan remains stored.", "🔓");
+    } catch (error) {
+        showNotificationToast(error.message || (isId ? "Gagal membuka segel." : "Failed to unlock photo."), "⚠️");
+    }
+}
+
 async function handleNewPhotoUpload(event) {
     const file = event.target?.files?.[0];
     if (!file) return;
@@ -1331,18 +1380,8 @@ async function handleNewPhotoUpload(event) {
         const year = localStorage.getItem('precision_palm_active_year') || '2026';
         const currentStage = activeProcessStageFilter !== 'ALL' ? activeProcessStageFilter : 'STAGE-0-ANNUAL-REG';
 
-        const newPhoto = {
-            id: 'EV-' + Date.now(),
-            filename: file.name,
-            file_url: base64Data,
-            title: currentStage + ' • ' + file.name.replace(/\.[^/.]+$/, ""),
-            tag: currentStage,
-            boxes: calibrateHolisticFieldEntities(file.name, true),
-            is_processed: false
-        };
-
         try {
-            await fetch('/api/spatial/upload-photo-direct', {
+            const response = await fetch('/api/spatial/upload-photo-direct', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1352,14 +1391,35 @@ async function handleNewPhotoUpload(event) {
                     filename: file.name
                 })
             });
-        } catch (_) {}
+            const result = await readApiJson(response, isId ? 'Unggah foto' : 'Photo upload');
+            if (result.status !== 'success') throw new Error(result.message || (isId ? 'Unggah foto gagal.' : 'Photo upload failed.'));
+            const newPhoto = {
+                id: result.evidence_id,
+                evidence_id: result.evidence_id,
+                filename: file.name,
+                file_url: result.file_url,
+                title: currentStage + ' • ' + file.name.replace(/\.[^/.]+$/, ""),
+                tag: currentStage,
+                boxes: [],
+                is_processed: false,
+                is_locked: false
+            };
 
-        registeredPhotos.unshift(newPhoto);
-        selectedPhotoUrls.add(newPhoto.file_url);
-        renderGalleryThumbnails();
-        renderSealedArchiveStrip();
-        selectGalleryPhoto(newPhoto.file_url, newPhoto.filename, false);
-        showNotificationToast(isId ? "✓ Foto siap dipindai di galeri aktif!" : "✓ Photo ready for scan in active gallery!", "🚁");
+            registeredPhotos.unshift(newPhoto);
+            selectedPhotoUrls.add(newPhoto.file_url);
+            renderGalleryThumbnails();
+            renderSealedArchiveStrip();
+            selectGalleryPhoto(newPhoto.file_url, newPhoto.filename, false);
+            showNotificationToast(isId ? "✓ Foto asli tersimpan dan siap dipindai!" : "✓ Original photo saved and ready to scan!", "🚁");
+        } catch (error) {
+            showNotificationToast(error.message || (isId ? "Unggah gagal; foto tidak ditambahkan." : "Upload failed; photo was not added."), "⚠️");
+        }
+    };
+    reader.onerror = function () {
+        showNotificationToast(
+            isId ? "Browser gagal membaca file foto. Coba pilih file lagi." : "The browser could not read this image. Please select it again.",
+            "⚠️"
+        );
     };
     reader.readAsDataURL(file);
     event.target.value = '';
@@ -1499,11 +1559,11 @@ async function rescanActiveSinglePhoto() {
     if (!currentActive) return;
     selectedPhotoUrls.clear();
     selectedPhotoUrls.add(currentActive.file_url);
-    await triggerScanningFotoAction();
+    await triggerScanningFotoAction(true);
 }
 window.rescanActiveSinglePhoto = rescanActiveSinglePhoto;
 
-async function triggerScanningFotoAction() {
+async function triggerScanningFotoAction(forceRescan = false) {
     const isId = isIndonesian();
     
     // Determine target photo
@@ -1518,6 +1578,18 @@ async function triggerScanningFotoAction() {
 
     if (!target) {
         showNotificationToast(isId ? "Pilih foto dari galeri untuk memulai pemindaian!" : "Select photo from gallery to begin scanning!", "⚠️");
+        return;
+    }
+    if (target.is_locked) {
+        showNotificationToast(isId
+            ? "Buka segel foto sebelum meminta pemindaian ulang."
+            : "Unlock this photo before requesting a rescan.", "⚠️");
+        return;
+    }
+    if (target.is_processed && !forceRescan) {
+        showNotificationToast(isId
+            ? "Hasil scan tersimpan. Gunakan Rescan AI jika ingin memindai ulang."
+            : "The scan result is saved. Use Rescan AI to run it again.", "ℹ️");
         return;
     }
 
@@ -1551,6 +1623,7 @@ async function triggerScanningFotoAction() {
     return window.UnifiedVisionEngine.scan({
         imageUrl: activePhotoUrl,
         filename: activeFilename,
+        evidenceId: target.evidence_id || target.id,
         dossierId: targetDossier,
         perspective: targetPerspective,
         pageContext: 'SPATIAL',
@@ -1559,51 +1632,36 @@ async function triggerScanningFotoAction() {
         statusEl: document.getElementById('scannerStatusText')
     }).then(result => {
         if (result) {
+            const isFallback = result.isFallback === true || result.mode !== 'LIVE_GEMINI';
             const detectedEntities = result.boxes || [];
-            target.boxes = detectedEntities;
-            target.is_processed = true;
-            target.is_locked = true;
-            target.sha256 = result.sha256Seal;
-
-            selectedPhotoUrls.delete(target.file_url);
-
+            const isPersistedLiveResult = !isFallback && result.persistence?.saved === true;
             const timestampNow = new Date().toISOString().replace('T', ' ').substring(0, 19);
             const specificBlockId = "Centroid Block - " + (target.title || target.filename || `Parcel #${surveysFullList.length + 1}`);
 
-            target.prepared_survey = {
-                id: surveysFullList.length + 1,
-                evidence_id: target.id || '',
-                foto_url: target.file_url,
-                image_gcs_url: target.file_url,
-                process_stage: target.tag || 'STAGE-0-ANNUAL-REG',
-                recorded_at: timestampNow,
-                timestamp: timestampNow,
-                block_id: specificBlockId,
-                blok: specificBlockId,
-                latitude: (typeof target.latitude === 'number' && !isNaN(target.latitude)) ? target.latitude : currentPinLat,
-                longitude: (typeof target.longitude === 'number' && !isNaN(target.longitude)) ? target.longitude : currentPinLng,
-                elevation_m: currentElevationDpl || 142.0,
-                slope_deg: 4.5,
-                piringan: "✓ 2.05m Sterile Maintained",
-                weather_condition: "Clear 26.6°C (Sat Match)",
-                sha256_seal: result.sha256Seal,
-                detected_entities: detectedEntities
-            };
-
-            try {
-                fetch('/api/spatial/save-inspection', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        dossier_id: activeDossier?.kode_kebun || currentEstateCode || 'EST-MDN-010',
-                        evidence_id: target.id || activeFilename.replace('.jpg', '').replace('.png', ''),
-                        foto_url: target.file_url,
-                        detected_entities: detectedEntities,
-                        sha256_seal: result.sha256Seal,
-                        perspective_mode: targetPerspective
-                    })
-                }).catch(() => {});
-            } catch (_) {}
+            if (isPersistedLiveResult) {
+                target.boxes = detectedEntities;
+                target.is_processed = true;
+                target.is_fallback = false;
+                target.sha256 = result.sha256Seal || target.sha256;
+                target.prepared_survey = {
+                    id: surveysFullList.length + 1,
+                    evidence_id: target.id || '',
+                    foto_url: target.file_url,
+                    image_gcs_url: target.file_url,
+                    process_stage: target.tag || 'STAGE-0-ANNUAL-REG',
+                    recorded_at: timestampNow,
+                    timestamp: timestampNow,
+                    block_id: specificBlockId,
+                    blok: specificBlockId,
+                    ...(Number.isFinite(target.latitude) ? { latitude: target.latitude } : {}),
+                    ...(Number.isFinite(target.longitude) ? { longitude: target.longitude } : {}),
+                    ...(Number.isFinite(target.elevation_m) ? { elevation_m: target.elevation_m } : {}),
+                    ...(Number.isFinite(target.slope_deg) ? { slope_deg: target.slope_deg } : {}),
+                    sha256_seal: result.sha256Seal,
+                    detected_entities: detectedEntities,
+                    ai_scan_status: 'LIVE_GEMINI_GROUND_TRUTH_REQUIRED'
+                };
+            }
 
             sealedCardsCurrentPage = 1;
             renderGalleryThumbnails();
@@ -1615,22 +1673,46 @@ async function triggerScanningFotoAction() {
             if (btnScan) btnScan.classList.remove('animate-pulse');
 
             const badgeEl = document.getElementById('aiPipelineStepBadge');
-            if (badgeEl) badgeEl.textContent = "Audit Sealed & Certified";
+            if (badgeEl) badgeEl.textContent = isFallback
+                ? "Fallback Preview — Not Image Verified"
+                : (isPersistedLiveResult ? "Live Gemini — Saved; Ground Truth Required" : "Live Gemini — Not Persisted");
             const textEl = document.getElementById('telemetryCurrentSentence');
             if (textEl) {
-                textEl.textContent = `✓ [STAGE 2A AUDIT VERIFIED] ${result.totalEntities} Physical entities verified compliant with ISPO & EUDR standards.`;
+                textEl.textContent = isFallback
+                    ? `⚠ [FALLBACK PREVIEW] ${result.totalEntities} heuristic boxes shown; image detections and compliance are not verified.`
+                    : (isPersistedLiveResult
+                        ? `✓ Live Gemini result saved for this image: ${result.totalEntities} detections. Ground-truth review is required for accuracy validation.`
+                        : `Live Gemini returned ${result.totalEntities} detections, but this result was not persisted to the evidence record.`);
             }
 
-            const matchPct = result.realisticImageMatchPct || 94.6;
             if (scanBadge) {
                 scanBadge.classList.remove('hidden');
-                scanBadge.className = 'px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-sm';
-                scanBadge.innerHTML = `🟢 Match: ${matchPct}% • ${result.totalEntities} Entities Verified`;
+                scanBadge.className = isFallback
+                    ? 'px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 shadow-sm'
+                    : (isPersistedLiveResult
+                        ? 'px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-sm'
+                        : 'px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 shadow-sm');
+                scanBadge.textContent = isFallback
+                    ? `⚠ Fallback preview • ${result.totalEntities} heuristic boxes (not verified)`
+                    : (isPersistedLiveResult
+                        ? `🟢 Live Gemini saved • ${result.totalEntities} detections`
+                        : `⚠ Live Gemini • ${result.totalEntities} detections, not persisted`);
             }
 
             renderProcessedEvidenceCardsGrid();
-            showNotificationToast(`✓ Spatial Audit Completed (${matchPct}% Match • ${result.totalEntities} Entities Ground-Mapped)`, "✅");
+            showNotificationToast(
+                isFallback
+                    ? "Fallback preview shown; no detections were verified or sealed."
+                : (result.persistence?.saved
+                    ? `Live Gemini scan saved • ${result.totalEntities} detections • BigQuery ${result.persistenceStatus}.`
+                    : `Live Gemini scan complete but not persisted • ${result.persistence?.message || 'target evidence missing'}.`),
+            isFallback ? "⚠️" : "✅"
+            );
         }
+    }).catch(error => {
+        console.error("[Spatial vision scan]", error);
+        if (btnScan) btnScan.classList.remove('animate-pulse');
+        showNotificationToast("Pemindaian gagal; periksa koneksi dan coba lagi.", "⚠️");
     });
 }
 
@@ -1667,13 +1749,13 @@ function renderProcessedEvidenceCardsGrid() {
     const isId = isIndonesian();
     const processedPhotos = registeredPhotos.filter(p => p.is_processed && (activeProcessStageFilter === 'ALL' || p.tag === activeProcessStageFilter));
     
-    if (badge) badge.textContent = processedPhotos.length + (isId ? ' Bukti Tersegel' : ' Sealed Proofs');
+    if (badge) badge.textContent = processedPhotos.length + (isId ? ' Hasil Scan' : ' Scanned Photos');
 
     if (processedPhotos.length === 0) {
         grid.innerHTML = '<div class="col-span-full p-4 rounded-2xl bg-slate-900/40 border border-slate-800 text-center text-slate-400 text-xs">' +
             (isId 
-                ? 'Belum ada kartu bukti pindaian yang dihasilkan. Centang foto yang tersedia di atas lalu klik <strong>"Pindai Bukti"</strong> untuk menyegel bukti terverifikasi ke dalam berkas.' 
-                : 'No scanned evidence cards generated yet. Checkmark available photos above and click <strong>"Scan Evidence"</strong> to seal verified evidence into the dossier.') +
+                ? 'Belum ada hasil scan. Pilih foto yang sudah diunggah lalu pindai untuk menganalisisnya.' 
+                : 'No scan results yet. Select an uploaded photo and scan it to analyze its contents.') +
             '</div>';
         if (pageControls) pageControls.style.display = 'none';
         return;
@@ -1695,81 +1777,20 @@ function renderProcessedEvidenceCardsGrid() {
     const paginatedPhotos = processedPhotos.slice(startIndex, startIndex + SEALED_CARDS_PER_PAGE);
 
     grid.innerHTML = paginatedPhotos.map((item, idx) => {
-        const fnLower = (item.filename || '').toLowerCase();
-        let isDrone = (fnLower.includes('drone') || fnLower.includes('aerial') || fnLower.includes('ortho') || fnLower.includes('q1') || fnLower.includes('q2'));
-        let isRiparian = (fnLower.includes('wetland') || fnLower.includes('buffer') || fnLower.includes('riparian') || fnLower.includes('canal'));
+        const boxes = Array.isArray(item.boxes) ? item.boxes.filter(b => b && typeof b === 'object') : [];
+        const palmCount = boxes.filter(b => b.cluster === 'palm_canopy' || (typeof b.label === 'string' && b.label.toLowerCase().includes('palm'))).length;
+        const otherCount = boxes.length - palmCount;
+        const auditorNotes = item.is_fallback
+            ? (isId ? "Pratinjau heuristik; bukan hasil pengenalan gambar." : "Heuristic preview; not an image recognition result.")
+            : (isId ? "Hasil Gemini dari citra ini; akurasi memerlukan pemeriksaan ground-truth." : "Gemini result from this image; accuracy requires ground-truth review.");
 
-        let boxes = item.boxes;
-        if (!boxes || !Array.isArray(boxes) || boxes.length < 10) {
-            const countPattern = [14, 22, 20, 18, 24, 16];
-            const targetCount = countPattern[idx % countPattern.length];
-            const genBoxes = [];
-            const cols = 5;
-            const rows = Math.ceil((targetCount - 3) / cols);
-            
-            let idCounter = 1;
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) {
-                    if (genBoxes.length >= targetCount - 3) break;
-                    const top = 60 + (r * 220) + ((c % 2) * 20);
-                    const left = 50 + (c * 170) + ((r % 2) * 35);
-                    genBoxes.push({
-                        label: 'palm_canopy',
-                        label_name: (isId ? 'Tajuk Sawit #' : 'Palm Crown #') + idCounter++,
-                        cluster: 'palm_canopy',
-                        box_2d: [top, left, top + 180, left + 145]
-                    });
-                }
-            }
-            // Piringan akar 2.05m
-            genBoxes.push({
-                label: 'root_circle',
-                label_name: isId ? 'Piringan 2.05m Bebas Gulma' : '2.05m Sterile Root Ring',
-                cluster: 'root_circle',
-                box_2d: [340, 180, 520, 360]
-            });
-            // Koridor gawangan 3.79m
-            genBoxes.push({
-                label: 'clean_alley',
-                label_name: isId ? 'Koridor Gawangan 3.79m' : '3.79m Net Corridor',
-                cluster: 'floor_mulch',
-                box_2d: [280, 380, 780, 720]
-            });
-            // Jalan angkut / infrastruktur
-            genBoxes.push({
-                label: 'infrastructure',
-                label_name: isId ? 'Jalan Angkut Utama' : 'Main Haul Road',
-                cluster: 'infrastructure',
-                box_2d: [120, 20, 890, 150]
-            });
-
-            boxes = genBoxes;
-            item.boxes = boxes;
-        }
-
-        const palmCount = boxes.filter(b => b.cluster === 'palm_canopy' || (b.label && b.label.includes('palm'))).length || 14;
-
-        let alleyStatus = isId ? "3.79m Koridor Bersih" : "3.79m Net Corridor";
-        let terrainElev = (currentElevationDpl || 142) + (isId ? "m DPL (S1 Optimal)" : "m MSL (S1 Optimal)");
-        let rootCleanRadius = isId ? "2.05m Bebas Gulma" : "2.05m Weed-Free";
-
-        let auditorNotes = "";
-        if (isRiparian) {
-            auditorNotes = isId
-                ? "Audit NKT Lingkungan: Sempadan aliran air alami 100% terlindungi tanpa perambahan sawit dalam batas 50 meter (PP 23/2021 & ISPO Prinsip 2)."
-                : "Environmental HCV Audit: Riparian buffer is 100% preserved with zero palm encroachment within 50-meter setback (PP 23/2021).";
-        } else if (isDrone) {
-            auditorNotes = isId
-                ? "Fotogrametri Drone Udara: Kerapatan kanopi 138-143 pokok/ha pada pola segitiga 9.0m. Koridor 3.79m bersih siap tumpang sari ramah lingkungan."
-                : "Aerial Drone Photogrammetry: Canopy density 138-143 palms/ha on 9.0m triangular grid. 3.79m corridor verified ready for intercropping.";
-        } else {
-            auditorNotes = isId
-                ? "Audit Terestrial In-Situ (Tinggi 1.45m): Piringan 2.05m bebas cangkul mekanis (zero-tillage). Mulsa pelepah menjaga kelembaban tanah."
-                : "Terrestrial In-Situ Audit: 2.05m root ring preserved with zero mechanical tillage. Frond mulch carpet maintains soil moisture.";
-        }
-
-        const boxesHtml = boxes.map(b => {
-            const box = b.box_2d || [100, 100, 300, 300];
+        const boxesHtml = boxes.filter(b =>
+            b &&
+            Array.isArray(b.box_2d) &&
+            b.box_2d.length === 4 &&
+            b.box_2d.every(Number.isFinite)
+        ).map(b => {
+            const box = b.box_2d;
             const top = (box[0] / 10.0).toFixed(1);
             const left = (box[1] / 10.0).toFixed(1);
             const height = ((box[2] - box[0]) / 10.0).toFixed(1);
@@ -1787,17 +1808,17 @@ function renderProcessedEvidenceCardsGrid() {
             return `<div class="absolute border-2 ${borderColor} rounded-md pointer-events-none transition-all" style="top: ${top}%; left: ${left}%; width: ${width}%; height: ${height}%;"></div>`;
         }).join('');
 
-        const shaPreview = item.sha256 ? item.sha256.substring(0, 14) + '...' : '8F4343...';
+        const shaPreview = item.sha256 ? item.sha256.substring(0, 14) + '...' : 'N/A';
         const globalIdx = startIndex + idx + 1;
 
         return '<div class="p-3.5 sm:p-4 rounded-2xl bg-slate-950 border-2 border-emerald-500/70 shadow-xl space-y-2.5 font-mono text-xs text-slate-200">' +
             '<div class="flex items-center justify-between border-b border-slate-800 pb-1.5">' +
                 '<div>' +
-                    '<span class="font-bold text-white text-xs block truncate max-w-[200px]">' + (isId ? 'Bukti #' : 'Proof #') + globalIdx + ': ' + item.filename + '</span>' +
-                    '<span class="text-[9px] text-slate-400 font-sans">' + (isId ? 'Diagnostik Biofisika Terverifikasi' : 'Verified Biophysical Diagnostic') + '</span>' +
+                    '<span class="font-bold text-white text-xs block truncate max-w-[200px]">' + (isId ? 'Scan #' : 'Scan #') + globalIdx + ': ' + item.filename + '</span>' +
+                        '<span class="text-[9px] text-slate-400 font-sans">' + (isId ? 'Deteksi objek dari Gemini' : 'Gemini object detections') + '</span>' +
                 '</div>' +
                 '<span class="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500 text-[8.5px] font-bold shadow-xs">' +
-                    '🔒 ' + item.tag +
+                    (item.is_locked ? '🔒 SEALED' : '✓ SCANNED') +
                 '</span>' +
             '</div>' +
 
@@ -1811,27 +1832,27 @@ function renderProcessedEvidenceCardsGrid() {
 
             '<div class="grid grid-cols-2 gap-1.5 text-[9.5px]">' +
                 '<div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">' +
-                    '<span class="text-slate-400 text-[8px] block">🌴 ' + (isId ? 'Populasi:' : 'Stand:') + '</span>' +
-                    '<strong class="text-emerald-400 font-bold">' + palmCount + ' Pokok</strong>' +
+                    '<span class="text-slate-400 text-[8px] block">🔎 ' + (isId ? 'Total entitas:' : 'Total entities:') + '</span>' +
+                    '<strong class="text-emerald-400 font-bold">' + boxes.length + '</strong>' +
                 '</div>' +
                 '<div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">' +
-                    '<span class="text-slate-400 text-[8px] block">⭕ ' + (isId ? 'Piringan:' : 'Ring:') + '</span>' +
-                    '<strong class="text-rose-400 font-bold">' + rootCleanRadius + '</strong>' +
+                    '<span class="text-slate-400 text-[8px] block">🌴 ' + (isId ? 'Kanopi sawit:' : 'Palm canopies:') + '</span>' +
+                    '<strong class="text-emerald-400 font-bold">' + palmCount + '</strong>' +
                 '</div>' +
                 '<div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">' +
-                    '<span class="text-slate-400 text-[8px] block">🚜 ' + (isId ? 'Koridor:' : 'Corridor:') + '</span>' +
-                    '<strong class="text-sky-300 font-bold">' + alleyStatus + '</strong>' +
+                    '<span class="text-slate-400 text-[8px] block">📦 ' + (isId ? 'Entitas lain:' : 'Other entities:') + '</span>' +
+                    '<strong class="text-sky-300 font-bold">' + otherCount + '</strong>' +
                 '</div>' +
                 '<div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">' +
-                    '<span class="text-slate-400 text-[8px] block">⛰️ ' + (isId ? 'Elevasi:' : 'Elevation:') + '</span>' +
-                    '<strong class="text-white font-bold">' + terrainElev + '</strong>' +
+                    '<span class="text-slate-400 text-[8px] block">📏 ' + (isId ? 'Pengukuran:' : 'Measurements:') + '</span>' +
+                    '<strong class="text-white font-bold">' + (isId ? 'Tidak tersedia' : 'Not available') + '</strong>' +
                 '</div>' +
             '</div>' +
 
             '<div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800 space-y-1">' +
                 '<div class="flex items-center justify-between text-[9px] font-bold text-emerald-400 border-b border-slate-800/80 pb-1">' +
-                    '<span>Biophysical &amp; Statutory Intelligence</span>' +
-                    '<span class="px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/60 text-[8px] font-mono">Gemini v3.8 Flash</span>' +
+                    '<span>' + (isId ? 'Catatan hasil scan' : 'Scan result note') + '</span>' +
+                    '<span class="px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/60 text-[8px] font-mono">' + (item.is_fallback ? 'HEURISTIC PREVIEW' : 'GEMINI RESULT') + '</span>' +
                 '</div>' +
                 '<p class="text-[9.5px] text-slate-300 leading-snug font-sans text-justify pt-0.5">' +
                     auditorNotes +
@@ -1839,8 +1860,8 @@ function renderProcessedEvidenceCardsGrid() {
             '</div>' +
 
             '<div class="pt-1.5 border-t border-slate-800 flex items-center justify-between text-[8.5px] text-slate-400">' +
-                '<span>FIPS 180-4: <strong class="text-indigo-300 font-mono">' + shaPreview + '</strong></span>' +
-                '<span class="text-emerald-400 font-bold flex items-center gap-1">✓ ' + (isId ? 'Tersegel Permanen' : 'Permanently Sealed') + '</span>' +
+                '<span>SHA-256: <strong class="text-indigo-300 font-mono">' + shaPreview + '</strong></span>' +
+                '<span class="text-emerald-400 font-bold flex items-center gap-1">' + (item.is_locked ? '🔒 ' + (isId ? 'Tersegel' : 'Sealed') : '✓ ' + (isId ? 'Dapat diatur' : 'Editable')) + '</span>' +
             '</div>' +
         '</div>';
     }).join('');
@@ -1854,21 +1875,25 @@ window.navigateSealedCardsPage = navigateSealedCardsPage;
 
 function updateConsolidatedEvidenceLedger() {
     const isId = isIndonesian();
-    const count = registeredPhotos.filter(p => p.is_processed).length || registeredPhotos.length;
+    const scannedPhotos = registeredPhotos.filter(p => p.is_processed);
+    const count = scannedPhotos.length;
+    const allBoxes = scannedPhotos.flatMap(p => Array.isArray(p.boxes) ? p.boxes.filter(b => b && typeof b === 'object') : []);
+    const palmCount = allBoxes.filter(b => b.cluster === 'palm_canopy' || (typeof b.label === 'string' && b.label.toLowerCase().includes('palm'))).length;
+    const countClusters = (...clusters) => allBoxes.filter(b => clusters.includes(b.cluster)).length;
     const badgeCount = document.getElementById('ledgerPhotoCountBadge');
-    if (badgeCount) badgeCount.textContent = count + (isId ? ' Foto Bukti Tersegel' : ' Sealed Evidence Photos');
+    if (badgeCount) badgeCount.textContent = count + (isId ? ' Foto Dipindai' : ' Scanned Photos');
 
     const elTotal = document.getElementById('ledgerTotalCrowns');
-    if (elTotal) elTotal.innerHTML = Math.max(18, count * 18) + ' <span class="text-[9.5px] font-normal text-emerald-400 font-bold">' + (isId ? 'Tajuk' : 'Crowns') + '</span>';
+    if (elTotal) elTotal.innerHTML = palmCount + ' <span class="text-[9.5px] font-normal text-emerald-400 font-bold">' + (isId ? 'Terdeteksi' : 'Detected') + '</span>';
 
     const elAlley = document.getElementById('ledgerAlleyWidth');
-    if (elAlley) elAlley.innerHTML = '3.79 <span class="text-[9.5px] font-normal text-slate-400">' + (isId ? 'Meter' : 'Meters') + '</span>';
+    if (elAlley) elAlley.innerHTML = countClusters('clean_alley', 'alley_corridor', 'floor_mulch') + ' <span class="text-[9.5px] font-normal text-slate-400">' + (isId ? 'Deteksi objek' : 'detections') + '</span>';
 
     const elSterile = document.getElementById('ledgerSterileStatus');
-    if (elSterile) elSterile.innerHTML = '100% <span class="text-[9.5px] font-normal text-slate-400">' + (isId ? 'Patuh' : 'Compliant') + '</span>';
+    if (elSterile) elSterile.innerHTML = countClusters('root_circle') + ' <span class="text-[9.5px] font-normal text-slate-400">' + (isId ? 'Deteksi objek' : 'detections') + '</span>';
 
     const elRiparian = document.getElementById('ledgerRiparianStatus');
-    if (elRiparian) elRiparian.innerHTML = '&ge; 50m <span class="text-[9.5px] font-normal text-slate-400">' + (isId ? 'Terlindungi' : 'Protected') + '</span>';
+    if (elRiparian) elRiparian.innerHTML = countClusters('water_riparian') + ' <span class="text-[9.5px] font-normal text-slate-400">' + (isId ? 'Deteksi objek' : 'detections') + '</span>';
 }
 
 function updateScanButtonLabel() {
@@ -2026,32 +2051,28 @@ async function saveSpatialInspectionAndProceed() {
 
     const isId = isIndonesian();
     registeredPhotos.forEach((p, idx) => {
-        p.is_processed = true;
         p.is_locked = true;
         if (!p.prepared_survey) {
-            const fname = p.filename || 'photo.jpg';
             const realFileUrl = p.file_url;
             const specificBlockId = (isId ? "Blok Inti - " : "Centroid Block - ") + (p.title || p.filename || `Parcel #${surveysFullList.length + idx + 1}`);
+            const recordedAt = new Date().toISOString().replace('T', ' ').substring(0, 19);
             p.prepared_survey = {
                 id: surveysFullList.length + idx + 1,
                 evidence_id: p.id || '',
                 foto_url: realFileUrl,
                 image_gcs_url: realFileUrl,
                 process_stage: p.tag || 'STAGE-0-ANNUAL-REG',
-                recorded_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
-                timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+                recorded_at: recordedAt,
+                timestamp: recordedAt,
                 block_id: specificBlockId,
                 blok: specificBlockId,
-                latitude: (typeof p.latitude === 'number' && !isNaN(p.latitude)) ? p.latitude : (currentPinLat || 0.824100),
-                longitude: (typeof p.longitude === 'number' && !isNaN(p.longitude)) ? p.longitude : (currentPinLng || 99.561200),
-                lat: (typeof p.latitude === 'number' && !isNaN(p.latitude)) ? p.latitude : (currentPinLat || 0.824100),
-                lng: (typeof p.longitude === 'number' && !isNaN(p.longitude)) ? p.longitude : (currentPinLng || 99.561200),
-                elevation_m: (typeof p.elevation === 'number' && !isNaN(p.elevation)) ? p.elevation : (currentElevationDpl || 142.0),
-                slope_deg: (typeof p.slope === 'number' && !isNaN(p.slope)) ? p.slope : (slope || 4.5),
-                piringan: isId ? "✓ 2.05m Piringan Steril Terjaga" : "✓ 2.05m Sterile Maintained",
-                weather_condition: isId ? "Cerah 26.6°C (Cocok Satelit)" : "Clear 26.6°C (Sat Match)",
-                sha256_seal: p.sha256 || ('8F4343' + Math.random().toString(36).substring(2, 10).toUpperCase() + 'AA4'),
-                detected_entities: p.boxes || calibrateHolisticFieldEntities(fname, true)
+                ...(Number.isFinite(p.latitude) ? { latitude: p.latitude, lat: p.latitude } : {}),
+                ...(Number.isFinite(p.longitude) ? { longitude: p.longitude, lng: p.longitude } : {}),
+                ...(Number.isFinite(p.elevation_m) ? { elevation_m: p.elevation_m } : {}),
+                ...(Number.isFinite(p.slope_deg) ? { slope_deg: p.slope_deg } : {}),
+                ...(p.sha256 ? { sha256_seal: p.sha256 } : {}),
+                detected_entities: p.is_processed && Array.isArray(p.boxes) ? p.boxes : [],
+                ai_scan_status: p.is_processed ? 'LIVE_GEMINI_GROUND_TRUTH_REQUIRED' : 'NOT_SCANNED'
             };
         }
     });
@@ -2266,6 +2287,7 @@ window.handleSoilParamChange = handleSoilParamChange;
 window.saveSpatialInspectionAndProceed = saveSpatialInspectionAndProceed;
 window.selectGalleryPhoto = selectGalleryPhoto;
 window.deleteEvidencePhoto = deleteEvidencePhoto;
+window.unsealEvidencePhoto = unsealEvidencePhoto;
 window.handleNewPhotoUpload = handleNewPhotoUpload;
 window.triggerScanningFotoAction = triggerScanningFotoAction;
 window.toggleSpatialLayer = toggleSpatialLayer;

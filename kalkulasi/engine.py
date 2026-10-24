@@ -6,8 +6,108 @@
 
 import math
 import logging
+import re
+from kalkulasi.ekonomi_karbon import calculate_avoided_deforestation as calculate_climate_scenario
 
 logger = logging.getLogger("precision_palm.biophysical_engine")
+
+YIELD_SCENARIO_DATABASE = {
+    "red_ginger": {"yci": 2.82, "ycm": 18.00, "penalty_pct": 1.2, "aliases": ("red ginger", "ginger", "jahe merah")},
+    "cacao": {"yci": 0.85, "ycm": 1.50, "penalty_pct": 2.1, "aliases": ("shade cacao", "cacao", "cocoa", "kakao", "theobroma cacao")},
+    "coffee": {"yci": 0.72, "ycm": 1.20, "penalty_pct": 1.8, "aliases": ("shade robusta coffee", "coffee", "kopi", "coffea canephora")},
+    "porang": {"yci": 8.50, "ycm": 24.00, "penalty_pct": 0.8, "aliases": ("porang", "konjac", "amorphophallus muelleri")},
+    "cardamom": {"yci": 0.45, "ycm": 0.90, "penalty_pct": 1.0, "aliases": ("java cardamom", "cardamom", "kapulaga", "amomum compactum")},
+    "turmeric": {"yci": 3.10, "ycm": 14.50, "penalty_pct": 1.1, "aliases": ("turmeric", "kunyit", "curcuma longa")},
+    "patchouli": {"yci": 1.20, "ycm": 3.50, "penalty_pct": 1.5, "aliases": ("patchouli", "nilam", "pogostemon cablin")},
+    "soybean": {"yci": 1.10, "ycm": 2.60, "penalty_pct": 1.4, "aliases": ("soybean", "soy", "kedelai", "glycine max", "dena 1")},
+    "corn": {"yci": 3.20, "ycm": 7.80, "penalty_pct": 2.5, "aliases": ("field corn", "corn", "maize", "jagung", "zea mays")},
+    "vanilla": {"yci": 0.25, "ycm": 0.60, "penalty_pct": 0.5, "aliases": ("vanilla", "vanili", "vanilla planifolia")},
+    "curcuma": {"yci": 3.10, "ycm": 14.50, "penalty_pct": 1.1, "aliases": ("temulawak", "curcuma zanthorrhiza")},
+    "kencur": {"yci": 2.82, "ycm": 18.00, "penalty_pct": 1.2, "aliases": ("kencur", "aromatic ginger", "kaempferia galanga")},
+    "peanut": {"yci": 1.10, "ycm": 2.60, "penalty_pct": 1.4, "aliases": ("peanut", "groundnut", "kacang tanah", "arachis hypogaea")},
+    "sorghum": {"yci": 3.20, "ycm": 7.80, "penalty_pct": 2.5, "aliases": ("sorghum", "sorgum", "sweet sorghum", "sorghum bicolor")},
+    "sweet_potato": {"yci": 2.50, "ycm": 10.00, "penalty_pct": 1.5, "aliases": ("sweet potato", "ubi jalar", "ipomoea batatas")},
+    "serai_wangi": {"yci": 2.50, "ycm": 10.00, "penalty_pct": 1.5, "aliases": ("serai wangi", "citronella", "cymbopogon nardus")},
+}
+
+
+def normalize_crop_name(raw_crop_name: str) -> str:
+    """Normalize a crop key or display name for scenario benchmark lookup."""
+    without_scientific_name = re.sub(r"\([^)]*\)", " ", str(raw_crop_name or "").lower())
+    return re.sub(r"[^a-z0-9]+", " ", without_scientific_name).strip()
+
+
+def resolve_crop_yield_benchmark(raw_crop_name: str) -> dict:
+    """Resolve crop aliases to a clearly labeled yield scenario benchmark."""
+    normalized_name = normalize_crop_name(raw_crop_name)
+    if not normalized_name:
+        normalized_name = "red ginger"
+    raw_normalized_name = re.sub(
+        r"[^a-z0-9]+",
+        " ",
+        str(raw_crop_name or "").lower(),
+    ).strip()
+    search_names = (normalized_name, raw_normalized_name)
+
+    aliases = sorted(
+        (
+            (normalize_crop_name(alias), crop_key)
+            for crop_key, benchmark in YIELD_SCENARIO_DATABASE.items()
+            for alias in (crop_key, *benchmark["aliases"])
+        ),
+        key=lambda item: len(item[0]),
+        reverse=True,
+    )
+    crop_key = next(
+        (
+            key
+            for alias, key in aliases
+            if alias and any(alias in name for name in search_names)
+        ),
+        None,
+    )
+    if crop_key is None:
+        return {
+            "crop_key": "default",
+            "yci": 2.50,
+            "ycm": 10.00,
+            "penalty_pct": 1.5,
+            "status": "SCENARIO_PROJECTION",
+            "methodology_note": "Generic fallback scenario benchmark; not a crop-specific measured or validated yield.",
+        }
+
+    return {
+        "crop_key": crop_key,
+        "yci": YIELD_SCENARIO_DATABASE[crop_key]["yci"],
+        "ycm": YIELD_SCENARIO_DATABASE[crop_key]["ycm"],
+        "penalty_pct": YIELD_SCENARIO_DATABASE[crop_key]["penalty_pct"],
+        "status": "SCENARIO_PROJECTION",
+        "methodology_note": "Illustrative crop benchmark and palm intercrop penalty; not field-measured or locally validated.",
+    }
+
+
+def calculate_crop_yield_scenario(palm_age_years: float, crop_name: str) -> dict:
+    """Return the versioned illustrative age/crop scenario values used by the UI."""
+    age = float(palm_age_years)
+    if not math.isfinite(age) or age <= 0:
+        raise ValueError("Palm age must be a finite positive number.")
+
+    benchmark = resolve_crop_yield_benchmark(crop_name)
+    palm_monoculture = 26.5 / (1.0 + math.exp(-0.65 * (age - 3.5)))
+    palm_intercrop = palm_monoculture * (1.0 - benchmark["penalty_pct"] / 100.0)
+    return {
+        "crop_key": benchmark["crop_key"],
+        "palm_age_years": age,
+        "yield_palm_inter": round(palm_intercrop, 2),
+        "yield_palm_mono": round(palm_monoculture, 2),
+        "yield_crop_inter": round(benchmark["yci"], 2),
+        "yield_crop_mono": round(benchmark["ycm"], 2),
+        "penalty_pct": benchmark["penalty_pct"],
+        "status": "SCENARIO_PROJECTION",
+        "model": "logistic_age_crop_benchmark",
+        "model_version": "2",
+        "methodology_note": benchmark["methodology_note"],
+    }
 
 # ------------------------------------------------------------------------------
 # 1. TRANSMISI KANOPI & RADIASI PAR (Hukum Monsi-Saeki)
@@ -21,13 +121,11 @@ def calculate_canopy_transmission(palm_age_years: float = 7.0, lai_override: flo
     age = max(1.0, float(palm_age_years or kwargs.get("palm_age", 7.0)))
     k_extinction = 0.45
 
-    # LAI sigmoid logistik bertumbuh dari TBM (umur 1-3) hingga TM prima (umur 7-15)
+    # Deterministic age-profile model; this is not a field LAI measurement.
     if lai_override is not None and float(lai_override) > 0:
         lai = float(lai_override)
     else:
-        # Kurva logistik LAI PPKS: mendekati 1.2 pada umur muda, hingga ~4.25 pada TM prime
-        lai = 1.0 + (3.4 / (1.0 + math.exp(-0.7 * (age - 4.5))))
-        lai = round(min(5.5, max(0.8, lai)), 2)
+        lai = round(5.5 / (1.0 + math.exp(-0.7 * (age - 3.5))), 2)
 
     # Transmisi cahaya relatif (I / I_0)
     transmission_ratio = math.exp(-k_extinction * lai)
@@ -99,6 +197,92 @@ def calculate_canopy_geometry(frond_radius_m: float = 4.5, planting_distance_m: 
         "root_protection_standard": "ZERO_TILLAGE_2M_BUFFER_PPKS"
     }
 
+
+def calculate_biophysical_benchmarks(
+    palm_age_years: float,
+    geometry: dict,
+    total_ler: float = None,
+    land_area_ha: float = 1.0,
+    annual_rainfall_mm: float = 2188.0,
+    baseline_curve_number: float = 82.0,
+) -> dict:
+    """Calculate explicitly assumed screening scenarios, not field measurements."""
+    age = float(palm_age_years)
+    area = float(land_area_ha)
+    rainfall = float(annual_rainfall_mm)
+    baseline_cn = float(baseline_curve_number)
+    if age <= 0 or area <= 0 or rainfall <= 0 or not 0 < baseline_cn <= 100:
+        raise ValueError("Age, area, rainfall, and curve number must be valid positive values.")
+
+    # Age-only palm biomass proxy; it is not the Chave pantropical tree equation.
+    palm_agb_t_ha = round(136.0 * (0.095 * age ** 1.45) / 1000.0, 3)
+
+    # Regional screening assumption from the existing agroclimate model.
+    assumed_intercrop_cover_pct = 65.0
+    soil_temperature_reduction = round(2.0 + (assumed_intercrop_cover_pct / 100.0 * 2.0), 1)
+    moisture_retention_gain_pct = round(15.0 + (assumed_intercrop_cover_pct / 100.0 * 15.0), 1)
+
+    # Standard SCS-CN event-runoff equation applied to annual rainfall as a
+    # regional screening comparison; it is not an aquifer-recharge estimate.
+    scenario_cn = baseline_cn
+    if total_ler is not None:
+        ler_gain = max(0.0, min(1.0, float(total_ler) - 1.0))
+        scenario_cn = round(baseline_cn - (18.0 * ler_gain), 1)
+
+    def runoff_mm(curve_number: float) -> float:
+        storage_mm = (25400.0 / curve_number) - 254.0
+        initial_abstraction_mm = 0.2 * storage_mm
+        if rainfall <= initial_abstraction_mm:
+            return 0.0
+        return ((rainfall - initial_abstraction_mm) ** 2) / (rainfall + 0.8 * storage_mm)
+
+    baseline_runoff_mm = runoff_mm(baseline_cn)
+    scenario_runoff_mm = runoff_mm(scenario_cn)
+    runoff_reduction_mm = max(0.0, baseline_runoff_mm - scenario_runoff_mm)
+    frond_dry_matter_t_ha_year = 10.8
+    potassium_return_kg_ha_year = round(frond_dry_matter_t_ha_year * 3.35, 1)
+    nitrogen_return_kg_ha_year = round(frond_dry_matter_t_ha_year * (15.3 / 10.8), 1)
+    return {
+        "above_ground_biomass": {
+            "palm_agb_t_ha_proxy": palm_agb_t_ha,
+            "methodology_note": "Age-only screening proxy; not Chave et al. (2014), not locally calibrated, and not a measured biomass inventory.",
+            "status": "SCENARIO_PROJECTION",
+        },
+        "microclimate": {
+            "assumed_intercrop_canopy_cover_pct": assumed_intercrop_cover_pct,
+            "soil_temperature_reduction_c": soil_temperature_reduction,
+            "moisture_retention_gain_pct": moisture_retention_gain_pct,
+            "methodology_note": "Regional buffering model assuming 65% intercrop canopy cover; no local temperature or humidity observations supplied.",
+            "status": "SCENARIO_PROJECTION",
+        },
+        "hydrology": {
+            "annual_rainfall_mm": rainfall,
+            "baseline_hydrologic_soil_group": "B (regional assumption)",
+            "baseline_curve_number": baseline_cn,
+            "scenario_curve_number": scenario_cn,
+            "baseline_runoff_mm": round(baseline_runoff_mm, 1),
+            "scenario_runoff_mm": round(scenario_runoff_mm, 1),
+            "runoff_reduction_mm": round(runoff_reduction_mm, 1),
+            "runoff_reduction_m3": round(runoff_reduction_mm * area * 10.0, 1),
+            "methodology_note": "SCS-CN screening using Madina regional rainfall baseline 2,188 mm/year and assumed HSG B; annual screening only, not measured recharge or a validated water balance.",
+            "status": "SCENARIO_PROJECTION",
+        },
+        "corridor": {
+            "net_corridor_width_m": geometry["net_corridor_width_m"],
+            "effective_intercrop_area_pct": geometry["effective_intercrop_area_pct"],
+            "methodology_note": "Deterministic result for standard 9 m triangular spacing and 2 m root buffers; estate-specific row geometry is not surveyed.",
+            "status": "SCENARIO_PROJECTION",
+        },
+        "bio_circularity": {
+            "pruned_frond_dry_matter_t_ha_year": frond_dry_matter_t_ha_year,
+            "potassium_return_kg_ha_year": potassium_return_kg_ha_year,
+            "nitrogen_return_kg_ha_year": nitrogen_return_kg_ha_year,
+            "methodology_note": "Illustrative regional frond and nutrient-content assumptions; not measured biomass, laboratory analysis, field return, or verified fertilizer savings.",
+            "status": "SCENARIO_PROJECTION",
+        },
+    }
+
+
 # ------------------------------------------------------------------------------
 # 3. RASIO KESETARAAN LAHAN (LAND EQUIVALENT RATIO - LER)
 # ------------------------------------------------------------------------------
@@ -144,31 +328,28 @@ def calculate_ler(
 # ------------------------------------------------------------------------------
 # 4. MITIGASI DEFORESTASI TERHINDARKAN (AVOIDED DEFORESTATION)
 # ------------------------------------------------------------------------------
-def calculate_avoided_deforestation(total_estate_area_ha: float = 1200.0, total_ler: float = 1.48, **kwargs) -> dict:
+def calculate_avoided_deforestation(total_estate_area_ha: float = None, total_ler: float = None, **kwargs) -> dict:
     """
-    Menghitung kesetaraan hutan primer yang diselamatkan tanpa perlu ekspansi lahan baru
-    berdasarkan peningkatan efisiensi LER.
+    Delegates land-difference and climate scenario arithmetic to ekonomi_karbon.
     """
-    area = max(1.0, float(kwargs.get("land_area_ha", kwargs.get("planted_land_area_ha", total_estate_area_ha or 1200.0))))
-    ler = max(1.0, float(total_ler or kwargs.get("ler", 1.48)))
-
-    pls = (1.0 - (1.0 / ler))
-    avoided_ha = round(area * pls, 2)
-
-    # Metrik Karbon Terhindar (Metodologi VCS VM0007 ~ 450 tCO2e/ha hutan tropis terselamatkan)
-    carbon_sequestered_tco2e = round(avoided_ha * 450.0, 2)
-
+    area_value = kwargs.get("land_area_ha", kwargs.get("planted_land_area_ha", total_estate_area_ha))
+    ler_value = kwargs.get("ler", total_ler)
+    if area_value is None or ler_value is None:
+        raise ValueError("Land area and LER are required for the climate scenario calculation.")
+    area = float(area_value)
+    ler = float(ler_value)
+    if area <= 0:
+        raise ValueError("Land area must be greater than zero.")
+    result = calculate_climate_scenario(land_area_ha=area, total_ler=ler)
     return {
+        **result,
         "concession_area_ha": area,
         "planted_land_area_ha": area,
         "total_ler": ler,
-        "avoided_deforestation_ha": avoided_ha,
-        "avoided_land_ha": avoided_ha,
-        "carbon_mitigation_tco2e": carbon_sequestered_tco2e,
-        "total_climate_benefit_tco2e": carbon_sequestered_tco2e,
-        "annual_soil_c_gain_tco2e": round(area * 1.8, 1),
-        "status": "Signifikan",
-        "eudr_article_9_status": "COMPLIANT_ZERO_DEFORESTATION"
+        "avoided_deforestation_ha": result["avoided_land_ha"],
+        "carbon_mitigation_tco2e": result["avoided_emission_tco2e"],
+        "status": "SCENARIO_PROJECTION",
+        "eudr_article_9_status": "NOT_ASSESSED"
     }
 
 # ------------------------------------------------------------------------------
@@ -326,16 +507,12 @@ def calculate_npk_balance(companion_crop: str = "Jahe Merah", companion_yield_to
     return {
         "companion_crop": crop_str,
         "yield_ton_ha": y_crop,
-        "nutrient_profile": "Standard Feeder",
-        "biological_n_fixation_kg_ha": 15.0,
-        "urea_equivalent_saved_kg_ha": 32.6,
-        "total_urea_saved_kg": round(32.6 * land_area, 1),
+        "nutrient_profile": "K2O removal estimate only",
         "k2o_nutrient_removal_kg_ha": round(k2o_removal_kg_ha, 2),
         "k2o_demand_kg_ha": round(k2o_removal_kg_ha, 2),
         "total_k2o_demand_kg": round(k2o_removal_kg_ha * land_area, 1),
-        "required_compensatory_mop_kg_ha": max(50.0, compensatory_mop_kg_ha),
+        "required_compensatory_mop_kg_ha": compensatory_mop_kg_ha,
         "application_schedule": "SPLIT_APPLICATION_2X_PER_YEAR",
-        "ganoderma_suppression_index": "SAFE_ZERO_RISK",
         "agronomic_advisory": "Pemupukan berimbang MOP/KCl 2x per tahun untuk menjaga ketersediaan K2O"
     }
 

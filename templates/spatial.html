@@ -536,7 +536,7 @@
                                 <!-- Dashed Upload Drone Telemetry Box -->
                                 <div onclick="document.getElementById('fileInputSupportingPhoto').click()"
                                     class="cursor-pointer p-3 flex flex-col items-center justify-center rounded-2xl bg-slate-50 dark:bg-slate-950/70 border-2 border-dashed border-slate-300 dark:border-slate-800 hover:border-emerald-500 transition text-center group">
-                                    <input type="file" id="fileInputSupportingPhoto" accept="image/*" class="hidden" onchange="handleNewPhotoUpload(event)">
+                                    <input type="file" id="fileInputSupportingPhoto" accept="image/*" class="hidden" onclick="event.stopPropagation()" onchange="handleNewPhotoUpload(event)">
                                     <span class="text-xl mb-0.5 group-hover:scale-110 transition-transform">📷</span>
                                     <p data-i18n="spatial_upload_photo_prompt" class="text-xs font-bold text-slate-800 dark:text-slate-200">
                                         Upload Drone Telemetry
@@ -605,7 +605,7 @@
                                             <span>AI Vision Scanning...</span>
                                         </span>
                                         <span id="spatialEntitiesVerifiedBadge" class="text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-600">
-                                            Physical Entities Verified (12 Localized)
+                                            Awaiting vision scan
                                         </span>
                                     </div>
                                 </div>
@@ -647,7 +647,7 @@
                                     <!-- Top-Left Badge: Audit Ratified by AI Agent (Image 1 Parity) -->
                                     <div class="absolute top-3 left-3 bg-slate-950/85 backdrop-blur-md border border-emerald-500/60 px-3 py-1.5 rounded-xl text-xs font-mono text-emerald-400 font-bold flex items-center gap-2 shadow-lg z-30">
                                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                        <span id="scannerStatusText" data-i18n="spatial_scanner_status_ready">Audit Ratified by AI Agent</span>
+                                        <span id="scannerStatusText" data-i18n="spatial_scanner_status_ready">Awaiting vision scan</span>
                                     </div>
 
                                     <!-- Bottom-Left Filename Pill -->
@@ -657,7 +657,7 @@
 
                                     <!-- Top-Right Rescan Button: Rescan Single (Image 1 Parity) -->
                                     <div class="absolute top-3 right-3 flex items-center gap-1.5 z-30">
-                                        <button type="button" onclick="triggerScanningFotoAction()"
+                                        <button type="button" onclick="rescanActiveSinglePhoto()"
                                             class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/30 transition flex items-center gap-2 cursor-pointer">
                                             <span class="text-base">⚡</span> <span data-i18n="spatial_btn_rescan_single">Rescan With Ai</span>
                                         </button>
@@ -691,7 +691,7 @@
                                             <span id="spatialShaSealBadge" class="text-[10px] text-cyan-400 font-bold tracking-wider font-mono">8F432RSKXFVI</span>
                                         </div>
                                     </div>
-                                    <button type="button" onclick="triggerScanningFotoAction()" class="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-emerald-400 transition cursor-pointer" title="Refresh Analysis">
+                                    <button type="button" onclick="rescanActiveSinglePhoto()" class="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-emerald-400 transition cursor-pointer" title="Rescan with AI">
                                         <span class="text-base">🔄</span>
                                     </button>
                                     <div class="flex items-center gap-2 max-w-sm">
@@ -763,49 +763,49 @@
                     </div>
                 </div>
                 <span id="ledgerPhotoCountBadge" class="self-start sm:self-auto text-[9.5px] px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500 font-bold">
-                    0 Sealed Photos
+                    0 Scanned Photos
                 </span>
             </div>
 
             <!-- Grid 4 Indikator (2x2 Compact) -->
             <div class="grid grid-cols-2 gap-2 text-xs">
                 <div class="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-emerald-500/40 space-y-1">
-                    <span class="text-[9px] text-slate-500 dark:text-slate-400 block truncate">🌴 Palm Stand Count</span>
+                    <span class="text-[9px] text-slate-500 dark:text-slate-400 block truncate">🌴 Palm Canopy Detections</span>
                     <div class="text-base font-black text-slate-900 dark:text-white" id="ledgerTotalCrowns">
-                        0 <span class="text-[9.5px] font-normal text-emerald-600 dark:text-emerald-400 font-bold">Crowns</span>
+                        0 <span class="text-[9.5px] font-normal text-emerald-600 dark:text-emerald-400 font-bold">Detected</span>
                     </div>
                     <span class="inline-block px-1.5 py-0.2 rounded text-[8px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-600 truncate w-full text-center">
-                        Prime Stand Vigor
+                        Image detections only
                     </span>
                 </div>
 
                 <div class="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-sky-500/40 space-y-1">
-                    <span class="text-[9px] text-slate-500 dark:text-slate-400 block truncate">🚜 Alley Corridor</span>
+                    <span class="text-[9px] text-slate-500 dark:text-slate-400 block truncate">🚜 Alley Object Detections</span>
                     <div class="text-base font-black text-sky-700 dark:text-sky-300" id="ledgerAlleyWidth">
-                        3.79 <span class="text-[9.5px] font-normal text-slate-500 dark:text-slate-400">Meters</span>
+                        0 <span class="text-[9.5px] font-normal text-slate-500 dark:text-slate-400">Detections</span>
                     </div>
                     <span class="inline-block px-1.5 py-0.2 rounded text-[8px] font-bold bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-600 truncate w-full text-center">
-                        Planting Bed Viable
+                        Not a distance measurement
                     </span>
                 </div>
 
                 <div class="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-rose-500/40 space-y-1">
-                    <span class="text-[9px] text-slate-500 dark:text-slate-400 block truncate">⭕ Root Buffer (2.05m)</span>
+                    <span class="text-[9px] text-slate-500 dark:text-slate-400 block truncate">⭕ Root-Area Detections</span>
                     <div class="text-base font-black text-rose-700 dark:text-rose-300" id="ledgerSterileStatus">
-                        100% <span class="text-[9.5px] font-normal text-slate-500 dark:text-slate-400">Compliant</span>
+                        0 <span class="text-[9.5px] font-normal text-slate-500 dark:text-slate-400">Detections</span>
                     </div>
                     <span class="inline-block px-1.5 py-0.2 rounded text-[8px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-600 truncate w-full text-center">
-                        Zero-Tillage PPKS
+                        Not a compliance assessment
                     </span>
                 </div>
 
                 <div class="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-teal-500/40 space-y-1">
-                    <span class="text-[9px] text-slate-500 dark:text-slate-400 block truncate">💧 Riparian Zone</span>
+                    <span class="text-[9px] text-slate-500 dark:text-slate-400 block truncate">💧 Water/Riparian Detections</span>
                     <div class="text-base font-black text-teal-700 dark:text-teal-300" id="ledgerRiparianStatus">
-                        &ge; 50m <span class="text-[9.5px] font-normal text-slate-500 dark:text-slate-400">Protected</span>
+                        0 <span class="text-[9.5px] font-normal text-slate-500 dark:text-slate-400">Detections</span>
                     </div>
                     <span class="inline-block px-1.5 py-0.2 rounded text-[8px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-600 truncate w-full text-center">
-                        PP 23/2021 Compliant
+                        Not a distance measurement
                     </span>
                 </div>
             </div>
@@ -813,7 +813,7 @@
         
         <div class="pt-2 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-400 flex items-center justify-between">
             <span>Audit Standard: <strong>ISPO P2 &amp; EUDR Art 9</strong></span>
-            <span class="text-emerald-400 font-bold">100% Ground Verified</span>
+            <span class="text-amber-400 font-bold">Image detections only · ground truth required</span>
         </div>
     </div>
 
@@ -988,7 +988,7 @@
 
     <script src="/static/js/settings_governance.js"></script>
     <script src="/static/js/unified_vision_engine.js"></script>
-    <script src="/static/js/spatial.js"></script>
+    <script src="/static/js/spatial.js?v=20261024-spatial-fix2"></script>
 </body>
 
 </html>

@@ -59,7 +59,8 @@ def calculate_avoided_deforestation(
             "avoided_emission_tco2e": 0.0,
             "annual_soil_c_gain_tco2e": 0.0,
             "total_climate_benefit_tco2e": 0.0,
-            "status": "Monokultur lebih efisien atau tidak ada keunggulan lahan."
+            "status": "SCENARIO_PROJECTION",
+            "methodology_note": "Scenario only; no verified carbon stock, soil-carbon measurement, or project baseline was supplied."
         }
 
     avoided_land_ha = land_area_ha * (total_ler - 1.0)
@@ -73,7 +74,12 @@ def calculate_avoided_deforestation(
         "avoided_emission_tco2e": round(avoided_emission_tco2e, 2),
         "annual_soil_c_gain_tco2e": round(annual_soil_c_gain, 2),
         "total_climate_benefit_tco2e": round(total_benefit, 2),
-        "status": "Signifikan mencegah alih fungsi hutan primer tropis."
+        "status": "SCENARIO_PROJECTION",
+        "methodology_note": (
+            "Scenario only: applies illustrative factors of 450 tCO2e/ha for avoided land "
+            "and 1.8 tCO2e/ha/year for soil-carbon gain. Not evidence of avoided deforestation "
+            "or verified carbon credits."
+        )
     }
 
 def calculate_land_efficiency_comparator(

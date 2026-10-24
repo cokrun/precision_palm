@@ -12,10 +12,13 @@ import unittest
 import json
 import os
 import sys
+import tempfile
+from unittest.mock import Mock, patch
 
 # Ensure root directory is on python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+import app as app_module
 from app import app
 from database import init_db, get_db_connection, save_simulation_record, get_simulation_log_by_id
 
@@ -76,6 +79,9 @@ class TestAiTerminalAndDualEngineLogging(unittest.TestCase):
 
     def test_03_audit_persistence_dual_engine_fields(self):
         """Ensure engine_mode and status_message are stored and retrieved from SQLite"""
+        temp_db = tempfile.TemporaryDirectory()
+        self.addCleanup(temp_db.cleanup)
+        db_path = os.path.join(temp_db.name, 'simulation-test.db')
         record_id = save_simulation_record(
             id_kebun=10,
             kode_kebun="EST-MDN-010",
@@ -87,8 +93,9 @@ class TestAiTerminalAndDualEngineLogging(unittest.TestCase):
             yield_crop_inter=7.5,
             yield_crop_mono=15.0,
             total_ler=1.4550,
+            pls_percentage=31.27,
             avoided_land_ha=37.52,
-            carbon_tco2e=16884,
+            total_climate_benefit_tco2e=16884,
             lai=5.25,
             biomass_t_ha=128.4,
             microclimate_cooling=-2.5,
@@ -106,14 +113,19 @@ class TestAiTerminalAndDualEngineLogging(unittest.TestCase):
             soil_ph=5.5,
             soil_texture="Sandy Loam",
             engine_mode="AUTONOMOUS_STATUTORY_RULE_ENGINE",
-            status_message="[AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)"
+            status_message="[AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)",
+            calculation_inputs={"yield_palm_inter": 21.0},
+            data_numerik={"efisiensi_lahan_ler": {"total_ler": 1.455}},
+            db_path=db_path
         )
         self.assertIsNotNone(record_id)
 
-        rec = get_simulation_log_by_id(record_id)
+        rec = get_simulation_log_by_id(record_id, db_path=db_path)
         self.assertIsNotNone(rec)
         self.assertEqual(rec.get('engine_mode'), "AUTONOMOUS_STATUTORY_RULE_ENGINE")
         self.assertTrue("PPKS" in rec.get('status_message', ''))
+        self.assertEqual(rec.get('calculation_inputs'), {"yield_palm_inter": 21.0})
+        self.assertEqual(rec.get('data_numerik'), {"efisiensi_lahan_ler": {"total_ler": 1.455}})
 
     def test_04_simulate_endpoint_records_engine_attestation(self):
         """Ensure /api/simulate returns and persists engine_mode and status_message"""
@@ -136,11 +148,26 @@ class TestAiTerminalAndDualEngineLogging(unittest.TestCase):
             "engine_mode": "LIVE_GEMINI",
             "status_message": "Verified via Gemini Multimodal Inference"
         }
-        resp = self.client.post('/api/simulate', json=payload)
-        self.assertEqual(resp.status_code, 200)
+        committed = {
+            "record_id": 90399,
+            "sha256": "B" * 64,
+            "committed_at": "2026-10-24T16:08:37Z",
+            "cloud_sync_status": "NOT_CONFIGURED",
+            "idempotent_replay": False,
+        }
+        with patch.object(app_module, "save_simulation_record", Mock(return_value=committed)), patch.object(
+            app_module, "read_local_store", return_value={"simulator_history": []}
+        ), patch.object(app_module, "save_local_store"), patch.object(app_module, "record_unified_ai_log"):
+            resp = self.client.post(
+                '/api/simulate',
+                json=payload,
+                headers={'Idempotency-Key': 'sim-ai-terminal-test-0001'},
+            )
+        self.assertEqual(resp.status_code, 201)
         data = json.loads(resp.data.decode('utf-8'))
 
         self.assertEqual(data.get('status'), 'success')
+        self.assertEqual(data.get('commit_status'), 'COMMITTED')
         self.assertIn('record_id', data)
         self.assertIn('engine_mode', data)
         self.assertIn('status_message', data)

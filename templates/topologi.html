@@ -1897,11 +1897,18 @@
     var currentAuditCitations = [];
     var currentChatCitations = [];
 
-    function renderReviewContent(verdict, timestamp, shaHash, storageName, citations) {
+    function renderReviewContent(verdict, timestamp, shaHash, storageName, citations, auditMode) {
         var box = document.getElementById('fullWidthReviewBox');
         if (!box) return;
 
         currentAuditCitations = citations || [];
+        var modeLabel = auditMode === 'GEMINI_GROUNDED'
+            ? 'GEMINI GROUNDED RESPONSE'
+            : (auditMode === 'LOCAL_GROUNDED_FALLBACK'
+                ? 'LOCAL GROUNDED FALLBACK • NOT A GEMINI RESPONSE'
+                : (auditMode === 'NO_GROUNDED_SOURCES'
+                    ? 'NO MATCHING GROUNDED SOURCE'
+                    : (auditMode === 'SAVED_REVIEW_MODE_UNRECORDED' ? 'SAVED AUDIT REVIEW' : 'AUDIT MODE NOT REPORTED')));
 
         var citHtml = '';
         if (citations && citations.length > 0) {
@@ -1926,7 +1933,7 @@
         box.innerHTML = 
             '<div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">' +
                 '<span class="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1.5 text-xs">' +
-                    '<span>STATUTORY AUDIT VERDICT (Google Gemini 3.8 Flash)</span>' +
+                    '<span>STATUTORY AUDIT REVIEW • ' + escapeHtml(modeLabel) + '</span>' +
                 '</span>' +
                 '<span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Timestamp: ' + escapeHtml(timestamp) + '</span>' +
             '</div>' +
@@ -1934,7 +1941,7 @@
             citHtml +
             '<div class="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800 text-[10px]">' +
                 '<span class="text-emerald-700 dark:text-emerald-400 font-mono font-bold">INTEGRITY HASH: ' + escapeHtml(shaHash) + '</span>' +
-                '<span class="px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-600 font-bold">SAVED IN ' + escapeHtml(storageName.toUpperCase()) + '</span>' +
+                '<span class="px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-600 font-bold">PERSISTED IN ' + escapeHtml(storageName.toUpperCase()) + '</span>' +
             '</div>';
     }
 
@@ -1959,10 +1966,10 @@
             if (resp.ok) {
                 var json = await resp.json();
                 if (json && json.has_record) {
-                    renderReviewContent(json.verdict_answer, json.timestamp, json.sha256_hash, json.storage || 'BigQuery', json.citations);
+                    renderReviewContent(json.verdict_answer, json.timestamp, json.sha256_hash, json.storage || 'Stored ledger', json.citations, json.audit_mode || 'SAVED_REVIEW_MODE_UNRECORDED');
                     if (btn) {
                         btn.className = "px-4 py-2 rounded-xl bg-purple-900/90 hover:bg-purple-800 text-purple-200 border border-purple-500 font-bold text-xs shadow-lg transition flex items-center gap-1.5 cursor-pointer";
-                        if (lbl) lbl.textContent = "Review Audit Result (BigQuery)";
+                        if (lbl) lbl.textContent = "Review Saved Audit";
                     }
                 }
             }
@@ -1981,7 +1988,7 @@
         box.innerHTML = 
             '<div class="flex items-center gap-2 text-cyan-400 font-bold py-2 font-mono text-xs">' +
                 '<span class="animate-spin text-sm">&#9881;</span>' +
-                '<span>Google Gemini 3.8 Flash is reasoning statutory compliance for ' + escapeHtml(nodeKey.toUpperCase()) + '...</span>' +
+                '<span>Grounded statutory auditor is reviewing ' + escapeHtml(nodeKey.toUpperCase()) + '...</span>' +
             '</div>';
         if (btn) btn.disabled = true;
 
@@ -2002,31 +2009,23 @@
                 body: JSON.stringify({ query: contextualQuery, estate_code: estateCode, lang: 'en', scenario: currentActiveScenario })
             });
 
-            var res = {};
-            if (resp.ok) {
-                res = await resp.json();
+            var res = await resp.json();
+            if (!resp.ok || res.success !== true) {
+                throw new Error(res.message || res.error || `Auditor request failed (${resp.status})`);
             }
 
-            var verdict = "";
-            var citations = [];
+            var verdict = typeof res.answer === 'string' ? res.answer.trim() : '';
+            var citations = Array.isArray(res.citations) ? res.citations : [];
+            if (!verdict) throw new Error("Auditor response did not include an answer.");
+            var auditMode = res.mode || (res.is_fallback ? 'LOCAL_GROUNDED_FALLBACK' : 'AUDIT_MODE_UNREPORTED');
+            var saveInfo = {
+                success: false,
+                storage: 'Not persisted',
+                message: 'Audit response was not saved.'
+            };
 
-            if (res.analysis) {
-                if (typeof res.analysis === 'object') {
-                    verdict = res.analysis.explanation || res.analysis.summary || res.analysis.ringkasan_audit || JSON.stringify(res.analysis);
-                    citations = res.analysis.citations || res.analysis.rujukan_regulasi || [];
-                } else {
-                    verdict = res.analysis;
-                }
-            } else {
-                verdict = res.answer || res.ringkasan_audit || res.verdict_answer || res.explanation || res.verdict || res.text || "Statutory audit evaluation completed.";
-                citations = res.citations || res.rujukan_regulasi || [];
-            }
-
-            var now = new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }) + " WIB";
-            var bqHash = res.sha256_hash || res.immutable_sha256 || "";
-
-            try {
-                var bqResp = await fetch('/api/ai/save-node-review', {
+            if (auditMode !== 'NO_GROUNDED_SOURCES') {
+                var saveResp = await fetch('/api/ai/save-node-review', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -2034,36 +2033,40 @@
                         node_title: PROCESS_NODES_DATA[nodeKey]?.name_en || nodeKey,
                         estate_code: estateCode,
                         verdict_answer: verdict,
-                        citations: citations
+                        citations: citations,
+                        audit_mode: auditMode
                     })
                 });
-                if (bqResp.ok) {
-                    var bqData = await bqResp.json();
-                    if (bqData && bqData.sha256_hash) bqHash = bqData.sha256_hash;
-                }
-            } catch (_) {}
-
-            if (!bqHash) {
-                try {
-                    var msgUint8 = new TextEncoder().encode(estateCode + ':' + nodeKey + ':' + verdict + ':' + now);
-                    var hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-                    var hashArray = Array.from(new Uint8Array(hashBuffer));
-                    bqHash = hashArray.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('').toUpperCase();
-                } catch (_) {
-                    bqHash = "-";
+                saveInfo = await saveResp.json();
+                if (!saveResp.ok || saveInfo.success !== true) {
+                    throw new Error(saveInfo.message || `Could not persist audit review (${saveResp.status})`);
                 }
             }
 
-            renderReviewContent(verdict, now, bqHash, "BigQuery", citations);
+            var reviewTime = saveInfo.timestamp || new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }) + " WIB";
+            var reviewHash = saveInfo.sha256_hash || 'NOT PERSISTED';
+            var sourceNote = res.is_fallback ? `Fallback reason: ${res.fallback_reason || 'Gemini unavailable.'}` : '';
+            renderReviewContent(
+                sourceNote ? `${verdict}\n\n${sourceNote}` : verdict,
+                reviewTime,
+                reviewHash,
+                saveInfo.storage || 'Not persisted',
+                citations,
+                auditMode
+            );
 
             if (btn) {
                 btn.disabled = false;
                 btn.className = "px-4 py-2 rounded-xl bg-purple-900/90 hover:bg-purple-800 text-purple-200 border border-purple-500 font-bold text-xs shadow-lg transition flex items-center gap-1.5 cursor-pointer";
-                if (lbl) lbl.textContent = "Review Audit Result (BigQuery)";
+                if (lbl) lbl.textContent = "Review Saved Audit";
             }
         } catch (err) {
-            box.innerHTML = '<p class="text-rose-400 font-mono text-xs">Inference error: ' + escapeHtml(err.message) + '</p>';
-            if (btn) btn.disabled = false;
+            box.innerHTML = '<p class="text-rose-400 font-mono text-xs">Auditor request failed: ' + escapeHtml(err.message) + '</p>';
+            if (btn) {
+                btn.disabled = false;
+                btn.className = "px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 text-white font-bold text-xs shadow-lg transition flex items-center gap-1.5 cursor-pointer";
+                if (lbl) lbl.textContent = "Retry AI Auditor";
+            }
         }
     }
 
@@ -2332,17 +2335,15 @@
                 body: JSON.stringify({ query: q, estate_code: estateCode, lang: 'en', scenario: currentActiveScenario })
             });
 
-            removeLoadingChatMessage(loadingId);
-
-            if (resp.ok) {
-                var data = await resp.json();
-                appendAiGroundedMessage(data);
-            } else {
-                appendAiGroundedMessage({ answer: "Audit evaluation completed per statutory frameworks." });
+            var data = await resp.json();
+            if (!resp.ok || data.success !== true) {
+                throw new Error(data.message || data.error || `Auditor request failed (${resp.status})`);
             }
-        } catch (_) {
             removeLoadingChatMessage(loadingId);
-            appendAiGroundedMessage({ answer: "Grounded AI auditor verified compliance with statutory frameworks." });
+            appendAiGroundedMessage(data);
+        } catch (err) {
+            removeLoadingChatMessage(loadingId);
+            appendAiGroundedMessage({ answer: `Auditor request failed: ${err.message}`, mode: "REQUEST_FAILED", citations: [] });
         }
     }
 
@@ -2416,12 +2417,21 @@
 
         var msgDiv = document.createElement('div');
         msgDiv.className = "p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 text-xs text-slate-800 dark:text-slate-200 shadow-md";
+        var modeLabel = resp.mode === 'GEMINI_GROUNDED'
+            ? 'Gemini grounded response'
+            : (resp.mode === 'LOCAL_GROUNDED_FALLBACK'
+                ? 'Local grounded fallback'
+                : (resp.mode === 'NO_GROUNDED_SOURCES' ? 'No matching grounded source' : 'Auditor error'));
+        var attributionLabel = citations.length
+            ? 'LOCAL CORPUS REFERENCES • NOT INDEPENDENTLY VERIFIED'
+            : 'NO MATCHING REFERENCES';
         msgDiv.innerHTML = 
             '<div class="flex items-center justify-between text-[10px] font-mono">' +
-                '<span class="text-cyan-700 dark:text-cyan-400 font-bold flex items-center gap-1"><span>Google Gemini 3.8 Flash</span></span>' +
-                '<span class="px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 text-[8px] font-bold">ATTRIBUTED</span>' +
+                '<span class="text-cyan-700 dark:text-cyan-400 font-bold flex items-center gap-1"><span>' + escapeHtml(modeLabel) + '</span></span>' +
+                '<span class="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 text-[8px] font-bold">' + escapeHtml(attributionLabel) + '</span>' +
             '</div>' +
             '<p class="leading-relaxed font-sans text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap">' + escapeHtml(actualAnswer) + '</p>' +
+            (resp.is_fallback && resp.fallback_reason ? '<p class="text-amber-700 dark:text-amber-300 text-[10px]">Fallback: ' + escapeHtml(resp.fallback_reason) + '</p>' : '') +
             citHtml;
 
         container.appendChild(msgDiv);

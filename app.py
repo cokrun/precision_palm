@@ -30,10 +30,12 @@ import sqlite3
 import math
 import hashlib
 import base64
+import mimetypes
 import io
 import csv
 import time
 import threading
+import re
 from typing import Optional, List, Dict, Any, Tuple
 from cloud_services.bigquery_logger import (
     send_monitoring_log_to_bigquery_async,
@@ -54,41 +56,20 @@ WIB = timezone(timedelta(hours=7))
 def get_wib_now() -> str:
     return datetime.now(WIB).strftime('%Y-%m-%d %H:%M:%S WIB')
 
-try:
-    from kalkulasi.engine import (
-        calculate_canopy_transmission,
-        calculate_canopy_geometry,
-        calculate_ler,
-        calculate_avoided_deforestation,
-        calculate_land_efficiency_comparator,
-        calculate_optimal_agroforestry_parameters,
-        calculate_economic_valuation,
-        calculate_npk_balance,
-        calculate_bioclimatic_soil_suitability
-    )
-except ImportError:
-    try:
-        from cloud_services.biophysics import (
-            calculate_canopy_transmission,
-            calculate_canopy_geometry,
-            calculate_ler,
-            calculate_avoided_deforestation,
-            calculate_land_efficiency_comparator,
-            calculate_optimal_agroforestry_parameters,
-            calculate_economic_valuation,
-            calculate_npk_balance,
-            calculate_bioclimatic_soil_suitability
-        )
-    except ImportError:
-        calculate_canopy_transmission = lambda **kw: {"palm_age_years": kw.get("palm_age_years", 6.0), "leaf_area_index": 3.8, "canopy_shading_pct": 82.5, "surface_par_umol_m2_s": 315.0, "light_transmission_ratio": 0.175}
-        calculate_canopy_geometry = lambda **kw: {"frond_radius_m": 4.5, "canopy_cover_pct": 86.4, "effective_intercrop_area_pct": 82.9, "unplanted_buffer_pct": 17.1}
-        calculate_ler = lambda **kw: {"partial_ler_palm": 0.95, "partial_ler_intercrop": 0.57, "total_ler": 1.52, "is_yield_advantageous": True}
-        calculate_avoided_deforestation = lambda **kw: {"planted_land_area_ha": kw.get("land_area_ha", 100.0), "avoided_land_ha": 52.0, "avoided_emission_tco2e": 23400.0, "annual_soil_c_gain_tco2e": 180.0, "total_climate_benefit_tco2e": 23580.0, "status": "Signifikan"}
-        calculate_land_efficiency_comparator = lambda **kw: {"land_saved_pct": 34.2, "equivalent_monoculture_ha": 152.0, "integrated_agroforestry_ha": kw.get("land_area_ha", 100.0), "net_footprint_saved_ha": 52.0}
-        calculate_optimal_agroforestry_parameters = lambda **kw: {"recommended_buffer_radius_m": 2.2, "clear_intercrop_corridor_width_m": 4.6, "optimal_inter_row_spacing_m": 0.5, "optimal_intra_row_spacing_m": 0.4, "max_allowable_palm_yield_deficit_pct": 4.5, "recommended_population_per_ha": 45000, "crop_category_detected": "Rhizome"}
-        calculate_economic_valuation = lambda **kw: {"commodity_detected": kw.get("crop_type", "General"), "price_per_kg_idr": 25000.0, "gross_crop_revenue_idr": 155000000.0, "total_economic_benefit_idr": 180000000.0, "total_economic_benefit_usd": 11250.0}
-        calculate_npk_balance = lambda **kw: {"nutrient_profile": "Standard Feeder", "biological_n_fixation_kg_ha": 15.0, "urea_equivalent_saved_kg_ha": 32.6, "total_urea_saved_kg": 3260.0, "k2o_demand_kg_ha": 20.0, "total_k2o_demand_kg": 2000.0, "agronomic_advisory": "Pemupukan berimbang"}
-        calculate_bioclimatic_soil_suitability = lambda **kw: {"suitability_score_pct": 92.5, "suitability_class": "S1", "suitability_label_id": "S1 - Sangat Sesuai", "suitability_label_en": "S1 - Highly Suitable", "parameters": {}}
+from kalkulasi.engine import (
+    calculate_canopy_transmission,
+    calculate_canopy_geometry,
+    calculate_ler,
+    calculate_avoided_deforestation,
+    calculate_land_efficiency_comparator,
+    calculate_optimal_agroforestry_parameters,
+    calculate_economic_valuation,
+    calculate_biophysical_benchmarks,
+    calculate_npk_balance,
+    calculate_bioclimatic_soil_suitability,
+    calculate_crop_yield_scenario,
+    resolve_crop_yield_benchmark,
+)
 
 from database import (
     init_db,
@@ -114,11 +95,7 @@ from database import (
     get_all_app_settings
 )
 
-from cloud_services.pricing_engine import (
-    hitung_harga_tbs_per_ton,
-    calculate_comprehensive_financials,
-    hitung_analisis_finansial_agroforestri
-)
+from rumus_tb import hitung_harga_tbs_per_ton
 
 from database_schema_engine import (
     get_db_connection as get_pure_db_connection,
@@ -524,6 +501,7 @@ def get_evidence_media_stream(evidence_id):
         has_id = 'id' in cols_info
         has_raw_b64 = 'image_raw_base64' in cols_info
         has_b64 = 'image_base64' in cols_info
+        has_mime = 'image_mime_type' in cols_info
         has_uploaded_at = 'uploaded_at' in cols_info
 
         select_cols = []
@@ -531,6 +509,7 @@ def get_evidence_media_stream(evidence_id):
         if has_id: select_cols.append("id")
         if has_raw_b64: select_cols.append("image_raw_base64")
         if has_b64: select_cols.append("image_base64")
+        if has_mime: select_cols.append("image_mime_type")
         select_clause = ", ".join(select_cols) if select_cols else "*"
         order_col = "uploaded_at" if has_uploaded_at else ("created_at" if "created_at" in cols_info else "rowid")
         b64_has_data_sql = "((image_raw_base64 IS NOT NULL AND LENGTH(TRIM(image_raw_base64)) > 10) OR (image_base64 IS NOT NULL AND LENGTH(TRIM(image_base64)) > 10))" if (has_raw_b64 and has_b64) else ("(image_raw_base64 IS NOT NULL AND LENGTH(TRIM(image_raw_base64)) > 10)" if has_raw_b64 else ("(image_base64 IS NOT NULL AND LENGTH(TRIM(image_base64)) > 10)" if has_b64 else "1=1"))
@@ -538,17 +517,28 @@ def get_evidence_media_stream(evidence_id):
         if evidence_id.lower() in ('current', 'latest'):
             dossier_id = request.args.get('dossier_id')
             audit_year = request.args.get('audit_year', 2026, type=int)
+            perspective = request.args.get('perspective')
             if not dossier_id:
                 return jsonify({"status": "error", "message": "dossier_id required for latest evidence"}), 400
             clean_dossier = dossier_id.replace('-2026', '')
+            query = f"""
+                SELECT {select_clause}
+                FROM inspection_evidence
+                WHERE (dossier_id = ? OR dossier_id = ? OR dossier_id = ?)
+                  AND (audit_year = ? OR audit_year IS NULL)
+                  AND {b64_has_data_sql}
+            """
+            params = [dossier_id, f"{clean_dossier}-2026", clean_dossier, audit_year]
+            if perspective:
+                query += " AND perspective_mode = ?"
+                params.append(perspective)
+            query += f" ORDER BY {order_col} DESC LIMIT 1;"
             row = conn.execute(
-                f"SELECT {select_clause} FROM inspection_evidence WHERE (dossier_id = ? OR dossier_id = ? OR dossier_id = ?) AND (audit_year = ? OR audit_year IS NULL) AND {b64_has_data_sql} ORDER BY {order_col} DESC LIMIT 1;",
-                (dossier_id, f"{clean_dossier}-2026", clean_dossier, audit_year)
+                query,
+                tuple(params)
             ).fetchone()
             if not row:
-                row = conn.execute(
-                    f"SELECT {select_clause} FROM inspection_evidence WHERE {b64_has_data_sql} ORDER BY {order_col} DESC LIMIT 1;"
-                ).fetchone()
+                return jsonify({"status": "error", "message": "Bukti citra tidak ditemukan"}), 404
         else:
             where_conditions = []
             params = []
@@ -575,35 +565,18 @@ def get_evidence_media_stream(evidence_id):
             raw_b64 = row['image_raw_base64'] if ('image_raw_base64' in row.keys() and row['image_raw_base64']) else (row['image_base64'] if 'image_base64' in row.keys() else None)
 
         if not raw_b64 or len(str(raw_b64).strip()) < 10:
-            # Fallback ke file fisik statis jika gambar tidak ada biner di DB
-            possible_filenames = [
-                f"{evidence_id}.jpg",
-                f"{clean_id}.jpg",
-                "EV-EST-MDN-010-2026-9217.jpg",
-                "sawit_drone.jpg"
-            ]
-            search_dirs = [
-                os.path.join(ROOT_DIR, 'static', 'img'),
-                os.path.join(ROOT_DIR, 'static', 'uploads', 'evidence'),
-                os.path.join(ROOT_DIR, 'static', 'uploads')
-            ]
-            for p_dir in search_dirs:
-                for p_fn in possible_filenames:
-                    cand = os.path.join(p_dir, p_fn)
-                    if os.path.exists(cand):
-                        return send_file(cand, mimetype='image/jpeg')
-            
-            fallback_path = os.path.join(ROOT_DIR, 'static', 'img', 'sawit_drone.jpg')
-            if os.path.exists(fallback_path):
-                return send_file(fallback_path, mimetype='image/jpeg')
             return jsonify({"status": "error", "message": "Bukti citra tidak ditemukan"}), 404
 
+        mime_type = row['image_mime_type'] if row and 'image_mime_type' in row.keys() and row['image_mime_type'] else 'image/jpeg'
         if ',' in raw_b64:
+            data_uri_header = raw_b64.split(',', 1)[0]
+            if data_uri_header.startswith("data:image/"):
+                mime_type = data_uri_header[5:].split(';', 1)[0]
             raw_b64 = raw_b64.split(',', 1)[1]
         img_bytes = base64.b64decode(raw_b64)
         return send_file(
             io.BytesIO(img_bytes),
-            mimetype='image/jpeg',
+            mimetype=mime_type,
             as_attachment=False,
             download_name=f"{evidence_id}.jpg"
         )
@@ -681,7 +654,7 @@ def get_dossier_evidence_gallery(dossier_id):
                    altitude_agl_m, camera_pitch_degrees, latitude_exif, longitude_exif,
                    image_sha256_hash, file_size_bytes, ai_vision_model, detected_entities_json,
                    chlorophyll_spad_inferred, root_clearance_verified_m, weather_satellite_validation,
-                   uploaded_at, is_processed, status
+                   uploaded_at, is_processed, is_locked, status
             FROM inspection_evidence
             WHERE (dossier_id = ? OR dossier_id = ? OR dossier_id = ? OR dossier_id LIKE ?)
         """
@@ -689,7 +662,7 @@ def get_dossier_evidence_gallery(dossier_id):
         if request.args.get('audit_year'):
             query += " AND (audit_year = ? OR audit_year IS NULL)"
             params.append(audit_year)
-        query += " ORDER BY quarter_cycle ASC, uploaded_at ASC;"
+        query += " ORDER BY uploaded_at DESC, quarter_cycle DESC;"
         rows = conn.execute(query, params).fetchall()
 
         photos = []
@@ -713,11 +686,14 @@ def get_dossier_evidence_gallery(dossier_id):
             is_processed_val = bool(
                 d.get('is_processed') == 1 or 
                 d.get('is_processed') is True or 
+                (isinstance(entities, list) and len(entities) > 0)
+            )
+            is_sealed_val = bool(
+                d.get('is_locked') == 1 or
                 str(d.get('status')).upper() == 'SEALED' or
                 ev_id in sealed_ev_ids or
                 f_url in sealed_foto_urls
             )
-            is_sealed_val = is_processed_val
             
             photos.append({
                 "id": d['evidence_id'],
@@ -746,6 +722,7 @@ def get_dossier_evidence_gallery(dossier_id):
                 "root_clearance_m": d['root_clearance_verified_m'],
                 "uploaded_at": d['uploaded_at'],
                 "is_processed": is_processed_val,
+                "is_locked": is_sealed_val,
                 "status": 'SEALED' if is_sealed_val else (d.get('status') or 'ACTIVE'),
                 "is_sealed": is_sealed_val,
                 "selected": True
@@ -926,9 +903,7 @@ def check_photo_hash():
 def delete_evidence_media(evidence_id=None):
     """
     Menghapus rekaman bukti inspeksi secara fisik dari inspection_evidence,
-    serta melepaskan segel hash pada used_photo_hashes.
-    INVARIANT STATUTER: Jika foto sudah terkunci (is_locked=1, is_processed=1, atau status='SEALED'),
-    penghapusan DITOLAK MUTLAK dengan HTTP 403 Forbidden.
+    rekaman surveilans tertaut, dan segel hash setelah konfirmasi eksplisit.
     """
     data = request.get_json(silent=True) or request.form.to_dict() or {}
     if not evidence_id:
@@ -944,18 +919,19 @@ def delete_evidence_media(evidence_id=None):
     conn = get_pure_db_connection()
     try:
         row = conn.execute("""
-            SELECT evidence_id, dossier_id, image_sha256_hash, is_locked, is_processed, status 
+            SELECT evidence_id, dossier_id, image_sha256_hash, is_locked, is_processed, status
             FROM inspection_evidence 
-            WHERE evidence_id = ? OR id = ? OR image_sha256_hash = ?;
-        """, (evidence_id, evidence_id, evidence_id)).fetchone()
+            WHERE evidence_id = ? OR id = ?
+            LIMIT 1;
+        """, (evidence_id, evidence_id)).fetchone()
         
         # Check in field_surveillance_records if not found in inspection_evidence
         if not row:
             surv_row = conn.execute("""
                 SELECT record_id, dossier_id, sha256_seal, is_locked 
                 FROM field_surveillance_records 
-                WHERE record_id = ? OR evidence_id = ? OR sha256_seal = ? OR foto_url = ?;
-            """, (evidence_id, evidence_id, evidence_id, photo_url)).fetchone()
+                WHERE record_id = ? OR evidence_id = ? OR foto_url = ?;
+            """, (evidence_id, evidence_id, photo_url)).fetchone()
             if surv_row:
                 # Field surveillance records are permanently sealed
                 return jsonify({
@@ -965,42 +941,170 @@ def delete_evidence_media(evidence_id=None):
             return jsonify({"status": "error", "message": f"Bukti {evidence_id} tidak ditemukan"}), 404
 
         d = dict(row)
-        is_locked_val = bool(
-            d.get('is_locked') == 1 or 
-            d.get('is_processed') == 1 or 
-            str(d.get('status')).upper() == 'SEALED'
-        )
-        if is_locked_val:
-            return jsonify({
-                "status": "error",
-                "message": "Bukti foto telah disegel dalam rantai audit dan tidak dapat dihapus."
-            }), 403
-
         dossier_id = d['dossier_id']
         sha_hash = d['image_sha256_hash']
+        sealed_record = bool(
+            d.get('is_locked') == 1 or str(d.get('status') or '').upper() == 'SEALED'
+        ) or bool(conn.execute("""
+            SELECT 1 FROM field_surveillance_records
+            WHERE evidence_id = ? OR foto_url = ? OR record_id = ?
+            LIMIT 1;
+        """, (evidence_id, f"/api/media/evidence/{evidence_id}", evidence_id)).fetchone())
+        if sealed_record and data.get('confirm_sealed_delete') is not True:
+            return jsonify({
+                "status": "error",
+                "message": "Bukti tersegel. Konfirmasi confirm_sealed_delete diperlukan untuk menghapus bukti dan tautan audit."
+            }), 403
 
-        # Hapus dari tabel inspection_evidence
-        conn.execute("DELETE FROM inspection_evidence WHERE evidence_id = ? OR id = ?;", (evidence_id, evidence_id))
-        # Lepaskan dari used_photo_hashes
-        if sha_hash:
-            conn.execute("DELETE FROM used_photo_hashes WHERE sha256_hash = ? OR evidence_id = ?;", (sha_hash, evidence_id))
-        
-        # Log aktivitas penghapusan
+        # Preserve an audit record of the explicit destructive action.
         conn.execute("""
             INSERT INTO system_audit_logs (dossier_id, actor_identity, action_type, ip_address, payload_snapshot)
-            VALUES (?, 'USER_DASHBOARD', 'EVIDENCE_DELETED', ?, ?);
-        """, (dossier_id, request.remote_addr, json.dumps({"evidence_id": evidence_id, "deleted_hash": sha_hash})))
+            VALUES (?, 'USER_DASHBOARD', ?, ?, ?);
+        """, (
+            dossier_id,
+            'SEALED_EVIDENCE_DELETED' if sealed_record else 'EVIDENCE_DELETED',
+            request.remote_addr,
+            json.dumps({
+                "evidence_id": evidence_id,
+                "deleted_hash": sha_hash,
+                "removed_surveillance_links": bool(sealed_record)
+            })
+        ))
+        conn.execute("""
+            DELETE FROM field_surveillance_records
+            WHERE evidence_id = ? OR foto_url = ? OR record_id = ?;
+        """, (evidence_id, f"/api/media/evidence/{evidence_id}", evidence_id))
+        conn.execute("DELETE FROM inspection_evidence WHERE evidence_id = ? OR id = ?;", (evidence_id, evidence_id))
+        if sha_hash:
+            conn.execute("DELETE FROM used_photo_hashes WHERE sha256_hash = ? OR evidence_id = ?;", (sha_hash, evidence_id))
 
         conn.commit()
+        from cloud_services.bigquery_audit import delete_evidence_from_bigquery
+        bq_synced = delete_evidence_from_bigquery(str(evidence_id), str(dossier_id))
         return jsonify({
             "status": "success",
             "success": True,
             "message": f"Bukti {evidence_id} berhasil dihapus dari database murni.",
             "evidence_id": evidence_id,
-            "dossier_id": dossier_id
+            "dossier_id": dossier_id,
+            "bigquery_sync": "SYNCED" if bq_synced else "LOCAL_ONLY"
         })
     except Exception as e:
         conn.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/spatial/unseal-photo', methods=['POST'])
+def unseal_evidence_media():
+    data = request.get_json(silent=True) or {}
+    evidence_id = str(data.get('evidence_id') or data.get('photo_id') or '').strip()
+    photo_url = str(data.get('photo_url') or '').strip()
+    url_evidence_id = photo_url.split('?', 1)[0].rstrip('/').rsplit('/', 1)[-1]
+    lookup_ids = list(dict.fromkeys(value for value in (evidence_id, url_evidence_id) if value))
+    if not lookup_ids:
+        return jsonify({"status": "error", "message": "evidence_id wajib diisi"}), 400
+
+    conn = get_pure_db_connection()
+    try:
+        row = None
+        for lookup_id in lookup_ids:
+            row = conn.execute("""
+                SELECT evidence_id, id, dossier_id, detected_entities_json
+                FROM inspection_evidence
+                WHERE LOWER(TRIM(evidence_id)) = LOWER(TRIM(?))
+                   OR LOWER(TRIM(id)) = LOWER(TRIM(?))
+                LIMIT 1;
+            """, (lookup_id, lookup_id)).fetchone()
+            if row:
+                break
+
+        if not row:
+            surveillance_row = None
+            for lookup_id in lookup_ids:
+                surveillance_row = conn.execute("""
+                    SELECT record_id, dossier_id, evidence_id, foto_url
+                    FROM field_surveillance_records
+                    WHERE LOWER(TRIM(evidence_id)) = LOWER(TRIM(?))
+                       OR LOWER(TRIM(record_id)) = LOWER(TRIM(?))
+                       OR foto_url = ?
+                    LIMIT 1;
+                """, (lookup_id, lookup_id, photo_url or lookup_id)).fetchone()
+                if surveillance_row:
+                    break
+            if not surveillance_row:
+                return jsonify({
+                    "status": "error",
+                    "message": f"Bukti {evidence_id or url_evidence_id} tidak ditemukan pada galeri maupun rekaman surveilans."
+                }), 404
+
+            survey = dict(surveillance_row)
+            linked_evidence_id = str(survey.get("evidence_id") or "").strip()
+            if linked_evidence_id:
+                row = conn.execute("""
+                    SELECT evidence_id, id, dossier_id, detected_entities_json
+                    FROM inspection_evidence
+                    WHERE LOWER(TRIM(evidence_id)) = LOWER(TRIM(?))
+                       OR LOWER(TRIM(id)) = LOWER(TRIM(?))
+                    LIMIT 1;
+                """, (linked_evidence_id, linked_evidence_id)).fetchone()
+
+            if not row:
+                conn.execute("""
+                    INSERT INTO system_audit_logs (dossier_id, actor_identity, action_type, ip_address, payload_snapshot)
+                    VALUES (?, 'USER_DASHBOARD', 'EVIDENCE_UNSEALED', ?, ?);
+                """, (
+                    survey.get("dossier_id"),
+                    request.remote_addr,
+                    json.dumps({
+                        "evidence_id": evidence_id,
+                        "record_id": survey.get("record_id"),
+                        "reason": data.get("reason") or "User requested rescan",
+                        "orphaned_surveillance_link": True
+                    })
+                ))
+                conn.execute("""
+                    DELETE FROM field_surveillance_records
+                    WHERE record_id = ?;
+                """, (survey.get("record_id"),))
+                conn.commit()
+                return jsonify({
+                    "status": "success",
+                    "evidence_id": evidence_id or linked_evidence_id,
+                    "is_locked": False,
+                    "surveillance_link_removed": True
+                })
+
+        d = dict(row)
+        resolved_evidence_id = str(d.get("evidence_id") or d.get("id") or lookup_ids[0]).strip()
+        conn.execute("""
+            INSERT INTO system_audit_logs (dossier_id, actor_identity, action_type, ip_address, payload_snapshot)
+            VALUES (?, 'USER_DASHBOARD', 'EVIDENCE_UNSEALED', ?, ?);
+        """, (
+            d["dossier_id"],
+            request.remote_addr,
+            json.dumps({"evidence_id": resolved_evidence_id, "reason": data.get("reason") or "User requested rescan"})
+        ))
+        conn.execute("""
+            DELETE FROM field_surveillance_records
+            WHERE evidence_id = ? OR foto_url = ? OR record_id = ?;
+        """, (
+            resolved_evidence_id,
+            photo_url or f"/api/media/evidence/{resolved_evidence_id}",
+            resolved_evidence_id
+        ))
+        conn.execute("""
+            UPDATE inspection_evidence
+            SET is_locked = 0,
+                status = CASE WHEN COALESCE(detected_entities_json, '[]') = '[]' THEN 'READY' ELSE 'SCANNED' END
+            WHERE evidence_id = ? OR id = ?;
+        """, (resolved_evidence_id, resolved_evidence_id))
+        conn.commit()
+        return jsonify({"status": "success", "evidence_id": resolved_evidence_id, "is_locked": False})
+    except Exception as e:
+        conn.rollback()
+        logger.exception("[Evidence Unseal Error]: %s", e)
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         conn.close()
@@ -1565,74 +1669,19 @@ def check_photo_hash_pure():
 # ==============================================================================
 @app.route('/api/simulate/run', methods=['POST'])
 def run_simulation_pure():
-    """
-    Membaca data GEE dan foto dari database untuk dossier_id aktif,
-    menghitung LER, formula TBS rumus_tb.py, dan menyimpan ke in_silico_simulations.
-    """
+    """Legacy simulation endpoint, now returning only verified engine calculations."""
     data = request.get_json(silent=True) or request.form.to_dict() or {}
-    dossier_id = data.get('dossier_id') or data.get('kode_kebun') or data.get('estate_code')
-    audit_year = int(data.get('audit_year', 2026))
-    companion_crop = data.get('companion_crop', 'Jahe Merah (Zingiber officinale var. rubrum)')
-
-    if not dossier_id:
-        return jsonify({"status": "error", "message": "dossier_id wajib disertakan."}), 400
-
-    conn = get_pure_db_connection()
-    try:
-        # Ambil telemetri GEE dari database
-        telemetry = conn.execute(
-            "SELECT * FROM spatial_telemetry WHERE dossier_id = ? AND audit_year = ? ORDER BY recorded_at DESC LIMIT 1;",
-            (dossier_id, audit_year)
-        ).fetchone()
-
-        # Ambil pengaturan harga pasar aktif
-        cfg_rows = conn.execute("SELECT setting_key, setting_value FROM app_settings;").fetchall()
-        settings = {r['setting_key']: float(r['setting_value']) for r in cfg_rows if r['setting_value'] and r['setting_value'].replace('.','',1).isdigit()}
-
-        # Eksekusi Formula rumus_tb.py
-        fin_calc = hitung_analisis_finansial_agroforestri(
-            produksi_tbs_ton_ha_thn=24.2,
-            komoditas_sela=companion_crop,
-            tonase_sela_ton_ha_thn=12.4,
-            harga_sela_idr_kg=18500.0,
-            biaya_pupuk_mop_idr=712500.0,
-            pricing_params={
-                "cpo_global": settings.get('cpo_global', 1526.56),
-                "kurs_usd": settings.get('kurs_usd', 17920.0),
-                "bea_keluar": settings.get('bea_keluar', 178.0),
-                "pe_bpdpks": settings.get('pe_bpdpks', 130.27),
-                "indeks_k": settings.get('indeks_k', 0.91),
-                "rendemen_cpo": settings.get('rendemen_cpo', 0.21)
-            }
-        )
-
-        sim_id = f"SIM-{dossier_id}-{audit_year}"
-        conn.execute("""
-            INSERT OR REPLACE INTO in_silico_simulations (
-                simulation_id, dossier_id, audit_year, lai_canopy_value, par_transmittance_pct,
-                net_corridor_width_m, companion_crop_selected, companion_harvest_ton_ha,
-                land_equivalent_ratio, percentage_land_saved, palm_yield_deficit_pct,
-                compensatory_mop_kg_ha, cpo_global_usd_mt, kurs_usd_idr,
-                tbs_price_per_kg_idr, tbs_price_per_ton_idr, total_combined_revenue_idr
-            ) VALUES (?, ?, ?, 4.25, 35.8, 3.79, ?, 12.40, 1.48, 31.25, 1.22, 75.0, ?, ?, ?, ?, ?);
-        """, (sim_id, dossier_id, audit_year, companion_crop, 
-              settings.get('cpo_global', 1526.56), settings.get('kurs_usd', 17920.0),
-              fin_calc['sawit']['harga_per_kg_idr'], fin_calc['sawit']['harga_per_ton_idr'], fin_calc['total_gabungan_idr']))
-
-        conn.commit()
-        return jsonify({
-            "status": "success",
-            "simulation_id": sim_id,
-            "biophysics": {
-                "ler": 1.48,
-                "pls_percent": 31.25,
-                "deficit_palm_percent": 1.22,
-                "corridor_width_m": 3.79
-            },
-            "financial_real": fin_calc
-        })
-    finally:
-        conn.close()
+    result, error, status_code = _calculate_simulation_from_engine(data)
+    if error:
+        return jsonify(error), status_code
+    return jsonify({
+        "status": "success",
+        "persisted": False,
+        "message": "Financial record not saved: verified selling prices and actual yields are not present in the source records.",
+        "calculation_engine": "kalkulasi.engine",
+        "biophysics": result["data_numerik"],
+        "financial_real": None,
+    })
 # ==============================================================================
 # ENDPOINT: SUMMARY ROADMAP 4-TAHAP PER DOSSIER
 # ==============================================================================
@@ -2137,20 +2186,56 @@ def legacy_pengaturan_redirect():
 def handle_app_settings():
     conn = get_pure_db_connection()
     try:
+        settings_columns = {
+            row['name'] for row in conn.execute("PRAGMA table_info(app_settings);").fetchall()
+        }
+        has_legacy_columns = {'setting_key', 'setting_value'}.issubset(settings_columns)
+        has_current_columns = {'key', 'value'}.issubset(settings_columns)
+        uses_legacy_settings_columns = has_legacy_columns and has_current_columns
         if request.method == 'POST':
             payload = request.get_json(silent=True) or request.form.to_dict() or {}
+            if 'carbon_price_usd' in payload:
+                try:
+                    carbon_price = float(payload['carbon_price_usd'])
+                except (TypeError, ValueError):
+                    return jsonify({"status": "error", "message": "Harga skenario karbon harus berupa angka non-negatif."}), 400
+                if not math.isfinite(carbon_price) or carbon_price < 0:
+                    return jsonify({"status": "error", "message": "Harga skenario karbon harus berupa angka non-negatif."}), 400
             for k, v in payload.items():
                 val_str = json.dumps(v) if isinstance(v, (dict, list)) else str(v)
-                conn.execute(
-                    "INSERT OR REPLACE INTO app_settings (setting_key, setting_value, key, value) VALUES (?, ?, ?, ?);", 
-                    (k, val_str, k, val_str)
-                )
+                if uses_legacy_settings_columns:
+                    conn.execute(
+                        "INSERT OR REPLACE INTO app_settings (setting_key, setting_value, key, value) VALUES (?, ?, ?, ?);",
+                        (k, val_str, k, val_str)
+                    )
+                elif has_legacy_columns:
+                    conn.execute(
+                        "INSERT OR REPLACE INTO app_settings (setting_key, setting_value) VALUES (?, ?);",
+                        (k, val_str)
+                    )
+                else:
+                    conn.execute(
+                        """INSERT INTO app_settings (key, value, updated_at)
+                           VALUES (?, ?, CURRENT_TIMESTAMP)
+                           ON CONFLICT(key) DO UPDATE SET
+                               value = excluded.value, updated_at = CURRENT_TIMESTAMP;""",
+                        (k, val_str)
+                    )
             conn.commit()
             return jsonify({"status": "success", "message": "Konfigurasi berhasil disimpan ke SQLite WAL."})
         else:
-            rows = conn.execute("SELECT setting_key, setting_value FROM app_settings;").fetchall()
+            key_expression, value_expression = (
+                ('COALESCE(setting_key, key)', 'COALESCE(setting_value, value)')
+                if uses_legacy_settings_columns else
+                ('setting_key', 'setting_value') if has_legacy_columns else ('key', 'value')
+            )
+            rows = conn.execute(
+                f"SELECT {key_expression} AS setting_key, {value_expression} AS setting_value FROM app_settings;"
+            ).fetchall()
             settings_dict = {}
             for r in rows:
+                if r['setting_key'] is None:
+                    continue
                 val = r['setting_value']
                 try:
                     if isinstance(val, str) and (val.startswith('{') or val.startswith('[')):
@@ -2158,6 +2243,7 @@ def handle_app_settings():
                 except Exception:
                     pass
                 settings_dict[r['setting_key']] = val
+            settings_dict.setdefault('carbon_price_usd', '12.0')
             return jsonify({"status": "success", "settings": settings_dict})
     finally:
         conn.close()
@@ -2230,49 +2316,78 @@ def api_pricing_tbs_calculation():
         data = {}
 
     settings = get_all_app_settings()
-    p_int_usd_mt = float(data.get('cpo_global') or settings.get('cpo_global') or 1526.56)
-    kurs_usd_idr = float(data.get('kurs_usd') or settings.get('kurs_usd') or 17920.0)
-    bk_usd_mt = float(data.get('bea_keluar') or settings.get('bea_keluar') or 178.0)
-    pe_usd_mt = float(data.get('pe_bpdpks') or settings.get('pe_bpdpks') or 130.27)
-    logistik_usd_mt = float(data.get('logistik') or settings.get('logistik') or 50.0)
-    p_kernel_idr_kg = float(data.get('p_kernel') or settings.get('p_kernel') or 12700.0)
-    rendemen_cpo = float(data.get('rendemen_cpo') or settings.get('rendemen_cpo') or 21.0)
+    required_pricing_inputs = (
+        'cpo_global',
+        'kurs_usd',
+        'bea_keluar',
+        'pe_bpdpks',
+        'logistik',
+        'p_kernel',
+        'rendemen_cpo',
+        'indeks_k',
+        'biaya_olah',
+        'rendemen_kernel',
+    )
+    pricing_params = {}
+    try:
+        missing = []
+        for key in required_pricing_inputs:
+            raw_value = data.get(key)
+            if raw_value in (None, ''):
+                raw_value = settings.get(key)
+            if raw_value in (None, ''):
+                missing.append(key)
+                continue
+            value = float(raw_value)
+            if not math.isfinite(value) or value < 0:
+                raise ValueError(f"{key} must be a finite, non-negative number")
+            pricing_params[key] = value
+    except (TypeError, ValueError) as exc:
+        return jsonify({"status": "error", "message": f"Invalid pricing input: {exc}"}), 422
+
+    if missing:
+        response = {
+            "status": "unavailable",
+            "message": "TBS scenario requires all pricing inputs from System Control or this request.",
+            "missing_fields": missing,
+        }
+        if request.method == 'GET':
+            return jsonify(response), 200
+        response["status"] = "error"
+        return jsonify(response), 422
+
+    if pricing_params['kurs_usd'] <= 0:
+        return jsonify({"status": "error", "message": "kurs_usd must be greater than zero."}), 422
+
+    rendemen_cpo = pricing_params['rendemen_cpo']
     if rendemen_cpo > 1.0:
         rendemen_cpo /= 100.0
-    indeks_k = float(data.get('indeks_k') or settings.get('indeks_k') or 91.0)
+    indeks_k = pricing_params['indeks_k']
     if indeks_k > 1.0:
         indeks_k /= 100.0
-    biaya_olah_idr_kg = float(data.get('biaya_olah') or settings.get('biaya_olah') or 300.0)
+    rendemen_kernel = pricing_params['rendemen_kernel']
+    if rendemen_kernel > 1.0:
+        rendemen_kernel /= 100.0
 
-    pricing_params = {
-        'cpo_global': p_int_usd_mt,
-        'kurs_usd': kurs_usd_idr,
-        'bea_keluar': bk_usd_mt,
-        'pe_bpdpks': pe_usd_mt,
-        'logistik': logistik_usd_mt,
-        'p_kernel': p_kernel_idr_kg,
-        'rendemen_cpo': rendemen_cpo,
-        'indeks_k': indeks_k,
-        'biaya_olah': biaya_olah_idr_kg
-    }
-
-    financials = calculate_comprehensive_financials(
-        palm_ffb_ton_ha=float(data.get('palm_yield_ton_ha', 24.0)),
-        crop_type=data.get('crop_name', 'Red Ginger (Zingiber officinale)'),
-        intercrop_yield_ton_ha=float(data.get('intercrop_yield_ton_ha', 7.5)),
-        intercrop_price_idr_kg=float(data.get('intercrop_price_idr_kg', 18500.0)),
-        mop_compensation_kg_ha=float(data.get('mop_compensation_kg_ha', 75.0)),
-        mop_price_idr_kg=float(data.get('mop_price_idr_kg', 12000.0)),
-        pricing_params=pricing_params
+    tbs_ton, cpo_dom, tbs_kg = hitung_harga_tbs_per_ton(
+        p_int_usd_mt=pricing_params['cpo_global'],
+        kurs_usd_idr=pricing_params['kurs_usd'],
+        bk_usd_mt=pricing_params['bea_keluar'],
+        pe_usd_mt=pricing_params['pe_bpdpks'],
+        logistik_usd_mt=pricing_params['logistik'],
+        p_kernel_idr_kg=pricing_params['p_kernel'],
+        rendemen_cpo=rendemen_cpo,
+        indeks_k=indeks_k,
+        biaya_olah_idr_kg=pricing_params['biaya_olah'],
+        rendemen_kernel=rendemen_kernel,
     )
-    tbs_kg = financials["harga_tbs_idr_kg"]
-    tbs_ton = financials["harga_tbs_idr_ton"]
-    cpo_dom = financials["harga_cpo_domestik_idr_kg"]
-    total_rev = financials["total_integrated_idr_ha"]
+    tbs_kg = round(tbs_kg, 2)
+    tbs_ton = round(tbs_ton, 2)
+    cpo_dom = round(cpo_dom, 2)
 
     tbs_breakdown = {
-        "cpo_rotterdam_usd": p_int_usd_mt,
-        "kurs_usd_idr": kurs_usd_idr,
+        "cpo_rotterdam_usd": pricing_params['cpo_global'],
+        "kurs_usd_idr": pricing_params['kurs_usd'],
         "cpo_domestik_idr_kg": cpo_dom,
         "harga_tbs_per_kg": tbs_kg,
         "harga_tbs_per_ton": tbs_ton,
@@ -2280,20 +2395,27 @@ def api_pricing_tbs_calculation():
         "harga_tbs_per_ton_fmt": f"{tbs_ton:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     }
 
-    comp_financials = {
-        "palm_revenue": financials["palm_revenue_idr_ha"],
-        "intercrop_revenue_net": financials["intercrop_net_idr_ha"],
-        "revenue_total": total_rev,
-        "revenue_total_fmt": f"{total_rev:,.0f}".replace(",", "."),
-        "financial_advantage_pct": f"+{financials['financial_gain_pct']}%"
-    }
-
     return jsonify({
         "status": "success",
-        "data": financials,
+        "data": {
+            "harga_cpo_domestik_idr_kg": cpo_dom,
+            "harga_tbs_idr_kg": tbs_kg,
+            "harga_tbs_idr_ton": tbs_ton,
+        },
         "tbs_breakdown": tbs_breakdown,
-        "comprehensive_financials": comp_financials,
-        "statutory_basis": "Permentan No. 33 Tahun 2025"
+        "comprehensive_financials": None,
+        "financial_real": None,
+        "financial_status": {
+            "available": False,
+            "message": "Income estimates require source-verified local prices, measured yields, and operating costs.",
+        },
+        "pricing_status": {
+            "mode": "SCENARIO_ONLY",
+            "inputs_source": "request_or_system_control",
+            "inputs_independently_verified": False,
+            "live_market_feed_connected": False,
+        },
+        "statutory_basis": "Configured formula scenario; not a live or verified market quote."
     })
 
 @app.route('/mobile')
@@ -2505,7 +2627,8 @@ def api_admin_history():
                 soil_ph, soil_texture, ai_reasoning, vision_summary,
                 leaf_area_index, surface_par, canopy_cover,
                 biomass_t_ha, microclimate_cooling, soil_moisture_vwc,
-                recharge_m3_ha, potassium_recovered_kg, economic_benefit_usd
+                recharge_m3_ha, potassium_recovered_kg, economic_benefit_usd,
+                sync_bigquery
             FROM compute_audit_logs
             {where_clause}
             ORDER BY id DESC
@@ -3044,9 +3167,9 @@ def api_grounded_audit():
             lat_ms = int((time.time() - t0) * 1000)
             record_unified_ai_log(
                 feature_name="Grounded Statutory Audit Engine",
-                model_engine="Google Gemini 3.8 Flash & Grounded Knowledge",
+                model_engine=(res.get("grounding_metadata") or {}).get("engine", "Grounded statutory auditor"),
                 latency_ms=lat_ms,
-                status="SUCCESS",
+                status="FALLBACK" if res.get("is_fallback") else "SUCCESS",
                 prompt_input=f"Query: {query} | Estate: {estate_code} | Lang: {lang}",
                 raw_response=json.dumps(res)[:2500]
             )
@@ -3118,81 +3241,103 @@ def api_estate_status(identifier=None):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-def update_server_with_latest_scan(scan_res, filename, dossier_id="EST-MDN-010", perspective="AERIAL_DRONE", block_id="EST-MDN-001-BLOK-A", image_url=None):
+def update_server_with_latest_scan(scan_res, filename, dossier_id="EST-MDN-010", perspective="AERIAL_DRONE", block_id="EST-MDN-001-BLOK-A", image_url=None, evidence_id=None, image_sha256=None):
     """
-    Menyimpan hasil pemindaian scanner terakhir ke SQLite database server,
-    mengupdate data sebelumnya (continuous re-audit persistence).
+    Menyimpan hasil Gemini hanya ke bukti yang dipindai; tidak membuat bukti bayangan.
     """
+    if not evidence_id or not image_sha256:
+        return {"saved": False, "sync_status": "NOT_REQUESTED", "message": "evidence_id/hash citra tidak tersedia"}
+
+    conn = get_pure_db_connection()
     try:
-        conn = get_pure_db_connection()
-        cur = conn.cursor()
-        
-        entities_json = json.dumps(scan_res.get("physical_entities", scan_res.get("detected_objects", [])))
+        row = conn.execute("""
+            SELECT evidence_id, dossier_id, image_sha256_hash, image_raw_base64,
+                   audit_year, quarter_cycle, company_name, weather_satellite_validation
+            FROM inspection_evidence
+            WHERE evidence_id = ? OR id = ?
+            LIMIT 1;
+        """, (str(evidence_id), str(evidence_id))).fetchone()
+        if not row:
+            return {"saved": False, "sync_status": "NOT_FOUND", "message": "Bukti target tidak ditemukan"}
+
+        record = dict(row)
+        stored_hash = str(record.get("image_sha256_hash") or "").lower()
+        if stored_hash and stored_hash != str(image_sha256).lower():
+            return {"saved": False, "sync_status": "IMAGE_MISMATCH", "message": "Hash citra tidak cocok dengan bukti target"}
+        if not record.get("image_raw_base64"):
+            return {"saved": False, "sync_status": "IMAGE_MISSING", "message": "Bukti target tidak memiliki citra asli"}
+
+        entities_json = json.dumps(scan_res.get("physical_entities", []), ensure_ascii=False)
         matrix_json = json.dumps(scan_res.get("diagnostic_matrix_44", {}))
-        spad = float(scan_res.get("chlorophyll_spad_inferred", 52.4))
-        root_clear = float(scan_res.get("root_clearance_verified_m", 2.05))
-        sha_hash = scan_res.get("sha256_hash") or hashlib.sha256(f"{filename}|{time.time()}".encode()).hexdigest().upper()
         now_ts = get_wib_now()
         norm_perspective = 'AERIAL_DRONE' if 'AERIAL' in str(perspective).upper() else 'TERRESTRIAL_IN_SITU'
-        
-        # 1. Update atau insert ke inspection_evidence
-        ev_id = str(filename).replace('.jpg', '').replace('.png', '').replace('.jpeg', '')
-        cur.execute("SELECT id FROM inspection_evidence WHERE evidence_id = ? OR (dossier_id = ? AND evidence_id = ?) ORDER BY uploaded_at DESC LIMIT 1;", (ev_id, dossier_id, ev_id))
-        row = cur.fetchone()
-        if row:
-            row_id = row['id'] if isinstance(row, sqlite3.Row) else row[0]
-            cur.execute("""
-                UPDATE inspection_evidence SET 
-                    detected_entities_json = ?,
-                    diagnostic_matrix_json = ?,
-                    chlorophyll_spad_inferred = ?,
-                    root_clearance_verified_m = ?,
-                    perspective_mode = ?,
-                    is_processed = 1,
-                    status = 'SEALED',
-                    sha256_hash = ?,
-                    uploaded_at = ?
-                WHERE id = ?;
-            """, (entities_json, matrix_json, spad, root_clear, norm_perspective, sha_hash, now_ts, row_id))
-        else:
-            cur.execute("""
-                INSERT OR REPLACE INTO inspection_evidence (
-                    id, evidence_id, dossier_id, block_id, perspective_mode,
-                    detected_entities_json, diagnostic_matrix_json,
-                    chlorophyll_spad_inferred, root_clearance_verified_m,
-                    image_mime_type, image_base64,
-                    is_processed, status, sha256_hash, uploaded_at, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'image/jpeg', '', 1, 'SEALED', ?, ?, ?);
-            """, (f"EV-{ev_id}", ev_id, dossier_id, block_id, norm_perspective, entities_json, matrix_json, spad, root_clear, sha_hash, now_ts, now_ts))
-
-        # 2. Update field_surveillance_records jika ada
-        cur.execute("""
-            UPDATE field_surveillance_records SET
-                detected_entities_json = ?,
-                recorded_at = ?
-            WHERE dossier_id = ? OR block_id = ?;
-        """, (entities_json, now_ts, dossier_id, block_id))
-
-        # 3. Catat ke agent_experience
-        exp_id = f"EXP-{int(time.time()*1000)}"
-        summary_txt = scan_res.get("auditor_summary") or scan_res.get("summary") or "Silvicultural canopy and sterile ring verified."
-        coords = scan_res.get("coordinates_wgs84") or json.dumps({"lat": 0.824102, "lng": 99.561214})
-        if isinstance(coords, (dict, list)):
-            coords = json.dumps(coords)
-        cur.execute("""
-            INSERT INTO agent_experience (
-                session_id, block_id, perspective_mode,
-                coordinates_wgs84, timestamp_iso,
-                detected_entities_json, diagnostic_matrix_json,
-                learned_context_summary, sha256_hash, sync_bigquery, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?);
-        """, (exp_id, block_id, norm_perspective, str(coords), now_ts, entities_json, matrix_json, summary_txt, sha_hash, now_ts))
-
+        spad = scan_res.get("chlorophyll_spad_inferred")
+        root_clear = scan_res.get("root_clearance_verified_m")
+        conn.execute("""
+            UPDATE inspection_evidence
+            SET detected_entities_json = ?,
+                diagnostic_matrix_json = ?,
+                chlorophyll_spad_inferred = COALESCE(?, chlorophyll_spad_inferred),
+                root_clearance_verified_m = COALESCE(?, root_clearance_verified_m),
+                perspective_mode = ?,
+                is_processed = 1,
+                is_locked = 0,
+                status = 'SCANNED',
+                sha256_hash = ?,
+                image_sha256_hash = ?,
+                uploaded_at = ?
+            WHERE evidence_id = ? OR id = ?;
+        """, (
+            entities_json, matrix_json, spad, root_clear, norm_perspective,
+            image_sha256, image_sha256, now_ts, str(evidence_id), str(evidence_id)
+        ))
         conn.commit()
-        conn.close()
-        print(f"[SERVER PERSISTENCE] Hasil scan terakhir '{filename}' ({dossier_id}) berhasil disimpan ke database.")
+        sync_status = "LOCAL_ONLY"
+        sync_message = "Hasil scan tersimpan lokal; sinkronisasi BigQuery tidak berhasil."
+        try:
+            from cloud_services.bigquery_audit import sync_evidence_to_bigquery
+            synced = sync_evidence_to_bigquery({
+                "evidence_id": record["evidence_id"],
+                "dossier_id": record["dossier_id"],
+                "audit_year": record.get("audit_year") or 2026,
+                "quarter_cycle": record.get("quarter_cycle") or "Q1",
+                "company_name": record.get("company_name") or "",
+                "image_sha256_hash": image_sha256,
+                "detected_entities": scan_res.get("physical_entities", []),
+                "perspective_mode": norm_perspective,
+                "root_clearance_m": root_clear,
+                "weather_validation": record.get("weather_satellite_validation"),
+                "synced_at": now_ts
+            })
+            sync_status = "SYNCED" if synced else "LOCAL_ONLY"
+            sync_message = "Hasil scan tersimpan pada bukti target"
+            conn.execute(
+                "UPDATE inspection_evidence SET synced_to_bigquery = ? WHERE evidence_id = ? OR id = ?;",
+                (1 if synced else 0, str(evidence_id), str(evidence_id))
+            )
+            conn.commit()
+        except Exception as sync_error:
+            logger.warning("[Server Scan BigQuery Sync Error]: %s", sync_error)
+            try:
+                conn.execute(
+                    "UPDATE inspection_evidence SET synced_to_bigquery = 0 WHERE evidence_id = ? OR id = ?;",
+                    (str(evidence_id), str(evidence_id))
+                )
+                conn.commit()
+            except Exception:
+                conn.rollback()
+        return {
+            "saved": True,
+            "evidence_id": record["evidence_id"],
+            "sync_status": sync_status,
+            "message": sync_message
+        }
     except Exception as e_pers:
-        print(f"[SERVER PERSISTENCE ERROR]: {e_pers}")
+        conn.rollback()
+        logger.exception("[Server Scan Persistence Error]: %s", e_pers)
+        return {"saved": False, "sync_status": "FAILED", "message": str(e_pers)}
+    finally:
+        conn.close()
 
 
 # =========================================================================
@@ -3274,8 +3419,11 @@ def api_ai_scan_image():
     file = request.files.get('image') or request.files.get('foto') or request.files.get('file')
     image_bytes = None
     mime = "image/jpeg"
+    used_fallback_image = False
+    resolved_evidence_id = None
 
     json_data = request.get_json(silent=True) or {}
+    requested_evidence_id = json_data.get('evidence_id') or request.form.get('evidence_id')
 
     # Extract 4D Telemetry Contract (X, Y, Z-Altitude AGL, T-Timestamp, Camera Pitch)
     raw_lat = request.form.get('latitude') or request.form.get('lat') or json_data.get('latitude') or json_data.get('lat') or 0.824102
@@ -3319,8 +3467,28 @@ def api_ai_scan_image():
 
     if file:
         image_bytes = file.read()
-        mime = file.content_type or "image/jpeg"
+        mime = file.mimetype if file.mimetype and file.mimetype.startswith("image/") else "image/jpeg"
     else:
+        if requested_evidence_id:
+            conn_ev = get_pure_db_connection()
+            try:
+                row_ev = conn_ev.execute(
+                    "SELECT evidence_id, id, image_raw_base64 FROM inspection_evidence WHERE evidence_id = ? OR id = ? LIMIT 1;",
+                    (str(requested_evidence_id), str(requested_evidence_id))
+                ).fetchone()
+                if row_ev:
+                    resolved_evidence_id = row_ev["evidence_id"] or row_ev["id"]
+                    raw_b64 = row_ev["image_raw_base64"]
+                    if raw_b64:
+                        if ',' in raw_b64:
+                            data_uri_header = raw_b64.split(',', 1)[0]
+                            if data_uri_header.startswith("data:image/"):
+                                mime = data_uri_header[5:].split(';', 1)[0]
+                            raw_b64 = raw_b64.split(',', 1)[1]
+                        image_bytes = base64.b64decode(raw_b64)
+            finally:
+                conn_ev.close()
+
         raw_target = (
             json_data.get('image_url') or json_data.get('image') or 
             json_data.get('foto_url') or json_data.get('foto') or 
@@ -3329,13 +3497,16 @@ def api_ai_scan_image():
             request.args.get('url') or request.args.get('filename') or ""
         )
         
-        if raw_target and ',' in raw_target and 'base64' in raw_target:
+        if not image_bytes and raw_target and ',' in raw_target and 'base64' in raw_target:
             try:
+                data_uri_header = raw_target.split(',', 1)[0]
+                if data_uri_header.startswith("data:image/"):
+                    mime = data_uri_header[5:].split(';', 1)[0]
                 b64_clean = raw_target.split(',', 1)[1]
                 image_bytes = base64.b64decode(b64_clean)
             except Exception:
                 image_bytes = None
-        elif raw_target:
+        elif not image_bytes and raw_target:
             clean_str = raw_target.strip().lstrip('/')
             # Aturan Wajib: jika image_url diawali /static/ atau static/, baca path absolut os.path.join(app.root_path, ...)
             if clean_str.startswith('static/') or clean_str.startswith('static\\'):
@@ -3352,24 +3523,36 @@ def api_ai_scan_image():
                         ev_id = clean_str.split('api/media/evidence/')[-1].split('?')[0].strip()
                         if ev_id in ('current', 'latest'):
                             dossier_param = None
+                            perspective_param = None
                             if '?' in clean_str:
                                 from urllib.parse import parse_qs
                                 parsed_q = parse_qs(clean_str.split('?')[1])
                                 dossier_param = parsed_q.get('dossier_id', [None])[0]
+                                perspective_param = parsed_q.get('perspective', [None])[0]
                             if not dossier_param:
                                 dossier_param = json_data.get('dossier_id') or json_data.get('kode_kebun') or 'EST-MDN-001'
+                            clean_dossier = str(dossier_param).replace('-2026', '')
+                            perspective_sql = " AND perspective_mode = ?" if perspective_param else ""
+                            select_params = [dossier_param, f"{clean_dossier}-2026", clean_dossier]
+                            if perspective_param:
+                                select_params.append(perspective_param)
                             row_ev = conn_ev.execute(
-                                "SELECT image_raw_base64 FROM inspection_evidence WHERE dossier_id = ? ORDER BY uploaded_at DESC LIMIT 1;",
-                                (dossier_param,)
+                                "SELECT evidence_id, id, image_raw_base64 FROM inspection_evidence WHERE (dossier_id = ? OR dossier_id = ? OR dossier_id = ?)" + perspective_sql + " ORDER BY uploaded_at DESC LIMIT 1;",
+                                tuple(select_params)
                             ).fetchone()
                         else:
                             row_ev = conn_ev.execute(
-                                "SELECT image_raw_base64 FROM inspection_evidence WHERE evidence_id = ?;",
-                                (ev_id,)
+                                "SELECT evidence_id, id, image_raw_base64 FROM inspection_evidence WHERE evidence_id = ? OR id = ? LIMIT 1;",
+                                (ev_id, ev_id)
                             ).fetchone()
+                        if row_ev:
+                            resolved_evidence_id = row_ev["evidence_id"] or row_ev["id"]
                         if row_ev and row_ev['image_raw_base64']:
                             raw_b64 = row_ev['image_raw_base64']
                             if ',' in raw_b64:
+                                data_uri_header = raw_b64.split(',', 1)[0]
+                                if data_uri_header.startswith("data:image/"):
+                                    mime = data_uri_header[5:].split(';', 1)[0]
                                 raw_b64 = raw_b64.split(',', 1)[1]
                             image_bytes = base64.b64decode(raw_b64)
                     finally:
@@ -3395,25 +3578,20 @@ def api_ai_scan_image():
                         if len(image_bytes) > 0:
                             break
 
-        # 3. Fallback to default real palm images if specific file is virtual, missing, or offline
-        if not image_bytes or len(image_bytes) == 0:
-            fallback_candidates = [
-                os.path.join(app.root_path, 'static', 'img', 'sawit_drone.jpg'),
-                os.path.join(app.root_path, 'static', 'img', 'default_canopy.jpg'),
-                os.path.join(app.root_path, 'static', 'img', 'field_tm_weed.jpg')
-            ]
-            for fb in fallback_candidates:
-                if os.path.exists(fb) and os.path.isfile(fb):
-                    with open(fb, 'rb') as f:
-                        image_bytes = f.read()
-                    mime = "image/jpeg"
-                    if len(image_bytes) > 0:
-                        break
-
     if not image_bytes or len(image_bytes) == 0:
         return jsonify({"status": "error", "message": "File gambar inspeksi tidak ditemukan. Wajib mengunggah foto lapangan riil."}), 400
 
+    image_sha256 = hashlib.sha256(image_bytes).hexdigest().upper()
+    raw_target = json_data.get('image_url') or json_data.get('foto_url') or ''
+    if not resolved_evidence_id and raw_target:
+        match = re.search(r'/api/media/evidence/([^/?]+)', str(raw_target))
+        if match and match.group(1) not in ('current', 'latest'):
+            resolved_evidence_id = match.group(1)
+
     target_fname = str(raw_img_name or telemetry_4d.get("image_name") or json_data.get("filename") or "field_inspection.jpg")
+    guessed_mime, _ = mimetypes.guess_type(target_fname)
+    if not used_fallback_image and mime == "image/jpeg" and guessed_mime and guessed_mime.startswith("image/"):
+        mime = guessed_mime
     perspective_hint = json_data.get('perspective_mode') or json_data.get('perspective_hint') or request.form.get('perspective_mode') or 'AERIAL_DRONE'
 
     try:
@@ -3425,7 +3603,8 @@ def api_ai_scan_image():
             image_bytes=image_bytes,
             filename=target_fname,
             perspective_mode=perspective_hint,
-            telemetry=telemetry_4d
+            telemetry=telemetry_4d,
+            mime_type=mime
         )
 
         # 2. Teruskan ke FieldVisionSupervisorAgent.evaluate_and_supervise untuk membedakan perspektif
@@ -3439,31 +3618,80 @@ def api_ai_scan_image():
             logger.warning(f"[Vision Agent Supervisor Error]: {e_sup}")
             supervised_result = raw_analysis
 
-        # 3. Update server dengan hasil scanner terakhir (persist ke DB)
-        try:
-            eff_dossier = json_data.get('dossier_id') or request.form.get('dossier_id') or request.args.get('kode') or 'EST-MDN-010'
-            update_server_with_latest_scan(
-                scan_res=supervised_result,
-                filename=target_fname,
-                dossier_id=eff_dossier,
-                perspective=perspective_hint,
-                block_id=raw_block_id,
-                image_url=json_data.get('image_url') or json_data.get('foto_url')
+        telemetry_payload = supervised_result.get("api_telemetry") or raw_analysis.get("api_telemetry") or {}
+        is_live_gemini = (
+            telemetry_payload.get("is_live_gemini_called") is True
+            and telemetry_payload.get("api_call_status") == "LIVE_GOOGLE_CLOUD_SUCCESS"
+        )
+        if is_live_gemini:
+            engine_mode = "LIVE_GEMINI"
+            engine_name = f"Google Gemini ({telemetry_payload.get('model_invoked') or Config.GEMINI_MODEL})"
+            supervised_result["mode"] = engine_mode
+            supervised_result.pop("is_fallback", None)
+            supervised_result["realistic_image_match_pct"] = None
+            supervised_result["composite_match_pct"] = None
+            supervised_result["match_tier"] = "GROUND_TRUTH_REQUIRED"
+            supervised_result["match_breakdown"] = None
+            vision_package = supervised_result.get("universal_vision_package")
+            if isinstance(vision_package, dict):
+                vision_package.update({
+                    "realistic_image_match_pct": None,
+                    "match_tier": "GROUND_TRUTH_REQUIRED",
+                    "match_breakdown": None
+                })
+        else:
+            engine_mode = "AUTONOMOUS_RULE_ENGINE"
+            engine_name = "Autonomous Statutory Rule Engine (heuristic fallback)"
+            fallback_notice = (
+                "[AUDIT NOTICE] Gemini Vision inference did not complete successfully. "
+                "Showing heuristic fallback entities only; these are not image-verified detections."
             )
-        except Exception as e_pers:
-            logger.warning(f"[Server Scan Persistence Error]: {e_pers}")
+            supervised_result["mode"] = engine_mode
+            supervised_result["is_fallback"] = True
+            supervised_result["audit_notice"] = fallback_notice
+            supervised_result["agent_experience_summary"] = fallback_notice
+            supervised_result["discrepancy_score"] = None
+            supervised_result["observed_taxon"] = None
+            supervised_result["plant_diagnostics"] = None
+            supervised_result["diagnostic_matrix_44"] = {}
+            supervised_result["sha256_hash"] = image_sha256
+            supervised_result["seals"] = None
+            telemetry_payload["mode"] = engine_mode
+            telemetry_payload["is_live_gemini_called"] = False
+            for entity_key in ("physical_entities", "detected_objects", "bounding_boxes"):
+                entities = supervised_result.get(entity_key)
+                if isinstance(entities, list):
+                    for entity in entities:
+                        if isinstance(entity, dict):
+                            entity["is_heuristic"] = True
+                            entity.pop("confidence", None)
 
-        telemetry_payload = supervised_result.get("api_telemetry") or raw_analysis.get("api_telemetry") or {
-            "is_live_gemini_called": True,
-            "api_call_status": "LIVE_GOOGLE_CLOUD_SUCCESS",
-            "model_invoked": os.environ.get("VERTEX_MODEL_NAME") or "gemini-3.8-flash"
+        persistence = {
+            "saved": False,
+            "sync_status": "NOT_REQUESTED",
+            "message": "Scan tidak memiliki ID bukti database yang spesifik"
         }
+        if is_live_gemini:
+            if resolved_evidence_id:
+                eff_dossier = json_data.get('dossier_id') or request.form.get('dossier_id') or request.args.get('kode') or 'EST-MDN-010'
+                persistence = update_server_with_latest_scan(
+                    scan_res=supervised_result,
+                    filename=target_fname,
+                    dossier_id=eff_dossier,
+                    perspective=perspective_hint,
+                    block_id=raw_block_id,
+                    image_url=json_data.get('image_url') or json_data.get('foto_url'),
+                    evidence_id=resolved_evidence_id,
+                    image_sha256=image_sha256
+                )
+
+        telemetry_payload["mode"] = engine_mode
 
         # Catat telemetri AI ke SQLite & BigQuery
         try:
             record_unified_ai_log(
                 feature_name=feature_name or "Canopy & Parcel Vision Scanner",
-                model_engine=telemetry_payload.get("model_invoked") or "Google Gemini 3.8 Flash (Multimodal Vision 4D)",
+                model_engine=engine_name,
                 latency_ms=int((telemetry_payload.get("latency_seconds") or 1.8) * 1000),
                 status="SUCCESS",
                 prompt_input=f"Scan 4D image: {target_fname} | Block: {raw_block_id} | Crop: {raw_declared_crop} | Telemetry: lat={f_lat}, lng={f_lng}, alt={f_alt}m",
@@ -3472,29 +3700,43 @@ def api_ai_scan_image():
                     "discrepancy_score": supervised_result.get("discrepancy_score", 0.0),
                     "observed_taxon": supervised_result.get("observed_taxon"),
                     "summary": supervised_result.get("agent_experience_summary")
-                })
+                }),
+                engine_mode=engine_mode,
+                status_message=(
+                    "Live Gemini image inference completed; ground-truth accuracy not certified"
+                    if is_live_gemini else supervised_result["audit_notice"]
+                )
             )
         except Exception as e_log:
             logger.warning(f"[AI Log Telemetry Error]: {e_log}")
 
-        supervised_result["mode"] = "LIVE_GEMINI"
-        supervised_result["engine"] = "Google Gemini 3.8 Flash (Multimodal Vision 4D)"
-        telemetry_payload["mode"] = "LIVE_GEMINI"
+        supervised_result["engine"] = engine_name
 
-        live_match_pct = float(supervised_result.get("realistic_image_match_pct") or 94.6)
-        live_match_tier = supervised_result.get("match_tier") or "CERTIFIED_RATIFIED"
-        live_breakdown = supervised_result.get("match_breakdown") or {
-            "spatial_iou_pct": 95.2,
-            "spectral_exg_pct": 89.8,
-            "taxonomic_match_pct": 97.0,
-            "biophysical_consistency_pct": 95.5
-        }
-        live_universal_pkg = supervised_result.get("universal_vision_package") or {}
+        live_match_pct = None
+        live_match_tier = "GROUND_TRUTH_REQUIRED" if is_live_gemini else "NOT_IMAGE_VERIFIED"
+        live_breakdown = None
+        live_universal_pkg = (
+            dict(supervised_result.get("universal_vision_package") or {})
+            if is_live_gemini
+            else {
+                "spatial_vector": {"status": "NOT_IMAGE_VERIFIED"},
+                "biophysical_vector": {"status": "NOT_IMAGE_VERIFIED"},
+                "forensic_vector": {"status": "NOT_IMAGE_VERIFIED"}
+            }
+        )
+        live_universal_pkg.update({
+            "realistic_image_match_pct": None,
+            "match_tier": live_match_tier,
+            "match_breakdown": None
+        })
 
         return jsonify({
             "status": "success", 
-            "mode": "LIVE_GEMINI",
-            "engine": "Google Gemini 3.8 Flash (Multimodal Vision 4D)",
+            "mode": engine_mode,
+            "is_fallback": not is_live_gemini,
+            "engine": engine_name,
+            "persistence": persistence,
+            "audit_notice": supervised_result.get("audit_notice"),
             "api_telemetry": telemetry_payload,
             "realistic_image_match_pct": live_match_pct,
             "composite_match_pct": live_match_pct,
@@ -3505,12 +3747,12 @@ def api_ai_scan_image():
             "block_id": supervised_result.get("block_id", raw_block_id),
             "perspective_4d": supervised_result.get("perspective_4d"),
             "physical_entities": supervised_result.get("physical_entities", supervised_result.get("detected_objects", [])),
-            "diagnostic_matrix_44": supervised_result.get("diagnostic_matrix_44", {}),
+            "diagnostic_matrix_44": supervised_result.get("diagnostic_matrix_44", {}) if is_live_gemini else {},
             "agent_experience_summary": supervised_result.get("agent_experience_summary", ""),
-            "discrepancy_score": supervised_result.get("discrepancy_score", 0.0),
-            "observed_taxon": supervised_result.get("observed_taxon", "Zingiber officinale var. rubrum"),
+            "discrepancy_score": supervised_result.get("discrepancy_score"),
+            "observed_taxon": supervised_result.get("observed_taxon"),
             "declared_crop": supervised_result.get("declared_crop", raw_declared_crop),
-            "plant_diagnostics": supervised_result.get("plant_diagnostics"),
+            "plant_diagnostics": supervised_result.get("plant_diagnostics") if is_live_gemini else None,
             "bounding_boxes": supervised_result.get("bounding_boxes", supervised_result.get("detected_objects", [])),
             "detected_objects": supervised_result.get("detected_objects", []),
             "sha256_hash": supervised_result.get("sha256_hash"),
@@ -3533,21 +3775,23 @@ def api_ai_scan_image():
             logger.warning(f"[Vision Agent Fallback Error]: {e_sup}")
 
         fallback["mode"] = "AUTONOMOUS_RULE_ENGINE"
+        fallback["is_fallback"] = True
         fallback["engine"] = "Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9)"
         fallback["audit_notice"] = "[AUDIT NOTICE] Gemini Vision / Reasoner session unreachable (Offline / Quota Exceeded). System deterministically switched to Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9)."
-
-        try:
-            eff_dossier = json_data.get('dossier_id') or request.form.get('dossier_id') or request.args.get('kode') or 'EST-MDN-010'
-            update_server_with_latest_scan(
-                scan_res=fallback,
-                filename=target_fname,
-                dossier_id=eff_dossier,
-                perspective=perspective_hint,
-                block_id=raw_block_id,
-                image_url=json_data.get('image_url') or json_data.get('foto_url')
-            )
-        except Exception as e_pers:
-            logger.warning(f"[Server Scan Persistence Error]: {e_pers}")
+        fallback["agent_experience_summary"] = fallback["audit_notice"]
+        fallback["discrepancy_score"] = None
+        fallback["observed_taxon"] = None
+        fallback["plant_diagnostics"] = None
+        fallback["diagnostic_matrix_44"] = {}
+        fallback["sha256_hash"] = image_sha256
+        fallback["seals"] = None
+        for entity_key in ("physical_entities", "detected_objects", "bounding_boxes"):
+            entities = fallback.get(entity_key)
+            if isinstance(entities, list):
+                for entity in entities:
+                    if isinstance(entity, dict):
+                        entity["is_heuristic"] = True
+                        entity.pop("confidence", None)
 
         fallback_telemetry = fallback.get("api_telemetry") or {
             "is_live_gemini_called": False,
@@ -3570,43 +3814,47 @@ def api_ai_scan_image():
                     "detected_objects_count": len(fallback.get("detected_objects", [])),
                     "discrepancy_score": fallback.get("discrepancy_score", 0.0),
                     "observed_taxon": fallback.get("observed_taxon")
-                })
+                }),
+                engine_mode="AUTONOMOUS_RULE_ENGINE",
+                status_message=fallback["audit_notice"]
             )
         except Exception as e_log:
             logger.warning(f"[AI Fallback Log Error]: {e_log}")
 
-        fb_match_pct = float(fallback.get("realistic_image_match_pct") or 92.4)
-        fb_match_tier = fallback.get("match_tier") or "CERTIFIED_RATIFIED"
-        fb_breakdown = fallback.get("match_breakdown") or {
-            "spatial_iou_pct": 93.5,
-            "spectral_exg_pct": 88.0,
-            "taxonomic_match_pct": 96.0,
-            "biophysical_consistency_pct": 92.0
+        fb_universal_pkg = {
+            "spatial_vector": {"status": "NOT_IMAGE_VERIFIED"},
+            "biophysical_vector": {"status": "NOT_IMAGE_VERIFIED"},
+            "forensic_vector": {"status": "NOT_IMAGE_VERIFIED"}
         }
-        fb_universal_pkg = fallback.get("universal_vision_package") or {}
+        fb_universal_pkg.update({
+            "realistic_image_match_pct": None,
+            "match_tier": "NOT_IMAGE_VERIFIED",
+            "match_breakdown": None
+        })
 
         return jsonify({
             "status": "success", 
             "mode": "AUTONOMOUS_RULE_ENGINE",
+            "is_fallback": True,
             "engine": "Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9)",
             "audit_notice": "[AUDIT NOTICE] Gemini Vision / Reasoner session unreachable (Offline / Quota Exceeded). System deterministically switched to Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9).",
             "api_telemetry": fallback_telemetry,
-            "realistic_image_match_pct": fb_match_pct,
-            "composite_match_pct": fb_match_pct,
-            "match_tier": fb_match_tier,
-            "match_breakdown": fb_breakdown,
+            "realistic_image_match_pct": None,
+            "composite_match_pct": None,
+            "match_tier": "NOT_IMAGE_VERIFIED",
+            "match_breakdown": {},
             "universal_vision_package": fb_universal_pkg,
             "warning": str(e),
             "analysis": fallback,
             "block_id": fallback.get("block_id", raw_block_id),
             "perspective_4d": fallback.get("perspective_4d"),
             "physical_entities": fallback.get("physical_entities", fallback.get("detected_objects", [])),
-            "diagnostic_matrix_44": fallback.get("diagnostic_matrix_44", {}),
+            "diagnostic_matrix_44": {},
             "agent_experience_summary": fallback.get("agent_experience_summary", ""),
-            "discrepancy_score": fallback.get("discrepancy_score", 0.0),
-            "observed_taxon": fallback.get("observed_taxon", "Zingiber officinale var. rubrum"),
+            "discrepancy_score": None,
+            "observed_taxon": None,
             "declared_crop": fallback.get("declared_crop", raw_declared_crop),
-            "plant_diagnostics": fallback.get("plant_diagnostics"),
+            "plant_diagnostics": None,
             "bounding_boxes": fallback.get("bounding_boxes", fallback.get("detected_objects", [])),
             "detected_objects": fallback.get("detected_objects", []),
             "sha256_hash": fallback.get("sha256_hash", "A89F1234BCE87123DEF0129"),
@@ -3675,15 +3923,20 @@ def api_crop_agro_reasoning():
 
     try:
         if generate_crop_agroecological_reasoning:
+            reasoning_started_at = time.perf_counter()
             res = generate_crop_agroecological_reasoning(palm_age, crops, soil_ph, slope, land_area, lang=lang)
+            latency_ms = int((time.perf_counter() - reasoning_started_at) * 1000)
+            is_fallback = not isinstance(res, dict) or res.get("mode") != "LIVE_GEMINI"
             try:
                 record_unified_ai_log(
                     feature_name="Agroecological Intercrop Compatibility Audit",
-                    model_engine="Google Gemini 3.8 Flash (Agroecology Agent)",
-                    latency_ms=145,
-                    status="SUCCESS",
+                    model_engine=(res.get("engine") if isinstance(res, dict) else None) or "Agroecological reasoning engine",
+                    latency_ms=latency_ms,
+                    status="FALLBACK" if is_fallback else "SUCCESS",
                     prompt_input=f"Palm Age: {palm_age} yrs | Crops: {crops} | Soil pH: {soil_ph} | Area: {land_area} Ha",
-                    raw_response=json.dumps(res)[:2500] if isinstance(res, dict) else str(res)[:2500]
+                    raw_response=json.dumps(res)[:2500] if isinstance(res, dict) else str(res)[:2500],
+                    engine_mode="AUTONOMOUS_STATUTORY_RULE_ENGINE" if is_fallback else "LIVE_GEMINI",
+                    status_message=(res.get("audit_notice") if is_fallback and isinstance(res, dict) else None)
                 )
             except Exception:
                 pass
@@ -3988,8 +4241,12 @@ def api_get_estate_spatial_data():
                 continue
             seen_hash_counts[dedup_key] = seen_hash_counts.get(dedup_key, 0) + 1
 
-            is_proc = bool(
+            has_scan = bool(
                 (r["is_processed"] if "is_processed" in r.keys() else 0) == 1 or
+                (r["detected_entities_json"] if "detected_entities_json" in r.keys() else None) not in (None, "", "[]")
+            )
+            is_locked = bool(
+                (r["is_locked"] if "is_locked" in r.keys() else 0) == 1 or
                 (r["status"] if "status" in r.keys() else "") == 'SEALED' or
                 ev_id in sealed_ev_ids or
                 f_url in sealed_foto_urls
@@ -4007,8 +4264,9 @@ def api_get_estate_spatial_data():
                 "sha256": h_sha,
                 "detected_entities_json": r["detected_entities_json"] if "detected_entities_json" in r.keys() else None,
                 "uploaded_at": up_at,
-                "is_processed": is_proc,
-                "is_locked": is_proc
+                "is_processed": has_scan,
+                "is_locked": is_locked,
+                "status": r["status"] if "status" in r.keys() and r["status"] else ("SCANNED" if has_scan else "READY")
             })
 
         # 3. Ambil log survei mandor dari field_surveillance_records & kebun_monitoring_log
@@ -4371,6 +4629,16 @@ def api_upload_spatial_photo():
         title = request.form.get('title') or os.path.splitext(orig_name)[0]
         block_id = request.form.get('block_id') or 'Blok A - UAV Flight'
         tag = request.form.get('tag') or 'Unggahan Baru'
+        try:
+            audit_year = int(request.form.get('audit_year') or 2026)
+        except (TypeError, ValueError):
+            audit_year = 2026
+        quarter_cycle = (request.form.get('quarter_cycle') or 'Q1').upper()
+        process_stage = request.form.get('process_stage') or f'STAGE-1-{quarter_cycle}'
+        perspective_mode = request.form.get('perspective_mode') or 'AERIAL_DRONE'
+        is_aerial = 'AERIAL' in perspective_mode.upper()
+        altitude_agl_m = 45.0 if is_aerial else 1.45
+        camera_pitch_degrees = -90.0 if is_aerial else -12.4
 
         new_photo_id = add_estate_canopy_upload(
             id_kebun=id_kebun,
@@ -4386,11 +4654,8 @@ def api_upload_spatial_photo():
         )
 
         # Cross-Process Linkage: Simpan bukti drone ke tabel inspection_evidence murni
-        ev_id = f"EV-{target_kode}-2026-Q1-DRONE-{int(time.time()*1000)%100000}"
-        drone_entities = [
-            {"label": "Canopy Crown Ortho", "box_2d": [180, 120, 820, 880], "cluster": "palm_canopy", "confidence": 0.98},
-            {"label": "45m UAV Flight Corridor", "box_2d": [310, 220, 740, 790], "cluster": "alley_corridor", "confidence": 0.96}
-        ]
+        ev_id = f"EV-{target_kode}-{audit_year}-{quarter_cycle}-{int(time.time()*1000)%100000}"
+        drone_entities = []
 
         conn_ev = get_pure_db_connection()
         try:
@@ -4398,12 +4663,16 @@ def api_upload_spatial_photo():
             conn_ev.execute("""
                 INSERT OR REPLACE INTO inspection_evidence (
                     evidence_id, id, dossier_id, mandor_id, audit_year, quarter_cycle, process_stage, perspective_mode,
-                    altitude_agl_m, camera_pitch_degrees, latitude_exif, longitude_exif,
+                    altitude_agl_m, camera_pitch_degrees, latitude_exif, longitude_exif, image_mime_type,
                     image_raw_base64, image_sha256_hash, image_base64, sha256_hash, file_size_bytes, ai_vision_model,
                     detected_entities_json, chlorophyll_spad_inferred, root_clearance_verified_m,
                     weather_satellite_validation
-                ) VALUES (?, ?, ?, 'MDR-DRONE-01', 2026, 'Q1', 'STAGE-1-Q1', 'AERIAL_DRONE', 45.0, -90.0, 0.824100, 99.561200, ?, ?, ?, ?, ?, 'gemini-3.8-flash', ?, 82.4, 2.05, 'MATCH_BMKG_RADAR_CLEAR');
-            """, (ev_id, ev_id, target_kode, b64_str, photo_hash, b64_str, photo_hash, len(raw_bytes), json.dumps(drone_entities)))
+                ) VALUES (?, ?, ?, 'MDR-DRONE-01', ?, ?, ?, ?, ?, ?, 0.824100, 99.561200, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, NULL, 'MATCH_BMKG_RADAR_CLEAR');
+            """, (
+                ev_id, ev_id, target_kode, audit_year, quarter_cycle, process_stage, perspective_mode,
+                altitude_agl_m, camera_pitch_degrees, file.mimetype or 'image/jpeg', b64_str,
+                photo_hash, b64_str, photo_hash, len(raw_bytes), json.dumps([])
+            ))
 
             conn_ev.execute("""
                 INSERT OR IGNORE INTO used_photo_hashes (sha256_hash, evidence_id, dossier_id, company_name, used_in_module, capture_timestamp, company_id)
@@ -4411,8 +4680,9 @@ def api_upload_spatial_photo():
             """, (photo_hash, ev_id, target_kode, comp_id_std, target_kode, comp_id_std))
 
             conn_ev.commit()
-        except Exception as e_ev:
-            print(f"[Spatial Drone Evidence Insert Note]: {e_ev}")
+        except Exception:
+            conn_ev.rollback()
+            raise
         finally:
             conn_ev.close()
 
@@ -4423,25 +4693,34 @@ def api_upload_spatial_photo():
             gcs_uri = upload_file_to_gcs(save_path, f"canopy/{unique_name}", content_type=file.mimetype or 'image/jpeg')
         except Exception as e_gcs:
             print(f"[GCS Upload Notice]: {e_gcs}")
-            gcs_uri = f"gs://precision-palm-enterprise-evidence/canopy/{unique_name}"
+            gcs_uri = None
 
-        # Stream metadata & hash ke BigQuery DW
+        # Stream metadata & hash ke BigQuery DW and surface the actual outcome.
+        bigquery_synced = False
         try:
-            from cloud_services.bigquery_audit import sync_evidence_to_bigquery_async
-            sync_evidence_to_bigquery_async({
+            from cloud_services.bigquery_audit import sync_evidence_to_bigquery
+            bigquery_synced = sync_evidence_to_bigquery({
                 "evidence_id": ev_id,
                 "dossier_id": target_kode,
-                "audit_year": 2026,
-                "quarter_cycle": "Q1",
-                "perspective_mode": "AERIAL_DRONE",
+                "audit_year": audit_year,
+                "quarter_cycle": quarter_cycle,
+                "perspective_mode": perspective_mode,
                 "image_sha256_hash": photo_hash,
                 "detected_entities": drone_entities,
-                "root_clearance_m": 2.05,
-                "weather_validation": "MATCH_BMKG_RADAR_CLEAR",
+                "root_clearance_m": None,
+                "weather_validation": None,
                 "gcs_uri": gcs_uri
             })
+            conn_sync = get_pure_db_connection()
+            conn_sync.execute(
+                "UPDATE inspection_evidence SET synced_to_bigquery = ? WHERE evidence_id = ?;",
+                (1 if bigquery_synced else 0, ev_id)
+            )
+            conn_sync.commit()
+            conn_sync.close()
         except Exception as e_bq:
-            print(f"[BigQuery Async Sync Notice]: {e_bq}")
+            logger.warning("[BigQuery Sync Notice]: %s", e_bq)
+            bigquery_synced = False
 
         photo_obj = {
             "id": new_photo_id,
@@ -4455,12 +4734,17 @@ def api_upload_spatial_photo():
             "gcs_uri": gcs_uri,
             "title": title,
             "tag": tag,
-            "block_id": block_id
+            "block_id": block_id,
+            "is_processed": False,
+            "is_locked": False,
+            "status": "READY",
+            "bigquery_sync": "SYNCED" if bigquery_synced else "LOCAL_ONLY"
         }
 
         return jsonify({
             "success": True,
             "photo": photo_obj,
+            "bigquery_sync": "SYNCED" if bigquery_synced else "LOCAL_ONLY",
             **photo_obj
         }), 201
     except Exception as e:
@@ -4930,16 +5214,19 @@ def api_mobile_surveys():
         return ('', 204)
 
     if request.method == 'GET':
+        records = []
+        db_error = None
+        id_kebun = request.args.get('id_kebun') or request.args.get('id')
+        kode_kebun = request.args.get('kode') or request.args.get('kode_kebun') or request.args.get('estate_code')
         try:
             conn = get_db()
             cursor = conn.cursor()
-            id_kebun = request.args.get('id_kebun') or request.args.get('id')
-            kode_kebun = request.args.get('kode') or request.args.get('kode_kebun') or request.args.get('estate_code')
 
             query = """
                 SELECT l.id_log AS id, l.id_log, l.id_kebun, COALESCE(l.kode_kebun, p.kode_kebun) AS kode_kebun, 
                        COALESCE(p.nama_kebun, 'Kebun Sawit') AS nama_kebun,
                        COALESCE(l.periode_siklus, 'Q1') AS periode_siklus, 
+                       COALESCE(l.tahun_siklus, 2026) AS tahun_siklus,
                        COALESCE(l.titik_ke, 1) AS titik_ke, 
                        COALESCE(l.blok, 'Blok A') AS blok, 
                        COALESCE(l.mandor, 'Supervisor Sutrisno') AS mandor,
@@ -4963,7 +5250,6 @@ def api_mobile_surveys():
             query += " ORDER BY l.id_log DESC LIMIT 50;"
             cursor.execute(query, params)
             rows = cursor.fetchall()
-            records = []
             for r in rows:
                 rec = dict(r)
                 mandor = "Supervisor Sutrisno"
@@ -4971,6 +5257,8 @@ def api_mobile_surveys():
                 if rec.get('ai_scan_result_json'):
                     try:
                         ai_obj = json.loads(rec['ai_scan_result_json'])
+                        rec['bounding_boxes'] = ai_obj.get('bounding_boxes') or []
+                        rec['plant_diagnostics'] = ai_obj.get('plant_diagnostics')
                         if 'assessor_audit' in ai_obj:
                             audit = ai_obj['assessor_audit']
                             if 'mandor' in audit:
@@ -4981,14 +5269,94 @@ def api_mobile_surveys():
                                 blok = audit['blok']
                     except Exception:
                         pass
-                rec['mandor'] = mandor
+                rec['mandor'] = rec.get('mandor') or mandor
+                rec['blok'] = blok if blok != f"Block #{rec.get('titik_ke', 1)} - Centroid" else rec.get('blok')
+                rec['block_id'] = rec.get('blok')
                 foto = rec.get('foto_url', '')
                 rec['foto_url'] = foto if (foto and not str(foto).startswith('data:image')) else (f"/api/media/evidence/{rec.get('evidence_id')}" if rec.get('evidence_id') else (foto or ''))
+                rec['source'] = 'database'
                 records.append(rec)
             conn.close()
-            return jsonify({"success": True, "total": len(records), "data": records})
         except Exception as e:
-            return jsonify({"success": True, "total": 0, "data": [], "error": str(e)}), 200
+            db_error = str(e)
+            if 'conn' in locals():
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+
+        try:
+            local_rows = read_local_store().get('field_tracking', [])
+        except Exception as e:
+            local_rows = []
+            db_error = db_error or f"Local report store unavailable: {e}"
+
+        def report_key(record):
+            return (
+                str(record.get('kode_kebun') or record.get('estate_code') or record.get('id_kebun') or ''),
+                str(record.get('periode_siklus') or 'Q1'),
+                str(record.get('tahun_siklus') or 2026),
+                str(record.get('titik_ke') or 1)
+            )
+
+        record_by_key = {report_key(record): record for record in records}
+        local_only = {}
+        for entry in reversed(local_rows if isinstance(local_rows, list) else []):
+            if not isinstance(entry, dict):
+                continue
+            entry_code = str(entry.get('kode_kebun') or entry.get('estate_code') or '')
+            if kode_kebun and entry_code != kode_kebun:
+                continue
+            if not kode_kebun and id_kebun and str(entry.get('id_kebun') or '') != str(id_kebun):
+                continue
+            photo_url = entry.get('foto_url') or entry.get('photo_url') or ''
+            local_record = {
+                'id': entry.get('id_log'),
+                'id_log': entry.get('id_log'),
+                'id_kebun': entry.get('id_kebun'),
+                'kode_kebun': entry_code or kode_kebun,
+                'periode_siklus': entry.get('periode_siklus') or 'Q1',
+                'tahun_siklus': entry.get('tahun_siklus') or 2026,
+                'titik_ke': entry.get('titik_ke') or 1,
+                'blok': entry.get('blok') or entry.get('block_id') or 'Blok A',
+                'block_id': entry.get('block_id') or entry.get('blok') or 'Blok A',
+                'mandor': entry.get('mandor') or 'Supervisor Sutrisno',
+                'timestamp': entry.get('timestamp') or entry.get('waktu_pengambilan'),
+                'waktu_pengambilan': entry.get('waktu_pengambilan') or entry.get('timestamp'),
+                'latitude': entry.get('latitude') or entry.get('gps_lat'),
+                'longitude': entry.get('longitude') or entry.get('gps_lng'),
+                'elevasi': entry.get('elevasi') or entry.get('elevasi_dpl'),
+                'slope': entry.get('slope') or entry.get('kemiringan_lereng'),
+                'foto_url': photo_url,
+                'photos': entry.get('photos') or ([photo_url] if photo_url else []),
+                'piringan_steril_meter': entry.get('piringan_steril_meter'),
+                'defisit_tbs_persen': entry.get('defisit_tbs_persen'),
+                'cuaca': entry.get('cuaca') or entry.get('cuaca_tercatat'),
+                'ai_scan_status': entry.get('ai_scan_status') or 'not_scanned',
+                'ai_scan_result_json': entry.get('ai_scan_result_json'),
+                'bounding_boxes': entry.get('bounding_boxes') or [],
+                'sha256_seal': entry.get('sha256_seal') or entry.get('sha256'),
+                'source': 'local'
+            }
+            key = report_key(local_record)
+            existing = record_by_key.get(key)
+            if existing:
+                local_record['id'] = existing.get('id')
+                local_record['id_log'] = existing.get('id_log')
+                local_record['source'] = 'database+local'
+                existing.update(local_record)
+            else:
+                if key in local_only:
+                    local_record['id'] = local_only[key].get('id')
+                    local_record['id_log'] = local_only[key].get('id_log')
+                local_only[key] = local_record
+                record_by_key[key] = local_record
+
+        records = list(local_only.values()) + records
+        response = {"success": True, "total": len(records), "data": records}
+        if db_error:
+            response['warning'] = f"Database report query unavailable; returning local reports where available: {db_error}"
+        return jsonify(response)
 
     try:
         data = request.get_json(silent=True) or request.form.to_dict() or {}
@@ -5053,18 +5421,13 @@ def api_mobile_surveys():
 
         # Capture biophysical agronomic diagnostics
         diagnostics_data = data.get('plant_diagnostics')
-        if not diagnostics_data:
-            try:
-                from ai_service import get_deterministic_ground_truth
-                diagnostics_data = get_deterministic_ground_truth().get("plant_diagnostics")
-            except Exception:
-                diagnostics_data = None
-
         boxes_data = data.get('bounding_boxes') or []
+        scan_status = str(data.get('ai_scan_status') or 'not_scanned')
+        scan_result = data.get('ai_scan_result')
 
         # 1. Update Local JSON Store FIRST (Safety net guarantee)
         survey_entry = {
-            "id_log": len(store.get('field_tracking', [])) + 1,
+            "id_log": int(time.time() * 1000),
             "id_kebun": id_kebun,
             "kode_kebun": target_kode,
             "periode_siklus": periode,
@@ -5089,9 +5452,10 @@ def api_mobile_surveys():
             "cuaca_satellite_match": 1,
             "piringan_steril_meter": float(data.get('piringan_steril_meter', 2.0)),
             "defisit_tbs_persen": float(data.get('defisit_tbs_persen', 1.2)),
-            "ai_scan_status": "verified",
+            "ai_scan_status": scan_status,
             "plant_diagnostics": diagnostics_data,
             "bounding_boxes": boxes_data,
+            "ai_scan_result_json": json.dumps(scan_result, ensure_ascii=False) if isinstance(scan_result, dict) else None,
             "mandor": mandor,
             "block_id": blok,
             "blok": blok,
@@ -5122,6 +5486,7 @@ def api_mobile_surveys():
             ai_scan_json_str = json.dumps({
                 "plant_diagnostics": diagnostics_data,
                 "bounding_boxes": boxes_data,
+                "scan_result": scan_result,
                 "assessor_audit": {
                     "mandor": mandor,
                     "blok": blok
@@ -5130,13 +5495,13 @@ def api_mobile_surveys():
             cur.execute("""
                 INSERT OR REPLACE INTO kebun_monitoring_log 
                 (id_kebun, periode_siklus, tahun_siklus, titik_ke, gps_lat, gps_lng, elevasi_dpl, ketinggian_agl, kemiringan_lereng, view_perspective, foto_url, waktu_pengambilan, cuaca_tercatat, cuaca_satellite_match, piringan_steril_meter, defisit_tbs_persen, ai_scan_status, ai_scan_result_json, sha256_seal, kode_kebun, mandor, blok)
-                VALUES (?, ?, 2026, ?, ?, ?, ?, 120.0, 4.5, 'mobile_camera', ?, ?, ?, 1, ?, ?, 'verified', ?, ?, ?, ?, ?);
+                VALUES (?, ?, ?, ?, ?, ?, ?, 120.0, 4.5, 'mobile_camera', ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?);
             """, (
-                id_kebun, periode, int(data.get('titik_ke', 1)),
+                id_kebun, periode, int(data.get('tahun_siklus', 2026)), int(data.get('titik_ke', 1)),
                 lat, lng, elev, foto_url, ts_now, cuaca,
                 float(data.get('piringan_steril_meter', 2.0)),
                 float(data.get('defisit_tbs_persen', 1.2)),
-                ai_scan_json_str, sha_seal, target_kode, mandor, blok
+                scan_status, ai_scan_json_str, sha_seal, target_kode, mandor, blok
             ))
             conn.commit()
             conn.close()
@@ -5162,20 +5527,28 @@ def api_mobile_surveys():
                     r_b = fp.read()
                 b64_evidence = base64.b64encode(r_b).decode('utf-8')
                 evidence_hash = hashlib.sha256(r_b).hexdigest()
-        
-        if not b64_evidence:
-            fallback_img = os.path.join(ROOT_DIR, 'static', 'img', 'field_tm_weed.jpg')
-            if os.path.exists(fallback_img):
-                with open(fallback_img, 'rb') as fp:
-                    r_b = fp.read()
-                b64_evidence = base64.b64encode(r_b).decode('utf-8')
-                evidence_hash = hashlib.sha256(r_b).hexdigest()
+        elif foto_url and '/api/media/evidence/' in str(foto_url):
+            source_id = str(foto_url).split('/api/media/evidence/', 1)[1].split('?', 1)[0].replace('.jpg', '')
+            source_conn = get_pure_db_connection()
+            try:
+                source_row = source_conn.execute(
+                    "SELECT image_raw_base64, image_base64 FROM inspection_evidence WHERE evidence_id = ? OR id = ? LIMIT 1;",
+                    (source_id, source_id)
+                ).fetchone()
+                if source_row:
+                    source_b64 = source_row['image_raw_base64'] or source_row['image_base64'] or ''
+                    if ',' in source_b64:
+                        source_b64 = source_b64.split(',', 1)[1]
+                    if source_b64:
+                        image_bytes = base64.b64decode(source_b64)
+                        b64_evidence = base64.b64encode(image_bytes).decode('utf-8')
+                        evidence_hash = hashlib.sha256(image_bytes).hexdigest()
+            except Exception as e_source:
+                print(f"[Mobile Evidence Source Read Notice]: {e_source}")
+            finally:
+                source_conn.close()
 
-        entities_mandor = boxes_data if boxes_data else [
-            {"label": "Palm Trunk Left", "box_2d": [300, 50, 900, 250], "cluster": "palm_anatomy", "confidence": 0.98},
-            {"label": "3.79m Alley Floor", "box_2d": [450, 260, 900, 740], "cluster": "alley_corridor", "confidence": 0.95},
-            {"label": "2.0m Sterile Root Ring", "box_2d": [650, 80, 880, 320], "cluster": "root_buffer", "confidence": 0.99}
-        ]
+        entities_mandor = boxes_data if isinstance(boxes_data, list) else []
 
         conn_p = get_pure_db_connection()
         try:
@@ -5710,113 +6083,578 @@ def api_parse_deed_document_ai():
         pass
     return jsonify({"success": True, "entities": parsed_entities}), 200
 
+def _yield_input_provenance(data, inputs):
+    provenance = {
+        "source": "USER_PROVIDED_UNVERIFIED",
+        "status": "SCENARIO_PROJECTION",
+        "field_measurement_verified": False,
+    }
+    declaration = data.get("yield_reference")
+    if not isinstance(declaration, dict):
+        return provenance
+
+    declared_crop = declaration.get("crop_key")
+    if (
+        declaration.get("source") != "CLIENT_GENERATED_SCENARIO_REFERENCE"
+        or declaration.get("model") != "logistic_age_crop_benchmark"
+        or declaration.get("model_version") != "2"
+        or not declared_crop
+    ):
+        return provenance
+
+    try:
+        age = float(inputs["palm_age"])
+        benchmark = resolve_crop_yield_benchmark(declared_crop)
+        crop_key = benchmark["crop_key"]
+        if crop_key == "default" and declared_crop != "default":
+            return provenance
+        input_crop_name = inputs.get("crop_name")
+        if input_crop_name and resolve_crop_yield_benchmark(input_crop_name)["crop_key"] != crop_key:
+            return provenance
+        expected = calculate_crop_yield_scenario(age, crop_key)
+        expected_values = {
+            field: expected[field]
+            for field in (
+                "yield_palm_inter",
+                "yield_palm_mono",
+                "yield_crop_inter",
+                "yield_crop_mono",
+            )
+        }
+        if any(
+            inputs.get(field) is None or abs(float(inputs[field]) - value) >= 0.011
+            for field, value in expected_values.items()
+        ):
+            return provenance
+    except (KeyError, TypeError, ValueError, OverflowError):
+        return provenance
+
+    return {
+        "source": "CLIENT_GENERATED_SCENARIO_REFERENCE",
+        "status": "SCENARIO_PROJECTION",
+        "model": expected["model"],
+        "model_version": expected["model_version"],
+        "crop_key": crop_key,
+        "age_years": age,
+        "estimated_values_t_ha": expected_values,
+        "assumptions": {
+            "palm_logistic_asymptote_t_ha": 26.5,
+            "palm_logistic_growth_rate": 0.65,
+            "palm_logistic_midpoint_age_years": 3.5,
+            "palm_intercrop_penalty_pct": expected["penalty_pct"],
+        },
+        "field_measurement_verified": False,
+    }
+
+
+def _calculate_simulation_from_engine(data, allow_partial=False):
+    required_yields = (
+        'yield_palm_inter',
+        'yield_palm_mono',
+        'yield_crop_inter',
+        'yield_crop_mono',
+    )
+    yield_aliases = {
+        "yield_palm_inter": "yield_palm_inter_t_ha_period",
+        "yield_palm_mono": "yield_palm_mono_t_ha_period",
+        "yield_crop_inter": "yield_crop_inter_t_ha_period",
+        "yield_crop_mono": "yield_crop_mono_t_ha_period",
+    }
+
+    def input_value(field, alias=None):
+        value = data.get(field)
+        return data.get(alias) if value in (None, '') and alias else value
+
+    missing = [
+        field for field in required_yields
+        if input_value(field, yield_aliases[field]) in (None, '')
+    ]
+    if missing and not allow_partial:
+        return None, {
+            "success": False,
+            "message": "Provide all four comparable yield inputs before calculating or committing LER; their field provenance is not verified by this API.",
+            "missing_fields": missing,
+        }, 422
+
+    kode = str(data.get('kode_kebun') or data.get('estate_code') or 'EST-MDN-010').strip()
+    conn = get_db()
+    try:
+        row = conn.execute(
+            """SELECT id_kebun, kode_kebun, nama_kebun, luas_ha, umur_sawit,
+                      centroid_lat, centroid_lng, soil_ph, slope, elevation,
+                      soil_texture, komoditas_sela
+               FROM kebun_profil WHERE kode_kebun = ?""",
+            (kode,),
+        ).fetchone()
+        profile = dict(row) if row else None
+    finally:
+        conn.close()
+    if not profile:
+        return None, {"success": False, "message": f"Profil estate {kode} tidak ditemukan di database lokal."}, 404
+
+    try:
+        palm_age_value = data.get('palm_age', data.get('palm_age_years'))
+        land_area_value = data.get('land_area', data.get('land_area_ha'))
+        palm_age = float(palm_age_value if palm_age_value not in (None, '') else profile['umur_sawit'])
+        land_area = float(land_area_value if land_area_value not in (None, '') else profile['luas_ha'])
+        soil_ph_value = input_value('soil_ph')
+        slope_value = input_value('slope', 'slope_degrees')
+        elevation_value = input_value('elevation', 'elevation_m_asl')
+        soil_ph = float(soil_ph_value if soil_ph_value not in (None, '') else profile['soil_ph'])
+        slope = float(slope_value if slope_value not in (None, '') else profile['slope'])
+        elevation = float(elevation_value if elevation_value not in (None, '') else profile['elevation'])
+        yields = {
+            field: float(input_value(field, yield_aliases[field]))
+            if input_value(field, yield_aliases[field]) not in (None, '') else None
+            for field in required_yields
+        }
+    except (TypeError, ValueError, KeyError) as exc:
+        return None, {"success": False, "message": f"Input simulasi tidak valid: {exc}"}, 400
+
+    if palm_age <= 0 or land_area <= 0 or land_area > float(profile['luas_ha']):
+        return None, {
+            "success": False,
+            "message": "Umur dan luas simulasi harus positif; luas tidak boleh melebihi luas estate terdaftar.",
+            "estate_area_ha": profile['luas_ha'],
+        }, 422
+    invalid_yields = [field for field, value in yields.items() if value is not None and value <= 0]
+    if invalid_yields:
+        return None, {
+            "success": False,
+            "message": "Nilai hasil panen yang diisi harus lebih besar dari nol.",
+            "invalid_fields": invalid_yields,
+        }, 422
+
+    crop_name = str(data.get('crop_name') or profile.get('komoditas_sela') or '').strip()
+    soil_texture = str(data.get('soil_texture') or profile.get('soil_texture') or '').strip()
+    if not crop_name or not soil_texture:
+        return None, {"success": False, "message": "Nama tanaman sela atau tekstur tanah belum tersedia pada sumber data."}, 422
+
+    canopy_res = calculate_canopy_transmission(palm_age_years=palm_age)
+    geometry_res = calculate_canopy_geometry()
+    yields_complete = not missing
+    ler_res = None
+    climate_res = None
+    comparator_res = None
+    if yields_complete:
+        ler_res = calculate_ler(
+            yield_palm_intercrop=yields['yield_palm_inter'],
+            yield_palm_monoculture=yields['yield_palm_mono'],
+            yield_intercrop_actual=yields['yield_crop_inter'],
+            yield_intercrop_monoculture=yields['yield_crop_mono'],
+        )
+        climate_res = calculate_avoided_deforestation(
+            land_area_ha=land_area,
+            total_ler=ler_res['total_ler'],
+        )
+        climate_res["avoided_deforestation_ha"] = climate_res["avoided_land_ha"]
+        climate_res["carbon_mitigation_tco2e"] = climate_res["avoided_emission_tco2e"]
+        climate_res["eudr_article_9_status"] = "NOT_ASSESSED"
+        comparator_res = calculate_land_efficiency_comparator(
+            land_area_ha=land_area,
+            total_ler=ler_res['total_ler'],
+        )
+    npk_res = None
+    if yields['yield_crop_inter'] is not None:
+        npk_res = calculate_npk_balance(
+            crop_type=crop_name,
+            companion_yield_ton_ha=yields['yield_crop_inter'],
+            land_area_ha=land_area,
+        )
+    bioclimatic_res = calculate_bioclimatic_soil_suitability(
+        soil_ph=soil_ph,
+        slope_degrees=slope,
+        elevation_asl_m=elevation,
+        soil_texture=soil_texture,
+    )
+    benchmarks = calculate_biophysical_benchmarks(
+        palm_age_years=palm_age,
+        geometry=geometry_res,
+        total_ler=ler_res['total_ler'] if ler_res else None,
+        land_area_ha=land_area,
+    )
+    carbon_price_usd = None
+    carbon_price_config_status = "DATA_PENDING"
+    try:
+        configured_carbon_price = get_app_setting('carbon_price_usd', '12.0')
+        parsed_carbon_price = float(configured_carbon_price)
+        if math.isfinite(parsed_carbon_price) and parsed_carbon_price >= 0:
+            carbon_price_usd = parsed_carbon_price
+            carbon_price_config_status = "CONFIGURED"
+    except (TypeError, ValueError):
+        pass
+
+    metric_statuses = {
+        "par": "DETERMINISTIC_MODEL",
+        "canopy_geometry": "SCENARIO_PROJECTION",
+        "ler": "DETERMINISTIC_MODEL" if ler_res else "DATA_PENDING",
+        "pls": "DETERMINISTIC_MODEL" if ler_res else "DATA_PENDING",
+        "avoided_land": "SCENARIO_PROJECTION" if climate_res else "DATA_PENDING",
+        "climate_benefit": "SCENARIO_PROJECTION" if climate_res else "DATA_PENDING",
+        "suitability": "DETERMINISTIC_MODEL",
+        "economic_valuation": (
+            "SCENARIO_PROJECTION"
+            if climate_res and carbon_price_usd is not None and carbon_price_usd > 0
+            else "DATA_PENDING"
+        ),
+        "hydrology": "SCENARIO_PROJECTION",
+        "biophysical_benchmarks": "SCENARIO_PROJECTION",
+        "biocircularity": "SCENARIO_PROJECTION",
+        "yield_inputs": "SCENARIO_PROJECTION" if not missing else "DATA_PENDING",
+        "profile_inputs": "DATA_PENDING",
+    }
+    canopy_res["status"] = metric_statuses["par"]
+    canopy_res["input_status"] = metric_statuses["profile_inputs"]
+    geometry_res["status"] = metric_statuses["canopy_geometry"]
+    geometry_res["methodology_note"] = "Standard 9 m triangular spacing and 2 m root buffer model; estate-specific layout survey not supplied."
+    geometry_res["input_status"] = metric_statuses["profile_inputs"]
+    bioclimatic_res["status"] = metric_statuses["suitability"]
+    bioclimatic_res["input_status"] = metric_statuses["profile_inputs"]
+    if ler_res:
+        ler_res["status"] = metric_statuses["ler"]
+        ler_res["input_status"] = metric_statuses["yield_inputs"]
+    if climate_res:
+        climate_res["status"] = metric_statuses["climate_benefit"]
+        climate_res["input_status"] = metric_statuses["yield_inputs"]
+        climate_res["eudr_article_9_status"] = "NOT_ASSESSED"
+    if comparator_res:
+        comparator_res["status"] = metric_statuses["avoided_land"]
+    if npk_res:
+        npk_res["status"] = "SCENARIO_PROJECTION"
+        npk_res["input_status"] = metric_statuses["yield_inputs"]
+    return {
+        "profile": profile,
+        "engine_version": "kalkulasi.engine-v1",
+        "metric_statuses": metric_statuses,
+        "inputs": {
+            "palm_age": palm_age,
+            "land_area": land_area,
+            "crop_name": crop_name,
+            **yields,
+            "soil_ph": soil_ph,
+            "slope": slope,
+            "elevation": elevation,
+            "soil_texture": soil_texture,
+        },
+        "missing_inputs": missing,
+        "data_numerik": {
+            "analisis_cahaya_kanopi": canopy_res,
+            "geometri_kanopi_spasial": geometry_res,
+            "efisiensi_lahan_ler": ler_res,
+            "dampak_lingkungan_dan_karbon": climate_res,
+            "komparasi_efisiensi_lahan": comparator_res,
+            "neraca_hara_npk": npk_res,
+            "kesesuaian_bioklimat_dan_tanah": bioclimatic_res,
+            "benchmark_biofisika": benchmarks,
+            "valuasi_ekonomi_dan_karbon": {
+                "scenario_carbon_price_usd_per_tco2e": carbon_price_usd,
+                "carbon_price_config_status": carbon_price_config_status,
+                "estimated_carbon_tco2e": (
+                    climate_res["total_climate_benefit_tco2e"] if climate_res else None
+                ),
+                "carbon_value_usd": (
+                    round(climate_res["total_climate_benefit_tco2e"] * carbon_price_usd, 2)
+                    if climate_res and carbon_price_usd is not None and carbon_price_usd > 0 else None
+                ),
+                "status": metric_statuses["economic_valuation"],
+                "methodology_note": (
+                    "Scenario valuation only; the configured carbon price is not a verified market quote or offtake contract. "
+                    "Crop revenue is excluded because verified crop prices and costs were not supplied."
+                    if carbon_price_config_status == "CONFIGURED" else
+                    "Carbon valuation is unavailable because the configured carbon price is invalid or missing. "
+                    "Crop revenue is excluded because verified crop prices and costs were not supplied."
+                ),
+            },
+        },
+    }, None, 200
+
+
+@app.route('/api/simulate/profile', methods=['GET'])
+def simulator_estate_profile():
+    kode = str(request.args.get('kode') or 'EST-MDN-010').strip()
+    conn = get_db()
+    try:
+        row = conn.execute(
+            """SELECT id_kebun, kode_kebun, nama_kebun, luas_ha, umur_sawit,
+                      centroid_lat, centroid_lng, soil_ph, slope, elevation,
+                      soil_texture, komoditas_sela, dokumen_hgu_url
+               FROM kebun_profil WHERE kode_kebun = ?""",
+            (kode,),
+        ).fetchone()
+    finally:
+        conn.close()
+    if not row:
+        return jsonify({"success": False, "message": f"Profil estate {kode} tidak ditemukan."}), 404
+    return jsonify({"success": True, "profile": dict(row), "source": "precision_palm.db:kebun_profil"})
+
+
+@app.route('/api/simulate/compute', methods=['POST'])
+def preview_simulation():
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    result, error, status_code = _calculate_simulation_from_engine(data, allow_partial=True)
+    if error:
+        return jsonify(error), status_code
+    return jsonify({"success": True, "calculation_engine": "kalkulasi.engine", **result})
+
+
 @app.route('/api/simulate', methods=['POST', 'OPTIONS'])
 @app.route('/api/ai/infer', methods=['POST', 'OPTIONS'])
 def run_simulation():
     if request.method == 'OPTIONS':
         return ('', 204)
     data = request.get_json(silent=True) or request.form.to_dict() or {}
-    palm_age = float(data.get('palm_age', 6.0))
-    land_area = float(data.get('land_area', 100.0))
-    crop_name = data.get('crop_name', 'Red Ginger (Zingiber officinale var. rubrum)')
-    y_palm_inter = float(data.get('yield_palm_inter', 21.0))
-    y_palm_mono = float(data.get('yield_palm_mono', 22.0))
-    y_crop_inter = float(data.get('yield_crop_inter', 7.5))
-    y_crop_mono = float(data.get('yield_crop_mono', 15.0))
-    soil_ph = float(data.get('soil_ph', 5.5))
-    soil_texture = str(data.get('soil_texture', 'sandy_loam'))
+    idempotency_key = str(request.headers.get('Idempotency-Key') or '').strip()
+    if not re.fullmatch(r'[A-Za-z0-9._:-]{16,128}', idempotency_key):
+        return jsonify({
+            "success": False,
+            "commit_status": "NOT_COMMITTED",
+            "error": {
+                "code": "IDEMPOTENCY_KEY_REQUIRED",
+                "message": "Send a unique Idempotency-Key (16-128 safe characters) to commit this simulation.",
+            },
+        }), 400
 
-    canopy_res = calculate_canopy_transmission(palm_age_years=palm_age)
-    geometry_res = calculate_canopy_geometry(palm_age_years=palm_age, planting_density=136)
-    ler_res = calculate_ler(yield_palm_intercrop=y_palm_inter, yield_palm_monoculture=y_palm_mono, yield_intercrop_actual=y_crop_inter, yield_intercrop_monoculture=y_crop_mono)
-    climate_res = calculate_avoided_deforestation(land_area_ha=land_area, total_ler=ler_res['total_ler'])
-    comparator_res = calculate_land_efficiency_comparator(land_area_ha=land_area, total_ler=ler_res['total_ler'])
-    economic_res = calculate_economic_valuation(crop_type=crop_name, intercrop_yield_ton_ha=y_crop_inter, land_area_ha=land_area, carbon_benefit_tco2e=climate_res['total_climate_benefit_tco2e'])
-    npk_res = calculate_npk_balance(crop_type=crop_name, palm_age_years=palm_age, land_area_ha=land_area)
-    bioclimatic_res = calculate_bioclimatic_soil_suitability(soil_ph=soil_ph, soil_texture=soil_texture)
+    missing_identity_inputs = []
+    if not (data.get("kode_kebun") or data.get("estate_code")):
+        missing_identity_inputs.append("kode_kebun")
+    if data.get("palm_age") in (None, "") and data.get("palm_age_years") in (None, ""):
+        missing_identity_inputs.append("palm_age_years")
+    if data.get("land_area") in (None, "") and data.get("land_area_ha") in (None, ""):
+        missing_identity_inputs.append("land_area_ha")
+    if missing_identity_inputs:
+        return jsonify({
+            "success": False,
+            "commit_status": "NOT_COMMITTED",
+            "error": {
+                "code": "REQUIRED_INPUTS_MISSING",
+                "message": "Estate code, palm age, and simulation land area must be explicit for a permanent dossier.",
+                "fields": missing_identity_inputs,
+            },
+        }), 422
 
-    now_wib = get_wib_now()
-    raw_hash_seed = f"COMPUTE|AGE:{palm_age}|AREA:{land_area}|CROP:{crop_name}|LER:{ler_res['total_ler']}|TIME:{now_wib}"
-    sha256_seal = hashlib.sha256(raw_hash_seed.encode('utf-8')).hexdigest().upper()
+    calculation, error, status_code = _calculate_simulation_from_engine(data)
+    if error:
+        missing_fields = error.get("missing_fields", error.get("invalid_fields", []))
+        canonical_field_names = {
+            "yield_palm_inter": "yield_palm_inter_t_ha_period",
+            "yield_palm_mono": "yield_palm_mono_t_ha_period",
+            "yield_crop_inter": "yield_crop_inter_t_ha_period",
+            "yield_crop_mono": "yield_crop_mono_t_ha_period",
+        }
+        return jsonify({
+            **error,
+            "success": False,
+            "commit_status": "NOT_COMMITTED",
+            "error": {
+                "code": "DATA_PENDING" if error.get("missing_fields") else "VALIDATION_FAILED",
+                "message": error.get("message", "Simulation validation failed."),
+                "fields": [canonical_field_names.get(field, field) for field in missing_fields],
+            },
+        }), status_code
+
+    profile = calculation['profile']
+    inputs = calculation['inputs']
+    numeric = calculation['data_numerik']
+    metric_statuses = calculation['metric_statuses']
+    engine_version = calculation['engine_version']
+    yield_provenance = _yield_input_provenance(data, inputs)
+    canopy_res = numeric['analisis_cahaya_kanopi']
+    geometry_res = numeric['geometri_kanopi_spasial']
+    ler_res = numeric['efisiensi_lahan_ler']
+    climate_res = numeric['dampak_lingkungan_dan_karbon']
+    comparator_res = numeric['komparasi_efisiensi_lahan']
+    npk_res = numeric['neraca_hara_npk']
+    bioclimatic_res = numeric['kesesuaian_bioklimat_dan_tanah']
+    palm_age = inputs['palm_age']
+    land_area = inputs['land_area']
+    crop_name = inputs['crop_name']
+    y_palm_inter = inputs['yield_palm_inter']
+    y_palm_mono = inputs['yield_palm_mono']
+    y_crop_inter = inputs['yield_crop_inter']
+    y_crop_mono = inputs['yield_crop_mono']
+    soil_ph = inputs['soil_ph']
+    soil_texture = inputs['soil_texture']
+
+    if data.get('id_kebun') not in (None, '') and str(data.get('id_kebun')) != str(profile['id_kebun']):
+        return jsonify({
+            "success": False,
+            "commit_status": "NOT_COMMITTED",
+            "error": {
+                "code": "ESTATE_MISMATCH",
+                "message": "The submitted estate ID does not match the authoritative estate profile.",
+                "fields": ["id_kebun", "kode_kebun"],
+            },
+        }), 422
 
     # Parse photo_urls from multi-photo selection
-    raw_photo_urls = data.get('photo_urls') or ([data.get('image_sample')] if data.get('image_sample') else ['sawit_drone.jpg'])
+    raw_photo_urls = data.get('photo_urls') or ([data.get('image_sample')] if data.get('image_sample') else [])
     if isinstance(raw_photo_urls, (list, tuple, set)):
         photo_urls = list(raw_photo_urls)
     else:
         photo_urls = [str(raw_photo_urls)]
 
-    # Compute key biophysical metrics for persistent dossier
-    palm_agb = round(92.4 * ((max(1.0, palm_age) / 6.0) ** 0.6), 1)
-    comp_agb = 36.0
-    total_agb = round(palm_agb + comp_agb, 1)
-    cover_pct = float(geometry_res.get('canopy_cover_percentage', 65.4))
-    delta_temp = round(-3.8 * (cover_pct / 100.0), 1)
-    sponge_boost = 12.8 if ler_res.get('total_ler', 1.0) > 1.0 else 7.7
-    vwc_total = round(22.0 + sponge_boost, 1)
-    annual_rain = 2188.0
-    cn_post = round(82.0 - (18.0 * (1.0 if ler_res.get('total_ler', 1.0) > 1.0 else 0.5)))
-    recharge_per_ha = round((annual_rain * (1.0 - (cn_post / 100.0))) * 10.0 * (1.25 if ler_res.get('total_ler', 1.0) > 1.0 else 1.0))
-    fronds_per_ha = round(10.8 * (1.0 if palm_age > 4.0 else 0.6), 1)
-    k_recovered_kg = round(fronds_per_ha * 3.35, 1)
-    econ_total = float(economic_res.get('total_economic_benefit_usd', 4900.0))
+    cover_pct = geometry_res.get('canopy_cover_pct')
 
     # Determine active engine mode and audit verification status message
     raw_engine_mode = data.get('engine_mode')
     if not raw_engine_mode:
         ai_reas = data.get('ai_reasoning')
-        if isinstance(ai_reas, dict) and ai_reas.get('mode') == 'AUTONOMOUS_RULE_ENGINE':
+        ai_mode = ai_reas.get('mode') if isinstance(ai_reas, dict) else None
+        if ai_mode == 'AUTONOMOUS_RULE_ENGINE' or (
+            isinstance(ai_reas, dict) and ai_reas.get('is_fallback') and ai_mode != 'LOCAL_PREVIEW'
+        ):
             raw_engine_mode = "AUTONOMOUS_STATUTORY_RULE_ENGINE"
         elif isinstance(ai_reas, str) and ('PPKS' in ai_reas or 'Autonomous Statutory' in ai_reas or 'Baku Silvikultur' in ai_reas):
             raw_engine_mode = "AUTONOMOUS_STATUTORY_RULE_ENGINE"
-        else:
+        elif ai_mode == 'LIVE_GEMINI':
             raw_engine_mode = "LIVE_GEMINI"
+        elif ai_mode == 'LOCAL_PREVIEW':
+            raw_engine_mode = "LOCAL_BIOPHYSICAL_ENGINE"
+        else:
+            raw_engine_mode = "LOCAL_BIOPHYSICAL_ENGINE"
     engine_mode = str(raw_engine_mode)
     if engine_mode == "AUTONOMOUS_STATUTORY_RULE_ENGINE":
-        status_message = data.get('status_message') or "[AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)"
+        status_message = "Client advisory fallback reported; numeric values were recalculated by kalkulasi.engine."
+    elif engine_mode == "LIVE_GEMINI":
+        status_message = "Client reports a live Gemini advisory; it was not independently verified by this commit endpoint. Numeric values were recalculated by kalkulasi.engine."
     else:
-        status_message = data.get('status_message') or "Verified via Gemini Multimodal Inference"
+        status_message = "No independently verified AI advisory; numeric values were recalculated by kalkulasi.engine."
 
-    record_id = None
+    server_coords = f"{profile['centroid_lat']}, {profile['centroid_lng']}"
+    snapshot_base = {
+        "schema_version": "simulator-dossier-v1",
+        "estate": {
+            "id_kebun": profile["id_kebun"],
+            "kode_kebun": profile["kode_kebun"],
+            "profile_source": "precision_palm.db:kebun_profil",
+            "profile_snapshot": {
+                "nama_kebun": profile["nama_kebun"],
+                "luas_ha": profile["luas_ha"],
+                "umur_sawit": profile["umur_sawit"],
+                "centroid_lat": profile["centroid_lat"],
+                "centroid_lng": profile["centroid_lng"],
+                "soil_ph": profile["soil_ph"],
+                "slope": profile["slope"],
+                "elevation": profile["elevation"],
+                "soil_texture": profile["soil_texture"],
+                "komoditas_sela": profile["komoditas_sela"],
+            },
+        },
+        "calculation": {
+            "engine": "kalkulasi.engine",
+            "engine_version": engine_version,
+            "inputs": inputs,
+            "input_status": metric_statuses["yield_inputs"],
+            "yield_input_provenance": yield_provenance,
+            "metrics": numeric,
+            "metric_statuses": metric_statuses,
+        },
+        "evidence": {
+            "image_sample": data.get("image_sample"),
+            "photo_urls": photo_urls,
+            "vision_summary": data.get("vision_summary"),
+            "provenance_status": "DATA_PENDING",
+            "notice": "Client-supplied image and vision metadata are retained as references, not independently verified field measurements.",
+        },
+        "advisory": {
+            "provider": "CLIENT_REPORTED",
+            "client_reported_mode": engine_mode,
+            "status": "CLIENT_SUPPLIED_UNVERIFIED",
+            "content": data.get("ai_reasoning"),
+        },
+        "assumptions": {
+            "climate_benefit_status": metric_statuses["climate_benefit"],
+            "economic_valuation_status": metric_statuses["economic_valuation"],
+            "hydrology_status": metric_statuses["hydrology"],
+            "biocircularity_status": metric_statuses["biocircularity"],
+        },
+    }
+    payload_for_fingerprint = {
+        "estate": snapshot_base["estate"],
+        "calculation": snapshot_base["calculation"],
+        "evidence": snapshot_base["evidence"],
+        "advisory": snapshot_base["advisory"],
+    }
+    payload_json = json.dumps(payload_for_fingerprint, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    payload_fingerprint = hashlib.sha256(payload_json.encode("utf-8")).hexdigest().upper()
+
     try:
-        record_id = save_simulation_record(
+        commit = save_simulation_record(
             palm_age=palm_age, land_area=land_area, crop_name=crop_name,
             leaf_area_index=canopy_res.get('leaf_area_index', 0.0), surface_par=canopy_res.get('surface_par_umol_m2_s', 0.0),
-            total_ler=ler_res.get('total_ler', 0.0), avoided_land_ha=climate_res.get('avoided_land_ha', 0.0),
-            total_climate_benefit_tco2e=climate_res.get('total_climate_benefit_tco2e', 0.0), sha256_hash=sha256_seal,
+            total_ler=ler_res['total_ler'], pls_percentage=ler_res['percentage_land_saved'],
+            avoided_land_ha=climate_res.get('avoided_land_ha'),
+            total_climate_benefit_tco2e=climate_res.get('total_climate_benefit_tco2e', 0.0), sha256_hash=None,
             ai_response_json=data.get('ai_reasoning'),
             image_path=data.get('image_sample'),
             photo_urls=photo_urls,
-            coords=data.get('coords', '0.824100, 99.561200'),
-            slope=float(data.get('slope', 4.5)),
-            elevation=float(data.get('elevation', 220.0)),
+            coords=server_coords,
+            slope=inputs['slope'],
+            elevation=inputs['elevation'],
             soil_ph=soil_ph,
             soil_texture=soil_texture,
             ai_reasoning=data.get('ai_reasoning'),
             vision_summary=data.get('vision_summary'),
             canopy_cover=cover_pct,
-            biomass_t_ha=total_agb,
-            microclimate_cooling=delta_temp,
-            soil_moisture_vwc=vwc_total,
-            recharge_m3_ha=recharge_per_ha,
-            potassium_recovered_kg=k_recovered_kg,
-            economic_benefit_usd=econ_total,
+            biomass_t_ha=None,
+            microclimate_cooling=None,
+            soil_moisture_vwc=None,
+            recharge_m3_ha=None,
+            potassium_recovered_kg=None,
+            economic_benefit_usd=None,
             engine_mode=engine_mode,
-            status_message=status_message
+            status_message=status_message,
+            calculation_inputs=inputs,
+            data_numerik=numeric,
+            idempotency_key=idempotency_key,
+            idempotency_payload_hash=payload_fingerprint,
+            canonical_snapshot=snapshot_base,
+            return_commit_metadata=True,
         )
-    except Exception as e_sql:
-        print(f"[Sim SQLite Warning]: {e_sql}")
-    # Consistent sequential simulation ID assignment fallback if DB write failed
-    if not record_id:
-        try:
-            store = read_local_store()
-            existing_sim_ids = [int(s.get('id')) for s in store.get('simulator_history', []) if str(s.get('id', '')).isdigit()]
-            if existing_sim_ids and max(existing_sim_ids) >= 90000:
-                record_id = max(existing_sim_ids) + 1
-            else:
-                record_id = 90292
-        except Exception:
-            record_id = 90292
+    except ValueError as e_idempotency:
+        return jsonify({
+            "success": False,
+            "commit_status": "NOT_COMMITTED",
+            "error": {"code": "IDEMPOTENCY_CONFLICT", "message": str(e_idempotency), "fields": []},
+        }), 409
+    except Exception:
+        logger.exception("Simulation SQLite commit failed")
+        return jsonify({
+            "success": False,
+            "commit_status": "COMMIT_STATUS_UNKNOWN",
+            "error": {
+                "code": "LEDGER_COMMIT_FAILED",
+                "message": "The server could not confirm whether the SQLite transaction committed. Reconcile using the same Idempotency-Key.",
+                "fields": [],
+            },
+        }), 500
+
+    record_id = commit["record_id"]
+    sha256_seal = commit["sha256"]
+    committed_at = commit["committed_at"]
+    now_wib = get_wib_now()
+    if commit.get("idempotent_replay"):
+        return jsonify({
+            "success": True,
+            "commit_status": "COMMITTED",
+            "status": "success",
+            "id": record_id,
+            "record_id": record_id,
+            "sha256_seal": sha256_seal,
+            "timestamp": committed_at,
+            "ledger": {
+                "authority": "LOCAL_SQLITE",
+                "record_id": record_id,
+                "committed_at": committed_at,
+                "sha256": sha256_seal,
+                "idempotency_key": idempotency_key,
+            },
+            "cloud_sync": {"status": commit["cloud_sync_status"], "target": "BIGQUERY"},
+            "calculation_engine": "kalkulasi.engine",
+            "engine_version": engine_version,
+            "data_numerik": numeric,
+            "metric_statuses": metric_statuses,
+        }), 200
 
     # Persist complete simulation package to store['simulator_history']
     try:
@@ -5824,32 +6662,38 @@ def run_simulation():
         sim_history = store.setdefault('simulator_history', [])
         new_sim_record = {
             "id": record_id,
-            "created_at": now_wib,
-            "id_kebun": data.get('id_kebun', 10),
-            "kode_kebun": data.get('kode_kebun', 'EST-MDN-010'),
+            "created_at": committed_at,
+            "id_kebun": profile['id_kebun'],
+            "kode_kebun": profile['kode_kebun'],
             "palm_age": palm_age,
             "land_area": land_area,
             "crop_name": crop_name,
-            "total_ler": ler_res.get('total_ler', 0.0),
+            "calculation_inputs": inputs,
+            "data_numerik": numeric,
+            "total_ler": ler_res['total_ler'],
+            "percentage_land_saved": ler_res['percentage_land_saved'],
             "avoided_land_ha": climate_res.get('avoided_land_ha', 0.0),
             "total_climate_benefit_tco2e": climate_res.get('total_climate_benefit_tco2e', 0.0),
             "leaf_area_index": canopy_res.get('leaf_area_index', 0.0),
             "surface_par": canopy_res.get('surface_par_umol_m2_s', 0.0),
             "canopy_cover": cover_pct,
-            "biomass_t_ha": total_agb,
-            "microclimate_cooling": delta_temp,
-            "soil_moisture_vwc": vwc_total,
-            "recharge_m3_ha": recharge_per_ha,
-            "potassium_recovered_kg": k_recovered_kg,
-            "economic_benefit_usd": econ_total,
+            "biomass_t_ha": None,
+            "microclimate_cooling": None,
+            "soil_moisture_vwc": None,
+            "recharge_m3_ha": None,
+            "potassium_recovered_kg": None,
+            "economic_benefit_usd": None,
             "sha256": sha256_seal,
+            "metric_statuses": metric_statuses,
+            "yield_input_provenance": yield_provenance,
+            "cloud_sync_status": "NOT_CONFIGURED",
             "vision_summary": data.get('vision_summary', {}),
             "ai_reasoning": data.get('ai_reasoning', {}),
-            "image_sample": data.get('image_sample', 'sawit_drone.jpg'),
+            "image_sample": data.get('image_sample'),
             "photo_urls": photo_urls,
-            "coords": data.get('coords', '0.824100, 99.561200'),
-            "slope": float(data.get('slope', 4.5)),
-            "elevation": float(data.get('elevation', 220.0)),
+            "coords": server_coords,
+            "slope": inputs['slope'],
+            "elevation": inputs['elevation'],
             "soil_ph": soil_ph,
             "soil_texture": soil_texture,
             "engine_mode": engine_mode,
@@ -5876,16 +6720,70 @@ def run_simulation():
         pass
 
     return jsonify({
-        "success": True, "status": "success", "id": record_id, "record_id": record_id, "sha256_seal": sha256_seal, "timestamp": now_wib,
+        "success": True,
+        "commit_status": "COMMITTED",
+        "status": "success",
+        "id": record_id,
+        "record_id": record_id,
+        "sha256_seal": sha256_seal,
+        "timestamp": committed_at,
+        "ledger": {
+            "authority": "LOCAL_SQLITE",
+            "record_id": record_id,
+            "committed_at": committed_at,
+            "sha256": sha256_seal,
+            "idempotency_key": idempotency_key,
+        },
+        "cloud_sync": {"status": "NOT_CONFIGURED", "target": "BIGQUERY"},
         "engine_mode": engine_mode,
         "status_message": status_message,
-        "data_numerik": {
-            "analisis_cahaya_kanopi": canopy_res, "geometri_kanopi_spasial": geometry_res,
-            "efisiensi_lahan_ler": ler_res, "dampak_lingkungan_dan_karbon": climate_res,
-            "komparasi_efisiensi_lahan": comparator_res, "valuasi_ekonomi_dan_karbon": economic_res,
-            "neraca_hara_npk": npk_res, "kesesuaian_bioklimat_dan_tanah": bioclimatic_res
-        }
-    })
+        "calculation_engine": "kalkulasi.engine",
+        "engine_version": engine_version,
+        "data_numerik": numeric,
+        "metric_statuses": metric_statuses,
+        "yield_input_provenance": yield_provenance,
+    }), 201
+
+
+@app.route('/api/simulate/commit-status', methods=['GET'])
+def simulation_commit_status():
+    idempotency_key = str(request.headers.get('Idempotency-Key') or '').strip()
+    if not re.fullmatch(r'[A-Za-z0-9._:-]{16,128}', idempotency_key):
+        return jsonify({
+            "success": False,
+            "commit_status": "UNKNOWN",
+            "message": "A valid Idempotency-Key is required for reconciliation.",
+        }), 400
+    conn = get_db()
+    try:
+        row = conn.execute(
+            """SELECT id, sha256_hash, created_at, sync_bigquery, canonical_snapshot_json
+               FROM compute_audit_logs WHERE idempotency_key = ?""",
+            (idempotency_key,),
+        ).fetchone()
+    except sqlite3.Error:
+        logger.exception("Simulation commit reconciliation failed")
+        return jsonify({"success": False, "commit_status": "UNKNOWN"}), 503
+    finally:
+        conn.close()
+    if not row:
+        return jsonify({"success": True, "commit_status": "NOT_COMMITTED"}), 200
+    return jsonify({
+        "success": True,
+        "commit_status": "COMMITTED",
+        "ledger": {
+            "authority": "LOCAL_SQLITE",
+            "record_id": row["id"],
+            "committed_at": row["created_at"],
+            "sha256": row["sha256_hash"],
+            "idempotency_key": idempotency_key,
+        },
+        "cloud_sync": {
+            "status": "SYNCED" if row["sync_bigquery"] else "NOT_CONFIGURED",
+            "target": "BIGQUERY",
+        },
+        "snapshot": json.loads(row["canonical_snapshot_json"] or "{}"),
+    }), 200
 
 @app.route('/certificate', defaults={'identifier': 'EST-MDN-010'}, methods=['GET'], strict_slashes=False)
 @app.route('/certificate/<identifier>', methods=['GET'], strict_slashes=False)
@@ -5969,32 +6867,63 @@ def api_save_node_review():
     raw_seed = f"{ts}|{node_id}|{estate_code}|{str(verdict_answer)[:100]}"
     sha_hash = hashlib.sha256(raw_seed.encode('utf-8')).hexdigest().upper()
 
-
+    storage = None
+    cloud_sync = "unavailable"
+    if save_node_review_to_bigquery:
+        try:
+            result = save_node_review_to_bigquery(node_id, estate_code, node_title, verdict_answer, citations)
+            storage = "Local SQLite"
+            cloud_sync = "queued"
+            sha_hash = result.get("sha256_hash") or sha_hash
+        except Exception as e_bq:
+            print(f"[Node Review BigQuery Warning]: {e_bq}")
+    if not storage:
+        try:
+            store = read_local_store()
+            reviews = store.setdefault('node_reviews', [])
+            entry = {
+                "node_id": node_id,
+                "estate_code": estate_code,
+                "node_title": node_title,
+                "verdict_answer": verdict_answer,
+                "citations": citations if isinstance(citations, list) else [],
+                "sha256_hash": sha_hash,
+                "timestamp": ts,
+                "audit_mode": data.get('audit_mode', 'unknown')
+            }
+            reviews.insert(0, entry)
+            save_local_store(store)
+            saved = any(
+                r.get('node_id') == node_id
+                and r.get('estate_code') == estate_code
+                and r.get('sha256_hash') == sha_hash
+                for r in read_local_store().get('node_reviews', [])
+            )
+            if not saved:
+                raise OSError("Local review store did not confirm the saved record.")
+            storage = "Local JSON Store"
+        except Exception as e_store:
+            return jsonify({"success": False, "message": f"Could not persist audit review: {e_store}"}), 500
 
     try:
         record_unified_ai_log(
             feature_name=f"Topology Statutory Review ({node_id})",
-            model_engine="Google Gemini 3.8 Flash (Assessor Auditor)",
-            latency_ms=130,
+            model_engine=str(data.get('audit_mode') or "Grounded statutory auditor"),
+            latency_ms=0,
             status="SUCCESS",
             prompt_input=f"Node: {node_id} ({node_title}) | Estate: {estate_code}",
-            raw_response=f"Verdict: {str(verdict_answer)[:500]} | Citations: {len(citations)}"
+            raw_response=f"Verdict: {str(verdict_answer)[:500]} | Citations: {len(citations)} | Storage: {storage}"
         )
-    except Exception:
-        pass
+    except Exception as e_log:
+        print(f"[Node Review AI Log Notice]: {e_log}")
 
-    if save_node_review_to_bigquery:
-        try:
-            result = save_node_review_to_bigquery(node_id, estate_code, node_title, verdict_answer, citations)
-            result["storage"] = result.get("storage", "Local Ledger (Synchronized)")
-            return jsonify(result), 200
-        except Exception as e_bq:
-            print(f"[Node Review BigQuery Warning]: {e_bq}")
     return jsonify({
-        "success": True, 
+        "success": True,
         "sha256_hash": sha_hash,
-        "storage": "Local Ledger (Synchronized)",
-        "message": "Node review saved to local store and BigQuery sync initiated."
+        "timestamp": ts,
+        "storage": storage,
+        "cloud_sync": cloud_sync,
+        "message": "Audit review persisted."
     }), 200
 
 @app.route('/api/ai/get-node-review', methods=['GET'])
@@ -6013,7 +6942,7 @@ def api_get_node_review():
                 return jsonify({
                     "success": True,
                     "has_record": True,
-                    "storage": "Local Ledger (Synchronized)",
+                    "storage": "Local JSON Store",
                     "node_id": node_id,
                     "estate_code": estate_code,
                     "node_title": r.get('node_title', ''),
@@ -6324,14 +7253,10 @@ def api_spatial_upload_photo_direct():
         clean_b64 = b64_str.split(',', 1)[1] if ',' in b64_str else b64_str
         raw_bytes = base64.b64decode(clean_b64)
         photo_hash = hashlib.sha256(raw_bytes).hexdigest()
+        mime_type = b64_str.split(';', 1)[0][5:] if b64_str.startswith('data:image/') else (mimetypes.guess_type(filename)[0] or 'image/jpeg')
 
         evidence_id = f"EV-{dossier_id}-{int(time.time()*1000)%100000}"
         quarter = "Q1" if "Q1" in stage else ("Q2" if "Q2" in stage else ("Q3" if "Q3" in stage else ("Q4" if "Q4" in stage else "REG")))
-
-        entities = [
-            {"label": "palm_canopy", "label_name": "Palm Crown #01", "cluster": "palm_canopy", "box_2d": [120, 80, 310, 240], "confidence": 0.98},
-            {"label": "clean_alley", "label_name": "Active Corridor 3.79m", "cluster": "floor_mulch", "box_2d": [320, 380, 780, 620], "confidence": 0.96}
-        ]
 
         conn = get_pure_db_connection()
         conn.execute("""
@@ -6341,19 +7266,20 @@ def api_spatial_upload_photo_direct():
                 latitude, longitude, latitude_exif, longitude_exif, image_mime_type,
                 image_base64, image_raw_base64, sha256_hash, image_sha256_hash,
                 file_size_bytes, ai_vision_model, detected_entities_json,
-                chlorophyll_spad_inferred, weather_satellite_validation, uploaded_at
+                chlorophyll_spad_inferred, weather_satellite_validation,
+                is_processed, is_locked, status, uploaded_at
             ) VALUES (
                 ?, ?, ?, 'MDR-DIRECT', 2026, ?, ?,
                 'AERIAL_DRONE', 45.0, -90.0, -90.0,
-                0.824100, 99.561200, 0.824100, 99.561200, 'image/jpeg',
+                0.824100, 99.561200, 0.824100, 99.561200, ?,
                 ?, ?, ?, ?,
-                ?, 'gemini-3.8-flash', ?,
-                82.4, 'MATCH_BMKG_RADAR_CLEAR', CURRENT_TIMESTAMP
+                ?, NULL, ?,
+                NULL, NULL, 0, 0, 'READY', CURRENT_TIMESTAMP
             );
         """, (
             evidence_id, evidence_id, dossier_id, quarter, stage,
-            clean_b64, clean_b64, photo_hash, photo_hash,
-            len(raw_bytes), json.dumps(entities)
+            mime_type, clean_b64, clean_b64, photo_hash, photo_hash,
+            len(raw_bytes), json.dumps([])
         ))
 
         # Catat juga ke used_photo_hashes
@@ -6366,11 +7292,36 @@ def api_spatial_upload_photo_direct():
         conn.commit()
         conn.close()
 
+        bigquery_synced = False
+        try:
+            from cloud_services.bigquery_audit import sync_evidence_to_bigquery
+            bigquery_synced = sync_evidence_to_bigquery({
+                "evidence_id": evidence_id,
+                "dossier_id": dossier_id,
+                "audit_year": 2026,
+                "quarter_cycle": quarter,
+                "perspective_mode": "AERIAL_DRONE",
+                "image_sha256_hash": photo_hash,
+                "detected_entities": [],
+                "root_clearance_m": None,
+                "weather_validation": None
+            })
+            conn_sync = get_pure_db_connection()
+            conn_sync.execute(
+                "UPDATE inspection_evidence SET synced_to_bigquery = ? WHERE evidence_id = ?;",
+                (1 if bigquery_synced else 0, evidence_id)
+            )
+            conn_sync.commit()
+            conn_sync.close()
+        except Exception as sync_error:
+            logger.warning("[Spatial Direct Upload BigQuery Sync]: %s", sync_error)
+
         return jsonify({
             "status": "success",
             "message": "Foto berhasil disimpan ke database.",
             "evidence_id": evidence_id,
-            "file_url": f"/api/media/evidence/{evidence_id}"
+            "file_url": f"/api/media/evidence/{evidence_id}",
+            "bigquery_sync": "SYNCED" if bigquery_synced else "LOCAL_ONLY"
         }), 201
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -6382,79 +7333,7 @@ def api_spatial_delete_photo():
     Menghapus bukti foto dari tabel inspection_evidence, used_photo_hashes, dan canopy_uploads.
     Menegakkan rantai audit: Foto yang telah diproses/tersegel di dokumen audit ditolak dengan 403 Forbidden.
     """
-    try:
-        data = request.get_json(silent=True) or request.form.to_dict() or {}
-        photo_id = data.get('photo_id')
-        photo_url = data.get('photo_url', '')
-
-        # Ekstrak ID dari URL jika format /api/media/evidence/EV-...
-        if not photo_id and '/api/media/evidence/' in str(photo_url):
-            photo_id = photo_url.split('/api/media/evidence/')[-1].split('?')[0].strip()
-
-        if not photo_id and photo_url:
-            photo_id = photo_url
-
-        target_id = str(photo_id or '').replace('.jpg', '')
-
-        conn = get_pure_db_connection()
-
-        # KEBIJAKAN PENGUNCIAN PERMANEN (CHAIN OF CUSTODY):
-        # Jika foto terdaftar di field_surveillance_records atau berstatus is_processed=1 / status='SEALED',
-        # tolak dengan HTTP 403 Forbidden.
-        surv_check = conn.execute("""
-            SELECT record_id FROM field_surveillance_records
-            WHERE evidence_id = ? OR foto_url = ? OR block_id LIKE ? OR record_id = ?;
-        """, (target_id, str(photo_url), f"%{target_id}%", target_id)).fetchone()
-
-        ev_check = conn.execute("""
-            SELECT is_processed, status FROM inspection_evidence
-            WHERE id = ? OR evidence_id = ? OR image_raw_base64 = ?;
-        """, (target_id, target_id, str(photo_url))).fetchone()
-
-        is_sealed = bool(
-            surv_check or 
-            (ev_check and (
-                (ev_check['is_processed'] == 1 if 'is_processed' in ev_check.keys() else False) or 
-                (ev_check['status'] == 'SEALED' if 'status' in ev_check.keys() else False)
-            ))
-        )
-
-        if is_sealed:
-            conn.close()
-            return jsonify({
-                "status": "error",
-                "message": "Foto telah menjadi bukti dokumen audit dan tidak dapat dihapus."
-            }), 403
-
-        # Ambil hash terlebih dahulu untuk hapus dari used_photo_hashes
-        rows = conn.execute("""
-            SELECT sha256_hash, image_sha256_hash FROM inspection_evidence 
-            WHERE id = ? OR evidence_id = ? OR image_raw_base64 = ?;
-        """, (target_id, target_id, str(photo_url))).fetchall()
-
-        for r in rows:
-            h1 = r['sha256_hash'] if 'sha256_hash' in r.keys() else None
-            h2 = r['image_sha256_hash'] if 'image_sha256_hash' in r.keys() else None
-            for h in (h1, h2):
-                if h:
-                    conn.execute("DELETE FROM used_photo_hashes WHERE sha256_hash = ?;", (h,))
-
-        conn.execute("DELETE FROM inspection_evidence WHERE id = ? OR evidence_id = ? OR image_raw_base64 = ?;", (target_id, target_id, str(photo_url)))
-        conn.commit()
-        conn.close()
-
-        # Hapus juga di tabel lokal sqlite lama jika ada
-        try:
-            conn_local = get_db()
-            conn_local.execute("DELETE FROM canopy_uploads WHERE id = ? OR filename = ? OR file_url = ?;", (target_id, target_id, str(photo_url)))
-            conn_local.commit()
-            conn_local.close()
-        except Exception:
-            pass
-
-        return jsonify({"status": "success", "message": f"Foto {photo_id} berhasil dihapus dari database."})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+    return delete_evidence_media()
 
 
 @app.route('/api/spatial/save-scan-result', methods=['POST'])
@@ -6464,31 +7343,38 @@ def api_spatial_save_scan_result():
     """
     try:
         data = request.get_json(silent=True) or {}
-        dossier_id = data.get('dossier_id', 'EST-MDN-001')
+        evidence_id = str(data.get('evidence_id') or '').strip()
+        if not evidence_id:
+            return jsonify({"status": "error", "message": "evidence_id wajib diisi"}), 400
+        if data.get('mode') != 'LIVE_GEMINI':
+            return jsonify({"status": "error", "message": "Hasil fallback tidak disimpan sebagai deteksi visual"}), 400
         detected_entities = data.get('detected_entities', [])
 
         conn = get_pure_db_connection()
-        conn.execute("""
+        cur = conn.execute("""
             UPDATE inspection_evidence
-            SET detected_entities_json = ?
-            WHERE dossier_id = ? OR dossier_id = ?;
-        """, (json.dumps(detected_entities), dossier_id, f"{dossier_id}-2026"))
+            SET detected_entities_json = ?, is_processed = 1, is_locked = 0,
+                status = 'SCANNED', uploaded_at = CURRENT_TIMESTAMP
+            WHERE evidence_id = ? OR id = ?;
+        """, (json.dumps(detected_entities, ensure_ascii=False), evidence_id, evidence_id))
         conn.commit()
         conn.close()
+        if cur.rowcount == 0:
+            return jsonify({"status": "error", "message": "Bukti target tidak ditemukan"}), 404
 
         try:
             record_unified_ai_log(
-                feature_name=f"Spatial Reticle AI Vision Observation ({dossier_id})",
+                feature_name=f"Spatial Reticle AI Vision Observation ({evidence_id})",
                 model_engine="Google Gemini 3.8 Flash (Spatial Reticle)",
-                latency_ms=95,
+                latency_ms=0,
                 status="SUCCESS",
-                prompt_input=f"Save detected entities for dossier: {dossier_id}",
+                prompt_input=f"Save detected entities for evidence: {evidence_id}",
                 raw_response=f"Stored {len(detected_entities)} entities: {json.dumps(detected_entities)[:300]}"
             )
         except Exception:
             pass
 
-        return jsonify({"status": "success", "message": "Hasil scan AI tersimpan permanen di database."})
+        return jsonify({"status": "success", "message": "Hasil scan AI tersimpan pada bukti target.", "evidence_id": evidence_id})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 # =====================================================================
@@ -6496,7 +7382,6 @@ def api_spatial_save_scan_result():
 # =====================================================================
 from cloud_services.pdf_generator import (
     generate_spatial_proof_pdf,
-    generate_simulator_dossier_pdf,
     generate_surveillance_cycle_pdf,
     generate_statutory_certificate_pdf,
     generate_all_report_docket_pdf,
@@ -6517,14 +7402,10 @@ def api_export_spatial_proof_pdf(estate_code, survey_id):
 
 @app.route('/api/export/pdf/simulator-dossier/<estate_code>', methods=['GET'])
 def api_export_simulator_dossier_pdf(estate_code):
-    try:
-        pdf_data = generate_simulator_dossier_pdf(estate_code)
-        response = make_response(pdf_data)
-        response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Disposition'] = f'inline; filename="simulator_dossier_{estate_code}.pdf"'
-        return response
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+    return jsonify({
+        "success": False,
+        "message": "Simulator dossier PDF export is disabled because its current template contains unverified estimates. Save-backed export is not yet implemented."
+    }), 409
 
 @app.route('/api/export/pdf/surveillance-cycle/<estate_code>/<quarter>', methods=['GET'])
 def api_export_surveillance_cycle_pdf(estate_code, quarter):
@@ -6593,4 +7474,3 @@ if __name__ == '__main__':
     print(f"   Port: {port}")
     debug_mode = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
     app.run(host='0.0.0.0', port=port, debug=debug_mode, use_reloader=False)
-

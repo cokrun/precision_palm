@@ -116,7 +116,7 @@
                     Permentan 33/2025 • EUDR TRACES
                 </span>
                 <span class="px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-700" data-i18n="settings_tag_engine">
-                    rumus_tb.py Live Engine
+                    TBS pricing formula • configured inputs
                 </span>
             </div>
 
@@ -125,7 +125,7 @@
             </h1>
 
             <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-sans" data-i18n="settings_header_desc">
-                Atur konfigurasi isolasi data per perusahaan (Multi-Tenancy), kelola parameter pasar TBS riil (CPO CIF Rotterdam, Bea Keluar, Pungutan BPDPKS & Indeks K), pilih yurisdiksi pasar (Rupiah Domestik vs Dollar Ekspor), dan atur hak akses publikasi berkas sertifikat.
+                Atur konfigurasi isolasi data per perusahaan (Multi-Tenancy), parameter formula harga TBS, yurisdiksi pasar, dan hak publikasi sertifikat. Nilai awal parameter harga hanya asumsi konfigurasi: tidak ada feed pasar live atau verifikasi sumber/tanggal otomatis.
             </p>
 
             <div class="flex flex-wrap items-center gap-3 pt-2 text-xs font-mono">
@@ -237,7 +237,7 @@
                 </h2>
             </div>
             <span class="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 bg-slate-100 dark:bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-800" data-i18n="settings_price_formula">
-                Formula: Permentan Indeks K + CIF Rotterdam
+                Indicative formula only • no live market feed
             </span>
         </div>
 
@@ -302,26 +302,39 @@
             </div>
         </div>
 
+        <div class="max-w-xl p-3.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-300 dark:border-indigo-800 space-y-1 font-mono text-xs">
+            <label for="cfg_carbon_price_usd" class="text-[10px] text-indigo-800 dark:text-indigo-300 block font-semibold">
+                Scenario carbon price (USD/tCO₂e):
+            </label>
+            <input type="number" min="0" step="0.01" id="cfg_carbon_price_usd" value="12.00" class="w-full bg-white dark:bg-slate-950 border border-indigo-300 dark:border-indigo-700 rounded-lg p-2 text-slate-900 dark:text-white font-bold focus:border-indigo-500">
+            <span class="text-[9px] text-indigo-800 dark:text-indigo-300 block">
+                User-configured scenario only; not a verified market price, carbon credit, contract, or realized revenue. Zero disables carbon valuation.
+            </span>
+        </div>
+
         <!-- Real-Time Live Calculation Display -->
         <div class="p-5 rounded-2xl bg-white dark:bg-slate-950 border border-emerald-500/40 space-y-3 font-mono text-xs shadow-inner">
             <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
                 <span class="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
-                    <span>⚡</span> <span data-i18n="settings_sim_title">Hasil Simulasi Eksak Harga TBS & CPO (Output rumus_tb.py):</span>
+                    <span>⚡</span> <span data-i18n="settings_sim_title">Indicative TBS/CPO formula scenario (rumus_tb.py):</span>
                 </span>
-                <span class="text-[10px] text-slate-500 dark:text-slate-400" data-i18n="settings_sim_auto">Kalkulasi Otomatis Browser</span>
+                <span class="text-[10px] text-slate-500 dark:text-slate-400" data-i18n="settings_sim_auto">Not a verified or live market quote</span>
             </div>
+            <p id="tbsPricingStatus" class="text-[10px] text-amber-700 dark:text-amber-300">
+                Configured assumptions are not independently verified. No live market feed is connected.
+            </p>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
                 <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                     <span class="text-[10px] text-slate-500 dark:text-slate-400 block" data-i18n="settings_sim_cpo_net">Harga Bersih CPO Domestik:</span>
-                    <strong id="out_cpo_domestik" class="text-base font-bold text-slate-900 dark:text-white block mt-1">Rp 20.935,25 / kg</strong>
+                    <strong id="out_cpo_domestik" class="text-base font-bold text-slate-900 dark:text-white block mt-1">Not calculated</strong>
                 </div>
                 <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                     <span class="text-[10px] text-slate-500 dark:text-slate-400 block" data-i18n="settings_sim_tbs_kg">Estimasi Harga TBS Petani:</span>
-                    <strong id="out_tbs_kg" class="text-base font-bold text-cyan-600 dark:text-cyan-400 block mt-1">Rp 3.824,71 / kg</strong>
+                    <strong id="out_tbs_kg" class="text-base font-bold text-cyan-600 dark:text-cyan-400 block mt-1">Not calculated</strong>
                 </div>
                 <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-emerald-500/50">
                     <span class="text-[10px] text-slate-600 dark:text-slate-400 block font-semibold" data-i18n="settings_sim_tbs_ton">HARGA EKSAK PER TON TBS:</span>
-                    <strong id="out_tbs_ton" class="text-lg font-black text-emerald-600 dark:text-emerald-400 block mt-1">Rp 3.824.710 / Ton</strong>
+                    <strong id="out_tbs_ton" class="text-lg font-black text-emerald-600 dark:text-emerald-400 block mt-1">Not calculated</strong>
                 </div>
             </div>
         </div>
@@ -524,39 +537,57 @@
         });
     }
 
-    // Live Math Calculation for TBS (rumus_tb.py implementation in browser JS)
-    function recalculateTbsLive() {
-        const p_int_usd_mt = parseFloat(document.getElementById('cfg_cpo_global').value) || 1526.56;
-        const kurs_usd_idr = parseFloat(document.getElementById('cfg_kurs_usd').value) || 17920.0;
-        const bk_usd_mt = parseFloat(document.getElementById('cfg_bea_keluar').value) || 178.0;
-        const pe_usd_mt = parseFloat(document.getElementById('cfg_pe_bpdpks').value) || 130.27;
-        const logistik_usd_mt = parseFloat(document.getElementById('cfg_logistik').value) || 50.0;
-        const p_kernel_idr_kg = parseFloat(document.getElementById('cfg_p_kernel').value) || 12700.0;
-        const rendemen_cpo = (parseFloat(document.getElementById('cfg_rendemen_cpo').value) || 21.0) / 100.0;
-        const indeks_k = (parseFloat(document.getElementById('cfg_indeks_k').value) || 91.0) / 100.0;
-        const biaya_olah_idr_kg = parseFloat(document.getElementById('cfg_biaya_olah').value) || 300.0;
-        const rendemen_kernel = (parseFloat(document.getElementById('cfg_rendemen_kernel').value) || 5.0) / 100.0;
+    let tbsPricingRequest = 0;
+    async function recalculateTbsLive() {
+        const requestId = ++tbsPricingRequest;
+        const status = document.getElementById('tbsPricingStatus');
+        const outputIds = ['out_cpo_domestik', 'out_tbs_kg', 'out_tbs_ton'];
+        const settings = {
+            cpo_global: 'cfg_cpo_global',
+            kurs_usd: 'cfg_kurs_usd',
+            bea_keluar: 'cfg_bea_keluar',
+            pe_bpdpks: 'cfg_pe_bpdpks',
+            logistik: 'cfg_logistik',
+            p_kernel: 'cfg_p_kernel',
+            rendemen_cpo: 'cfg_rendemen_cpo',
+            indeks_k: 'cfg_indeks_k',
+            biaya_olah: 'cfg_biaya_olah',
+            rendemen_kernel: 'cfg_rendemen_kernel'
+        };
+        const payload = {};
+        for (const [key, id] of Object.entries(settings)) {
+            const raw = document.getElementById(id).value.trim();
+            const value = Number(raw);
+            if (!raw || !Number.isFinite(value) || value < 0) {
+                outputIds.forEach(outputId => document.getElementById(outputId).textContent = 'Not calculated');
+                status.textContent = `Enter a valid non-negative value for ${id.replace('cfg_', '')}.`;
+                return;
+            }
+            payload[key] = value;
+        }
 
-        // 1. Total potongan ekspor per kg CPO
-        const total_potongan_usd_mt = bk_usd_mt + pe_usd_mt + logistik_usd_mt;
-        const potongan_idr_kg = (total_potongan_usd_mt * kurs_usd_idr) / 1000.0;
-
-        // 2. Harga CPO domestik bersih diterima PKS
-        const p_int_idr_kg = (p_int_usd_mt * kurs_usd_idr) / 1000.0;
-        const p_domestik_idr_kg = p_int_idr_kg - potongan_idr_kg;
-
-        // 3. Nilai komponen TBS per kg
-        const nilai_cpo_dari_tbs = rendemen_cpo * p_domestik_idr_kg;
-        const nilai_kernel_dari_tbs = rendemen_kernel * p_kernel_idr_kg;
-
-        // 4. Harga TBS per kg menggunakan Indeks K
-        const harga_tbs_per_kg = (indeks_k * (nilai_cpo_dari_tbs + nilai_kernel_dari_tbs)) - biaya_olah_idr_kg;
-        const harga_tbs_per_ton = harga_tbs_per_kg * 1000.0;
-
-        // Render Outputs
-        document.getElementById('out_cpo_domestik').textContent = `Rp ${p_domestik_idr_kg.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / kg`;
-        document.getElementById('out_tbs_kg').textContent = `Rp ${harga_tbs_per_kg.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / kg`;
-        document.getElementById('out_tbs_ton').textContent = `Rp ${Math.round(harga_tbs_per_ton).toLocaleString('id-ID')} / Ton`;
+        status.textContent = 'Calculating an indicative scenario with configured inputs; no live market feed is connected.';
+        try {
+            const response = await fetch('/api/pricing/tbs-calculation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (!response.ok || result.status !== 'success') {
+                throw new Error(result.message || `Pricing calculation failed (${response.status}).`);
+            }
+            if (requestId !== tbsPricingRequest) return;
+            const quote = result.tbs_breakdown;
+            document.getElementById('out_cpo_domestik').textContent = `Rp ${Number(quote.cpo_domestik_idr_kg).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / kg`;
+            document.getElementById('out_tbs_kg').textContent = `Rp ${Number(quote.harga_tbs_per_kg).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / kg`;
+            document.getElementById('out_tbs_ton').textContent = `Rp ${Number(quote.harga_tbs_per_ton).toLocaleString('id-ID', { maximumFractionDigits: 0 })} / Ton`;
+            status.textContent = 'Scenario only: parameters are not independently verified and this is not a live market quote.';
+        } catch (error) {
+            if (requestId !== tbsPricingRequest) return;
+            outputIds.forEach(outputId => document.getElementById(outputId).textContent = 'Unavailable');
+            status.textContent = `Pricing scenario unavailable: ${error.message}`;
+        }
     }
 
     function updateJurisdictionSelection(mode) {
@@ -650,7 +681,7 @@
     }
 
     // Save All Settings Function
-    function saveAllSettings() {
+    async function saveAllSettings() {
         const payload = {
             market_mode: document.querySelector('input[name="market_jurisdiction"]:checked').value,
             audit_year: document.getElementById('cfg_audit_year').value,
@@ -661,7 +692,9 @@
             pe_bpdpks: document.getElementById('cfg_pe_bpdpks').value,
             logistik: document.getElementById('cfg_logistik').value,
             p_kernel: document.getElementById('cfg_p_kernel').value,
+            carbon_price_usd: document.getElementById('cfg_carbon_price_usd').value,
             rendemen_cpo: document.getElementById('cfg_rendemen_cpo').value,
+            rendemen_kernel: document.getElementById('cfg_rendemen_kernel').value,
             indeks_k: document.getElementById('cfg_indeks_k').value,
             biaya_olah: document.getElementById('cfg_biaya_olah').value,
             is_published: document.getElementById('cfg_is_published').checked,
@@ -677,16 +710,23 @@
             window.setAppLanguage(payload.default_lang);
         }
 
-        fetch('/api/settings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        }).catch(() => {});
-
         const toast = document.getElementById('saveToast');
-        document.getElementById('saveToastText').textContent = "Konfigurasi berhasil disimpan dan disinkronkan ke seluruh sistem.";
         toast.classList.remove('hidden');
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        try {
+            const response = await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (!response.ok || result.status !== 'success') {
+                throw new Error(result.message || `Settings save failed (${response.status}).`);
+            }
+            document.getElementById('saveToastText').textContent = "Konfigurasi berhasil disimpan ke basis data lokal dan browser.";
+        } catch (error) {
+            document.getElementById('saveToastText').textContent = `Pengaturan tersimpan di browser, tetapi sinkronisasi basis data gagal: ${error.message}`;
+        }
         setTimeout(() => toast.classList.add('hidden'), 4000);
     }
 
@@ -710,13 +750,18 @@
         });
 
         // Load from backend first, fallback to localStorage
+        let backendSettingsLoaded = false;
         try {
             const resp = await fetch('/api/settings');
             if (resp.ok) {
                 const res = await resp.json();
                 if (res.status === 'success' && res.settings) {
+                    backendSettingsLoaded = true;
                     const cfg = res.settings;
                     if (cfg.active_dossier) document.getElementById('cfg_active_dossier').value = cfg.active_dossier;
+                    if (cfg.carbon_price_usd !== undefined && cfg.carbon_price_usd !== null) {
+                        document.getElementById('cfg_carbon_price_usd').value = cfg.carbon_price_usd;
+                    }
                     if (cfg.kurs_usd) document.getElementById('cfg_kurs_usd').value = cfg.kurs_usd;
                     if (cfg.cpo_global) document.getElementById('cfg_cpo_global').value = cfg.cpo_global;
                     if (cfg.audit_year) document.getElementById('cfg_audit_year').value = cfg.audit_year;
@@ -725,6 +770,7 @@
                     if (cfg.logistik) document.getElementById('cfg_logistik').value = cfg.logistik;
                     if (cfg.p_kernel) document.getElementById('cfg_p_kernel').value = cfg.p_kernel;
                     if (cfg.rendemen_cpo) document.getElementById('cfg_rendemen_cpo').value = cfg.rendemen_cpo;
+                    if (cfg.rendemen_kernel !== undefined) document.getElementById('cfg_rendemen_kernel').value = cfg.rendemen_kernel;
                     if (cfg.indeks_k) document.getElementById('cfg_indeks_k').value = cfg.indeks_k;
                     if (cfg.biaya_olah) document.getElementById('cfg_biaya_olah').value = cfg.biaya_olah;
                     if (cfg.market_mode) {
@@ -746,15 +792,38 @@
         }
 
         const saved = localStorage.getItem('precision_palm_settings');
-        if (saved) {
+        if (!backendSettingsLoaded && saved) {
             try {
                 const cfg = JSON.parse(saved);
                 if (cfg.active_dossier) document.getElementById('cfg_active_dossier').value = cfg.active_dossier;
-                if (cfg.kurs_usd) document.getElementById('cfg_kurs_usd').value = cfg.kurs_usd;
-                if (cfg.cpo_global) document.getElementById('cfg_cpo_global').value = cfg.cpo_global;
+                const pricingInputs = {
+                    carbon_price_usd: 'cfg_carbon_price_usd',
+                    cpo_global: 'cfg_cpo_global',
+                    kurs_usd: 'cfg_kurs_usd',
+                    bea_keluar: 'cfg_bea_keluar',
+                    pe_bpdpks: 'cfg_pe_bpdpks',
+                    logistik: 'cfg_logistik',
+                    p_kernel: 'cfg_p_kernel',
+                    rendemen_cpo: 'cfg_rendemen_cpo',
+                    rendemen_kernel: 'cfg_rendemen_kernel',
+                    indeks_k: 'cfg_indeks_k',
+                    biaya_olah: 'cfg_biaya_olah'
+                };
+                for (const [key, id] of Object.entries(pricingInputs)) {
+                    if (cfg[key] !== undefined && cfg[key] !== null && cfg[key] !== '') {
+                        document.getElementById(id).value = cfg[key];
+                    }
+                }
+                if (cfg.market_mode) {
+                    const radio = document.querySelector(`input[name="market_jurisdiction"][value="${cfg.market_mode}"]`);
+                    if (radio) radio.checked = true;
+                    updateJurisdictionSelection(cfg.market_mode);
+                }
                 if (cfg.audit_year) document.getElementById('cfg_audit_year').value = cfg.audit_year;
                 recalculateTbsLive();
-            } catch(e) {}
+            } catch (error) {
+                console.warn('Could not restore browser settings:', error);
+            }
         }
     });
 </script>

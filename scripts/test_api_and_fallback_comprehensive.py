@@ -126,10 +126,12 @@ class ComprehensiveApiAndFallbackTest(unittest.TestCase):
                 lat = int((time.time() - t0) * 1000)
                 self.assertEqual(result.get("mode"), "AUTONOMOUS_RULE_ENGINE")
                 self.assertIn("[AUDIT NOTICE]", result.get("audit_notice", ""))
-                self.assertIn("Baku Silvikultur PPKS", result.get("engine", ""))
+                self.assertTrue(result.get("is_fallback"))
+                self.assertIn("not a compliance verifier", result.get("engine", ""))
+                self.assertEqual(result.get("verdict"), "REQUIRES_FIELD_REVIEW")
                 self.assertIn("canopy_par_evaluation", result)
                 self.assertIn("root_buffer_protection", result)
-                self._log_result("AI Reasoning", "POST /api/ai/crop-reasoning (Mode B Fallback)", "FALLBACK", "PASSED", lat, "Deterministic PPKS/ISPO silviculture fallback triggered")
+                self._log_result("AI Reasoning", "POST /api/ai/crop-reasoning (Mode B Fallback)", "FALLBACK", "PASSED", lat, "Local advisory preview triggered; compliance remains unverified")
 
     # -------------------------------------------------------------------------
     # 4. MULTIMODAL VISION SCANNER: MODE A (LIVE) & MODE B (FALLBACK)

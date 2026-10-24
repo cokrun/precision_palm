@@ -8,8 +8,9 @@ import os
 import sys
 import json
 import unittest
+import uuid
 from io import BytesIO
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 # Set testing environment
 os.environ["FLASK_ENV"] = "testing"
@@ -55,7 +56,7 @@ class TestAllPagesAndFallbacks(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         # Verify theme, zone 2 dossier, and passport button markup
         self.assertIn(b"zona_2_biophysical_dossier", res.data)
-        self.assertIn(b"btn_quick_passport_access", res.data)
+        self.assertIn(b"btnQuickPassport", res.data)
 
     def test_06_page_timelines(self):
         """Test GET /timelines (Stage 3: Surveillance Tracking)"""
@@ -106,13 +107,13 @@ class TestAllPagesAndFallbacks(unittest.TestCase):
     # 3. TEST FINANCIAL & TBS PRICING ENGINE
     # =========================================================================
     def test_12_api_pricing_tbs(self):
-        """Test GET /api/pricing/tbs-calculation"""
+        """Pricing cannot be calculated from unrelated crop-yield query inputs."""
         res = self.client.get('/api/pricing/tbs-calculation?palm_yield_ton_ha=24.0&intercrop_yield_ton_ha=7.5&intercrop_price_idr_kg=18500.0')
         self.assertEqual(res.status_code, 200)
         data = res.get_json()
-        self.assertEqual(data.get("status"), "success")
-        self.assertIn("data", data)
-        self.assertGreater(data["data"].get("harga_tbs_idr_kg", 0), 0)
+        self.assertEqual(data.get("status"), "unavailable")
+        self.assertGreater(len(data.get("missing_fields", [])), 0)
+        self.assertNotIn("data", data)
 
     # =========================================================================
     # 4. TEST AGROECOLOGICAL REASONING API & FALLBACK ENGINE
@@ -134,8 +135,8 @@ class TestAllPagesAndFallbacks(unittest.TestCase):
         analysis = data.get("analysis", {})
         self.assertIn(analysis.get("mode"), ["LIVE_GEMINI", "AUTONOMOUS_RULE_ENGINE"])
 
-    def test_14_crop_reasoning_forced_autonomous_rule_engine(self):
-        """Test POST /api/ai/crop-reasoning forced Mode B (Autonomous Statutory Rule Engine)"""
+    def test_14_crop_reasoning_forced_local_advisory_fallback(self):
+        """Ensure failed Gemini reasoning returns a non-certifying local preview."""
         payload = {
             "palm_age": 7.5,
             "crops": ["Jahe Merah"],
@@ -157,10 +158,41 @@ class TestAllPagesAndFallbacks(unittest.TestCase):
                     lang='en'
                 )
                 self.assertEqual(result.get("mode"), "AUTONOMOUS_RULE_ENGINE")
+                self.assertTrue(result.get("is_fallback"))
                 self.assertIn("[AUDIT NOTICE]", result.get("audit_notice", ""))
-                self.assertTrue("PPKS" in result.get("engine", ""))
+                self.assertIn("not a compliance verifier", result.get("engine", ""))
+                self.assertEqual(result.get("verdict"), "REQUIRES_FIELD_REVIEW")
+                self.assertNotIn("VERIFIED COMPLIANT", result.get("statutory_compliance", ""))
                 self.assertIn("canopy_par_evaluation", result)
                 self.assertIn("root_buffer_protection", result)
+
+                with patch('app.generate_crop_agroecological_reasoning', return_value=result):
+                    with patch('app.record_unified_ai_log') as record_log:
+                        response = self.client.post('/api/ai/crop-reasoning', json=payload)
+                self.assertEqual(response.status_code, 200)
+                self.assertTrue(response.get_json()["analysis"]["is_fallback"])
+                record_log.assert_called_once()
+                self.assertEqual(record_log.call_args.kwargs["status"], "FALLBACK")
+                self.assertEqual(record_log.call_args.kwargs["engine_mode"], "AUTONOMOUS_STATUTORY_RULE_ENGINE")
+
+        failing_client = Mock()
+        failing_client.models.generate_content.side_effect = RuntimeError("Simulated Gemini outage")
+        with patch('ai_service.client', failing_client):
+            with patch('ai_service.record_ai_log') as record_ai_log:
+                from ai_service import generate_crop_agroecological_reasoning
+                result = generate_crop_agroecological_reasoning(
+                    palm_age=7.5,
+                    crops=["Jahe Merah"],
+                    soil_ph=5.2,
+                    slope=5.0,
+                    land_area=50.0,
+                    lang='en'
+                )
+        self.assertTrue(result.get("is_fallback"))
+        self.assertEqual(result.get("verdict"), "REQUIRES_FIELD_REVIEW")
+        self.assertIn("not a compliance verifier", result.get("engine", ""))
+        record_ai_log.assert_called_once()
+        self.assertEqual(record_ai_log.call_args.kwargs["engine_mode"], "AUTONOMOUS_STATUTORY_RULE_ENGINE")
 
     # =========================================================================
     # 5. TEST MULTIMODAL VISION SCANNER API & DUAL-ENGINE FALLBACK
@@ -195,15 +227,78 @@ class TestAllPagesAndFallbacks(unittest.TestCase):
             data = res.get_json()
             self.assertEqual(data.get("status"), "success")
             self.assertEqual(data.get("mode"), "AUTONOMOUS_RULE_ENGINE")
+            self.assertTrue(data.get("is_fallback"))
+            self.assertFalse(data.get("api_telemetry", {}).get("is_live_gemini_called"))
             self.assertIn("[AUDIT NOTICE]", data.get("audit_notice", ""))
             self.assertIn("Autonomous Statutory Rule Engine", data.get("engine", ""))
             entities = data.get("physical_entities", [])
             self.assertGreater(len(entities), 0)
+            self.assertTrue(all(entity.get("is_heuristic") for entity in entities))
+            self.assertTrue(all("confidence" not in entity for entity in entities))
+
+    def test_17_scan_image_marks_non_live_auditor_result_as_fallback(self):
+        """A successful function return is not proof that Gemini inference succeeded."""
+        fallback_result = {
+            "api_telemetry": {
+                "is_live_gemini_called": False,
+                "api_call_status": "FALLBACK_ENGAGED",
+                "error_message": "Gemini unavailable"
+            },
+            "physical_entities": [],
+            "detected_objects": []
+        }
+        with patch(
+            'cloud_services.grounded_auditor.audit_image_with_gemini',
+            return_value=fallback_result
+        ), patch('app.update_server_with_latest_scan') as persist_scan:
+            res = self.client.post('/api/ai/scan-image', json={
+                "image_url": "/static/img/sawit_drone.jpg",
+                "filename": "sawit_drone.jpg",
+                "perspective_mode": "AERIAL_DRONE"
+            })
+
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertEqual(data.get("mode"), "AUTONOMOUS_RULE_ENGINE")
+        self.assertTrue(data.get("is_fallback"))
+        self.assertFalse(data.get("api_telemetry", {}).get("is_live_gemini_called"))
+        self.assertIn("not image-verified", data.get("audit_notice", ""))
+        persist_scan.assert_not_called()
+
+    def test_18_scan_image_uses_uploaded_image_mime_type(self):
+        """PNG uploads must reach Gemini with their actual MIME type."""
+        live_result = {
+            "api_telemetry": {
+                "is_live_gemini_called": True,
+                "api_call_status": "LIVE_GOOGLE_CLOUD_SUCCESS",
+                "model_invoked": "gemini-test"
+            },
+            "physical_entities": [
+                {"label": "palm_crown", "box_2d": [10, 10, 100, 100]},
+                {"label": "alley", "box_2d": [200, 200, 300, 300]}
+            ],
+            "detected_objects": []
+        }
+        with patch(
+            'cloud_services.grounded_auditor.audit_image_with_gemini',
+            return_value=live_result
+        ) as audit_image:
+            res = self.client.post(
+                '/api/ai/scan-image',
+                data={"image": (BytesIO(b"not-a-real-png"), "inspection.png")},
+                content_type="multipart/form-data"
+            )
+
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertEqual(data.get("mode"), "LIVE_GEMINI")
+        self.assertFalse(data.get("is_fallback"))
+        self.assertEqual(audit_image.call_args.kwargs.get("mime_type"), "image/png")
 
     # =========================================================================
     # 6. TEST FULL-STACK SIMULATION PERSISTENCE (ONE-CLICK AUDIT PERSISTENCE)
     # =========================================================================
-    def test_17_api_simulate_persistence(self):
+    def test_19_api_simulate_persistence(self):
         """Test POST /api/simulate direct persistence"""
         payload = {
             "id_kebun": 10,
@@ -229,10 +324,16 @@ class TestAllPagesAndFallbacks(unittest.TestCase):
                 "verdict": "VERIFIED COMPLIANT (S1)"
             }
         }
-        res = self.client.post('/api/simulate', json=payload)
-        self.assertEqual(res.status_code, 200)
+        res = self.client.post(
+            '/api/simulate',
+            json=payload,
+            headers={'Idempotency-Key': f"sim-test-{uuid.uuid4().hex}"},
+        )
+        self.assertIn(res.status_code, (200, 201))
         data = res.get_json()
         self.assertEqual(data.get("status"), "success")
+        self.assertEqual(data.get("commit_status"), "COMMITTED")
+        self.assertEqual(data.get("ledger", {}).get("authority"), "LOCAL_SQLITE")
         self.assertTrue("id" in data or "record_id" in data)
 
     # =========================================================================

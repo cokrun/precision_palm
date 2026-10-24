@@ -140,12 +140,17 @@
                 fotoUrl,
                 filename,
                 dossierId = "EST-MDN-010",
+                evidenceId = null,
                 perspective = null,
                 pageContext = "SIMULATOR",
                 containerEl = null,
                 overlayEl = null,
                 statusEl = null,
-                stageIndex = null
+                stageIndex = null,
+                latitude = null,
+                longitude = null,
+                altAgl = null,
+                pitchDeg = null
             } = (options || {});
 
             imageUrl = imageUrl || fotoUrl;
@@ -175,6 +180,7 @@
 
             const startTime = Date.now();
             let analysisData = null;
+            let scanFailureReason = null;
 
             try {
                 try {
@@ -190,29 +196,45 @@
                             foto_url: imageUrl,
                             filename: filename,
                             dossier_id: dossierId,
+                            evidence_id: evidenceId,
                             perspective_hint: perspective,
                             perspective_mode: perspective,
                             page_context: pageContext,
                             stage_index: stageIndex,
+                            latitude: latitude,
+                            longitude: longitude,
+                            altitude_agl_m: altAgl,
+                            camera_pitch_deg: pitchDeg,
+                            timestamp_iso: new Date().toISOString(),
+                            block_id: dossierId,
                             force_live_agent: true,
                             feature_name: "Unified Multimodal Vision Scanner"
                         })
                     });
 
-                    if (response.ok) {
-                        analysisData = await response.json();
+                    const responseData = await response.json();
+                    if (!response.ok || responseData.status !== 'success') {
+                        throw new Error(responseData.message || `Vision scan failed (${response.status})`);
                     }
+                    analysisData = responseData;
                 } catch (err) {
+                    scanFailureReason = String(err && err.message ? err.message : err);
                     console.warn("[UnifiedVisionEngine] Falling back to biophysical model:", err);
                 }
 
+                const isLiveResponse = !!(
+                    analysisData &&
+                    analysisData.mode === 'LIVE_GEMINI' &&
+                    analysisData.api_telemetry?.is_live_gemini_called === true &&
+                    analysisData.api_telemetry?.api_call_status === 'LIVE_GOOGLE_CLOUD_SUCCESS'
+                );
                 let detectedEntities = null;
                 if (analysisData) {
-                    if (Array.isArray(analysisData.physical_entities) && analysisData.physical_entities.length >= 8) {
+                    if (isLiveResponse && Array.isArray(analysisData.physical_entities)) {
                         detectedEntities = analysisData.physical_entities;
-                    } else if (Array.isArray(analysisData.detected_objects) && analysisData.detected_objects.length >= 8) {
+                    } else if (isLiveResponse && Array.isArray(analysisData.detected_objects)) {
                         detectedEntities = analysisData.detected_objects;
-                    } else if (analysisData.analysis && Array.isArray(analysisData.analysis.physical_entities) && analysisData.analysis.physical_entities.length >= 8) {
+                    } else if (isLiveResponse && analysisData.analysis && Array.isArray(analysisData.analysis.physical_entities)) {
                         detectedEntities = analysisData.analysis.physical_entities;
                     }
                 }
@@ -230,16 +252,42 @@
                         return (lbl.includes('tajuk sawit tm #') || lbl.includes('tajuk sawit #')) && box.length >= 4 && box[0] < 150;
                     });
                     if (hasDroneGridSkyBoxes) {
-                        console.warn("[UnifiedVisionEngine] Anomalous aerial grid detected on terrestrial image! Overriding with adaptive biophysical model.");
-                        detectedEntities = null;
+                        console.warn("[UnifiedVisionEngine] Suppressing perspective-inconsistent boxes from the live result.");
+                        detectedEntities = [];
                     }
                 }
 
-                if (!detectedEntities || detectedEntities.length < 8) {
-                    analysisData = this.generateAdaptiveBiophysicalEntities(filename, perspective, pageContext, stageIndex);
+                if (!isLiveResponse || !Array.isArray(detectedEntities)) {
+                    const fallbackData = this.generateAdaptiveBiophysicalEntities(filename, perspective, pageContext, stageIndex);
+                    analysisData = Object.assign({}, analysisData || {}, fallbackData, {
+                        mode: 'AUTONOMOUS_RULE_ENGINE',
+                        is_fallback: true,
+                        isFallback: true,
+                        audit_notice: analysisData?.audit_notice || scanFailureReason ||
+                            '[AUDIT NOTICE] Showing heuristic fallback entities only; these are not image-verified detections.',
+                        api_telemetry: Object.assign({}, analysisData?.api_telemetry || {}, {
+                            is_live_gemini_called: false,
+                            api_call_status: 'FALLBACK_ENGAGED',
+                            mode: 'AUTONOMOUS_RULE_ENGINE'
+                        })
+                    });
                 } else {
                     analysisData.physical_entities = detectedEntities;
                     analysisData.detected_objects = detectedEntities;
+                }
+
+                if (analysisData.is_fallback || analysisData.isFallback || analysisData.mode === 'AUTONOMOUS_RULE_ENGINE') {
+                    analysisData.is_fallback = true;
+                    analysisData.isFallback = true;
+                    analysisData.mode = 'AUTONOMOUS_RULE_ENGINE';
+                    const fallbackEntities = new Set([
+                        ...(analysisData.physical_entities || []),
+                        ...(analysisData.detected_objects || [])
+                    ]);
+                    fallbackEntities.forEach(entity => {
+                        entity.is_heuristic = true;
+                        delete entity.confidence;
+                    });
                 }
 
                 // Apply Pacing / Latency from Enterprise Governance rules
@@ -255,29 +303,21 @@
                     await new Promise(r => setTimeout(r, targetLatency - elapsed));
                 }
 
-                if (containerEl) this.stopHUDAnimation(containerEl, statusEl, "Audit Ratified by AI Agent");
+                const isLiveAI = analysisData.mode === 'LIVE_GEMINI' &&
+                    analysisData.api_telemetry?.is_live_gemini_called === true;
+                if (containerEl) {
+                    this.stopHUDAnimation(
+                        containerEl,
+                        statusEl,
+                        isLiveAI
+                            ? "Live Gemini image analysis complete"
+                            : "Fallback active — heuristic boxes are not image-verified"
+                    );
+                }
 
                 if (overlayEl) {
                     const boxes = analysisData.physical_entities || analysisData.detected_objects || [];
                     this.renderBoundingBoxes(overlayEl, boxes);
-                }
-
-                // Auto-persist to SQLite if enabled in Enterprise Governance
-                if (govCfg.auto_persist_to_storage !== false) {
-                    try {
-                        fetch('/api/spatial/save-inspection', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                dossier_id: dossierId,
-                                evidence_id: filename.replace(/\.[^/.]+$/, ""),
-                                foto_url: imageUrl,
-                                detected_entities: analysisData.physical_entities || analysisData.detected_objects,
-                                sha256_seal: analysisData.sha256_seal || "8F43-SEALED",
-                                perspective_mode: perspective || 'AERIAL_DRONE'
-                            })
-                        }).catch(() => {});
-                    } catch (_) {}
                 }
 
                 this.notifySubscribers(analysisData);
@@ -291,90 +331,82 @@
             const boxes = data.physical_entities || data.detected_objects || [];
 
             const crowns = boxes.filter(b => b.cluster === 'palm_canopy');
-            const trunks = boxes.filter(b => b.cluster === 'infrastructure' || (b.label && b.label.includes('trunk')));
-            const rootCircles = boxes.filter(b => b.cluster === 'root_circle');
-            const alleys = boxes.filter(b => b.cluster === 'clean_alley' || b.cluster === 'floor_mulch');
-            const weeds = boxes.filter(b => b.cluster === 'weed_cover');
+            const isLiveAI = !!(data && data.mode === 'LIVE_GEMINI' &&
+                data.api_telemetry && data.api_telemetry.is_live_gemini_called === true &&
+                data.api_telemetry.api_call_status === 'LIVE_GOOGLE_CLOUD_SUCCESS');
 
-            const countCanopy = Math.max(12, crowns.length);
-            const calculatedShade = Math.min(0.68, Math.max(0.40, (countCanopy / 28) * 0.54));
-            const calculatedShadePercent = Math.round(calculatedShade * 100);
-
-            const effectiveAlleyWidth = 3.79;
-
-            let cropRec = "Red Ginger (Zingiber officinale var. rubrum)";
-            let cropSuitabilityNote = "Canopy shading 45-60%. Optimal for high-value pharmaceutical rhizome development without etiolation.";
-            if (calculatedShadePercent < 45) {
-                cropRec = "Tropical Soybean (Dena-1) / Porang";
-                cropSuitabilityNote = "Open canopy (<45%). Optimal for legume biological N-fixation or tuber development.";
-            } else if (calculatedShadePercent > 60) {
-                cropRec = "Java Cardamom / Curcuma";
-                cropSuitabilityNote = "Dense canopy (>60%). Requires shade-tolerant sciophytes with moist understory synergy.";
-            }
-
-            const isLiveAI = !!(data && (data.mode === 'LIVE_GEMINI' || (data.api_telemetry && data.api_telemetry.is_live_gemini_called === true && data.api_telemetry.api_call_status === 'LIVE_GOOGLE_CLOUD_SUCCESS')));
+            const analysis = data.analysis || {};
+            const readNumeric = (...values) => values.find(value =>
+                typeof value === 'number' && Number.isFinite(value)
+            );
+            const modelShadePercent = isLiveAI
+                ? readNumeric(data.canopy_density_pct, analysis.canopy_density_pct)
+                : undefined;
+            const calculatedShadePercent = modelShadePercent !== undefined &&
+                modelShadePercent >= 0 && modelShadePercent <= 100
+                ? modelShadePercent
+                : null;
+            const effectiveAlleyWidth = isLiveAI ? readNumeric(
+                data.effective_alley_width_m,
+                analysis.effective_alley_width_m
+            ) : undefined;
+            const cropRec = isLiveAI && typeof data.recommended_intercrop === 'string'
+                ? data.recommended_intercrop
+                : (isLiveAI && typeof analysis.recommended_intercrop === 'string' ? analysis.recommended_intercrop : null);
             const mode = isLiveAI ? 'LIVE_GEMINI' : 'AUTONOMOUS_RULE_ENGINE';
             const isFallback = !isLiveAI;
-            const engine = isLiveAI ? 'Google Gemini 3.8 Flash (Multimodal Vision 4D)' : 'Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9)';
-            const auditNotice = isFallback ? (data.audit_notice || '[AUDIT NOTICE] Gemini Vision / Reasoner session unreachable (Offline / Quota Exceeded). System deterministically switched to Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9).') : null;
+            const engine = isLiveAI ? 'Google Gemini image analysis' : 'Local heuristic preview (not image-verified)';
+            const auditNotice = isFallback ? (data.audit_notice || '[AUDIT NOTICE] Live Gemini image inference did not complete. Showing illustrative fallback only; it is not image-verified.') : null;
 
-            const realisticMatchPct = typeof data.realistic_image_match_pct === 'number'
+            const realisticMatchPct = isLiveAI && typeof data.realistic_image_match_pct === 'number'
                 ? data.realistic_image_match_pct
-                : (typeof data.composite_match_pct === 'number'
+                : (isLiveAI && typeof data.composite_match_pct === 'number'
                     ? data.composite_match_pct
-                    : (isLiveAI ? 94.6 : 92.4));
-            const matchTier = data.match_tier || (realisticMatchPct >= 90.0 ? "CERTIFIED_RATIFIED" : "CONDITIONAL_PASS");
-            const matchBreakdown = data.match_breakdown || {
-                spatial_iou_pct: 95.2,
-                spectral_exg_pct: 89.8,
-                taxonomic_match_pct: 97.0,
-                biophysical_consistency_pct: 95.5
-            };
+                    : null);
+            const matchTier = isLiveAI ? (data.match_tier || "GROUND_TRUTH_REQUIRED") : "NOT_IMAGE_VERIFIED";
+            const matchBreakdown = isLiveAI ? (data.match_breakdown || null) : null;
             const universalPackage = data.universal_vision_package || {
                 realistic_image_match_pct: realisticMatchPct,
                 match_tier: matchTier,
                 match_breakdown: matchBreakdown,
-                spatial_vector: {
-                    spacing_distance_m: 9.0,
-                    planting_pattern: "SEGITIGA_SAMA_SISI",
-                    concession_compliance: "100% NON-FOREST APL CLEARED"
-                },
-                biophysical_vector: {
-                    canopy_density_pct: calculatedShadePercent,
-                    transmitted_par_umol: Math.round(1800 * (1 - calculatedShadePercent / 100)),
-                    effective_alley_width_m: effectiveAlleyWidth,
-                    recommended_intercrop: cropRec,
-                    potential_ler: 1.455
-                },
-                forensic_vector: {
-                    discrepancy_score: typeof data.discrepancy_score === 'number' ? data.discrepancy_score : 0.03,
-                    observed_taxon: data.observed_taxon || "Zingiber officinale var. rubrum",
-                    fips_compliance: "FIPS 180-4 SHA-256 IMMUTABLE"
-                }
+                spatial_vector: { status: isLiveAI ? 'MODEL_OUTPUT_NOT_GROUND_TRUTH_VERIFIED' : 'NOT_IMAGE_VERIFIED' },
+                biophysical_vector: { status: isLiveAI ? 'MODEL_OUTPUT_NOT_GROUND_TRUTH_VERIFIED' : 'NOT_IMAGE_VERIFIED' },
+                forensic_vector: { status: isLiveAI ? 'MODEL_OUTPUT_NOT_GROUND_TRUTH_VERIFIED' : 'NOT_IMAGE_VERIFIED' }
             };
+            if (!isLiveAI) {
+                universalPackage.realistic_image_match_pct = null;
+                universalPackage.match_tier = "NOT_IMAGE_VERIFIED";
+                universalPackage.match_breakdown = null;
+            }
 
             const basePayload = {
                 raw: data,
                 boxes: boxes,
                 totalEntities: boxes.length,
-                palmCount: countCanopy,
+                palmCount: isLiveAI ? crowns.length : null,
                 realisticImageMatchPct: realisticMatchPct,
                 compositeMatchPct: realisticMatchPct,
                 matchTier: matchTier,
                 matchBreakdown: matchBreakdown,
                 universalPackage: universalPackage,
                 calculatedShadePercent: calculatedShadePercent,
-                effectiveAlleyWidthM: effectiveAlleyWidth,
-                intercropCapacityHa: parseFloat(((100 - calculatedShadePercent) / 100 * 0.85).toFixed(2)),
+                effectiveAlleyWidthM: effectiveAlleyWidth > 0 ? effectiveAlleyWidth : null,
+                intercropCapacityHa: null,
                 recommendedIntercrop: cropRec,
-                cropSuitabilityNote: cropSuitabilityNote,
+                cropSuitabilityNote: null,
                 isLiveAI: isLiveAI,
                 isFallback: isFallback,
                 mode: mode,
                 engine: engine,
                 auditNotice: auditNotice,
-                sha256Seal: data.sha256_seal || ('8F43' + Math.random().toString(36).substring(2, 10).toUpperCase()),
-                auditorCritique: data.auditor_summary || 'Silvicultural integrity and 2.05m sterile root ring validated.'
+                apiTelemetry: data.api_telemetry || null,
+                persistence: data.persistence || null,
+                persistenceStatus: data.persistence?.sync_status || 'NOT_REQUESTED',
+                fallbackReason: isFallback ? (data.audit_notice || data.api_telemetry?.error_message || null) : null,
+                sha256Seal: data.sha256_hash || data.sha256_seal || null,
+                auditorCritique: data.auditor_summary || (isFallback
+                    ? 'Heuristic preview only; image conditions were not verified.'
+                    : 'Gemini image analysis complete; field compliance requires separate ground-truth verification.')
             };
 
             switch (pageContext) {
@@ -382,32 +414,28 @@
                     return Object.assign({}, basePayload, {
                         lens: 'SIMULATOR',
                         shadeRatioPercent: calculatedShadePercent,
-                        suggestedStandAgeYears: countCanopy > 18 ? 7.5 : 5.0
+                        suggestedStandAgeYears: null
                     });
 
                 case 'TIMELINES':
                     return Object.assign({}, basePayload, {
                         lens: 'TIMELINES',
-                        standMaturityStage: countCanopy > 18 ? "TM-PRIME (7.5 Years)" : "TBM-3 (Early Producing)",
-                        fipsCompliance: "FIPS 180-4 SHA-256 IMMUTABLE"
+                        standMaturityStage: "NOT_ASSESSED"
                     });
 
                 case 'MOBILE':
-                    const weedRisk = weeds.length > 2;
                     return Object.assign({}, basePayload, {
                         lens: 'MOBILE',
-                        rootRingSterileCompliant: !weedRisk,
-                        mandorActionItem: weedRisk 
-                            ? "Schedule manual circle weeding without mechanical hoeing."
-                            : "2.05m sterile circle ready for second-stage NPK application."
+                        rootRingSterileCompliant: null,
+                        mandorActionItem: "Root-ring compliance requires field measurement."
                     });
 
                 case 'SPATIAL':
                 default:
                     return Object.assign({}, basePayload, {
                         lens: 'SPATIAL',
-                        spacingStandardM: 9.0,
-                        concessionCompliance: "100% NON-FOREST APL CLEARED"
+                        spacingStandardM: null,
+                        concessionCompliance: "NOT_ASSESSED"
                     });
             }
         }

@@ -16,7 +16,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app import app
-from ai_service import get_deterministic_ground_truth
+from ai_service import compute_realistic_image_match, get_deterministic_ground_truth
 
 
 class TestScannerConceptsComparison(unittest.TestCase):
@@ -24,6 +24,11 @@ class TestScannerConceptsComparison(unittest.TestCase):
         self.app = app
         self.app.config['TESTING'] = True
         self.client = self.app.test_client()
+
+    def assert_image_match_is_truthful(self, data):
+        self.assertIsNone(data["realistic_image_match_pct"])
+        expected_tier = "GROUND_TRUTH_REQUIRED" if data["mode"] == "LIVE_GEMINI" else "NOT_IMAGE_VERIFIED"
+        self.assertEqual(data["match_tier"], expected_tier)
 
     # =========================================================================
     # 1. SPATIAL SCANNER CONCEPT
@@ -54,14 +59,15 @@ class TestScannerConceptsComparison(unittest.TestCase):
 
         # Standardized Universal Vision Package & Realistic Match assertions
         self.assertIn("realistic_image_match_pct", data)
-        self.assertTrue(88.0 <= data["realistic_image_match_pct"] <= 96.5, f"Realistic match {data['realistic_image_match_pct']}% should be in 88.0% - 96.5%")
+        self.assert_image_match_is_truthful(data)
         self.assertIn("match_tier", data)
         self.assertIn("universal_vision_package", data)
         uvp = data["universal_vision_package"]
         self.assertIn("spatial_vector", uvp)
         self.assertIn("biophysical_vector", uvp)
         self.assertIn("forensic_vector", uvp)
-        self.assertEqual(uvp["spatial_vector"]["triangular_spacing_m"], 9.0)
+        self.assertEqual(uvp["spatial_vector"]["status"], "MODEL_OUTPUT_NOT_GROUND_TRUTH_VERIFIED")
+        self.assertNotIn("triangular_spacing_m", uvp["spatial_vector"])
 
         # Step B: Test saving the inspection to spatial ledger
         save_payload = {
@@ -96,12 +102,12 @@ class TestScannerConceptsComparison(unittest.TestCase):
 
         # Assert Universal Vision Package & Realistic Match
         self.assertIn("realistic_image_match_pct", data)
-        self.assertTrue(88.0 <= data["realistic_image_match_pct"] <= 96.5)
+        self.assert_image_match_is_truthful(data)
         self.assertIn("match_breakdown", data)
         self.assertIn("universal_vision_package", data)
         uvp = data["universal_vision_package"]
         self.assertIn("biophysical_vector", uvp)
-        self.assertTrue(uvp["biophysical_vector"]["transmitted_par_pct"] > 0)
+        self.assertEqual(uvp["biophysical_vector"]["status"], "MODEL_OUTPUT_NOT_GROUND_TRUTH_VERIFIED")
 
         analysis = data.get("analysis", {})
         # Verify plant diagnostics or canopy density exists
@@ -110,6 +116,7 @@ class TestScannerConceptsComparison(unittest.TestCase):
 
         # Step B: Feed calibrated biophysical data to /api/simulate
         sim_payload = {
+            "kode_kebun": "EST-MDN-010",
             "palm_age": 7.5,
             "crop": "red_ginger",
             "canopy_cover": 52.0,
@@ -118,15 +125,17 @@ class TestScannerConceptsComparison(unittest.TestCase):
             "land_area": 50.0,
             "lang": "en"
         }
-        res_sim = self.client.post('/api/simulate', json=sim_payload)
-        self.assertEqual(res_sim.status_code, 200)
+        res_sim = self.client.post(
+            '/api/simulate',
+            json=sim_payload,
+            headers={'Idempotency-Key': 'sim-scanner-pending-test-0001'},
+        )
+        self.assertEqual(res_sim.status_code, 422)
         sim_data = res_sim.get_json()
-        self.assertTrue(sim_data.get("success") or sim_data.get("status") == "success")
-        num_data = sim_data.get("data_numerik", {})
-        ler_res = num_data.get("efisiensi_lahan_ler", {})
-        self.assertIn("total_ler", ler_res)
-        self.assertTrue(ler_res["total_ler"] > 1.0, "Agroforestry LER should exceed monoculture baseline")
-        self.assertIn("dampak_lingkungan_dan_karbon", num_data)
+        self.assertFalse(sim_data.get("success"))
+        self.assertEqual(sim_data.get("commit_status"), "NOT_COMMITTED")
+        self.assertEqual(sim_data.get("error", {}).get("code"), "DATA_PENDING")
+        self.assertEqual(len(sim_data.get("error", {}).get("fields", [])), 4)
 
     # =========================================================================
     # 3. TIMELINES SCANNER CONCEPT
@@ -158,11 +167,12 @@ class TestScannerConceptsComparison(unittest.TestCase):
 
         # Standardized Universal Vision Package & Realistic Match
         self.assertIn("realistic_image_match_pct", data)
-        self.assertTrue(88.0 <= data["realistic_image_match_pct"] <= 96.5)
+        self.assert_image_match_is_truthful(data)
         self.assertIn("universal_vision_package", data)
         uvp = data["universal_vision_package"]
         self.assertIn("forensic_vector", uvp)
         self.assertEqual(uvp["forensic_vector"]["declared_crop"], "Jagung (Zea mays)")
+        self.assertIsNone(uvp["forensic_vector"]["discrepancy_score"])
 
         # 4-Pillar Diagnostics or Matrix check
         matrix = data.get("diagnostic_matrix_44", {})
@@ -201,11 +211,12 @@ class TestScannerConceptsComparison(unittest.TestCase):
 
         # Assert Universal Package root ring & realistic match
         self.assertIn("realistic_image_match_pct", data)
-        self.assertTrue(88.0 <= data["realistic_image_match_pct"] <= 96.5)
+        self.assert_image_match_is_truthful(data)
         uvp = data.get("universal_vision_package", {})
         self.assertIn("forensic_vector", uvp)
         self.assertIn("ppks_root_ring_205cm", uvp["forensic_vector"])
-        self.assertEqual(uvp["forensic_vector"]["ppks_root_ring_205cm"]["status"], "PROTECTED_EXCLUSION_ACTIVE")
+        self.assertEqual(uvp["forensic_vector"]["ppks_root_ring_205cm"]["status"], "NOT_ASSESSED")
+        self.assertIsNone(uvp["forensic_vector"]["ppks_root_ring_205cm"]["compliant"])
 
     # =========================================================================
     # 5. DUAL-ENGINE FALLBACK CONFORMANCE FOR ALL 4 MODES
@@ -234,15 +245,34 @@ class TestScannerConceptsComparison(unittest.TestCase):
             has_sha256 = "sha256_hash" in fb or "var_32_fips_sha256" in str(fb)
             self.assertTrue(has_sha256, "Fallback must include cryptographic SHA-256 seal")
 
-            # Check that fallback also attaches realistic match percentage & universal package
+            # Fallback must not claim image accuracy without labeled ground truth.
             self.assertIn("realistic_image_match_pct", fb)
-            self.assertTrue(88.0 <= fb["realistic_image_match_pct"] <= 96.5)
+            self.assertIsNone(fb["realistic_image_match_pct"])
+            self.assertEqual(fb["match_tier"], "NOT_IMAGE_VERIFIED")
+            self.assertIsNone(fb["match_breakdown"])
             self.assertIn("universal_vision_package", fb)
             self.assertIn("spatial_vector", fb["universal_vision_package"])
             self.assertIn("biophysical_vector", fb["universal_vision_package"])
             self.assertIn("forensic_vector", fb["universal_vision_package"])
 
+    def test_06_accuracy_score_requires_ground_truth_validation(self):
+        unvalidated = compute_realistic_image_match({
+            "physical_entities": [{"label": "palm_canopy", "confidence": 0.99}]
+        }, is_live=True)
+        self.assertIsNone(unvalidated["realistic_image_match_pct"])
+        self.assertEqual(unvalidated["match_tier"], "GROUND_TRUTH_REQUIRED")
+
+        validated = compute_realistic_image_match({
+            "ground_truth_validation": {
+                "validated": True,
+                "match_pct": 91.5,
+                "match_tier": "GROUND_TRUTH_VALIDATED",
+                "breakdown": {"object_iou": 0.91}
+            }
+        }, is_live=True)
+        self.assertEqual(validated["realistic_image_match_pct"], 91.5)
+        self.assertEqual(validated["match_tier"], "GROUND_TRUTH_VALIDATED")
+
 
 if __name__ == '__main__':
     unittest.main()
-

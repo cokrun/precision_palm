@@ -233,9 +233,6 @@ class GroundedStatutoryAuditor:
         lang_code = "id" if str(lang).lower().startswith("id") else "en"
         relevant_docs = self.find_relevant_documents(question)
 
-        if not relevant_docs:
-            relevant_docs = [self.corpus[0], self.corpus[4]]
-
         citations_data = []
         for idx, doc in enumerate(relevant_docs):
             ref_tag = f"[{idx + 1}]"
@@ -250,9 +247,12 @@ class GroundedStatutoryAuditor:
             })
 
         answer_text = None
+        fallback_reason = None
 
         # Panggil Vertex AI / Gemini dengan System Prompt sesuai bahasa
         try:
+            if not relevant_docs:
+                raise LookupError("No matching statutory sources were found in the local corpus.")
             from google import genai
             from google.genai import types
 
@@ -305,88 +305,53 @@ INSTRUKSI JAWABAN:
                 )
                 if response and response.text:
                     answer_text = response.text.strip()
+                else:
+                    fallback_reason = "The Gemini service returned an empty response."
+            else:
+                fallback_reason = "Gemini credentials or Vertex AI configuration are unavailable."
         except Exception as exc:
+            fallback_reason = str(exc)
             logger.warning("Cloud GenAI call fallback (%s).", exc)
 
+        is_fallback = not bool(answer_text)
         if not answer_text:
             answer_text = self._synthesize_deterministic_answer(question, relevant_docs, estate_context, lang=lang_code)
 
         return {
             "success": True,
+            "is_fallback": is_fallback,
+            "fallback_reason": fallback_reason if is_fallback else None,
+            "mode": "LOCAL_GROUNDED_FALLBACK" if relevant_docs and is_fallback else ("NO_GROUNDED_SOURCES" if not relevant_docs else "GEMINI_GROUNDED"),
             "lang": lang_code,
             "question": question,
             "answer": answer_text,
             "citations": citations_data,
             "grounding_metadata": {
-                "engine": "Vertex AI Search Grounding & Gemini 3.8 Flash",
-                "attribution_status": "ATTRIBUTED_100_PERCENT",
+                "engine": "Gemini 3.8 Flash" if not is_fallback else ("Local statutory corpus" if relevant_docs else "No matching statutory source"),
+                "attribution_status": "CORPUS_REFERENCES_ATTACHED" if relevant_docs else "NO_MATCHING_REFERENCES",
                 "language": lang_code,
-                "is_hallucination_free": True
+                "external_source_verification": "not_performed"
             }
         }
 
     def _synthesize_deterministic_answer(self, query: str, docs: List[Dict[str, Any]], estate: Optional[Dict[str, Any]] = None, lang: str = "en") -> str:
-        q_lower = query.lower()
-        is_en = (str(lang).lower() != "id")
+        if not docs:
+            if str(lang).lower() == "id":
+                return "Tidak ada sumber statuter yang cocok pada korpus lokal untuk pertanyaan ini. Auditor tidak dapat menyimpulkan kepatuhan; periksa dokumen dan sumber hukum resmi secara manual."
+            return "No matching statutory source was found in the local corpus. The auditor cannot determine compliance from the available references; please review the official legal sources manually."
 
-        if any(k in q_lower for k in ["piringan", "2.0", "jahe", "cangkul", "circle", "radius", "tillage"]):
-            if is_en:
-                return (
-                    "The oil palm weed circle within a 2.0-meter radius from the trunk represents the critical concentration zone of primary feeder roots absorbing over 80% of applied fertilizers [1]. "
-                    "Mechanical hoeing or intercropping within this radius is strictly prohibited to eliminate root competition and avoid physical root lacerations that increase fatal basal stem rot (Ganoderma boninense) fungal infection risks by up to 4.2 times [2]. "
-                    "Consequently, intercrop companion planting is strictly confined to the net 3.79-meter alley corridor to safeguard main palm productivity."
-                )
-            return (
-                "Piringan kelapa sawit radius 2.0 meter dari pangkal batang merupakan zona konsentrasi perakaran serabut aktif penyerap hara utama kelapa sawit (feeder roots) [1]. "
-                "Menanam tanaman sela atau melakukan pengolahan tanah pada zona ini dilarang keras karena memicu kompetisi hara langsung dan menyebabkan luka mekanis yang menjadi pintu masuk utama infeksi jamur berbahaya Ganoderma boninense [2]. "
-                "Oleh karena itu, sistem membatasi penanaman sela hanya pada koridor lorong aktif 3.79 meter di tengah gawangan guna menjaga produktivitas sawit tetap optimal."
+        if str(lang).lower() == "id":
+            references = " ".join(
+                f"[{idx}] {doc['doc_title']}: {doc['summary']}"
+                for idx, doc in enumerate(docs, start=1)
             )
-        elif any(k in q_lower for k in ["sla", "180", "beku", "toleransi", "freeze", "suspended"]):
-            if is_en:
-                return (
-                    "The statutory compliance engine enforces an automated 180-day (6-month) tolerance window from initial provisional recommendation issuance [1]. "
-                    "This threshold ensures physical cultivation occurs and prevents dormant or manipulated sustainability credentials. "
-                    "Reaching Day 181 without verified physical surveillance logs automatically suspends the certificate (SUSPENDED_6_MONTHS), freezing international EUDR export credentials until ground surveillance is verified [2]."
-                )
-            return (
-                "Sistem menerapkan batas waktu toleransi penanaman fisik selama maksimal 180 hari (6 bulan) sejak paspor rekomendasi awal diterbitkan [1]. "
-                "Ketentuan ini diberlakukan untuk mencegah sertifikat mangkrak atau manipulasi klaim keberlanjutan. "
-                "Apabila hari ke-181 tercapai tanpa adanya log surveilans fisik lapangan yang terverifikasi, status sertifikat secara otomatis dibekukan (SUSPENDED_6_MONTHS) dan kredensial ekspor EUDR dinonaktifkan sementara hingga dilakukan pemutakhiran surveilans fisik [2]."
-            )
-        elif any(k in q_lower for k in ["moratorium", "pippib", "hutan", "50m", "forest", "buffer"]):
-            if is_en:
-                return (
-                    "Geospatial parcel polygon vetting strictly mandates that cultivation perimeters reside 100% within legitimate Non-Forest Areas (APL) while preserving a mandatory buffer zone >= 50 meters from state conservation forests [1]. "
-                    "Parcels overlapping with the 2024 PIPPIB Moratorium cannot be issued commercial statutory credentials [2]. "
-                    "In partial overlap incidents, the Self-Healing Auto-Enclave automatically excises boundary lines to preserve compliance under EUDR Article 9."
-                )
-            return (
-                "Verifikasi geospasial poligon kebun wajib membuktikan bahwa areal budidaya berada 100% di Area Penggunaan Lain (APL) yang sah dan menjaga jarak sempadan penyangga minimum >= 50 meter dari kawasan hutan lindung negara [1]. "
-                "Bidang tanah yang beririsan dengan kawasan moratorium PIPPIB 2024 dilarang diterbitkan sertifikat komersial [2]. "
-                "Apabila terdeteksi irisan sebagian, fitur Self-Healing Auto-Enclave memotong batas bidang secara otomatis agar sertifikat tetap sah di bawah regulasi EUDR Pasal 9."
-            )
-        elif any(k in q_lower for k in ["karbon", "450", "vm0007", "biomassa", "carbon"]):
-            if is_en:
-                return (
-                    "Avoided Deforestation accounting is governed by the Percentage Land Saved (PLS) index derived from Land Equivalent Ratio (LER > 1.0) efficiencies [1]. "
-                    "Each hectare of primary tropical rainforest spared from agricultural encroachment is benchmarked at 450.0 tCO2e/ha under Verra VCS VM0007 methodologies [1], "
-                    "augmented by soil organic carbon (SOC) sequestration of 1.8 tCO2e/ha/year under permanent agroforestry canopy coverage [2]."
-                )
-            return (
-                "Penghitungan Avoided Deforestation didasarkan pada metrik penghematan lahan Percentage Land Saved (PLS) berkat keunggulan efisiensi LER > 1.0 [1]. "
-                "Setiap hektar hutan hujan primer tropis dataran rendah yang terhindar dari deforestasi dinilai memiliki simpanan biomassa setara 450.0 tCO2e/ha sesuai metodologi terakreditasi internasional Verra VCS VM0007 [1], "
-                "ditambah sekuestrasi karbon organik tanah (SOC) sebesar 1.8 tCO2e/ha/tahun di bawah kanopi agroforestri permanen [2]."
-            )
-        else:
-            if is_en:
-                return (
-                    "According to sustainable plantation standard guidelines (ISPO Principles 1-7 and EUDR Regulation 2023/1115), all telemetry data points are objectively audited against 6-decimal geodetic boundaries and agronomic benchmarks [1]. "
-                    "Field compliance is anchored to an immutable audit ledger verifying statutory readiness for deforestation-free international export [2]."
-                )
-            return (
-                "Berdasarkan pedoman baku teknis budidaya perkebunan berkelanjutan, seluruh variabel telemetri diverifikasi secara objektif menggunakan data spasial presisi 6-desimal dan aturan agronomi resmi [1]. "
-                "Setiap kepatuhan di lapangan dibuktikan melalui rantai pembuktian hukum terpadu guna memastikan kelayakan ekspor internasional bebas deforestasi [2]."
-            )
+            return f"Mode fallback lokal: jawaban ini hanya merangkum ringkasan sumber korpus yang cocok dan bukan verifikasi status faktual kebun. {references}"
+
+        references = " ".join(
+            f"[{idx}] {doc['doc_title']}: {doc['summary']}"
+            for idx, doc in enumerate(docs, start=1)
+        )
+        return f"Local fallback: this answer only summarizes matching entries in the local corpus and does not verify the estate's factual compliance. {references}"
 # Instance Global Singleton
 grounded_auditor = GroundedStatutoryAuditor()
 
@@ -485,7 +450,13 @@ def _generate_deterministic_entities(filename: str, image_bytes_len: int, perspe
     return entities
 
 
-def audit_image_with_gemini(image_bytes: bytes, filename: str, perspective_mode: str = "AERIAL_DRONE", telemetry: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def audit_image_with_gemini(
+    image_bytes: bytes,
+    filename: str,
+    perspective_mode: str = "AERIAL_DRONE",
+    telemetry: Optional[Dict[str, Any]] = None,
+    mime_type: str = "image/jpeg"
+) -> Dict[str, Any]:
     """
     Memproses citra perkebunan kelapa sawit via Google Gemini 3.8 Flash
     dengan jaminan anti-gagal deterministik berakar silvikultur ISPO.
@@ -537,15 +508,15 @@ def audit_image_with_gemini(image_bytes: bytes, filename: str, perspective_mode:
                 f"{perspective_instruction}\n"
                 "Return a strict JSON object with:\n"
                 "- physical_entities: array of objects with keys label, box_2d [ymin, xmin, ymax, xmax] (0-1000 scale), confidence, cluster\n"
-                "- canopy_density_pct: float\n"
-                "- stand_classification: string ('Prime Producing Stand (TM)' or 'Early Immature Stand (TBM)')\n"
-                "- visual_health_score: int (1-100)\n"
-                "- auditor_summary: string explaining biophysical compliance with ISPO Permentan 33/2025 (2.05m sterile ring and 3.79m alley)\n"
-                "- chlorophyll_spad: float (e.g. 52.4)\n"
-                "- root_clearance_m: float (e.g. 2.05)\n"
+                "- canopy_density_pct: float or null; use null if the image does not support a defensible estimate\n"
+                "- stand_classification: string or null; use null if maturity cannot be determined from visible evidence\n"
+                "- visual_health_score: int or null; do not infer hidden conditions\n"
+                "- auditor_summary: describe only visible observations; do not claim legal compliance, exact distances, health measurements, or hidden conditions unless directly supported by this image\n"
+                "- chlorophyll_spad: null unless a calibrated measurement is present in the image\n"
+                "- root_clearance_m: null unless a scale/calibrated measurement is present in the image\n"
             )
             contents = [
-                types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"),
+                types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
                 prompt
             ]
             box_container = []
@@ -565,11 +536,11 @@ def audit_image_with_gemini(image_bytes: bytes, filename: str, perspective_mode:
 
             th = threading.Thread(target=_run, daemon=True)
             th.start()
-            th.join(timeout=15.0)
+            th.join(timeout=45.0)
 
             if box_container:
                 parsed = json.loads(box_container[0])
-                if isinstance(parsed, dict) and parsed.get("physical_entities"):
+                if isinstance(parsed, dict) and isinstance(parsed.get("physical_entities"), list):
                     live_result = parsed
                     detected_boxes = parsed["physical_entities"]
                     is_real_gemini_called = True
@@ -583,7 +554,7 @@ def audit_image_with_gemini(image_bytes: bytes, filename: str, perspective_mode:
                 _probe_log(f"⚠️ [GEMINI_PROBE] Sistem terpaksa beralih ke Fallback Generator.")
                 _probe_log("="*60 + "\n")
             else:
-                gemini_error = "Timeout: Google Cloud Gemini tidak merespons dalam 15.0 detik."
+                gemini_error = "Timeout: Google Cloud Gemini tidak merespons dalam 45.0 detik."
                 _probe_log(f"❌ [GEMINI_PROBE] GAGAL MEMANGGIL GEMINI! Penyebab: {gemini_error}")
                 _probe_log(f"⚠️ [GEMINI_PROBE] Sistem terpaksa beralih ke Fallback Generator.")
                 _probe_log("="*60 + "\n")
@@ -601,16 +572,25 @@ def audit_image_with_gemini(image_bytes: bytes, filename: str, perspective_mode:
 
     # Fallback Anti-Gagal Dinamis Berbasis Seed Hash
     seed = int(hashlib.md5((str(filename) + str(len(image_bytes))).encode()).hexdigest()[:8], 16)
-    sha_hash = hashlib.sha256(f"{filename}|{len(image_bytes)}|{seed}".encode()).hexdigest().upper()
+    sha_hash = hashlib.sha256(image_bytes).hexdigest().upper()
 
-    if live_result and live_result.get("physical_entities"):
+    if live_result is not None:
         entities = live_result["physical_entities"]
-        canopy_density = float(live_result.get("canopy_density_pct", 82.4))
-        stand_cls = live_result.get("stand_classification", "Prime Producing Stand (TM)")
-        health_score = int(live_result.get("visual_health_score", 95))
-        summary = live_result.get("auditor_summary", "Canopy density and 2.05m zero-tillage root buffer verified compliant with ISPO Permentan No. 33 Tahun 2025.")
-        spad = float(live_result.get("chlorophyll_spad", 54.2))
-        root_clear = float(live_result.get("root_clearance_m", 2.05))
+        def optional_number(key):
+            value = live_result.get(key)
+            if value is None:
+                return None
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+
+        canopy_density = optional_number("canopy_density_pct")
+        stand_cls = live_result.get("stand_classification")
+        health_score = optional_number("visual_health_score")
+        summary = live_result.get("auditor_summary") or "Gemini returned image observations; field verification is still required."
+        spad = optional_number("chlorophyll_spad")
+        root_clear = optional_number("root_clearance_m")
     else:
         entities = _generate_deterministic_entities(filename, len(image_bytes), perspective_mode)
         canopy_density = round(78.5 + (seed % 140) * 0.1, 1)
@@ -626,40 +606,47 @@ def audit_image_with_gemini(image_bytes: bytes, filename: str, perspective_mode:
         "VAR_02_HEALTH_SCORE": health_score,
         "VAR_03_CHLOROPHYLL_SPAD": spad,
         "VAR_04_ROOT_CLEARANCE_M": root_clear,
-        "VAR_05_TRIANGULAR_SPACING_M": 9.0,
-        "VAR_06_ALLEY_CORRIDOR_M": 3.79,
+        "VAR_05_TRIANGULAR_SPACING_M": None if live_result is not None else 9.0,
+        "VAR_06_ALLEY_CORRIDOR_M": None if live_result is not None else 3.79,
         "VAR_07_STAND_CLASSIFICATION": stand_cls,
-        "VAR_08_ISPO_P2_COMPLIANT": True,
-        "VAR_09_EUDR_DEFORESTATION_FREE": True,
-        "VAR_10_GANODERMA_RISK": "LOW",
-        "VAR_11_WEED_COVERAGE_PCT": round(100.0 - canopy_density, 1),
-        "VAR_12_FROND_COUNT_ESTIMATED": 36 + (seed % 8),
-        "VAR_13_SOIL_MOISTURE_EST": round(28.5 + (seed % 10) * 0.2, 1),
-        "VAR_14_TERRESTRIAL_LATERAL_CLEARANCE": 1.95,
-        "VAR_15_PEST_OCCURRENCE_SCORE": 0.02,
-        "VAR_16_RIPARIAN_BUFFER_DISTANCE_M": 54.2,
-        "VAR_17_CARBON_STOCK_TCO2E": 450.0,
-        "VAR_18_SOC_SEQUESTRATION_RATE": 1.8,
-        "VAR_19_AUDIT_PASS_STAGE": "STAGE_2A_SUPERVISED",
-        "VAR_20_GEO_PRECISION_DECIMALS": 6
+        "VAR_08_ISPO_P2_COMPLIANT": None if live_result is not None else True,
+        "VAR_09_EUDR_DEFORESTATION_FREE": None if live_result is not None else True,
+        "VAR_10_GANODERMA_RISK": None if live_result is not None else "LOW",
+        "VAR_11_WEED_COVERAGE_PCT": round(100.0 - canopy_density, 1) if canopy_density is not None else None,
+        "VAR_12_FROND_COUNT_ESTIMATED": None if live_result is not None else 36 + (seed % 8),
+        "VAR_13_SOIL_MOISTURE_EST": None if live_result is not None else round(28.5 + (seed % 10) * 0.2, 1),
+        "VAR_14_TERRESTRIAL_LATERAL_CLEARANCE": None if live_result is not None else 1.95,
+        "VAR_15_PEST_OCCURRENCE_SCORE": None if live_result is not None else 0.02,
+        "VAR_16_RIPARIAN_BUFFER_DISTANCE_M": None if live_result is not None else 54.2,
+        "VAR_17_CARBON_STOCK_TCO2E": None if live_result is not None else 450.0,
+        "VAR_18_SOC_SEQUESTRATION_RATE": None if live_result is not None else 1.8,
+        "VAR_19_AUDIT_PASS_STAGE": None if live_result is not None else "STAGE_2A_SUPERVISED",
+        "VAR_20_GEO_PRECISION_DECIMALS": None if live_result is not None else 6
     }
     for i in range(21, 45):
-        matrix_44[f"VAR_{i:02d}_AGRONOMIC_METRIC"] = round(1.0 + ((seed * i) % 100) * 0.05, 3)
+        matrix_44[f"VAR_{i:02d}_AGRONOMIC_METRIC"] = (
+            None if live_result is not None else round(1.0 + ((seed * i) % 100) * 0.05, 3)
+        )
 
-    bboxes = [
-        {"label": e["label"], "box_2d": e["box_2d"], "confidence": e.get("confidence", 0.95), "cluster": e.get("cluster", "default")}
-        for e in entities
-    ]
-    detected_objects = [
-        {
-            "label": e.get("cluster", "palm_anatomy"),
-            "label_name": e["label"],
-            "box_2d": e["box_2d"],
-            "confidence": e.get("confidence", 0.95),
-            "compliance_note": f"Physical entity verified ({e['label']})"
+    bboxes = []
+    detected_objects = []
+    for entity in entities:
+        box = {
+            "label": entity.get("label", ""),
+            "box_2d": entity.get("box_2d", []),
+            "cluster": entity.get("cluster", "default")
         }
-        for e in entities
-    ]
+        detected = {
+            "label": entity.get("cluster", "palm_anatomy"),
+            "label_name": entity.get("label", ""),
+            "box_2d": entity.get("box_2d", []),
+            "compliance_note": "Gemini image observation; field verification required"
+        }
+        if "confidence" in entity:
+            box["confidence"] = entity["confidence"]
+            detected["confidence"] = entity["confidence"]
+        bboxes.append(box)
+        detected_objects.append(detected)
 
     api_telemetry = {
         "is_live_gemini_called": is_real_gemini_called,
@@ -701,10 +688,20 @@ def audit_image_with_gemini(image_bytes: bytes, filename: str, perspective_mode:
         ret_dict["match_tier"] = match_info["match_tier"]
         ret_dict["match_breakdown"] = match_info["match_breakdown"]
         ret_dict["universal_vision_package"] = build_universal_vision_package(ret_dict, telemetry=telemetry, is_live=is_real_gemini_called)
+        if is_real_gemini_called:
+            ret_dict["realistic_image_match_pct"] = None
+            ret_dict["composite_match_pct"] = None
+            ret_dict["match_tier"] = "GROUND_TRUTH_REQUIRED"
+            ret_dict["match_breakdown"] = None
+            ret_dict["universal_vision_package"].update({
+                "realistic_image_match_pct": None,
+                "match_tier": "GROUND_TRUTH_REQUIRED",
+                "match_breakdown": None
+            })
     except Exception as e_match:
         logger.warning(f"[Match Score Calculation Warning]: {e_match}")
-        ret_dict["realistic_image_match_pct"] = 94.2
-        ret_dict["composite_match_pct"] = 94.2
+        ret_dict["realistic_image_match_pct"] = None
+        ret_dict["composite_match_pct"] = None
         ret_dict["match_tier"] = "CERTIFIED_RATIFIED"
 
     return ret_dict

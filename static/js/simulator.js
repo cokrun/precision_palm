@@ -28,6 +28,8 @@ var latestDetectedObjects = typeof latestDetectedObjects !== 'undefined' ? lates
 var candidateRecommendations = typeof candidateRecommendations !== 'undefined' ? candidateRecommendations : [];
 var selectedDefinitiveCropKey = typeof selectedDefinitiveCropKey !== 'undefined' ? selectedDefinitiveCropKey : 'red_ginger';
 var isDefinitiveCropLocked = typeof isDefinitiveCropLocked !== 'undefined' ? isDefinitiveCropLocked : false;
+var simulatorYieldReferenceActive = typeof simulatorYieldReferenceActive !== 'undefined' ? simulatorYieldReferenceActive : false;
+var simulatorYieldReferenceValues = typeof simulatorYieldReferenceValues !== 'undefined' ? simulatorYieldReferenceValues : null;
 
 // Admin audit table pagination and search state
 var adminCurrentPage = typeof adminCurrentPage !== 'undefined' ? adminCurrentPage : 1;
@@ -44,6 +46,204 @@ var DEFINITIVE_CROP_STORAGE_KEY = typeof DEFINITIVE_CROP_STORAGE_KEY !== 'undefi
 window.isUserSimulating = false;
 window.calibratedCanopyCoverPct = null;
 
+const YIELD_SCENARIO_DATABASE = {
+    red_ginger: { yci: 2.82, ycm: 18.00, penalty_pct: 1.2, name: 'Red Ginger', aliases: ['ginger', 'jahe merah'] },
+    cacao: { yci: 0.85, ycm: 1.50, penalty_pct: 2.1, name: 'Shade Cacao', aliases: ['cocoa', 'kakao', 'theobroma cacao'] },
+    coffee: { yci: 0.72, ycm: 1.20, penalty_pct: 1.8, name: 'Shade Robusta Coffee', aliases: ['kopi', 'coffea canephora'] },
+    porang: { yci: 8.50, ycm: 24.00, penalty_pct: 0.8, name: 'Porang / Konjac', aliases: ['konjac', 'amorphophallus muelleri'] },
+    cardamom: { yci: 0.45, ycm: 0.90, penalty_pct: 1.0, name: 'Java Cardamom', aliases: ['kapulaga', 'amomum compactum'] },
+    turmeric: { yci: 3.10, ycm: 14.50, penalty_pct: 1.1, name: 'Turmeric', aliases: ['kunyit', 'curcuma longa'] },
+    patchouli: { yci: 1.20, ycm: 3.50, penalty_pct: 1.5, name: 'Patchouli', aliases: ['nilam', 'pogostemon cablin'] },
+    soybean: { yci: 1.10, ycm: 2.60, penalty_pct: 1.4, name: 'Shade Soybean', aliases: ['soy', 'kedelai', 'glycine max', 'dena 1'] },
+    corn: { yci: 3.20, ycm: 7.80, penalty_pct: 2.5, name: 'Field Corn', aliases: ['maize', 'jagung', 'zea mays'] },
+    vanilla: { yci: 0.25, ycm: 0.60, penalty_pct: 0.5, name: 'Vanilla', aliases: ['vanili', 'vanilla planifolia'] },
+    curcuma: { yci: 3.10, ycm: 14.50, penalty_pct: 1.1, name: 'Temulawak', aliases: ['javanese turmeric', 'curcuma zanthorrhiza'] },
+    kencur: { yci: 2.82, ycm: 18.00, penalty_pct: 1.2, name: 'Kencur', aliases: ['aromatic ginger', 'kaempferia galanga'] },
+    peanut: { yci: 1.10, ycm: 2.60, penalty_pct: 1.4, name: 'Groundnut', aliases: ['groundnut', 'kacang tanah', 'arachis hypogaea'] },
+    sorghum: { yci: 3.20, ycm: 7.80, penalty_pct: 2.5, name: 'Sweet Sorghum', aliases: ['sorgum', 'sorghum bicolor'] },
+    sweet_potato: { yci: 2.50, ycm: 10.00, penalty_pct: 1.5, name: 'Sweet Potato', aliases: ['ubi jalar', 'ipomoea batatas'] },
+    serai_wangi: { yci: 2.50, ycm: 10.00, penalty_pct: 1.5, name: 'Citronella Grass', aliases: ['serai wangi', 'citronella', 'cymbopogon nardus'] }
+};
+
+const DEFAULT_YIELD_SCENARIO = { yci: 2.50, ycm: 10.00, penalty_pct: 1.5, name: 'Generic fallback crop' };
+
+function normalizeCropName(rawCropName) {
+    return String(rawCropName || '')
+        .toLowerCase()
+        .replace(/\([^)]*\)/g, ' ')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
+}
+
+function resolveCropYieldBenchmark(rawCropName) {
+    const normalizedName = normalizeCropName(rawCropName) || 'red ginger';
+    const rawNormalizedName = String(rawCropName || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
+    const searchNames = [normalizedName, rawNormalizedName];
+    const matches = Object.entries(YIELD_SCENARIO_DATABASE)
+        .flatMap(([cropKey, benchmark]) => [cropKey, ...benchmark.aliases].map(alias => ({
+            cropKey,
+            benchmark,
+            alias: normalizeCropName(alias)
+        })))
+        .sort((left, right) => right.alias.length - left.alias.length);
+    const match = matches.find(item => item.alias && searchNames.some(name => name.includes(item.alias)));
+    if (!match) {
+        return { cropKey: 'default', ...DEFAULT_YIELD_SCENARIO, methodologyNote: 'Generic fallback scenario benchmark; not a crop-specific measured or validated yield.' };
+    }
+    return {
+        cropKey: match.cropKey,
+        ...match.benchmark,
+        methodologyNote: 'Illustrative crop benchmark and palm intercrop penalty; not field-measured or locally validated.'
+    };
+}
+
+function calculateDeterministicYieldReference(ageYears, cropName) {
+    const parsedAge = Number(ageYears);
+    const age = Number.isFinite(parsedAge) && parsedAge > 0 ? parsedAge : 7.5;
+    const crop = resolveCropYieldBenchmark(cropName);
+    const ypm = 26.5 / (1.0 + Math.exp(-0.65 * (age - 3.5)));
+    const ypi = ypm * (1.0 - crop.penalty_pct / 100.0);
+    return {
+        ypm: Number(ypm.toFixed(2)),
+        ypi: Number(ypi.toFixed(2)),
+        ycm: Number(crop.ycm.toFixed(2)),
+        yci: Number(crop.yci.toFixed(2)),
+        penaltyPct: crop.penalty_pct,
+        cropName: crop.name,
+        cropKey: crop.cropKey,
+        ageYears: age,
+        methodologyNote: crop.methodologyNote
+    };
+}
+
+function setYieldReferenceStatus(message, status) {
+    const badge = document.getElementById('badgeYieldProvenanceStatus');
+    const methodology = document.getElementById('yieldReferenceMethodology');
+    const styles = {
+        SCENARIO_PROJECTION: 'bg-indigo-950 text-indigo-300 border border-indigo-500',
+        DATA_PENDING: 'bg-slate-800 text-slate-400',
+    };
+    if (badge) {
+        badge.className = `px-2 py-0.5 rounded text-[9px] font-mono font-bold ${styles[status] || styles.DATA_PENDING}`;
+        badge.textContent = `[${status}]`;
+    }
+    if (methodology) methodology.textContent = message;
+}
+
+function applyYieldScenarioReference(forceOverwrite = true) {
+    const age = Number(document.getElementById('palm_age')?.value) || 7.5;
+    const cropName = document.getElementById('crop_select')?.value
+        || document.getElementById('crop_name')?.value
+        || 'Red Ginger';
+    const reference = calculateDeterministicYieldReference(age, cropName);
+
+    const fields = {
+        yield_palm_inter: reference.ypi,
+        yield_palm_mono: reference.ypm,
+        yield_crop_inter: reference.yci,
+        yield_crop_mono: reference.ycm
+    };
+    Object.entries(fields).forEach(([id, value]) => {
+        const input = document.getElementById(id);
+        if (input) {
+            const shouldNotify = forceOverwrite || input.value !== String(value);
+            input.value = String(value);
+            if (shouldNotify) {
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
+    });
+
+    simulatorYieldReferenceActive = true;
+    simulatorYieldReferenceValues = reference;
+    setYieldReferenceStatus(
+        `[SCENARIO_PROJECTION] Applied ${reference.cropName} benchmark at palm age ${reference.ageYears}: palm ${reference.ypi}/${reference.ypm} and crop ${reference.yci}/${reference.ycm} t/ha. ${reference.methodologyNote}`,
+        'SCENARIO_PROJECTION'
+    );
+    executeInSilicoCompute();
+    return true;
+}
+
+function refreshYieldScenarioReference() {
+    if (!simulatorYieldReferenceActive) return;
+    const reference = calculateDeterministicYieldReference(
+        Number(document.getElementById('palm_age')?.value),
+        document.getElementById('crop_select')?.value
+            || document.getElementById('crop_name')?.value
+            || 'Red Ginger'
+    );
+
+    simulatorYieldReferenceValues = reference;
+    const values = {
+        yield_palm_inter: reference.ypi,
+        yield_palm_mono: reference.ypm,
+        yield_crop_inter: reference.yci,
+        yield_crop_mono: reference.ycm
+    };
+    Object.entries(values).forEach(([id, value]) => {
+        const input = document.getElementById(id);
+        if (input) input.value = String(value);
+    });
+    setYieldReferenceStatus(
+        `[SCENARIO_PROJECTION] ${reference.cropName} age/yield benchmark updated. ${reference.methodologyNote}`,
+        'SCENARIO_PROJECTION'
+    );
+}
+
+function handleYieldReferenceManualInput() {
+    if (simulatorYieldReferenceActive) {
+        simulatorYieldReferenceActive = false;
+        simulatorYieldReferenceValues = null;
+    }
+    setYieldReferenceStatus(
+        'User-entered values; field source and measurement are not independently verified.',
+        'SCENARIO_PROJECTION'
+    );
+}
+
+function getYieldInputProvenance() {
+    if (!simulatorYieldReferenceActive || !simulatorYieldReferenceValues) {
+        return {
+            source: 'USER_PROVIDED_UNVERIFIED',
+            status: 'SCENARIO_PROJECTION',
+            field_measurement_verified: false
+        };
+    }
+    return {
+        source: 'CLIENT_GENERATED_SCENARIO_REFERENCE',
+        status: 'SCENARIO_PROJECTION',
+        model: 'logistic_age_crop_benchmark',
+        model_version: '2',
+        crop_key: simulatorYieldReferenceValues.cropKey,
+        age_years: simulatorYieldReferenceValues.ageYears,
+        estimated_values_t_ha: {
+            yield_palm_inter: simulatorYieldReferenceValues.ypi,
+            yield_palm_mono: simulatorYieldReferenceValues.ypm,
+            yield_crop_inter: simulatorYieldReferenceValues.yci,
+            yield_crop_mono: simulatorYieldReferenceValues.ycm
+        },
+        assumptions: {
+            palm_logistic_asymptote_t_ha: 26.5,
+            palm_logistic_growth_rate: 0.65,
+            palm_logistic_midpoint_age_years: 3.5,
+            palm_intercrop_penalty_pct: simulatorYieldReferenceValues.penaltyPct
+        },
+        field_measurement_verified: false
+    };
+}
+
+window.normalizeCropName = normalizeCropName;
+window.resolveCropYieldBenchmark = resolveCropYieldBenchmark;
+window.calculateDeterministicYieldReference = calculateDeterministicYieldReference;
+window.applyYieldScenarioReference = applyYieldScenarioReference;
+window.refreshYieldScenarioReference = refreshYieldScenarioReference;
+window.handleYieldReferenceManualInput = handleYieldReferenceManualInput;
+window.getYieldInputProvenance = getYieldInputProvenance;
+
 function calibrateHolisticFieldEntities(filename, isAerialDrone = true) {
     if (window.UnifiedVisionEngine && typeof window.UnifiedVisionEngine.generateHolisticFallback === 'function') {
         const pers = isAerialDrone ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU';
@@ -51,18 +251,16 @@ function calibrateHolisticFieldEntities(filename, isAerialDrone = true) {
         const list = res.physical_entities || res.detected_objects || [];
         return list.map(item => {
             const copy = Object.assign({}, item);
-            if (!copy.label_name) copy.label_name = copy.label || 'Entity';
-            if (!copy.label_name.includes('[Baku PPKS]')) {
-                copy.label_name = `${copy.label_name} [Baku PPKS]`;
-            }
+            if (!copy.label_name) copy.label_name = copy.label || 'Illustrative object';
+            copy.is_heuristic = true;
+            delete copy.confidence;
             return copy;
         });
     }
-    const isId = typeof isIndonesian === 'function' ? isIndonesian() : false;
     return [
-        { label: 'palm_canopy', label_name: isId ? 'Tajuk Sawit Utama [Baku PPKS]' : 'Main Palm Canopy [Baku PPKS]', cluster: 'palm_canopy', box_2d: [50, 40, 220, 200], confidence: 0.98 },
-        { label: 'clean_alley', label_name: isId ? 'Koridor Gawangan 3.79m [Baku PPKS]' : '3.79m Alley Corridor [Baku PPKS]', cluster: 'floor_mulch', box_2d: [320, 420, 760, 640], confidence: 0.96 },
-        { label: 'root_circle', label_name: isId ? 'Piringan Bebas Tillage 2.0m [Baku PPKS]' : '2.0m Zero-Tillage Root Exclusion [Baku PPKS]', cluster: 'root_circle', box_2d: [550, 300, 850, 680], confidence: 0.99 }
+        { label: 'palm_canopy', label_name: 'Illustrative palm-canopy area', cluster: 'palm_canopy', box_2d: [50, 40, 220, 200], is_heuristic: true },
+        { label: 'clean_alley', label_name: 'Illustrative alley area', cluster: 'floor_mulch', box_2d: [320, 420, 760, 640], is_heuristic: true },
+        { label: 'root_circle', label_name: 'Illustrative root-area region', cluster: 'root_circle', box_2d: [550, 300, 850, 680], is_heuristic: true }
     ];
 }
 
@@ -175,26 +373,46 @@ function applyVisionDataToSimulator(data) {
     if (!data) return;
     console.log("[Simulator] Menerima data UnifiedVisionEngine:", data);
 
-    // 1. Perbarui nilai Persentase Naungan Kanopi
-    const shadePct = typeof data.calculatedShadePercent === 'number' 
-        ? data.calculatedShadePercent 
-        : (typeof data.shadeRatioPercent === 'number' ? data.shadeRatioPercent : 52);
-
-    window.calibratedCanopyCoverPct = shadePct;
-
     const setSafe = (id, val) => {
         const el = document.getElementById(id);
         if (el) el.innerText = val;
     };
 
-    setSafe('lblMachineCanopyDensity', `${shadePct}%`);
-    setSafe('res_canopy_cover', `${shadePct}%`);
-    setSafe('m44_canopy', `52.4 cm | ${shadePct}%`);
-    setSafe('cross_par_transmitted', `Surface PAR Transmitted: ~${Math.round(1800 * (1 - shadePct/100))} µmol/m²/s`);
+    const isLiveVision = data.mode === 'LIVE_GEMINI' && data.isFallback !== true;
+    const matchEl = document.getElementById('visionMatchBadge') || document.getElementById('lblVisionMatchScore');
+    if (!isLiveVision) {
+        window.calibratedCanopyCoverPct = null;
+        if (matchEl) matchEl.innerText = 'Fallback preview • simulator unchanged';
+        if (typeof showNotificationToast === 'function') {
+            showNotificationToast('Fallback is illustrative only; simulator inputs were not changed.', '⚠️');
+        }
+        return;
+    }
 
-    // 2. Perbarui Rekomendasi Tanaman Sela
-    const recCrop = data.recommendedIntercrop || (shadePct > 50 ? "Jahe Merah" : "Porang");
-    const isHighShade = shadePct > 50 || recCrop.toLowerCase().includes('jahe') || recCrop.toLowerCase().includes('ginger');
+    const rawShadePct = typeof data.calculatedShadePercent === 'number'
+        ? data.calculatedShadePercent
+        : data.shadeRatioPercent;
+    const shadePct = Number.isFinite(rawShadePct) && rawShadePct >= 0 && rawShadePct <= 100
+        ? rawShadePct
+        : null;
+    if (matchEl) matchEl.innerText = 'Live Gemini • accuracy score requires ground truth';
+
+    if (shadePct === null) {
+        window.calibratedCanopyCoverPct = null;
+        if (typeof showNotificationToast === 'function') {
+            showNotificationToast(`Gemini returned ${Array.isArray(data.boxes) ? data.boxes.length : 0} detections; no canopy metric was supplied, so simulator inputs were not changed.`, 'ℹ️');
+        }
+        return;
+    }
+
+    window.calibratedCanopyCoverPct = shadePct;
+    setSafe('lblMachineCanopyDensity', `~${shadePct}% estimate`);
+    setSafe('m44_canopy', `Canopy estimate: ~${shadePct}%`);
+
+    const recCrop = typeof data.recommendedIntercrop === 'string' ? data.recommendedIntercrop : '';
+    const isHighShade = recCrop
+        ? /jahe|ginger/i.test(recCrop)
+        : shadePct > 50;
     const targetCropKey = isHighShade ? 'red_ginger' : 'porang';
 
     const cropSelect = document.getElementById('crop_select');
@@ -204,23 +422,15 @@ function applyVisionDataToSimulator(data) {
 
     const cropNameInput = document.getElementById('crop_name');
     if (cropNameInput) {
-        cropNameInput.value = isHighShade 
-            ? "Red Ginger (Zingiber officinale var. rubrum)" 
+        cropNameInput.value = isHighShade
+            ? "Red Ginger (Zingiber officinale var. rubrum)"
             : "Konjac Tuber / Porang (Amorphophallus muelleri)";
     }
 
-    // 3. Jalankan ulang kalkulasi biofisik (LER & Karbon)
     executeInSilicoCompute();
 
-    const matchPct = typeof data.realisticImageMatchPct === 'number'
-        ? data.realisticImageMatchPct
-        : (typeof data.realistic_image_match_pct === 'number' ? data.realistic_image_match_pct : 94.6);
-
-    const matchEl = document.getElementById('visionMatchBadge') || document.getElementById('lblVisionMatchScore');
-    if (matchEl) matchEl.innerText = `${matchPct}% Match`;
-
     if (typeof showNotificationToast === 'function') {
-        showNotificationToast(`✓ Unified Vision Match: ${matchPct}% • Canopy ${shadePct}% • Intercrop: ${isHighShade ? 'Red Ginger' : 'Porang'}`, '🌿');
+        showNotificationToast(`Live Gemini image estimate • canopy ~${shadePct}% (not ground-truth validated) • Intercrop suggestion: ${isHighShade ? 'Red Ginger' : 'Porang'}`, '🌿');
     }
 }
 window.applyVisionDataToSimulator = applyVisionDataToSimulator;
@@ -276,13 +486,6 @@ window.loadSavedDossier = loadSavedDossier;
 document.addEventListener('DOMContentLoaded', function () {
     initSandboxModeAndAntiRaceCondition();
     restorePersistedCropSelection();
-    selectCanopyPreset('field_tm_weed.jpg', 'Block A: Mature Stand (TM Phase)');
-    initActiveEstateData();
-    executeInSilicoCompute();
-    initSpatialTrackingControls();
-    initDrawingReticles();
-    fetchAdminHistory();
-    updateLiveTbsPricing();
 
     // Pulihkan status Audit Sealed jika sebelumnya sudah dieksekusi (Anti-Reset on Refresh)
     try {
@@ -349,7 +552,7 @@ function restorePersistedCropSelection() {
 /**
  * Initializes spatial tracking and map navigation shortcuts
  */
-function initSpatialTrackingControls() {
+function initSpatialTrackingControlsLegacy() {
     const trackingBtn = document.getElementById('btn_sec4_tracking_map') ||
                         document.getElementById('btnTrackingLocation');
 
@@ -519,20 +722,17 @@ function selectDefinitiveCrop(cropKey) {
     const lang = (typeof getAppLanguage === 'function') ? getAppLanguage() : 'en';
 
     // Synchronize inputs with selected candidate
+    const cropSelect = document.getElementById('crop_select');
+    if (cropSelect && Array.from(cropSelect.options).some(option => option.value === cropKey)) {
+        cropSelect.value = cropKey;
+    }
     const cropNameInput = document.getElementById('crop_name');
     if (cropNameInput) {
         cropNameInput.value = (lang === 'id') ? item.name_id : item.name_en;
     }
-
-    const yieldPalmInter = document.getElementById('yield_palm_inter');
-    const yieldPalmMono = document.getElementById('yield_palm_mono');
-    const yieldCropInter = document.getElementById('yield_crop_inter');
-    const yieldCropMono = document.getElementById('yield_crop_mono');
-
-    if (yieldPalmInter) yieldPalmInter.value = item.y_p_i;
-    if (yieldPalmMono) yieldPalmMono.value = item.y_p_m;
-    if (yieldCropInter) yieldCropInter.value = item.y_c_i;
-    if (yieldCropMono) yieldCropMono.value = item.y_c_m;
+    if (typeof window.refreshYieldScenarioReference === 'function') {
+        window.refreshYieldScenarioReference();
+    }
 
     // Refresh candidate gate cards visual state
     renderMultiCandidateGateUI(candidateRecommendations, lang);
@@ -547,9 +747,9 @@ function selectDefinitiveCrop(cropKey) {
     if (typeof logAiInteraction === 'function') {
         logAiInteraction('PROCESS', 'Pillar 2 Decision Gate Locked: Definitive Crop Established', {
             definitive_companion_crop: item.name_en,
-            projected_ler: `${item.projected_ler}x`,
+            projected_ler: 'Not calculated; measured yields are required.',
             corridor_allocation: item.spacing,
-            fertilizer_balance: item.k2o_supplement_kg_ha > 0 ? `+${item.k2o_supplement_kg_ha} kg K2O/ha` : `Saved ${item.urea_savings_kg_ha} kg Urea/ha`,
+            fertilizer_balance: 'Not calculated by kalkulasi.engine for this scenario.',
             statutory_milestone: "Pillar 3 Provisional Passport Authorization Unlocked"
         });
     }
@@ -590,7 +790,7 @@ function updatePillar3BlueprintDOM(cropItem, lang) {
  * Locks Stand Age to 7.5 Years (LAI 4.25), auto-fills MOP compensation (+75.0 kg/Ha),
  * confirms Ganoderma 0.0%, and recalculates Beer-Lambert (k=0.45), PAR 35.8%, LER 1.48x, PLS 31.25%.
  */
-async function importTelemetryFromAiScanner() {
+async function importTelemetryFromAiScannerLegacy() {
     let expData = null;
     try {
         const resp = await fetch('/api/agent/experience?block_id=EST-MDN-001-BLOK-A');
@@ -719,109 +919,13 @@ async function importTelemetryFromAiScanner() {
         );
     }
 }
-window.importTelemetryFromAiScanner = importTelemetryFromAiScanner;
 
 /**
- * Evaluates core biophysical equations (Beer-Lambert, Mead & Willey LER, PLS, and Carbon).
- * Operates purely deterministically as Single Source of Truth.
+ * Use the server-backed kalkulasi.engine implementation exposed by simulator.html.
  */
-function executeInSilicoCompute() {
-    const age = parseFloat(document.getElementById('palm_age')?.value) || 6.0;
-    const area = parseFloat(document.getElementById('land_area')?.value) || 100.0;
-    const ypi = parseFloat(document.getElementById('yield_palm_inter')?.value) || 21.0;
-    const ypm = parseFloat(document.getElementById('yield_palm_mono')?.value) || 22.0;
-    const yci = parseFloat(document.getElementById('yield_crop_inter')?.value) || 7.5;
-    const ycm = parseFloat(document.getElementById('yield_crop_mono')?.value) || 15.0;
-
-    // 1. Beer-Lambert Canopy Extinction & PAR Modeling
-    const lai = 5.5 / (1.0 + Math.exp(-0.7 * (age - 3.5)));
-    const transRatio = Math.exp(-0.45 * lai);
-    const surfacePar = 1800.0 * transRatio;
-    const frondRadius = 5.5 / (1.0 + Math.exp(-0.6 * (age - 3.5)));
-    const computedCoverPct = Math.min(95.0, ((136 * Math.PI * Math.pow(frondRadius, 2)) / 10000.0) * 100.0);
-    const coverPct = (typeof window.calibratedCanopyCoverPct === 'number') ? window.calibratedCanopyCoverPct : computedCoverPct;
-
-    // 2. Mead & Willey LER & Land Sparing (PLS)
-
-    // 2. Mead & Willey LER & Penghematan Lahan (PLS)
-    const pLerPalm = ypm > 0 ? (ypi / ypm) : 0;
-    const pLerCrop = ycm > 0 ? (yci / ycm) : 0;
-    const totalLer = pLerPalm + pLerCrop;
-    const plsPct = totalLer > 1.0 ? (1.0 - (1.0 / totalLer)) * 100.0 : 0.0;
-    const sparedHa = totalLer > 1.0 ? area * (totalLer - 1.0) : 0.0;
-
-    // 3. Akuntansi Karbon IPCC Tier 3 & Verra VM0007 (450 tCO2e/ha)
-    const totalCarbon = (sparedHa * 450.0) + (area * 1.8);
-    const carbonUsd = totalCarbon * 12.0;
-
-    // 4. Perbarui DOM KPI Widget
-    const setSafe = (id, val) => {
-        const el = document.getElementById(id);
-        if (el) el.innerText = val;
-    };
-
-    setSafe('res_ler', totalLer.toFixed(2) + 'x');
-    setSafe('val_ler_total', totalLer.toFixed(2) + 'x');
-    setSafe('res_ler_yield_adv', `+${((totalLer - 1.0) * 100).toFixed(1)}% Advantage`);
-    setSafe('res_pls', plsPct.toFixed(2) + '%');
-    setSafe('res_pls_comp', plsPct.toFixed(2) + '%');
-    setSafe('res_avoided_ha', sparedHa.toFixed(2) + ' Ha');
-    setSafe('res_net_spared', sparedHa.toFixed(2) + ' Ha');
-    setSafe('res_equiv_mono', (area * totalLer).toFixed(2) + ' Ha');
-    setSafe('res_par', Math.round(surfacePar) + ' µmol/m²/s');
-    setSafe('res_canopy_cover', coverPct.toFixed(1) + '%');
-    setSafe('lblMachineCanopyDensity', coverPct.toFixed(1) + '%');
-    setSafe('res_carbon', Math.round(totalCarbon).toLocaleString('en-US') + ' tCO2e');
-    setSafe('val_metric_carbon_seq', Math.round(totalCarbon).toLocaleString('en-US') + ' tCO2e');
-    setSafe('kpi_res_carbon_rev_usd', '$ ' + carbonUsd.toLocaleString('en-US', { minimumFractionDigits: 2 }));
-
-    const barPls = document.getElementById('bar_pls_progress');
-    if (barPls) barPls.style.width = Math.min(100, plsPct) + '%';
-
-    // 5. Pendapatan Bio-Ekonomi
-    const grossCropRevUsd = yci * 1000.0 * 1.56 * (area * 0.829);
-    const totalBenefitUsd = grossCropRevUsd + carbonUsd;
-    setSafe('kpi_res_total_economic_benefit', '$ ' + totalBenefitUsd.toLocaleString('en-US', { maximumFractionDigits: 0 }));
-    setSafe('res_gross_crop_rev', '$ ' + grossCropRevUsd.toLocaleString('en-US', { minimumFractionDigits: 2 }));
-
-    const parDisp = document.getElementById('cross_par_transmitted');
-    if (parDisp) parDisp.innerText = `Surface PAR Transmitted: ~${Math.round(surfacePar)} µmol/m²/s`;
-
-    // 6. USDA SCS-CN Eko-Hidrologi & Daur Ulang Pelepah
-    const annualRain = 2188.0;
-    const cnPost = Math.round(82.0 - (18.0 * (totalLer > 1.0 ? 1.0 : 0.5)));
-    const rechargePerHa = Math.round((annualRain * (1.0 - (cnPost / 100.0))) * 10.0 * (totalLer > 1.0 ? 1.25 : 1.0));
-    const frondsRecycledPerHa = (10.8 * (age > 4.0 ? 1.0 : 0.6)).toFixed(1);
-    const potassiumRecoveredKg = (parseFloat(frondsRecycledPerHa) * 3.35).toFixed(1);
-
-    setSafe('res_hydro_recharge', `+${rechargePerHa.toLocaleString()} m³/Ha`);
-    setSafe('res_hydro_cn', `82 → ${cnPost}`);
-    setSafe('res_hydro_runoff_suppression', `-68.4%`);
-    setSafe('res_biocirc_fronds', `${frondsRecycledPerHa} t/Ha/Yr`);
-    setSafe('res_biocirc_potassium', `+${potassiumRecoveredKg} kg K₂O`);
-
-    // Render Tabel Proyeksi Kas 10 Tahun jika tersedia fungsinya
-    if (typeof render10YearCashflowTable === 'function') {
-        render10YearCashflowTable(age, area, ypi, ypm, yci, ycm, totalLer, sparedHa, totalCarbon);
-    }
-
-    return {
-        totalLer,
-        plsPct,
-        sparedHa,
-        totalCarbon,
-        surfacePar,
-        coverPct,
-        carbonUsd,
-        grossCropRevUsd,
-        totalBenefitUsd,
-        rechargePerHa,
-        cnPost,
-        frondsRecycledPerHa,
-        potassiumRecoveredKg
-    };
+function executeInSilicoComputeLegacy() {
+    return null;
 }
-window.executeInSilicoCompute = executeInSilicoCompute;
 
 /**
  * RECOVERED: Full-Stack Pipeline Execution
@@ -829,7 +933,7 @@ window.executeInSilicoCompute = executeInSilicoCompute;
  * Kunci / Buka kunci sementara (freeze/read-only) input parameter di Zona 1
  * Disertai tombol toggle [🔓 Unlock to Recalibrate] untuk mencegah salah kalkulasi ulang
  */
-function lockZona1Parameters(isLocked) {
+function lockZona1ParametersLegacy(isLocked) {
     const inputIds = [
         'palm_age', 'land_area', 'crop_select', 'crop_name',
         'sim_soil_ph', 'sim_soil_texture', 'sim_slope', 'sim_elevation', 'sim_coords',
@@ -860,7 +964,7 @@ function lockZona1Parameters(isLocked) {
             mainBtn.classList.add('opacity-85');
             mainBtn.innerHTML = `
                 <span class="text-base">🔒</span>
-                <span id="lbl_btn_main_action">Audit Sealed &bull; Record Locked</span>
+                <span id="lbl_btn_main_action">Simulation Record Locked</span>
             `;
         }
     } else {
@@ -896,14 +1000,13 @@ function lockZona1Parameters(isLocked) {
         }
     }
 }
-window.lockZona1Parameters = lockZona1Parameters;
 
 /**
  * Autonomous Statutory Rule Engine & Dual-Engine Multi-Crop Reasoning:
  * Mode A: Online / Live Gemini 3.8 Flash Multimodal Reasoner
  * Mode B: Autonomous Statutory Rule Engine (Baku Silvikultur PPKS, ISPO Prinsip 2, & EUDR Art. 9)
  */
-async function executeAiMultiCropReview() {
+async function executeAiMultiCropReviewLegacy(engineCalculation = null) {
     const btn = document.getElementById('btnRunAiMultiReview');
     const icon = document.getElementById('iconAiReviewSpin');
     const dynamicBody = document.getElementById('aiReasoningDynamicBody');
@@ -912,23 +1015,24 @@ async function executeAiMultiCropReview() {
     if (btn) btn.disabled = true;
     if (icon) icon.className = "text-base animate-spin inline-block";
 
-    const palmAge = parseFloat(document.getElementById('palm_age')?.value || 6.0);
-    const soilPh = parseFloat(document.getElementById('sim_soil_ph')?.value || 5.5);
-    const slope = parseFloat(document.getElementById('sim_slope')?.value || 4.5);
-    const area = parseFloat(document.getElementById('land_area')?.value || 100.0);
-    const selectedKeys = window.selectedCropKeys || ['red_ginger'];
-    const catalog = typeof CROPS_15_CATALOG !== 'undefined' ? CROPS_15_CATALOG : [];
+    const palmAge = parseFloat(document.getElementById('palm_age')?.value || '');
+    const soilPh = parseFloat(document.getElementById('sim_soil_ph')?.value || '');
+    const slope = parseFloat(document.getElementById('sim_slope')?.value || '');
+    const area = parseFloat(document.getElementById('land_area')?.value || '');
+    const selectedKeys = typeof selectedCropKeys !== 'undefined' ? selectedCropKeys : [];
+    const catalog = typeof CROPS_CATALOG !== 'undefined' ? CROPS_CATALOG : [];
     const selectedObjects = catalog.filter(c => selectedKeys.includes(c.key));
-    const namesList = selectedObjects.map(c => c.name || c.key || c.name_id || c.name_en);
-    const names = namesList.length > 0 ? namesList.join(' and ') : (document.getElementById('crop_name')?.value || "Red Ginger");
+    const cropName = document.getElementById('crop_name')?.value?.trim() || '';
+    const namesList = selectedObjects.map(c => c.name || c.name_en || c.name_id || c.key);
+    const names = namesList.length > 0 ? namesList.join(' and ') : cropName;
 
-    // Ambil komputasi in-silico real-time
-    const computeResult = (typeof executeInSilicoCompute === 'function') ? executeInSilicoCompute() : {
-        totalLer: 1.4550, sparedHa: 31.27, totalCarbon: 14072, surfacePar: 720, coverPct: 62.5
-    };
-    const plsScore = computeResult.plsPct || (computeResult.totalLer > 1.0 ? ((1.0 - 1.0 / computeResult.totalLer) * 100).toFixed(2) : "31.27");
-    const palmAgb = (92.4 * Math.pow(Math.max(1.0, palmAge) / 6.0, 0.6)).toFixed(1);
-    const totalAgb = (parseFloat(palmAgb) + 36.0).toFixed(1);
+    const computeResult = engineCalculation || await executeInSilicoCompute();
+    if (!computeResult) {
+        if (dynamicBody) dynamicBody.textContent = 'AI reasoning requires a successful kalkulasi.engine result with measured yields.';
+        if (btn) btn.disabled = false;
+        if (icon) icon.className = 'text-base inline-block';
+        return null;
+    }
 
     if (dynamicBody) {
         dynamicBody.innerHTML = `
@@ -939,10 +1043,10 @@ async function executeAiMultiCropReview() {
         `;
     }
 
-    const evidenceImg = document.getElementById('selectedEvidenceImage')?.value || 
-                        document.getElementById('sim_image_sample')?.value || 
-                        (window.selectedPhotoUrls && window.selectedPhotoUrls.size > 0 ? Array.from(window.selectedPhotoUrls)[0] : 'field_tm_weed.jpg');
-    const coordsVal = document.getElementById('sim_coords')?.value || '0.824100, 99.561200';
+    const evidenceImg = document.getElementById('selectedEvidenceImage')?.value ||
+                        document.getElementById('sim_image_sample')?.value ||
+                        (window.selectedPhotoUrls && window.selectedPhotoUrls.size > 0 ? Array.from(window.selectedPhotoUrls)[0] : null);
+    const coordsVal = document.getElementById('sim_coords')?.value || '';
 
     if (typeof logAiInteraction === 'function') {
         logAiInteraction('REQUEST', 'In-Silico Multimodal Vision & Reasoning Request Dispatched', {
@@ -961,74 +1065,91 @@ async function executeAiMultiCropReview() {
         });
     }
 
+    const requestPayload = {
+        palm_age: palmAge,
+        crops: namesList.length > 0 ? namesList : [names],
+        soil_ph: soilPh,
+        slope,
+        land_area: area,
+        lang: 'en'
+    };
+    const requestCache = window.__simulatorReasoningCache || (window.__simulatorReasoningCache = new Map());
+    const requestCacheKey = JSON.stringify(requestPayload);
+    const cachedAnalysis = requestCache.get(requestCacheKey);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4500);
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
 
     let isLiveSuccess = false;
     let auditData = null;
+    let fallbackReason = '';
     const tStart = performance.now();
     let resp = null;
     let netLatency = 0;
 
-    try {
-        resp = await fetch('/api/ai/crop-reasoning', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            signal: controller.signal,
-            body: JSON.stringify({
-                palm_age: palmAge,
-                crops: namesList.length > 0 ? namesList : [names],
-                soil_ph: soilPh,
-                slope: slope,
-                land_area: area,
-                lang: 'en'
-            })
-        });
+    if (cachedAnalysis) {
         clearTimeout(timeoutId);
-        netLatency = Math.round(performance.now() - tStart);
-
-        if (resp && resp.ok) {
+        auditData = cachedAnalysis;
+        isLiveSuccess = auditData.mode === 'LIVE_GEMINI';
+    } else {
+        try {
+            resp = await fetch('/api/ai/crop-reasoning', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                signal: controller.signal,
+                body: JSON.stringify(requestPayload)
+            });
             const data = await resp.json();
-            if (data.success && data.analysis) {
+            clearTimeout(timeoutId);
+            netLatency = Math.round(performance.now() - tStart);
+
+            if (resp.ok && data.success && data.analysis) {
                 auditData = data.analysis;
-                if (auditData.mode === 'LIVE_GEMINI' || (!auditData.mode && !auditData.audit_notice)) {
-                    isLiveSuccess = true;
-                }
+                isLiveSuccess = auditData.mode === 'LIVE_GEMINI';
+                if (isLiveSuccess) requestCache.set(requestCacheKey, auditData);
+                else fallbackReason = auditData.audit_notice || 'Gemini did not return a live analysis.';
+            } else {
+                fallbackReason = data.message || `Reasoning service returned HTTP ${resp.status}.`;
             }
+        } catch (err) {
+            clearTimeout(timeoutId);
+            netLatency = Math.round(performance.now() - tStart);
+            console.warn("[Simulator] AI Reasoning Live Sync Notice:", err);
+            fallbackReason = err && err.name === 'AbortError'
+                ? 'Gemini reasoning exceeded the 45-second wait limit.'
+                : 'Gemini could not be reached; showing the local simulator preview.';
         }
-    } catch (err) {
-        clearTimeout(timeoutId);
-        netLatency = Math.round(performance.now() - tStart);
-        console.warn("[Simulator] AI Reasoning Live Sync Notice:", err);
+    }
+
+    if (isLiveSuccess && auditData) {
+        fallbackReason = '';
+    } else if (!fallbackReason && auditData?.audit_notice) {
+        fallbackReason = auditData.audit_notice;
+    } else if (!fallbackReason && !cachedAnalysis) {
+        fallbackReason = 'Gemini did not return a live analysis. Showing a local simulator preview.';
     }
 
     // Process & Fallback Telemetry Logging
     if (isLiveSuccess) {
         if (typeof logAiInteraction === 'function') {
             logAiInteraction('PROCESS', 'Network Handshake & Live Inference Validated', {
-                http_status: resp ? resp.status : 200,
+                http_status: cachedAnalysis ? 'SESSION_CACHE' : (resp ? resp.status : 200),
                 latency_ms: netLatency,
-                inference_engine: '[LIVE_GEMINI_ACTIVE]',
-                status: 'Handshake 200 OK • Multimodal token stream verified'
+                inference_engine: cachedAnalysis ? '[CACHED_LIVE_GEMINI_RESULT]' : '[LIVE_GEMINI_ACTIVE]',
+                status: cachedAnalysis ? 'Reused the prior Gemini response; no new API request' : 'Gemini reasoning response validated'
             });
         }
     } else {
         if (typeof logAiInteraction === 'function') {
-            logAiInteraction('PROCESS', 'Network Handshake Failed / Quota Exceeded', {
-                http_status: resp ? resp.status : 'TIMEOUT',
+            logAiInteraction('PROCESS', 'Gemini Reasoning Unavailable / Fallback Engaged', {
+                http_status: resp ? resp.status : (cachedAnalysis ? 'CACHE' : 'TIMEOUT'),
                 latency_ms: netLatency,
-                error_notice: '[API_UNAVAILABLE / QUOTA_EXHAUSTED]',
-                degradation_protocol: '[TRIGGERING AUTONOMOUS STATUTORY RULE ENGINE]'
+                error_notice: fallbackReason,
+                degradation_protocol: '[LOCAL PREVIEW ONLY]'
             });
-            logAiInteraction('FALLBACK', 'Autonomous Statutory Rule Engine Activated', {
-                fallback_status: '[⚡ FALLBACK / ⚙️ LOCAL_ENGINE]',
-                statutory_references: [
-                    'PPKS Silviculture Standards & ISPO Principle 2 (2.0m sterile root circle)',
-                    'Deterministic Biophysical Equation: Beer-Lambert Canopy Attenuation (k=0.45)',
-                    'Mead & Willey Land Equivalent Ratio (LER) Model',
-                    'SCS-CN Hydrological Sponge & Chave 2014 AGB Allometrics'
-                ],
-                deterministic_mode: 'Enforced Zero-Tillage & Nutrient Balancing Formula'
+            logAiInteraction('FALLBACK', 'Local Simulator Preview Activated', {
+                fallback_status: '[LOCAL PREVIEW / NOT A COMPLIANCE AUDIT]',
+                fallback_reason: fallbackReason,
+                compliance_verified: false
             });
         }
     }
@@ -1036,31 +1157,33 @@ async function executeAiMultiCropReview() {
     // Update Badge Mode A atau Mode B
     if (badgeMode) {
         if (isLiveSuccess) {
-            badgeMode.innerHTML = `🟢 LIVE AI: Gemini 3.8 Flash • Real-Time Multimodal Sync`;
+            badgeMode.innerHTML = cachedAnalysis
+                ? `🟢 CACHED GEMINI: No new API request`
+                : `🟢 LIVE GEMINI: Agroecological reasoning response`;
             badgeMode.className = "text-[9px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500 shadow-xs flex items-center gap-1";
         } else {
-            badgeMode.innerHTML = `🟡 AUTONOMOUS RULE ENGINE: Local Deterministic Standards Active`;
+            badgeMode.innerHTML = `🟡 LOCAL PREVIEW: Not a compliance audit`;
             badgeMode.className = "text-[9px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-500 shadow-xs flex items-center gap-1";
         }
     }
 
-    const shaCode = (auditData && (auditData.sha256_seal || auditData.sha256_hash)) || "8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4";
+    const shaCode = auditData && (auditData.sha256_seal || auditData.sha256_hash);
 
     if (dynamicBody) {
         if (isLiveSuccess && auditData) {
             dynamicBody.innerHTML = `
                 <p class="font-bold text-white text-xs">
-                    ${auditData.title || `Polyculture Compatibility Verified: [${names}] (Palm Stand Age ${palmAge} Yrs)`}
+                    ${auditData.title || `Gemini agroecological reasoning for [${names}] (Palm Stand Age ${palmAge} Yrs)`}
                 </p>
                 <div class="space-y-2 text-slate-300 text-xs">
                     <p>
-                        <strong>1. Beer-Lambert Canopy Irradiance (PAR):</strong> ${auditData.canopy_par_evaluation || `At ${palmAge} years of age, light transmission through canopy into the 3.79m alleyway averages 650–850 umol/m²/s.`}
+                        <strong>1. Canopy and PAR:</strong> ${auditData.canopy_par_evaluation || 'Not provided by Gemini.'}
                     </p>
                     <p>
-                        <strong>2. 2.0m Root Exclusion Zone (ISPO Principle 2):</strong> ${auditData.root_buffer_protection || `Strict zero-tillage boundary maintained within the 2.0-meter weed circle around palm bases.`}
+                        <strong>2. Root protection:</strong> ${auditData.root_buffer_protection || 'Not verified from the supplied inputs.'}
                     </p>
                     <p>
-                        <strong>3. Balanced Nutrient Prescription:</strong> ${typeof auditData.nutrient_prescription === 'object' ? JSON.stringify(auditData.nutrient_prescription) : (auditData.nutrient_prescription || `Compensatory potassium (+75 kg/ha MOP) prescribed along inter-row alleys.`)}
+                        <strong>3. Nutrient guidance:</strong> ${typeof auditData.nutrient_prescription === 'object' ? JSON.stringify(auditData.nutrient_prescription) : (auditData.nutrient_prescription || 'No prescription was returned. Soil and tissue tests are required.')}
                     </p>
                     ${auditData.statutory_compliance ? `
                     <p class="text-[11px] text-emerald-400 font-mono border-t border-slate-800 pt-1.5">
@@ -1069,48 +1192,30 @@ async function executeAiMultiCropReview() {
                 </div>
             `;
         } else {
-            // Mode B: Autonomous Statutory Rule Engine (Transparan & Deterministic Standard)
             dynamicBody.innerHTML = `
-                <div class="p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/50 text-[11px] text-amber-200 font-mono leading-relaxed mb-2 shadow-xs flex items-start gap-2">
-                    <span class="text-base shrink-0">⚠️</span>
-                    <div>
-                        <strong class="text-amber-300 block mb-0.5">[AUDIT NOTICE] Gemini Vision / Reasoner session unreachable (Offline / Quota Exceeded).</strong>
-                        <span>System deterministically switched to <strong>Autonomous Statutory Rule Engine</strong> (PPKS Silviculture Standards, ISPO Principle 2, &amp; EUDR Art. 9).</span>
-                    </div>
+                <div class="p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/50 text-[11px] text-amber-200 font-mono leading-relaxed mb-2">
+                    <strong class="text-amber-300 block mb-0.5">[LOCAL PREVIEW] Gemini analysis is not available.</strong>
+                    <span id="reasoningFallbackNotice"></span>
                 </div>
-                <p class="font-bold text-white text-xs">
-                    PPKS Silvicultural Standard Evaluation: [${names}] (Palm Stand Age ${palmAge} Yrs)
-                </p>
-                <div class="space-y-2 text-slate-300 text-xs">
-                    <p>
-                        <strong>1. Beer-Lambert Canopy Radiation Attenuation:</strong> At palm stand age ${palmAge} years (LAI ${(5.5 / (1.0 + Math.exp(-0.7 * (palmAge - 3.5)))).toFixed(2)}), PAR transmission to the 3.79m alleyway measures 650–850 µmol/m²/s, sustaining photosynthetically active radiation without triggering crown competition.
-                    </p>
-                    <p>
-                        <strong>2. 2.0m Weed Circle Root Exclusion Zone (ISPO Principle 2):</strong> The 2.05m sterile circle radius around the palm stipe is strictly maintained under 100% zero-tillage, completely safeguarding fragile feeder roots from laceration.
-                    </p>
-                    <p>
-                        <strong>3. Nutrient Budget &amp; Potassium MOP Compensation:</strong> Soil reaction pH ${soilPh} with LER ${computeResult.totalLer.toFixed(4)}x and PLS ${plsScore}% mandates targeted potassium MOP application (+75 kg/Ha) along dead furrows to eliminate fresh fruit bunch (FFB) yield drag (&lt;4.5%).
-                    </p>
-                    <p>
-                        <strong>4. Carbon Stock &amp; AGB Biomass (Chave 2014):</strong> Total biomass accumulation of ${totalAgb} t/Ha (Oil Palm: ${palmAgb} t, Intercrop: 36.0 t) generates avoided deforestation climate assets equal to ${Math.round(computeResult.totalCarbon)} tCO₂e.
-                    </p>
-                    <p class="text-[11px] text-emerald-400 font-mono border-t border-slate-800 pt-1.5 flex items-center justify-between">
-                        <span>⚖️ <strong>Statutory Compliance:</strong> PASSED PPKS Agronomic Standards &bull; ISPO Presidential Reg 44/2020 Principle 2 &bull; EUDR Regulation 2023/1115 Art. 9</span>
-                        <span class="text-[10px] text-amber-400 font-bold">[PPKS Standard]</span>
-                    </p>
-                </div>
+                <p class="text-slate-300 text-xs">This preview is not an AI finding, a field measurement, or a compliance certification. Check current project quota and wait before manually retrying if Gemini reports quota exhaustion.</p>
             `;
-            auditData = {
-                verdict: "VERIFIED COMPLIANT",
-                mode: "AUTONOMOUS_RULE_ENGINE",
-                title: `PPKS Silvicultural Standard Evaluation: [${names}]`,
-                sha256_seal: shaCode
-            };
+            const notice = dynamicBody.querySelector('#reasoningFallbackNotice');
+            if (notice) notice.textContent = fallbackReason || 'Showing simulator estimates only.';
         }
     }
 
+    if (!auditData) {
+        auditData = {
+            mode: 'LOCAL_PREVIEW',
+            is_fallback: true,
+            verdict: 'REQUIRES_FIELD_REVIEW',
+            audit_notice: fallbackReason || 'Gemini did not return a live analysis.'
+        };
+    }
+    window.lastCropAgroReasoningResult = auditData;
+
     if (document.getElementById('aiReasoningShaSeal')) {
-        document.getElementById('aiReasoningShaSeal').textContent = shaCode;
+        document.getElementById('aiReasoningShaSeal').textContent = shaCode || 'Not generated for local preview';
     }
 
     if (btn) btn.disabled = false;
@@ -1118,18 +1223,11 @@ async function executeAiMultiCropReview() {
 
     return auditData;
 }
-window.executeAiMultiCropReview = executeAiMultiCropReview;
 
 /**
- * Penyatuan Alur "Execute All" (Unified Full-Stack Pipeline):
- * 1. Komputasi Deterministik: executeInSilicoCompute() & recalculateCombinedAccumulation()
- * 2. Pemindaian Visi AI (Vision HUD): runDetailedObjectVisionScan(true)
- * 3. Penalaran Agroekologi AI (Gemini): executeAiMultiCropReview() with safe timeout
- * 4. Penyimpanan Permanen: Kirim seluruh paket ke /api/simulate & SQLite/store lokal
- * 5. Penanda Visual Anti-Tampering: Zona 2 sealed highlight, badge baris komoditas, & lock Zona 1
- * 6. Navigasi Stage 3: Direct URL navigation ke /timelines?kode=...&id=...
+ * Runs the simulator and reasoning pipeline. Vision rescans stay an explicit action.
  */
-async function executeInferenceAction() {
+async function executeInferenceActionLegacy() {
     if (isAuditRunning) return;
     isAuditRunning = true;
 
@@ -1160,7 +1258,33 @@ async function executeInferenceAction() {
         const ypmVal = parseFloat(document.getElementById('yield_palm_mono')?.value) || 22.0;
         const yciVal = parseFloat(document.getElementById('yield_crop_inter')?.value) || 7.5;
         const ycmVal = parseFloat(document.getElementById('yield_crop_mono')?.value) || 15.0;
-        const imageSample = (typeof selectedCanopyFileName !== 'undefined' && selectedCanopyFileName) ? selectedCanopyFileName : 'field_tm_weed.jpg';
+        const currentImgUrl = document.getElementById('selected_image_url')?.value ||
+            document.getElementById('mainCanopyPreview')?.getAttribute('src') ||
+            'field_tm_weed.jpg';
+        const imageSample = currentImgUrl.startsWith('data:')
+            ? ((typeof selectedCanopyFileName !== 'undefined' && selectedCanopyFileName) || 'uploaded-evidence')
+            : currentImgUrl;
+        const activePhotos = typeof getActiveEstatePhotosPool === 'function'
+            ? getActiveEstatePhotosPool()
+            : (Array.isArray(window.activeEstatePhotos) ? window.activeEstatePhotos : []);
+        const selectedEvidence = activePhotos.find(photo =>
+            photo.file_url === currentImgUrl ||
+            photo.image_gcs_url === currentImgUrl ||
+            photo.url === currentImgUrl ||
+            photo.filename === selectedCanopyFileName
+        );
+        const activeDetections = Array.isArray(latestDetectedObjects) ? latestDetectedObjects : [];
+        const activeVisionSummary = {
+            detection_badge: document.getElementById('aiDetectionSummaryBadge')?.innerText || "No saved detections",
+            evidence_id: selectedEvidence?.evidence_id || null,
+            image_url: currentImgUrl,
+            filename: selectedCanopyFileName || selectedEvidence?.filename || null,
+            is_processed: selectedEvidence?.is_processed === true,
+            is_locked: Boolean(selectedEvidence?.is_locked || selectedEvidence?.is_sealed),
+            detected_entities: activeDetections,
+            sterile_circle: "Not verified from image evidence",
+            root_zone_compliance: "Not assessed by this image scan"
+        };
         const coordsVal = document.getElementById('sim_coords')?.value || "0.824100, 99.561200";
         const slopeVal = parseFloat(document.getElementById('sim_slope')?.value) || 4.5;
         const elevVal = parseFloat(document.getElementById('sim_elevation')?.value) || 220.0;
@@ -1168,9 +1292,12 @@ async function executeInferenceAction() {
         const soilTextureVal = document.getElementById('sim_soil_texture')?.value || 'clay';
 
         // Multi-photo selection aggregation (Capture all checked drone photos)
-        const selectedPhotosList = (typeof selectedPhotoUrls !== 'undefined' && selectedPhotoUrls && selectedPhotoUrls.size > 0)
-            ? Array.from(selectedPhotoUrls)
-            : [(document.getElementById('mainCanopyPreview')?.src || imageSample)];
+        const selectedGalleryUrls = (typeof selectedPhotoUrls !== 'undefined' && selectedPhotoUrls && selectedPhotoUrls.size > 0)
+            ? Array.from(selectedPhotoUrls).filter(url => activePhotos.some(photo =>
+                photo.file_url === url || photo.image_gcs_url === url || photo.url === url
+            ))
+            : [];
+        const selectedPhotosList = [...new Set([currentImgUrl, ...selectedGalleryUrls])];
 
         // 2. TAHAP 1: Komputasi Deterministik (Single Source of Truth)
         const computeResult = (typeof executeInSilicoCompute === 'function') ? executeInSilicoCompute() : {
@@ -1221,23 +1348,7 @@ async function executeInferenceAction() {
             });
         }
 
-        // 3. TAHAP 2: Pemindaian Visi AI (Vision HUD) & Ground-Truth Lapangan
-        if (typeof logAiInteraction === 'function') {
-            logAiInteraction('PROCESS', 'Computer Vision Scanning & Statutory Check', {
-                image_target: imageSample,
-                root_buffer_gap: "2.0m Zero-Tillage Validation",
-                framework: "ISPO Principle 2 & EUDR Art. 9"
-            });
-        }
-        if (typeof runDetailedObjectVisionScan === 'function') {
-            try {
-                await runDetailedObjectVisionScan(true);
-            } catch (errVision) {
-                console.warn("[Simulator] Vision Scan Notice:", errVision);
-            }
-        }
-
-        // 4. TAHAP 3: Penalaran Agroekologi AI (Gemini Multi-Crop Review)
+        // 3. Penalaran Agroekologi AI (Gemini Multi-Crop Review)
         if (typeof logAiInteraction === 'function') {
             logAiInteraction('PROCESS', 'Gemini 3.8 Flash Agroecological Reasoning Dispatch', {
                 target_crop: cropNameVal,
@@ -1255,10 +1366,10 @@ async function executeInferenceAction() {
             console.warn("[Simulator] AI Reasoning Notice:", errAi);
         }
 
-        const aiReasoningText = document.getElementById('aiReasoningDynamicBody')?.innerText || "Polyculture compatibility verified compliant under PPKS standards.";
-        const aiReasoningSeal = document.getElementById('aiReasoningShaSeal')?.innerText || "8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4";
-        const visionBadge = document.getElementById('aiDetectionSummaryBadge')?.innerText || "6 Objects (96% Conf)";
-        const sterileCircleTxt = document.getElementById('val_sterile_circle')?.innerText || "2.0m (Zero-Tillage)";
+        const reasoningResult = window.lastCropAgroReasoningResult || null;
+        const aiReasoningText = document.getElementById('aiReasoningDynamicBody')?.innerText || "No AI reasoning response available.";
+        const aiReasoningSeal = reasoningResult?.sha256_seal || null;
+        const visionBadge = activeVisionSummary.detection_badge;
 
         // 5. TAHAP 4: Penyimpanan Permanen ke Backend SQLite / Local Store
         const targetEstateId = (window.activeEstate && window.activeEstate.id_kebun) || 10;
@@ -1282,16 +1393,19 @@ async function executeInferenceAction() {
             image_sample: imageSample,
             photo_urls: selectedPhotosList,
             inference_mode: 'hybrid',
-            vision_summary: {
-                detection_badge: visionBadge,
-                sterile_circle: sterileCircleTxt,
-                root_zone_compliance: "ISPO Principle 2 & EUDR Art. 9 Compliant"
-            },
             ai_reasoning: {
                 analysis_text: aiReasoningText,
                 sha256_seal: aiReasoningSeal,
-                verdict: "VERIFIED COMPLIANT (S1)"
+                mode: reasoningResult?.mode || "LOCAL_PREVIEW",
+                is_fallback: reasoningResult?.is_fallback === true || reasoningResult?.mode !== "LIVE_GEMINI",
+                verdict: reasoningResult?.verdict || "REQUIRES_FIELD_REVIEW",
+                audit_notice: reasoningResult?.audit_notice || null
             },
+            engine_mode: reasoningResult?.mode === "LIVE_GEMINI" ? "LIVE_GEMINI" : "AUTONOMOUS_STATUTORY_RULE_ENGINE",
+            status_message: reasoningResult?.mode === "LIVE_GEMINI"
+                ? "Gemini agroecological reasoning returned a live response."
+                : (reasoningResult?.audit_notice || "Local simulator preview; no live Gemini reasoning verified."),
+            vision_summary: activeVisionSummary,
             total_ler: computeResult.totalLer,
             avoided_land_ha: computeResult.sparedHa,
             carbon_tco2e: Math.round(computeResult.totalCarbon),
@@ -1306,8 +1420,13 @@ async function executeInferenceAction() {
 
         let recordSha = aiReasoningSeal;
         let effectiveRecordId = Date.now() % 100000;
-        let engineModeSaved = 'LIVE_GEMINI';
-        let statusMsgSaved = 'Verified via Gemini Multimodal Inference';
+        let backendSaved = false;
+        let engineModeSaved = reasoningResult?.mode === 'LIVE_GEMINI'
+            ? 'LIVE_GEMINI'
+            : 'AUTONOMOUS_STATUTORY_RULE_ENGINE';
+        let statusMsgSaved = reasoningResult?.mode === 'LIVE_GEMINI'
+            ? 'Gemini agroecological reasoning returned a live response.'
+            : (reasoningResult?.audit_notice || 'Local simulator preview; no live Gemini reasoning verified.');
 
         try {
             const resp = await fetch('/api/simulate', {
@@ -1319,16 +1438,17 @@ async function executeInferenceAction() {
                 const resJson = await resp.json();
                 recordSha = resJson.sha256_seal || resJson.sha256_hash || recordSha;
                 effectiveRecordId = resJson.id || resJson.record_id || effectiveRecordId;
+                backendSaved = resJson.success === true;
                 if (resJson.engine_mode) engineModeSaved = resJson.engine_mode;
                 if (resJson.status_message) statusMsgSaved = resJson.status_message;
             } else {
                 engineModeSaved = 'AUTONOMOUS_STATUTORY_RULE_ENGINE';
-                statusMsgSaved = '[AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)';
+                statusMsgSaved = `Local-only save: simulation API returned HTTP ${resp.status}.`;
             }
         } catch (err) {
             console.warn("[Simulator] Backend fallback to local ledger:", err);
             engineModeSaved = 'AUTONOMOUS_STATUTORY_RULE_ENGINE';
-            statusMsgSaved = '[AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)';
+            statusMsgSaved = 'Local-only save: simulation API could not be reached.';
         }
 
         const simRecordData = {
@@ -1359,11 +1479,9 @@ async function executeInferenceAction() {
             elevation: elevVal,
             soil_ph: soilPhVal,
             soil_texture: soilTextureVal,
-            ai_reasoning: aiReasoningText,
-            vision_summary: {
-                detection_badge: visionBadge,
-                sterile_circle: sterileCircleTxt
-            },
+            ai_reasoning: payload.ai_reasoning,
+            ai_reasoning_result: reasoningResult,
+            vision_summary: activeVisionSummary,
             engine_mode: engineModeSaved,
             status_message: statusMsgSaved,
             biomass_t_ha: parseFloat(totalAgb),
@@ -1374,7 +1492,7 @@ async function executeInferenceAction() {
             economic_benefit_usd: 4900.0
         };
 
-        // Simpan ke Ledger Lokal Browser (100% Persisted)
+        // Keep a browser-local copy so the result remains available when the API is unavailable.
         if (typeof saveSimulationRecordLocally === 'function') {
             saveSimulationRecordLocally(simRecordData);
         }
@@ -1404,11 +1522,11 @@ async function executeInferenceAction() {
             resultDossier.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        // b. Badge permanen [🔒 AUDIT STATE: SEALED & CERTIFIED • RECORD #REC-XXXXX]
+        // b. Keep the saved simulation read-only until explicitly unlocked.
         const recTag = document.getElementById('activeDossierRecTag');
         if (recTag) {
-            recTag.innerHTML = `🔒 AUDIT STATE: SEALED &amp; CERTIFIED &bull; RECORD #REC-${effectiveRecordId}`;
-            recTag.className = "text-[10px] font-mono font-bold px-3 py-1 rounded-full bg-emerald-600 text-white border border-emerald-400 shadow-md inline-flex items-center gap-1.5";
+            recTag.innerHTML = `🔒 SIMULATION RECORD SAVED &bull; RECORD #REC-${effectiveRecordId}`;
+            recTag.className = "text-[10px] font-mono font-bold px-3 py-1 rounded-full bg-slate-700 text-white border border-slate-500 shadow-md inline-flex items-center gap-1.5";
         }
 
         // Quick passport access link update
@@ -1444,7 +1562,7 @@ async function executeInferenceAction() {
 
         if (typeof logAiInteraction === 'function') {
             const auditDurationMs = Math.round(performance.now() - auditStartTime);
-            logAiInteraction('RESULT', 'Full-Stack Simulation Completed & Cryptographic Ledger Sealed', {
+            logAiInteraction('RESULT', 'Full-Stack Simulation Saved', {
                 phase: 'RESULT',
                 record_id: `#REC-${effectiveRecordId}`,
                 engine_used: (engineModeSaved.includes('STATUTORY') || engineModeSaved.includes('FALLBACK')) ? 'STATUTORY_RULE_ENGINE' : 'LIVE_GEMINI',
@@ -1458,12 +1576,17 @@ async function executeInferenceAction() {
                 execution_time_ms: auditDurationMs,
                 sha256_cryptographic_seal: recordSha,
                 status_message: statusMsgSaved,
-                ledger_status: "Permanently Sealed (FIPS 180-4 SHA-256) in SQLite & BigQuery"
+                ledger_status: backendSaved ? "Saved through the simulation API" : "Local browser record only; backend save failed"
             });
         }
 
         if (typeof showNotificationToast === 'function') {
-            showNotificationToast(`Audit Complete & Documented (#${effectiveRecordId})`, "✅");
+            showNotificationToast(
+                backendSaved
+                    ? `Simulation saved (#${effectiveRecordId})`
+                    : `Simulation saved locally only (#${effectiveRecordId})`,
+                backendSaved ? "✅" : "⚠️"
+            );
         }
 
         isCompletedSuccessfully = true;
@@ -1479,7 +1602,7 @@ async function executeInferenceAction() {
                 btnMain.classList.add('opacity-85');
                 btnMain.innerHTML = `
                     <span class="text-base">🔒</span>
-                    <span id="lbl_btn_main_action">Audit Sealed &bull; Record Locked</span>
+                    <span id="lbl_btn_main_action">Simulation Saved &bull; Record Locked</span>
                 `;
             } else {
                 btnMain.classList.remove('opacity-85', 'opacity-80');
@@ -1550,7 +1673,7 @@ window.animateSingleSentenceAiPipeline = animateSingleSentenceAiPipeline;
 /**
  * In-browser computer vision scanner with Dual-Axis Laser Sweeper HUD and 2D bounding boxes.
  */
-async function runDetailedObjectVisionScan(forceRescan = false) {
+async function runDetailedObjectVisionScanLegacy(forceRescan = false) {
     const mainImg = document.getElementById('mainCanopyPreview');
     const emptyState = document.getElementById('emptyEvidenceStateSimulator');
     if (emptyState) {
@@ -1569,24 +1692,65 @@ async function runDetailedObjectVisionScan(forceRescan = false) {
     if (btnScan) btnScan.classList.add('animate-pulse');
 
     const currentImgName = selectedCanopyFileName || (mainImg && mainImg.src ? mainImg.src.split('/').pop().split('?')[0] : 'sawit_drone.jpg');
+    const currentImgUrl = document.getElementById('selected_image_url')?.value || (mainImg ? mainImg.src : currentImgName);
     const isMandor = currentImgName.toLowerCase().includes('mandor') || currentImgName.toLowerCase().includes('in-situ') || currentImgName.toLowerCase().includes('tm_weed');
     const activeKode = (window.activeEstate && window.activeEstate.kode_kebun) || 'EST-MDN-010';
+    const photos = typeof getActiveEstatePhotosPool === 'function'
+        ? getActiveEstatePhotosPool()
+        : (Array.isArray(window.activeEstatePhotos) ? window.activeEstatePhotos : []);
+    const selectedEvidence = photos.find(photo =>
+        photo.file_url === currentImgUrl ||
+        photo.image_gcs_url === currentImgUrl ||
+        photo.url === currentImgUrl ||
+        photo.filename === currentImgName
+    );
+
+    if (!forceRescan) {
+        const savedBoxes = typeof getCachedVisionBoxes === 'function'
+            ? getCachedVisionBoxes(currentImgName, currentImgUrl)
+            : null;
+        if (Array.isArray(savedBoxes)) {
+            latestDetectedObjects = savedBoxes;
+            if (typeof renderDetectedBoundingBoxes === 'function') renderDetectedBoundingBoxes(savedBoxes);
+            if (typeof drawReticles === 'function') drawReticles();
+            const badge = document.getElementById('aiDetectionSummaryBadge');
+            if (badge) badge.textContent = `${savedBoxes.length} saved detections`;
+            const status = document.getElementById('aiScanBadge');
+            if (status) status.textContent = 'Saved scan restored • no Gemini request';
+            if (btnScan) btnScan.classList.remove('animate-pulse');
+            return { boxes: savedBoxes, totalEntities: savedBoxes.length, mode: 'PERSISTED_SCAN' };
+        }
+
+        latestDetectedObjects = [];
+        if (typeof renderDetectedBoundingBoxes === 'function') renderDetectedBoundingBoxes([]);
+        const badge = document.getElementById('aiDetectionSummaryBadge');
+        if (badge) badge.textContent = 'No saved scan • use Rescan AI';
+        const status = document.getElementById('aiScanBadge');
+        if (status) status.textContent = 'No saved scan; automatic scanning is disabled';
+        if (btnScan) btnScan.classList.remove('animate-pulse');
+        return { boxes: [], totalEntities: 0, mode: 'NOT_SCANNED' };
+    }
 
     let tailoredData = null;
 
     try {
         if (window.UnifiedVisionEngine) {
-            tailoredData = await window.UnifiedVisionEngine.scan({
-                imageUrl: mainImg ? mainImg.src : '/static/img/sawit_drone.jpg',
-                filename: currentImgName,
-                dossierId: activeKode,
-                perspective: isMandor ? 'TERRESTRIAL_IN_SITU' : 'AERIAL_DRONE',
-                pageContext: 'SIMULATOR',
-                forceRescan: forceRescan,
-                containerEl: document.getElementById('mainCanopyContainer') || (mainImg ? mainImg.parentElement : null),
-                overlayEl: document.getElementById('droneBBoxesOverlay'),
-                statusEl: document.getElementById('aiScanBadge') || document.getElementById('aiDetectionSummaryBadge')
-            });
+            try {
+                tailoredData = await window.UnifiedVisionEngine.scan({
+                    imageUrl: currentImgUrl,
+                    filename: currentImgName,
+                    dossierId: activeKode,
+                    evidenceId: selectedEvidence?.evidence_id || null,
+                    perspective: isMandor ? 'TERRESTRIAL_IN_SITU' : 'AERIAL_DRONE',
+                    pageContext: 'SIMULATOR',
+                    forceRescan: forceRescan,
+                    containerEl: document.getElementById('mainCanopyContainer') || (mainImg ? mainImg.parentElement : null),
+                    overlayEl: document.getElementById('droneBBoxesOverlay'),
+                    statusEl: document.getElementById('aiScanBadge') || document.getElementById('aiDetectionSummaryBadge')
+                });
+            } catch (error) {
+                console.warn('[Simulator vision scan] Using local fallback:', error);
+            }
         }
 
         if (!tailoredData) {
@@ -1597,18 +1761,19 @@ async function runDetailedObjectVisionScan(forceRescan = false) {
                     : []);
             tailoredData = {
                 boxes: fallbackBoxes,
-                totalEntities: fallbackBoxes.length || 28,
-                shadeRatioPercent: 52,
-                effectiveAlleyWidthM: 3.79,
-                intercropCapacityHa: 0.48,
-                recommendedIntercrop: "Jahe Merah (Toleran Naungan 40-60%) [Baku PPKS]",
+                totalEntities: fallbackBoxes.length,
                 isFallback: true,
-                mode: "AUTONOMOUS_RULE_ENGINE",
-                auditorCritique: "Geometri silvikultur TM-7.5 terverifikasi patuh jarak tanam segitiga 9.0m, piringan 2.0m steril [Baku PPKS], dan lorong sela 3.79m [Baku PPKS]."
+                mode: "HEURISTIC_FALLBACK"
             };
         }
 
         if (tailoredData) {
+            if (tailoredData.isFallback || tailoredData.mode !== 'LIVE_GEMINI') {
+                (tailoredData.boxes || []).forEach(entity => {
+                    entity.is_heuristic = true;
+                    delete entity.confidence;
+                });
+            }
             latestDetectedObjects = tailoredData.boxes || [];
             if (typeof renderDetectedBoundingBoxes === 'function') {
                 renderDetectedBoundingBoxes(latestDetectedObjects);
@@ -1626,10 +1791,10 @@ async function runDetailedObjectVisionScan(forceRescan = false) {
             const machineBadge = document.getElementById('badgeMachineCompliance');
             if (machineBadge) {
                 if (isLiveVision) {
-                    machineBadge.innerHTML = '🟢 LIVE AI: Gemini 3.8 Flash &bull; Real-Time Multimodal Sync';
+                    machineBadge.textContent = 'LIVE GEMINI IMAGE RESPONSE • GROUND TRUTH REQUIRED';
                     machineBadge.className = 'text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-500 shadow-xs shrink-0';
                 } else {
-                    machineBadge.innerHTML = '🟡 AUTONOMOUS RULE ENGINE: Local Deterministic Standards Active';
+                    machineBadge.innerHTML = '🟡 HEURISTIC PREVIEW ONLY • NOT IMAGE-VERIFIED';
                     machineBadge.className = 'text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-500 shadow-xs shrink-0';
                 }
             }
@@ -1638,25 +1803,28 @@ async function runDetailedObjectVisionScan(forceRescan = false) {
             const machineDiag = document.getElementById('aiMachineDiagnosticText');
             if (machineDiag) {
                 if (isLiveVision) {
-                    machineDiag.innerHTML = `<strong class="text-emerald-400 font-bold font-mono">[LIVE GEMINI VISION]:</strong> ${tailoredData.auditorCritique || 'Multimodal vision audit confirmed 2.0m root buffer and equilateral planting grid compliance.'}`;
+                    machineDiag.textContent = `Gemini returned ${tailoredData.totalEntities} image detections. Accuracy and field compliance require independent review.`;
                 } else {
                     machineDiag.innerHTML = `
                         <div class="p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/50 text-[11px] text-amber-200 font-mono leading-relaxed mb-2 shadow-xs flex items-start gap-2">
                             <span class="text-base shrink-0">⚠️</span>
                             <div>
-                                <strong class="text-amber-300 block mb-0.5">[AUDIT NOTICE] Sesi Gemini Vision/Reasoner tidak terjangkau (Offline / Kuota Terlampaui).</strong>
-                                <span>Sistem beralih ke <strong>Autonomous Statutory Rule Engine</strong> (Baku Silvikultur PPKS, ISPO Prinsip 2, &amp; EUDR Art. 9) secara deterministik.</span>
+                                <strong class="text-amber-300 block mb-0.5">[FALLBACK PREVIEW] Image analysis did not return a live Gemini result.</strong>
+                                <span>The generated boxes are illustrative and do not verify contents or compliance in the uploaded image.</span>
                             </div>
                         </div>
-                        <strong class="text-emerald-400 font-bold font-mono">Autonomous Statutory Diagnostic [Baku PPKS]:</strong> ${tailoredData.auditorCritique || 'Geometri silvikultur TM-7.5 terverifikasi patuh jarak tanam segitiga 9.0m, piringan 2.0m steril [Baku PPKS], dan lorong sela 3.79m [Baku PPKS].'}
                     `;
                 }
             }
 
             const summaryBadge = document.getElementById('aiDetectionSummaryBadge');
             if (summaryBadge) {
-                summaryBadge.textContent = `${tailoredData.totalEntities} Objects Mapped (100% Conf)`;
-                summaryBadge.className = 'text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-600';
+                summaryBadge.textContent = isLiveVision
+                    ? `${tailoredData.totalEntities} Gemini detections`
+                    : `${tailoredData.totalEntities} heuristic boxes • not image-verified`;
+                summaryBadge.className = isLiveVision
+                    ? 'text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-600'
+                    : 'text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-amber-950 text-amber-300 border border-amber-600';
             }
 
             const machineSterile = document.getElementById('lblMachineSterileStatus');
@@ -1664,16 +1832,26 @@ async function runDetailedObjectVisionScan(forceRescan = false) {
             const machineDetected = document.getElementById('lblMachineDetectedObjects');
 
             if (machineSterile) {
-                machineSterile.textContent = "✓ 2.0m Weed-Free Circle Compliant [Baku PPKS]";
-                machineSterile.className = "text-emerald-400 font-bold font-mono";
+                machineSterile.textContent = "Root-buffer measurement and compliance not assessed";
+                machineSterile.className = "text-slate-400 font-bold font-mono";
             }
             if (machineDensity) {
-                machineDensity.textContent = `${tailoredData.shadeRatioPercent || tailoredData.calculatedShadePercent || 52}%`;
-                machineDensity.className = "text-emerald-300 font-bold font-mono";
+                const shadeEstimate = [tailoredData.calculatedShadePercent, tailoredData.shadeRatioPercent]
+                    .find(value => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100);
+                machineDensity.textContent = isLiveVision && shadeEstimate !== undefined
+                    ? `~${shadeEstimate}% estimate`
+                    : "Not measured from image";
+                machineDensity.className = isLiveVision
+                    ? "text-emerald-300 font-bold font-mono"
+                    : "text-amber-300 font-bold font-mono";
             }
             if (machineDetected) {
-                machineDetected.textContent = `${tailoredData.totalEntities} physical entities localized with 2D bounding boxes.`;
-                machineDetected.className = "text-cyan-300 font-bold font-mono";
+                machineDetected.textContent = isLiveVision
+                    ? `${tailoredData.totalEntities} entities returned by Gemini image analysis.`
+                    : `${tailoredData.totalEntities} heuristic preview boxes; no image detections verified.`;
+                machineDetected.className = isLiveVision
+                    ? "text-cyan-300 font-bold font-mono"
+                    : "text-amber-300 font-bold font-mono";
             }
         }
     } finally {
@@ -1682,12 +1860,11 @@ async function runDetailedObjectVisionScan(forceRescan = false) {
 
     return tailoredData;
 }
-window.runDetailedObjectVisionScan = runDetailedObjectVisionScan;
 
 /**
  * Initializes and synchronizes active estate data and inherited evidence from Stage 2A
  */
-async function initActiveEstateData() {
+async function initActiveEstateDataLegacy() {
     const urlParams = new URLSearchParams(window.location.search);
     const targetKode = urlParams.get('kode') || urlParams.get('estate_code') || localStorage.getItem('precision_active_dossier') || (window.activeEstate && window.activeEstate.kode_kebun) || 'EST-MDN-010';
 
@@ -1775,12 +1952,15 @@ async function initActiveEstateData() {
     if (photos.length > 0) {
         window.activeEstatePhotos = photos;
         const firstPhoto = photos[0];
+        const firstPhotoUrl = firstPhoto.file_url || firstPhoto.image_gcs_url || firstPhoto.url;
         if (mainImg) {
-            mainImg.src = firstPhoto.file_url || firstPhoto.image_gcs_url || firstPhoto.url;
+            mainImg.src = firstPhotoUrl;
             selectedCanopyFileName = firstPhoto.filename;
             const cap = document.getElementById('active_canopy_img_name');
             if (cap) cap.textContent = firstPhoto.filename;
         }
+        const selectedUrlInput = document.getElementById('selected_image_url');
+        if (selectedUrlInput) selectedUrlInput.value = firstPhotoUrl || '';
         if (emptyState) {
             emptyState.style.display = 'none';
             emptyState.classList.add('hidden');
@@ -1803,16 +1983,15 @@ async function initActiveEstateData() {
         runDetailedObjectVisionScan(false).catch(err => console.warn(err));
     }
 }
-window.initActiveEstateData = initActiveEstateData;
 
 /**
  * Draws HUD reticles on target canvas
  */
-function initDrawingReticles() {
+function initDrawingReticlesLegacy() {
     drawReticles();
     window.addEventListener('resize', drawReticles);
 }
-function drawReticles() {
+function drawReticlesLegacy() {
     const canvas = document.getElementById('reticleCanvas');
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -1854,7 +2033,7 @@ function drawReticles() {
 /**
  * Injects 2D bounding boxes onto DOM overlay element
  */
-function renderDetectedBoundingBoxes(boxes) {
+function renderDetectedBoundingBoxesLegacy(boxes) {
     const overlay = document.getElementById('droneBBoxesOverlay');
     const svgOverlay = document.getElementById('aiReticleSvgOverlay');
     const imgEl = document.getElementById('mainCanopyPreview');
@@ -1886,51 +2065,53 @@ function renderDetectedBoundingBoxes(boxes) {
 
     let html = '';
     boxes.forEach(item => {
-        const box = item.box_2d || [0, 0, 1000, 1000];
+        if (!item || !Array.isArray(item.box_2d) || item.box_2d.length !== 4 || !item.box_2d.every(Number.isFinite)) return;
+        const box = item.box_2d;
         const ymin = Math.max(0, Math.min(1000, box[0]));
         const xmin = Math.max(0, Math.min(1000, box[1]));
         const ymax = Math.max(0, Math.min(1000, box[2]));
         const xmax = Math.max(0, Math.min(1000, box[3]));
+        if (ymax <= ymin || xmax <= xmin) return;
 
         const top = (ymin / 10.0).toFixed(1);
         const left = (xmin / 10.0).toFixed(1);
-        const width = Math.max(5.0, (xmax - xmin) / 10.0).toFixed(1);
-        const height = Math.max(5.0, (ymax - ymin) / 10.0).toFixed(1);
+        const width = ((xmax - xmin) / 10.0).toFixed(1);
+        const height = ((ymax - ymin) / 10.0).toFixed(1);
 
-        const labelKey = (item.label || 'palm_canopy').toLowerCase();
-        const confPct = Math.round((item.confidence || 0.94) * 100);
+        const labelKey = (item.label || '').toLowerCase();
+        const resultQualifier = item.is_heuristic ? ' (heuristic preview)' : '';
 
         let colorBorder = 'border-emerald-400';
         let colorBg = 'bg-emerald-500/15';
         let badgeBg = 'bg-emerald-950/90 text-emerald-300 border-emerald-400';
-        let icon = '🌴';
-        let labelName = item.label_text || 'Palm Crown';
+        let icon = '🔎';
+        let labelName = item.label_text || item.label_name || item.label || 'Detected object';
 
         if (labelKey.includes('alley') || labelKey.includes('corridor') || labelKey.includes('ground')) {
             colorBorder = 'border-sky-400';
             colorBg = 'bg-sky-500/15';
             badgeBg = 'bg-sky-950/90 text-sky-300 border-sky-400';
             icon = '🌱';
-            labelName = item.label_text || '3.79m Net Corridor';
+            icon = '🌱';
         } else if (labelKey.includes('buffer') || labelKey.includes('circle') || labelKey.includes('root') || labelKey.includes('sterile')) {
             colorBorder = 'border-rose-400';
             colorBg = 'bg-rose-500/15';
             badgeBg = 'bg-rose-950/90 text-rose-300 border-rose-400';
             icon = '⭕';
-            labelName = item.label_text || '2.0m Root Exclusion';
+            icon = '⭕';
         } else if (labelKey.includes('weed') || labelKey.includes('mulch') || labelKey.includes('cover')) {
             colorBorder = 'border-cyan-400';
             colorBg = 'bg-cyan-500/15';
             badgeBg = 'bg-cyan-950/90 text-cyan-300 border-cyan-400';
             icon = '🌿';
-            labelName = item.label_text || 'Living Weed Mulch';
+            icon = '🌿';
         }
 
         html += `
             <div class="absolute border-2 ${colorBorder} ${colorBg} rounded-lg shadow-sm pointer-events-auto cursor-help box-lock-active"
                  style="top: ${top}%; left: ${left}%; width: ${width}%; height: ${height}%;">
                 <span class="absolute -top-3.5 left-1 px-1.5 py-0.2 rounded ${badgeBg} text-[8px] font-mono font-bold border shadow-xs whitespace-nowrap">
-                    ${icon} ${labelName} [${confPct}%]
+                    ${icon} ${labelName}${resultQualifier}
                 </span>
             </div>
         `;
@@ -1939,13 +2120,10 @@ function renderDetectedBoundingBoxes(boxes) {
     overlay.innerHTML = html;
 
     const summaryBadge = document.getElementById('aiDetectionSummaryBadge');
-    if (summaryBadge && boxes.length > 0) {
-        const avgConf = (boxes.reduce((acc, b) => acc + (b.confidence || 0.94), 0) / boxes.length * 100).toFixed(0);
-        summaryBadge.textContent = `${boxes.length} Objects (${avgConf}% Conf)`;
-    }
+    if (summaryBadge) summaryBadge.textContent = `${boxes.length} detections`;
 }
 
-function toggleVisionOverlay() {
+function toggleVisionOverlayLegacy() {
     isVisionOverlayVisible = !isVisionOverlayVisible;
     const btn = document.getElementById('btn_toggle_vision_overlay');
     const lbl = document.getElementById('lbl_toggle_overlay');
@@ -2006,7 +2184,7 @@ function selectCanopyPreset(fileName, caption) {
     }
 }
 
-function handleCanopyFileUpload(event) {
+function handleCanopyFileUploadLegacy(event) {
     const file = event.target && event.target.files && event.target.files[0];
     if (!file) return;
 
@@ -2026,11 +2204,13 @@ function handleCanopyFileUpload(event) {
     reader.readAsDataURL(file);
 }
 
-function renderAuditResultCard(comp, cropName, sha, recordId, photosList = []) {
+function renderAuditResultCardLegacy(comp, cropName, sha, recordId, photosList = []) {
     const container = document.getElementById('auditResultsContainer');
     if (!container) return;
 
     const cleanPhotos = (photosList && photosList.length > 0) ? photosList : [];
+    const shaText = typeof sha === 'string' && sha ? sha : 'Not available';
+    const shaPreview = shaText.length > 16 ? `${shaText.substring(0, 16)}...` : shaText;
 
     container.innerHTML = `
         <div class="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border-2 border-emerald-500/70 shadow-sm space-y-3 animate-in fade-in duration-300">
@@ -2039,7 +2219,7 @@ function renderAuditResultCard(comp, cropName, sha, recordId, photosList = []) {
                     <span class="text-xl sm:text-2xl">✅</span>
                     <div>
                         <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-2">
-                            <span>In-Silico Simulation &amp; AI Audit Certified</span>
+                            <span>In-Silico Simulation Record</span>
                             <span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">#REC-${recordId}</span>
                         </h3>
                         <p class="text-[11px] text-slate-600 dark:text-emerald-300/80 mt-0.5">Crop: <strong>${cropName}</strong> &bull; LER Advantage: <strong>${comp.totalLer.toFixed(4)}x</strong></p>
@@ -2059,7 +2239,7 @@ function renderAuditResultCard(comp, cropName, sha, recordId, photosList = []) {
             ${cleanPhotos.length > 0 ? `
             <div class="p-2 bg-slate-50 dark:bg-slate-950/70 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
                 <div class="flex items-center gap-2 overflow-x-auto py-0.5">
-                    <span class="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 shrink-0">Scanned Evidence:</span>
+                    <span class="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 shrink-0">Linked Images:</span>
                     ${cleanPhotos.map((p, idx) => `
                         <div class="relative w-14 h-10 rounded-lg overflow-hidden border border-emerald-500/40 shrink-0 shadow-xs group">
                             <img src="${p}" alt="Evidence #${idx+1}" class="w-full h-full object-cover" onerror="this.src='/static/img/sawit_drone.jpg'">
@@ -2084,18 +2264,18 @@ function renderAuditResultCard(comp, cropName, sha, recordId, photosList = []) {
                 </div>
                 <div class="p-2.5 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-emerald-900/60">
                     <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block uppercase">GAP 2.0m Root Zone</span>
-                    <span class="text-base font-bold text-emerald-600 dark:text-emerald-400 font-mono block mt-0.5">100% Protected</span>
+                    <span class="text-base font-bold text-amber-600 dark:text-amber-400 font-mono block mt-0.5">Not verified from image evidence</span>
                 </div>
                 <div class="p-2.5 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-emerald-900/60">
-                    <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block uppercase">Cryptographic Seal</span>
-                    <span class="text-xs font-bold text-indigo-600 dark:text-indigo-300 font-mono truncate block mt-0.5" title="${sha}">${sha.substring(0, 16)}...</span>
+                    <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block uppercase">Record Hash (if returned)</span>
+                    <span class="text-xs font-bold text-indigo-600 dark:text-indigo-300 font-mono truncate block mt-0.5" title="${shaText}">${shaPreview}</span>
                 </div>
             </div>
         </div>
     `;
 }
 
-function getLocalSimulationRecords() {
+function getLocalSimulationRecordsLegacy() {
     try {
         const raw = localStorage.getItem(SIM_HISTORY_STORAGE_KEY);
         return raw ? JSON.parse(raw) : [];
@@ -2104,7 +2284,7 @@ function getLocalSimulationRecords() {
     }
 }
 
-function saveSimulationRecordLocally(record) {
+function saveSimulationRecordLocallyLegacy(record) {
     try {
         let records = getLocalSimulationRecords();
         records = records.filter(r => r.id !== record.id);
@@ -2140,68 +2320,92 @@ function restoreActiveAuditedDossier(recordToRestore = null) {
             return false;
         }
 
+        const savedInputs = record.calculation_inputs;
+        const savedMetrics = record.data_numerik;
+        const savedLer = savedMetrics?.efisiensi_lahan_ler;
+        const savedClimate = savedMetrics?.dampak_lingkungan_dan_karbon;
+        const requiredYieldKeys = [
+            'yield_palm_inter', 'yield_palm_mono', 'yield_crop_inter', 'yield_crop_mono'
+        ];
+        if (!savedInputs || !savedMetrics || !Number.isFinite(Number(savedInputs.land_area)) ||
+            Number(savedInputs.land_area) <= 0 ||
+            requiredYieldKeys.some(key => !Number.isFinite(Number(savedInputs[key]))) ||
+            !Number.isFinite(Number(savedLer?.total_ler)) ||
+            !Number.isFinite(Number(savedLer?.percentage_land_saved)) ||
+            !Number.isFinite(Number(savedClimate?.avoided_land_ha)) ||
+            !Number.isFinite(Number(savedClimate?.total_climate_benefit_tco2e))) {
+            return false;
+        }
+
+        if (typeof latestSimulationData !== 'undefined') latestSimulationData = record;
+        if (typeof latestEngineCalculation !== 'undefined') {
+            latestEngineCalculation = {
+                totalLer: Number(savedLer.total_ler),
+                plsPct: Number(savedLer.percentage_land_saved),
+                sparedHa: Number(savedClimate.avoided_land_ha),
+                totalCarbon: Number(savedClimate.total_climate_benefit_tco2e),
+                inputs: savedInputs,
+                dataNumerik: savedMetrics
+            };
+        }
+
         console.log("[Simulator] Restoring active sealed audit dossier #REC-" + record.id);
 
         // 1. Restore input fields in Zona 1
-        if (record.palm_age !== undefined && document.getElementById('palm_age')) {
-            document.getElementById('palm_age').value = record.palm_age;
+        if (savedInputs.palm_age !== undefined && document.getElementById('palm_age')) {
+            document.getElementById('palm_age').value = savedInputs.palm_age;
         }
-        if (record.land_area !== undefined && document.getElementById('land_area')) {
-            document.getElementById('land_area').value = record.land_area;
+        if (savedInputs.land_area !== undefined && document.getElementById('land_area')) {
+            document.getElementById('land_area').value = savedInputs.land_area;
         }
-        if (record.soil_ph !== undefined && document.getElementById('sim_soil_ph')) {
-            document.getElementById('sim_soil_ph').value = record.soil_ph;
+        if (savedInputs.soil_ph !== undefined && document.getElementById('sim_soil_ph')) {
+            document.getElementById('sim_soil_ph').value = savedInputs.soil_ph;
         }
-        if (record.soil_texture && document.getElementById('sim_soil_texture')) {
-            document.getElementById('sim_soil_texture').value = record.soil_texture;
+        if (savedInputs.soil_texture && document.getElementById('sim_soil_texture')) {
+            document.getElementById('sim_soil_texture').value = savedInputs.soil_texture;
         }
-        if (record.slope !== undefined && document.getElementById('sim_slope')) {
-            document.getElementById('sim_slope').value = record.slope;
+        if (savedInputs.slope !== undefined && document.getElementById('sim_slope')) {
+            document.getElementById('sim_slope').value = savedInputs.slope;
         }
-        if (record.elevation !== undefined && document.getElementById('sim_elevation')) {
-            document.getElementById('sim_elevation').value = record.elevation;
+        if (savedInputs.elevation !== undefined && document.getElementById('sim_elevation')) {
+            document.getElementById('sim_elevation').value = savedInputs.elevation;
         }
-        if (record.coords && document.getElementById('sim_coords')) {
-            document.getElementById('sim_coords').value = record.coords;
+        if (savedInputs.yield_palm_inter !== undefined && document.getElementById('yield_palm_inter')) {
+            document.getElementById('yield_palm_inter').value = savedInputs.yield_palm_inter;
         }
-        if (record.crop_name && document.getElementById('crop_name')) {
-            document.getElementById('crop_name').value = record.crop_name;
+        if (savedInputs.yield_palm_mono !== undefined && document.getElementById('yield_palm_mono')) {
+            document.getElementById('yield_palm_mono').value = savedInputs.yield_palm_mono;
         }
-
-        // 2. Restore Zona 2 on-screen metrics
-        if (record.biomass_t_ha !== undefined && document.getElementById('val_metric_biomass')) {
-            document.getElementById('val_metric_biomass').innerText = `${record.biomass_t_ha} t/Ha`;
+        if (savedInputs.yield_crop_inter !== undefined && document.getElementById('yield_crop_inter')) {
+            document.getElementById('yield_crop_inter').value = savedInputs.yield_crop_inter;
         }
-        if (record.microclimate_cooling !== undefined && document.getElementById('val_metric_microclimate')) {
-            document.getElementById('val_metric_microclimate').innerText = `${record.microclimate_cooling} °C`;
+        if (savedInputs.yield_crop_mono !== undefined && document.getElementById('yield_crop_mono')) {
+            document.getElementById('yield_crop_mono').value = savedInputs.yield_crop_mono;
         }
-        if (record.soil_moisture_vwc !== undefined && document.getElementById('val_metric_soil_moisture')) {
-            document.getElementById('val_metric_soil_moisture').innerText = `${record.soil_moisture_vwc}% VWC`;
+        if (savedInputs.crop_name && document.getElementById('crop_name')) {
+            document.getElementById('crop_name').value = savedInputs.crop_name;
         }
+        if (record.coords && document.getElementById('sim_coords')) document.getElementById('sim_coords').value = record.coords;
+        if (document.getElementById('res_ler')) document.getElementById('res_ler').textContent = `${savedLer.total_ler}x`;
+        if (document.getElementById('val_ler_total')) document.getElementById('val_ler_total').textContent = `${savedLer.total_ler}x • kalkulasi.engine`;
+        if (document.getElementById('res_pls')) document.getElementById('res_pls').textContent = `${savedLer.percentage_land_saved}%`;
+        if (document.getElementById('res_avoided_ha')) document.getElementById('res_avoided_ha').textContent = `${savedClimate.avoided_land_ha} Ha`;
+        if (document.getElementById('res_carbon')) document.getElementById('res_carbon').textContent = `${savedClimate.total_climate_benefit_tco2e} tCO₂e`;
+        const savedMop = Number(savedMetrics.neraca_hara_npk?.required_compensatory_mop_kg_ha);
+        if (Number.isFinite(savedMop) && document.getElementById('val_mop_comp')) {
+            document.getElementById('val_mop_comp').textContent = `${savedMop} kg MOP/Ha (engine estimate)`;
+        }
+        ['val_metric_biomass', 'val_metric_microclimate', 'val_metric_soil_moisture'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.textContent = 'Not calculated by engine';
+        });
         if (document.getElementById('val_metric_carbon_seq')) {
-            const carbonVal = Math.round(record.total_climate_benefit_tco2e || record.carbon_tco2e || 1546);
-            document.getElementById('val_metric_carbon_seq').innerText = `+${carbonVal.toLocaleString()} tCO2e`;
-        }
-        if (document.getElementById('res_ler')) {
-            document.getElementById('res_ler').innerText = `${parseFloat(record.total_ler || record.ler_score || 1.52).toFixed(2)}x`;
-        }
-        if (document.getElementById('res_pls')) {
-            document.getElementById('res_pls').innerText = `${parseFloat(record.pls_percentage || 34.3).toFixed(2)}%`;
-        }
-        if (document.getElementById('res_avoided_ha')) {
-            document.getElementById('res_avoided_ha').innerText = `${parseFloat(record.avoided_land_ha || record.forest_saved_ha || 34.4).toFixed(2)} Ha`;
-        }
-        if (document.getElementById('res_carbon')) {
-            const cVal = Math.round(record.total_climate_benefit_tco2e || record.carbon_tco2e || 1546);
-            document.getElementById('res_carbon').innerText = `${cVal} tCO2e`;
-        }
-        if (document.getElementById('bar_pls_progress')) {
-            const plsVal = parseFloat(record.pls_percentage || 34.3);
-            document.getElementById('bar_pls_progress').style.width = Math.min(100, plsVal) + '%';
+            document.getElementById('val_metric_carbon_seq').textContent =
+                `${(savedClimate.total_climate_benefit_tco2e / savedInputs.land_area).toFixed(2)} tCO₂e/Ha`;
         }
 
         // Restore photo badges & selection
-        const photosList = Array.isArray(record.photo_urls) ? record.photo_urls : (record.image_path ? [record.image_path] : []);
+        const photosList = Array.isArray(record.photo_urls) ? record.photo_urls.filter(Boolean) : [];
         if (photosList.length > 0) {
             if (typeof selectedPhotoUrls !== 'undefined' && selectedPhotoUrls.add) {
                 photosList.forEach(p => selectedPhotoUrls.add(p));
@@ -2214,12 +2418,15 @@ function restoreActiveAuditedDossier(recordToRestore = null) {
 
         // 3. Render Audit Result Card
         const comp = {
-            totalLer: parseFloat(record.total_ler || record.ler_score || 1.52),
-            sparedHa: parseFloat(record.avoided_land_ha || record.forest_saved_ha || 34.4),
-            totalCarbon: parseFloat(record.total_climate_benefit_tco2e || record.carbon_tco2e || 1546)
+            totalLer: Number(savedLer.total_ler),
+            plsPct: Number(savedLer.percentage_land_saved),
+            sparedHa: Number(savedClimate.avoided_land_ha),
+            totalCarbon: Number(savedClimate.total_climate_benefit_tco2e),
+            surfacePar: Number(savedMetrics.analisis_cahaya_kanopi?.surface_par_umol_m2_s),
+            coverPct: Number(savedMetrics.geometri_kanopi_spasial?.canopy_cover_pct)
         };
         if (typeof renderAuditResultCard === 'function') {
-            renderAuditResultCard(comp, record.crop_name || record.crop_type || "Red Ginger", record.sha256 || record.sha256_hash || "", record.id, photosList);
+            renderAuditResultCard(comp, savedInputs.crop_name, record.sha256 || record.sha256_hash || "", record.id, photosList);
         }
 
         // 4. Highlight Zona 2 container
@@ -2229,18 +2436,18 @@ function restoreActiveAuditedDossier(recordToRestore = null) {
             resultDossier.classList.add('ring-2', 'ring-emerald-500', 'border-emerald-500', 'shadow-lg');
         }
 
-        // 5. Permanent sealed badge
+        // 5. Identify the restored record without implying certification.
         const recTag = document.getElementById('activeDossierRecTag');
         if (recTag) {
-            recTag.innerHTML = `🔒 AUDIT STATE: SEALED &amp; CERTIFIED &bull; RECORD #REC-${record.id}`;
-            recTag.className = "text-[10px] font-mono font-bold px-3 py-1 rounded-full bg-emerald-600 text-white border border-emerald-400 shadow-md inline-flex items-center gap-1.5";
+            recTag.innerHTML = `🔒 SIMULATION RECORD RESTORED &bull; RECORD #REC-${record.id}`;
+            recTag.className = "text-[10px] font-mono font-bold px-3 py-1 rounded-full bg-slate-700 text-white border border-slate-500 shadow-md inline-flex items-center gap-1.5";
         }
 
         // 6. Lock Zona 1 parameters & button state
         lockZona1Parameters(true);
 
         // 7. Update Stage 3 links
-        const targetKode = record.kode_kebun || document.getElementById('sim_estate_select')?.value || 'EST-MDN-010';
+        const targetKode = record.kode_kebun || '';
         const destSurveillanceUrl = `/timelines?kode=${encodeURIComponent(targetKode)}&id=${record.id}&year=2026`;
         const btnNavNext = document.getElementById('btnNavDirectToSurveillance');
         if (btnNavNext) {
@@ -2266,7 +2473,7 @@ function restoreActiveAuditedDossier(recordToRestore = null) {
 }
 window.restoreActiveAuditedDossier = restoreActiveAuditedDossier;
 
-async function fetchAdminHistory() {
+async function fetchAdminHistoryLegacy() {
     const tbody = document.getElementById('adminHistoryTbody');
     if (!tbody) return;
 
@@ -2340,7 +2547,7 @@ async function fetchAdminHistory() {
     } catch (_) {}
 }
 
-function renderAdminTableRows(records) {
+function renderAdminTableRowsLegacy(records) {
     const tbody = document.getElementById('adminHistoryTbody');
     if (!tbody) return;
 
@@ -2392,7 +2599,7 @@ function renderAdminTableRows(records) {
     }).join('');
 }
 
-function updateAdminPaginationUI(totalRecords, limit) {
+function updateAdminPaginationUILegacy(totalRecords, limit) {
     const start = totalRecords === 0 ? 0 : (adminCurrentPage - 1) * limit + 1;
     const end = Math.min(adminCurrentPage * limit, totalRecords);
 
@@ -2412,19 +2619,19 @@ function updateAdminPaginationUI(totalRecords, limit) {
     if (btnLast) btnLast.disabled = (adminCurrentPage >= adminTotalPages);
 }
 
-function goToAdminPage(page) {
+function goToAdminPageLegacy(page) {
     if (page < 1 || page > adminTotalPages || page === adminCurrentPage) return;
     adminCurrentPage = page;
     fetchAdminHistory();
 }
 
-function changeAdminLimit() {
+function changeAdminLimitLegacy() {
     adminCurrentLimit = parseInt(document.getElementById('adminLimitSelect')?.value) || 10;
     adminCurrentPage = 1;
     fetchAdminHistory();
 }
 
-function handleAdminSearchDebounce() {
+function handleAdminSearchDebounceLegacy() {
     clearTimeout(adminDebounceTimer);
     const val = document.getElementById('adminSearchInput')?.value.trim();
     adminDebounceTimer = setTimeout(() => {
@@ -2434,7 +2641,38 @@ function handleAdminSearchDebounce() {
     }, 300);
 }
 
-async function viewAdminLogDetail(logId) {
+function resolveTelemetryPhotoUrls(item) {
+    const visionSummary = typeof item?.vision_summary === 'string'
+        ? (() => { try { return JSON.parse(item.vision_summary); } catch (_) { return null; } })()
+        : item?.vision_summary;
+    const photoUrls = Array.isArray(item?.photo_urls)
+        ? item.photo_urls.filter(url => typeof url === 'string' && url.trim())
+        : [];
+    const evidenceUrlFrom = value => {
+        if (typeof value !== 'string' || !value.trim()) return null;
+        const url = value.trim();
+        if (/^\/api\/media\/evidence\/[^/?#]+$/i.test(url)) return url;
+        const filename = url.split(/[/?#]/).pop();
+        const match = filename?.match(/^(EV-[A-Za-z0-9_-]+?)(?:\.(?:jpe?g|png|webp))?$/i);
+        return match ? `/api/media/evidence/${match[1]}` : null;
+    };
+
+    const evidenceUrls = [
+        ...photoUrls.map(evidenceUrlFrom),
+        evidenceUrlFrom(visionSummary?.image_url),
+        evidenceUrlFrom(visionSummary?.evidence_id),
+        evidenceUrlFrom(item?.image_path),
+        evidenceUrlFrom(item?.image_sample)
+    ].filter(Boolean);
+
+    if (evidenceUrls.length > 0) {
+        return [...new Set(evidenceUrls)];
+    }
+    return [...new Set([...photoUrls, item?.image_sample, item?.image_path]
+        .filter(value => typeof value === 'string' && value.trim()))];
+}
+
+async function viewAdminLogDetailLegacy(logId) {
     let item = (adminCachedRecords || []).find(r => String(r.id) === String(logId));
     const localRecords = (typeof getLocalSimulationRecords === 'function') ? getLocalSimulationRecords() : [];
     const localMatch = localRecords.find(r => String(r.id) === String(logId));
@@ -2490,72 +2728,60 @@ async function viewAdminLogDetail(logId) {
     const laiVal = Number(item.leaf_area_index || 5.27).toFixed(2);
     const coverVal = Number(item.canopy_cover || 65.4).toFixed(1);
     const cropName = item.crop_name || item.crop_type || "Red Ginger (Zingiber officinale var. rubrum)";
-    const shaCode = item.sha256 || item.sha256_hash || '8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4';
+    const shaCode = item.sha256 || item.sha256_hash || 'Not available';
 
     // Photos Aggregation
-    let photos = [];
-    if (item.photo_urls && Array.isArray(item.photo_urls) && item.photo_urls.length > 0) {
-        photos = item.photo_urls;
-    } else if (item.image_sample) {
-        photos = [item.image_sample];
-    } else if (item.image_path) {
-        photos = [item.image_path];
-    } else if (typeof selectedPhotoUrls !== 'undefined' && selectedPhotoUrls.size > 0) {
-        photos = Array.from(selectedPhotoUrls);
-    } else {
-        const curImg = document.getElementById('mainCanopyPreview')?.src;
-        photos = [curImg || '/static/img/sawit_drone.jpg'];
-    }
+    const photos = resolveTelemetryPhotoUrls(item);
 
-    const cleanPhotos = photos.map(p => {
-        if (!p) return '/static/img/sawit_drone.jpg';
+    const cleanPhotos = photos.filter(p => typeof p === 'string' && p).map(p => {
         if (p.startsWith('http') || p.startsWith('/') || p.startsWith('data:')) return p;
         return '/static/img/' + p;
     });
 
-    // Vision Summary Badges
-    let visionSummaryBadge = "6 Canopy Objects Identified (96% Conf)";
-    let sterileCircleVal = "2.0m Zero-Tillage Verified";
-    if (item.vision_summary) {
-        if (typeof item.vision_summary === 'object') {
-            visionSummaryBadge = item.vision_summary.detection_badge || visionSummaryBadge;
-            sterileCircleVal = item.vision_summary.sterile_circle || sterileCircleVal;
-        } else if (typeof item.vision_summary === 'string') {
-            try {
-                const parsed = JSON.parse(item.vision_summary);
-                visionSummaryBadge = parsed.detection_badge || item.vision_summary;
-                sterileCircleVal = parsed.sterile_circle || sterileCircleVal;
-            } catch {
-                visionSummaryBadge = item.vision_summary;
-            }
-        }
+    let storedVisionSummary = item.vision_summary || null;
+    if (typeof storedVisionSummary === 'string') {
+        try { storedVisionSummary = JSON.parse(storedVisionSummary); } catch (_) {}
     }
+    const visionSummaryBadge = storedVisionSummary?.detection_badge || "No vision result stored";
+    const sterileCircleVal = storedVisionSummary?.sterile_circle || "Not verified from image evidence";
+    const evidenceId = storedVisionSummary?.evidence_id || "Not recorded";
+    const detectedEntities = Array.isArray(storedVisionSummary?.detected_entities)
+        ? storedVisionSummary.detected_entities
+        : [];
+    const detectedLabels = [...new Set(detectedEntities.map(entity =>
+        entity?.label || entity?.label_name || entity?.label_text
+    ).filter(Boolean))];
+    const detectedLabelsText = detectedLabels.length
+        ? detectedLabels.map(label => escapeHtml(String(label))).join(', ')
+        : "No object labels stored";
 
+    let storedAiReasoning = item.ai_reasoning || null;
+    if (typeof storedAiReasoning === 'string') {
+        try { storedAiReasoning = JSON.parse(storedAiReasoning); } catch (_) {}
+    }
+    const aiReasoningMode = storedAiReasoning?.mode || item.engine_mode || "Not recorded";
+    const aiReasoningIsLive = aiReasoningMode === "LIVE_GEMINI";
+    const aiReasoningStatus = aiReasoningIsLive ? "LIVE GEMINI RESPONSE" : "LOCAL PREVIEW / NOT A CERTIFICATION";
+
+    // Vision Summary
     // AI Reasoning Structured Text
-    let aiReasonText = "";
-    if (typeof item.ai_reasoning === 'string') {
-        try {
-            const parsed = JSON.parse(item.ai_reasoning);
-            aiReasonText = parsed.analysis_text || item.ai_reasoning;
-        } catch {
-            aiReasonText = item.ai_reasoning;
-        }
-    } else if (item.ai_reasoning && item.ai_reasoning.analysis_text) {
-        aiReasonText = item.ai_reasoning.analysis_text;
-    }
-    if (!aiReasonText || aiReasonText.length < 15) {
-        aiReasonText = `Beer-Lambert radiation extinction modeling confirms surface PAR irradiance at ~${parVal} µmol/m²/s across the 3.79m active alleyway corridor. This photon flux density satisfies optimal biological growth requirements for ${cropName} without triggering detrimental canopy competition with palm stands. Computer vision reticle HUD verifies 100% adherence to 2.0-meter weed circle zero-tillage root buffers (ISPO Principle 2 & EUDR Art. 9).`;
-    }
+    const aiReasonText = storedAiReasoning?.analysis_text || "No reasoning result was stored with this telemetry record.";
 
     // Render Scanned Photos Gallery Block
     let photosGridHtml = '';
-    if (cleanPhotos.length === 1) {
+    if (cleanPhotos.length === 0) {
+        photosGridHtml = `
+            <div class="rounded-2xl border border-amber-500/40 bg-amber-950/20 p-4 text-xs text-amber-200">
+                No image reference was stored with this telemetry record.
+            </div>
+        `;
+    } else if (cleanPhotos.length === 1) {
         photosGridHtml = `
             <div class="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 h-56 bg-slate-900 group shadow-md">
                 <img src="${cleanPhotos[0]}" alt="Field Orthophoto" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                 <div class="absolute top-2.5 left-2.5 flex items-center gap-1.5">
                     <span class="px-2.5 py-1 rounded-full bg-slate-950/85 text-emerald-300 text-[10px] font-mono font-bold border border-emerald-500/50 shadow">
-                        📸 1 Drone Orthophoto Scanned &amp; Certified
+                        📸 Linked image evidence
                     </span>
                 </div>
                 <div class="absolute bottom-2 left-2 right-2 flex items-center justify-between bg-slate-950/85 backdrop-blur-xs px-3 py-1.5 rounded-xl border border-slate-700/60 text-[10px] font-mono text-slate-300">
@@ -2569,10 +2795,10 @@ async function viewAdminLogDetail(logId) {
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-bold text-slate-700 dark:text-slate-300 font-mono flex items-center gap-1.5">
-                        <span>📷</span> <span>Aggregated Scanned Drone Orthophotos &amp; Field Computer Vision Evidence (${cleanPhotos.length} Photos Selected)</span>
+                        <span>📷</span> <span>Images Linked to This Simulation (${cleanPhotos.length})</span>
                     </span>
                     <span class="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-400 dark:border-teal-700">
-                        ✓ Multi-Photo Spatial Ground Truth
+                        Linked image references
                     </span>
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-${Math.min(4, cleanPhotos.length)} gap-2.5">
@@ -2585,7 +2811,7 @@ async function viewAdminLogDetail(logId) {
                                 </span>
                             </div>
                             <div class="p-1.5 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[10px] font-mono">
-                                <span class="text-slate-500 dark:text-slate-400 truncate max-w-[60%]">Scanned Evidence</span>
+                                <span class="text-slate-500 dark:text-slate-400 truncate max-w-[60%]">Linked image</span>
                                 <a href="${url}" target="_blank" class="text-emerald-600 dark:text-emerald-400 hover:underline font-bold">Preview ↗</a>
                             </div>
                         </div>
@@ -2672,7 +2898,7 @@ async function viewAdminLogDetail(logId) {
                         <span class="text-[9px] text-emerald-600 dark:text-emerald-400 block">✓ 2.0m Root Exclusion Zone</span>
                     </div>
                     <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                        <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block uppercase">Certified Climate Asset</span>
+                        <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block uppercase">Estimated Climate Benefit</span>
                         <strong class="text-base font-bold text-teal-600 dark:text-teal-400 font-mono block mt-0.5">${climateCarbon} t</strong>
                         <span class="text-[9px] text-teal-600 dark:text-teal-400 block">tCO₂e Verified (VM0007)</span>
                     </div>
@@ -2740,39 +2966,42 @@ async function viewAdminLogDetail(logId) {
                         </div>
                         <div class="flex justify-between">
                             <span class="text-slate-500 dark:text-slate-400">Palm Root Zone Buffer:</span>
-                            <span class="text-emerald-600 dark:text-emerald-400 font-bold">2.0m Zero-Tillage Protected</span>
+                            <span class="text-amber-600 dark:text-amber-400 font-bold">Root zone not verified from image</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 6. COMPUTER VISION RETICLE SCAN INSPECTION -->
+            <!-- 6. SAVED COMPUTER VISION RESULT -->
             <div class="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 font-mono">
                 <div class="flex items-center gap-2">
                     <span class="text-lg">🎯</span>
                     <div>
-                        <span class="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold block">Autonomous Computer Vision Reticle Scan:</span>
+                        <span class="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold block">Saved Computer Vision Result:</span>
                         <strong class="text-xs text-slate-900 dark:text-white">${visionSummaryBadge}</strong>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <span class="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400">
-                        ✓ ${sterileCircleVal}
+                    <span class="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-400">
+                        ${escapeHtml(sterileCircleVal)}
                     </span>
                     <span class="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 border border-indigo-400">
-                        ISPO Principle 2 &bull; EUDR Art. 9
+                        Evidence ID: ${escapeHtml(String(evidenceId))}
                     </span>
                 </div>
             </div>
+            <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                Detected labels: ${detectedLabelsText}
+            </p>
 
-            <!-- 7. GEMINI 3.8 FLASH MULTIMODAL AI REASONING -->
+            <!-- 7. SAVED AGROECOLOGICAL REASONING -->
             <div class="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
                 <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-1.5 font-mono">
                     <span class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                        <span>🧠</span> <span>Gemini 3.8 Flash Multimodal Agroecological Reasoning:</span>
+                        <span>🧠</span> <span>Saved Agroecological Reasoning:</span>
                     </span>
-                    <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400 font-mono">
-                        VERIFIED AUDIT VERDICT
+                    <span class="text-[9px] font-bold px-2 py-0.5 rounded ${aiReasoningIsLive ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-400' : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-400'} font-mono">
+                        ${aiReasoningStatus}
                     </span>
                 </div>
                 <div class="text-xs leading-relaxed text-slate-700 dark:text-slate-300">
@@ -2783,10 +3012,10 @@ async function viewAdminLogDetail(logId) {
             <!-- 8. CRYPTOGRAPHIC SHA-256 DIGITAL SEAL -->
             <div class="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-mono text-[10px] text-slate-500 dark:text-slate-400">
                 <div class="flex items-center gap-2 truncate">
-                    <span class="text-emerald-600 dark:text-emerald-400 font-bold shrink-0">🔐 SHA-256 SEAL:</span>
+                    <span class="text-emerald-600 dark:text-emerald-400 font-bold shrink-0">🔐 RECORD SHA-256:</span>
                     <span class="text-indigo-600 dark:text-indigo-300 truncate font-semibold select-all" title="${shaCode}">${shaCode}</span>
                 </div>
-                <span class="text-emerald-600 dark:text-emerald-400 font-bold shrink-0">IMMUTABLE COMPLIANCE LEDGER</span>
+                <span class="text-slate-500 dark:text-slate-400 font-bold shrink-0">SIMULATION RECORD</span>
             </div>
         </div>
     `;
@@ -2795,7 +3024,7 @@ async function viewAdminLogDetail(logId) {
     if (modal) modal.classList.remove('hidden');
 }
 
-function closeAdminDetailModal() {
+function closeAdminDetailModalLegacy() {
     const modal = document.getElementById('adminDetailModal');
     if (modal) modal.classList.add('hidden');
 }
@@ -2820,60 +3049,56 @@ function exportEudrTracesPayload() {
 
     const eudrDdsPayload = {
         "@context": "https://ec.europa.eu/tracesnt/schema/eudr/v1",
-        "statementType": "DUE_DILIGENCE_STATEMENT",
-        "regulation": "Regulation (EU) 2023/1115 (EUDR Article 9)",
-        "submissionTimestamp": new Date().toISOString(),
+        "statementType": "ILLUSTRATIVE_DRAFT_NOT_SUBMITTED",
+        "notice": "This simulator export is not an official TRACES submission and does not verify EUDR compliance or deforestation status.",
+        "generatedAt": new Date().toISOString(),
         "operator": {
-            "eoriNumber": "ID-EXP-PALM-994821",
-            "companyName": "PT Mandailing Agro Sustainable",
+            "eoriNumber": null,
+            "companyName": "Not provided",
             "country": "ID",
-            "role": "PRODUCER_AND_EXPORTER"
+            "role": "NOT_VERIFIED"
         },
         "commodity": {
             "hsCode": "15111000",
-            "description": "Crude Palm Oil (CPO) - EUDR Deforestation-Free Verified",
-            "netMassKg": area * 21000.0,
+            "description": "Crude Palm Oil (CPO) - verification not performed",
+            "estimatedNetMassKg": area * 21000.0,
             "companionAgroforestrySpecies": crop
         },
         "productionPlot": {
-            "plotIdentifier": "PLOT-MDN-001",
+            "plotIdentifier": window.activeEstate?.kode_kebun || "Not provided",
             "countryOfProduction": "ID",
             "geodeticDatum": "WGS84",
             "centroid": { "latitude": lat, "longitude": lng },
             "geometry": { "type": "Polygon", "coordinates": [polygonCoords] },
-            "cadastralTitle": "004/HGU/BPN-MDN/2021",
+            "cadastralTitle": window.activeEstate?.nomor_hgu || null,
             "cutOffDateVerification": {
                 "statutoryCutOff": "2020-12-31",
-                "deforestationFreeStatus": true,
-                "primaryForestMoratoriumPIPPIBStatus": "100% NON_FOREST_APL",
-                "independentAuditStandard": "ISPO P1-P7 & IPCC Tier 3 AFOLU"
+                "deforestationFreeStatus": "NOT_VERIFIED",
+                "primaryForestMoratoriumPIPPIBStatus": "NOT_VERIFIED",
+                "independentAuditStandard": "NOT_PERFORMED"
             }
         },
-        "verificationSeal": {
-            "algorithm": "SHA-256 (FIPS 180-4)",
-            "digitalDigest": "8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4",
-            "authenticityUrl": window.location.origin + "/certificate/1"
-        }
+        "recordHash": latestSimulationData?.sha256 || null
     };
 
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(eudrDdsPayload, null, 2));
     const dlAnchor = document.createElement('a');
     dlAnchor.setAttribute("href", dataStr);
-    dlAnchor.setAttribute("download", `EUDR_TRACES_DDS_PAYLOAD_${Date.now()}.json`);
+    dlAnchor.setAttribute("download", `EUDR_ILLUSTRATIVE_DRAFT_NOT_SUBMITTED_${Date.now()}.json`);
     document.body.appendChild(dlAnchor);
     dlAnchor.click();
     dlAnchor.remove();
 
     if (typeof logAiInteraction === 'function') {
-        logAiInteraction('RESULT', 'EUDR TRACES Due Diligence Payload Exported', {
-            schema: "European Commission TRACES-NT / EUDR JSON Schema",
-            cut_off_verified: "2020-12-31",
-            sha256_seal: "8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4"
+        logAiInteraction('RESULT', 'Illustrative EUDR draft exported', {
+            submission_status: "NOT_SUBMITTED",
+            verification_status: "NOT_VERIFIED",
+            record_hash: latestSimulationData?.sha256 || null
         });
     }
 }
 
-function formatTimestamp(isoStr) {
+function formatTimestampLegacy(isoStr) {
     if (!isoStr) return '-';
     try {
         const cleanStr = String(isoStr).replace(' ', 'T');
@@ -2894,7 +3119,13 @@ function formatTimestamp(isoStr) {
  */
 async function pullLiveFieldAndSpatialTelemetry() {
     const urlParams = new URLSearchParams(window.location.search);
-    const activeKode = urlParams.get('kode') || urlParams.get('estate_code') || 'EST-MDN-001';
+    const activeKode = urlParams.get('kode') || urlParams.get('estate_code') || window.activeEstate?.kode_kebun;
+    if (!activeKode) {
+        if (typeof showNotificationToast === 'function') {
+            showNotificationToast('Select a loaded estate before syncing field telemetry.', '⚠️');
+        }
+        return;
+    }
     
     if (typeof showNotificationToast === 'function') {
         showNotificationToast(`Fetching field & spatial telemetry for ${activeKode}...`, "⚡");
@@ -2942,83 +3173,25 @@ async function pullLiveFieldAndSpatialTelemetry() {
             const ganoEl = document.getElementById('val_ganoderma');
             if (ganoEl) ganoEl.textContent = `${d.ganoderma_risk_pct.toFixed(1)}% (Nihil)`;
 
-            const mopEl = document.getElementById('val_mop_comp');
-            if (mopEl) mopEl.textContent = `+${d.mop_compensation_kg_ha} kg/Ha`;
-
-            const lerEl = document.getElementById('val_ler_total');
-            if (lerEl) lerEl.textContent = `${d.ler_score.toFixed(2)}x (+${Math.round((d.ler_score - 1)*100)}%)`;
-
-            // 3. Highlight Bio-Ecological 4-Layer Reasoning Card
-            const reasoningContainer = document.getElementById('bioEcologicalReasoningCard');
-            if (reasoningContainer) {
-                reasoningContainer.classList.remove('hidden');
-            }
-
-            // 4. Update Live TBS Pricing Engine
-            updateLiveTbsPricing();
-
             if (typeof showNotificationToast === 'function') {
-                showNotificationToast(`✓ Field Telemetry (${d.leaf_chlorophyll_spad} SPAD) & Spatial (${d.slope_deg}°) Applied! LER ${d.ler_score}x locked.`, "✅");
+                showNotificationToast(`Field telemetry applied: ${d.leaf_chlorophyll_spad} SPAD; slope ${d.slope_deg}°. Simulation metrics require a new kalkulasi.engine run.`, "✅");
             }
         }
     } catch (err) {
         console.warn("[Simulator] Pull telemetry notice:", err);
         if (typeof showNotificationToast === 'function') {
-            showNotificationToast("Could not sync live field telemetry. Using standard parameters.", "⚠️");
+            showNotificationToast("Could not sync field telemetry. Current values were left unchanged.", "⚠️");
         }
     }
 }
 window.pullLiveFieldAndSpatialTelemetry = pullLiveFieldAndSpatialTelemetry;
 
-/**
- * Pillar 6: Dynamic Live TBS Pricing Microservice Integration
- * Fetches real-time Rotterdam-based TBS pricing and updates the Agroforestry Advantage card
- */
-async function updateLiveTbsPricing() {
-    try {
-        const resp = await fetch('/api/pricing/tbs-calculation?palm_yield_ton_ha=24.0&intercrop_yield_ton_ha=7.5&intercrop_price_idr_kg=18500.0');
-        if (!resp.ok) return;
-        const resJson = await resp.json();
-        if (resJson.status === 'success' && resJson.data) {
-            const d = resJson.data;
-            const tbsKg = document.getElementById('disp_tbs_kg');
-            if (tbsKg) tbsKg.innerHTML = `Rp ${Number(d.harga_tbs_idr_kg).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span class="text-[10px] text-slate-400 font-normal">/kg</span>`;
-            
-            const tbsRev = document.getElementById('disp_tbs_rev');
-            if (tbsRev) tbsRev.innerHTML = `Rp ${(Number(d.palm_revenue_idr_ha) / 1000000).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Jt <span class="text-[10px] text-slate-400 font-normal">/Ha</span>`;
-            
-            const interRev = document.getElementById('disp_intercrop_rev');
-            if (interRev) interRev.innerHTML = `Rp ${(Number(d.intercrop_net_idr_ha) / 1000000).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Jt <span class="text-[10px] text-slate-400 font-normal">/Ha</span>`;
-            
-            const totalRev = document.getElementById('disp_total_integrated_rev');
-            if (totalRev) totalRev.innerHTML = `Rp ${(Number(d.total_integrated_idr_ha) / 1000000).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Jt <span class="text-[10px] text-emerald-300 font-normal">/Ha</span>`;
-        }
-    } catch (e) {
-        console.warn("[Simulator] TBS pricing fetch notice:", e);
-    }
-}
-window.updateLiveTbsPricing = updateLiveTbsPricing;
-
-window.executeInferenceAction = executeInferenceAction;
-window.executeInSilicoCompute = executeInSilicoCompute;
 window.generateMultiCandidateRecommendations = generateMultiCandidateRecommendations;
 window.selectDefinitiveCrop = selectDefinitiveCrop;
 window.selectCanopyPreset = selectCanopyPreset;
-window.handleCanopyFileUpload = handleCanopyFileUpload;
-window.toggleVisionOverlay = toggleVisionOverlay;
-window.drawReticles = drawReticles;
-window.runDetailedObjectVisionScan = runDetailedObjectVisionScan;
-window.fetchAdminHistory = fetchAdminHistory;
-window.goToAdminPage = goToAdminPage;
-window.changeAdminLimit = changeAdminLimit;
-window.handleAdminSearchDebounce = handleAdminSearchDebounce;
-if (typeof window.viewAdminLogDetail !== 'function') {
-    window.viewAdminLogDetail = viewAdminLogDetail;
-}
-window.closeAdminDetailModal = closeAdminDetailModal;
 window.exportEudrTracesPayload = exportEudrTracesPayload;
 
-function clearTerminalLogs() {
+function clearTerminalLogsLegacy() {
     const container = document.getElementById('floatingTerminalLogStream');
     if (container) {
         container.innerHTML = `
@@ -3030,8 +3203,11 @@ function clearTerminalLogs() {
     if (typeof terminalLogCounter !== 'undefined') terminalLogCounter = 0;
     try {
         localStorage.removeItem(typeof TERMINAL_LOG_STORAGE_KEY !== 'undefined' ? TERMINAL_LOG_STORAGE_KEY : 'precision_palm_terminal_logs_cache');
-window.clearTerminalLogs = clearTerminalLogs;
-var clearTerminalLogs = clearTerminalLogs;
+    } catch (error) {
+        console.warn('[Simulator] Unable to clear saved terminal logs:', error);
+    }
+}
+
 
 // Theme change listener for Simulator HUD & Overlay synchronizations
 window.addEventListener('themechanged', function(e) {

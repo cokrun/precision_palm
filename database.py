@@ -23,6 +23,7 @@ import json
 import hashlib
 import math
 import base64
+import uuid
 from datetime import datetime, date, timezone, timedelta
 from typing import List, Dict, Any, Optional, Tuple, Union
 
@@ -216,24 +217,29 @@ def init_db(db_path: Optional[str] = None) -> None:
         needed_comp_cols = [
             ("photo_urls", "TEXT"),
             ("image_path", "TEXT"),
-            ("coords", "TEXT DEFAULT '0.824100, 99.561200'"),
-            ("slope", "REAL DEFAULT 4.5"),
-            ("elevation", "REAL DEFAULT 220.0"),
-            ("soil_ph", "REAL DEFAULT 5.5"),
-            ("soil_texture", "TEXT DEFAULT 'sandy_loam'"),
+            ("coords", "TEXT"),
+            ("slope", "REAL"),
+            ("elevation", "REAL"),
+            ("soil_ph", "REAL"),
+            ("soil_texture", "TEXT"),
             ("ai_reasoning", "TEXT"),
             ("vision_summary", "TEXT"),
-            ("leaf_area_index", "REAL DEFAULT 5.27"),
-            ("surface_par", "REAL DEFAULT 218.5"),
-            ("canopy_cover", "REAL DEFAULT 65.4"),
-            ("biomass_t_ha", "REAL DEFAULT 128.4"),
-            ("microclimate_cooling", "REAL DEFAULT -2.8"),
-            ("soil_moisture_vwc", "REAL DEFAULT 34.8"),
-            ("recharge_m3_ha", "REAL DEFAULT 1850.0"),
-            ("potassium_recovered_kg", "REAL DEFAULT 36.2"),
-            ("economic_benefit_usd", "REAL DEFAULT 4900.0"),
-            ("engine_mode", "TEXT DEFAULT 'LIVE_GEMINI'"),
-            ("status_message", "TEXT DEFAULT 'Verified via Gemini Multimodal Inference'")
+            ("leaf_area_index", "REAL"),
+            ("surface_par", "REAL"),
+            ("canopy_cover", "REAL"),
+            ("biomass_t_ha", "REAL"),
+            ("microclimate_cooling", "REAL"),
+            ("soil_moisture_vwc", "REAL"),
+            ("recharge_m3_ha", "REAL"),
+            ("potassium_recovered_kg", "REAL"),
+            ("economic_benefit_usd", "REAL"),
+            ("engine_mode", "TEXT DEFAULT 'LOCAL_BIOPHYSICAL_ENGINE'"),
+            ("status_message", "TEXT DEFAULT 'Numeric simulation values calculated by kalkulasi.engine.'"),
+            ("calculation_inputs_json", "TEXT"),
+            ("data_numerik_json", "TEXT"),
+            ("idempotency_key", "TEXT"),
+            ("idempotency_payload_hash", "TEXT"),
+            ("canonical_snapshot_json", "TEXT")
         ]
         for col_name, col_def in needed_comp_cols:
             if col_name not in existing_comp_cols:
@@ -241,6 +247,11 @@ def init_db(db_path: Optional[str] = None) -> None:
                     cursor.execute(f"ALTER TABLE compute_audit_logs ADD COLUMN {col_name} {col_def};")
                 except Exception:
                     pass
+        cursor.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_compute_audit_logs_idempotency_key
+            ON compute_audit_logs(idempotency_key)
+            WHERE idempotency_key IS NOT NULL;
+        """)
 
         # 5. EcoGreen Compliance Certificates Table with 4-Quarter Dynamic State Columns
         cursor.execute("""
@@ -455,6 +466,7 @@ def init_db(db_path: Optional[str] = None) -> None:
             "market_mode": "IDR",
             "audit_year": "2026",
             "kurs_usd": "17920",
+            "carbon_price_usd": "12.0",
             "cpo_global": "1526.56",
             "bea_keluar": "178.0",
             "pe_bpdpks": "130.27",
@@ -1437,11 +1449,12 @@ def save_simulation_record(
     palm_age: float,
     land_area: float,
     crop_name: str,
-    leaf_area_index: float = 5.27,
-    surface_par: float = 218.5,
-    total_ler: float = 1.5238,
-    avoided_land_ha: float = 34.37,
-    total_climate_benefit_tco2e: float = 1546.65,
+    leaf_area_index: Optional[float] = None,
+    surface_par: Optional[float] = None,
+    total_ler: Optional[float] = None,
+    pls_percentage: Optional[float] = None,
+    avoided_land_ha: Optional[float] = None,
+    total_climate_benefit_tco2e: Optional[float] = None,
     ai_response_json: Any = None,
     inference_mode: str = 'hybrid',
     image_path: Optional[str] = None,
@@ -1468,23 +1481,34 @@ def save_simulation_record(
     recharge_m3_ha: Optional[float] = None,
     potassium_recovered_kg: Optional[float] = None,
     economic_benefit_usd: Optional[float] = None,
-    engine_mode: Optional[str] = "LIVE_GEMINI",
-    status_message: Optional[str] = "Verified via Gemini Multimodal Inference",
+    engine_mode: Optional[str] = "LOCAL_BIOPHYSICAL_ENGINE",
+    status_message: Optional[str] = "Numeric simulation values calculated by kalkulasi.engine.",
+    calculation_inputs: Optional[Any] = None,
+    data_numerik: Optional[Any] = None,
+    idempotency_key: Optional[str] = None,
+    idempotency_payload_hash: Optional[str] = None,
+    canonical_snapshot: Optional[Dict[str, Any]] = None,
+    return_commit_metadata: bool = False,
     **kwargs
-) -> int:
+) -> Union[int, Dict[str, Any]]:
     """
     Stores an in-silico simulation computation into compute_audit_logs.
-    Generates a deterministic SHA-256 seal and maintains BigQuery sync readiness.
+    Commits an idempotent simulation record and its canonical SHA-256 in one SQLite transaction.
     """
     init_db(db_path)
     now_str = get_wib_now()
 
-    req_id = f"REQ-{int(datetime.now().timestamp() * 1000)}"
+    req_id = f"REQ-{uuid.uuid4().hex}"
     if not sha256_hash:
         raw_seed = f"COMPUTE|AGE:{palm_age}|AREA:{land_area}|CROP:{crop_name}|LER:{total_ler}|TIME:{now_str}"
         sha256_hash = hashlib.sha256(raw_seed.encode('utf-8')).hexdigest().upper()
 
-    pls_pct = round((1.0 - (1.0 / total_ler)) * 100.0, 2) if total_ler > 1.0 else 0.0
+    if total_ler is None or pls_percentage is None:
+        raise ValueError("LER and PLS must be calculated before saving a simulation")
+    pls_pct = float(pls_percentage)
+
+    def optional_float(value):
+        return None if value is None or value == '' else float(value)
 
     # Format photo_urls into JSON array string
     photo_urls_val = None
@@ -1506,36 +1530,97 @@ def save_simulation_record(
     if vision_summary is not None:
         vision_summary_val = json.dumps(vision_summary) if isinstance(vision_summary, (dict, list)) else str(vision_summary)
 
-    eff_engine_mode = str(engine_mode or "LIVE_GEMINI")
-    eff_status_msg = str(status_message or "Verified via Gemini Multimodal Inference")
+    eff_engine_mode = str(engine_mode or "LOCAL_BIOPHYSICAL_ENGINE")
+    eff_status_msg = str(status_message or "Numeric simulation values calculated by kalkulasi.engine.")
+    calculation_inputs_val = json.dumps(calculation_inputs) if calculation_inputs is not None else None
+    data_numerik_val = json.dumps(data_numerik) if data_numerik is not None else None
 
     conn = get_db_connection(db_path)
     cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO compute_audit_logs (
-            request_id, stand_age, land_area, crop_type, ler_score,
-            pls_percentage, forest_saved_ha, carbon_tco2e, sha256_hash, sync_bigquery, created_at,
-            photo_urls, image_path, coords, slope, elevation, soil_ph, soil_texture,
-            ai_reasoning, vision_summary, leaf_area_index, surface_par, canopy_cover,
-            biomass_t_ha, microclimate_cooling, soil_moisture_vwc, recharge_m3_ha,
-            potassium_recovered_kg, economic_benefit_usd, engine_mode, status_message
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-    """, (
-        req_id, float(palm_age), float(land_area), str(crop_name), float(total_ler),
-        float(pls_pct), float(avoided_land_ha), float(total_climate_benefit_tco2e),
-        str(sha256_hash), now_str,
-        photo_urls_val, str(image_path or ''), str(coords or '0.824100, 99.561200'),
-        float(slope or 4.5), float(elevation or 220.0), float(soil_ph or 5.5), str(soil_texture or 'sandy_loam'),
-        ai_reasoning_val, vision_summary_val, float(leaf_area_index or 5.27), float(surface_par or 218.5),
-        float(canopy_cover or 65.4), float(biomass_t_ha or 128.4), float(microclimate_cooling or -2.8),
-        float(soil_moisture_vwc or 34.8), float(recharge_m3_ha or 1850.0), float(potassium_recovered_kg or 36.2),
-        float(economic_benefit_usd or 4900.0), eff_engine_mode, eff_status_msg
-    ))
-    record_id = cursor.lastrowid
-    conn.commit()
-    conn.close()
+    try:
+        cursor.execute("BEGIN IMMEDIATE")
+        if idempotency_key:
+            existing = cursor.execute(
+                """SELECT id, sha256_hash, created_at, idempotency_payload_hash,
+                          canonical_snapshot_json, sync_bigquery
+                   FROM compute_audit_logs WHERE idempotency_key = ?""",
+                (idempotency_key,),
+            ).fetchone()
+            if existing:
+                if not idempotency_payload_hash or existing["idempotency_payload_hash"] != idempotency_payload_hash:
+                    raise ValueError("Idempotency-Key was already committed with a different payload.")
+                conn.commit()
+                metadata = {
+                    "record_id": existing["id"],
+                    "sha256": existing["sha256_hash"],
+                    "committed_at": existing["created_at"],
+                    "snapshot": json.loads(existing["canonical_snapshot_json"] or "{}"),
+                    "cloud_sync_status": "SYNCED" if existing["sync_bigquery"] else "NOT_CONFIGURED",
+                    "idempotent_replay": True,
+                }
+                return metadata if return_commit_metadata else int(existing["id"])
 
-    return record_id
+        cursor.execute("""
+            INSERT INTO compute_audit_logs (
+                request_id, stand_age, land_area, crop_type, ler_score,
+                pls_percentage, forest_saved_ha, carbon_tco2e, sha256_hash, sync_bigquery, created_at,
+                photo_urls, image_path, coords, slope, elevation, soil_ph, soil_texture,
+                ai_reasoning, vision_summary, leaf_area_index, surface_par, canopy_cover,
+                biomass_t_ha, microclimate_cooling, soil_moisture_vwc, recharge_m3_ha,
+                potassium_recovered_kg, economic_benefit_usd, engine_mode, status_message,
+                calculation_inputs_json, data_numerik_json, idempotency_key,
+                idempotency_payload_hash, canonical_snapshot_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """, (
+            req_id, float(palm_age), float(land_area), str(crop_name), float(total_ler),
+            float(pls_pct), optional_float(avoided_land_ha), optional_float(total_climate_benefit_tco2e),
+            str(sha256_hash), 0, now_str,
+            photo_urls_val, str(image_path) if image_path else None, str(coords) if coords else None,
+            optional_float(slope), optional_float(elevation), optional_float(soil_ph), str(soil_texture) if soil_texture else None,
+            ai_reasoning_val, vision_summary_val, optional_float(leaf_area_index), optional_float(surface_par),
+            optional_float(canopy_cover), optional_float(biomass_t_ha), optional_float(microclimate_cooling),
+            optional_float(soil_moisture_vwc), optional_float(recharge_m3_ha), optional_float(potassium_recovered_kg),
+            optional_float(economic_benefit_usd), eff_engine_mode, eff_status_msg,
+            calculation_inputs_val, data_numerik_val, idempotency_key,
+            idempotency_payload_hash, None
+        ))
+        record_id = int(cursor.lastrowid)
+        committed_at = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+        snapshot_json = None
+        if canonical_snapshot is not None:
+            snapshot = dict(canonical_snapshot)
+            snapshot.update({
+                "record_id": record_id,
+                "committed_at": committed_at,
+                "ledger_authority": "LOCAL_SQLITE",
+                "idempotency_key": idempotency_key,
+            })
+            snapshot_json = json.dumps(snapshot, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+            sha256_hash = hashlib.sha256(snapshot_json.encode("utf-8")).hexdigest().upper()
+            cursor.execute(
+                """UPDATE compute_audit_logs
+                   SET sha256_hash = ?, canonical_snapshot_json = ?, created_at = ?
+                   WHERE id = ?""",
+                (sha256_hash, snapshot_json, committed_at, record_id),
+            )
+        elif return_commit_metadata:
+            raise ValueError("Canonical snapshot is required for committed metadata.")
+        conn.commit()
+        if return_commit_metadata:
+            return {
+                "record_id": record_id,
+                "sha256": sha256_hash,
+                "committed_at": committed_at,
+                "snapshot": json.loads(snapshot_json or "{}"),
+                "cloud_sync_status": "PENDING",
+                "idempotent_replay": False,
+            }
+        return record_id
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 def save_experiment(*args, **kwargs) -> int:
     """Convenience alias for save_simulation_record guaranteeing zero regression."""
@@ -1551,6 +1636,15 @@ def _parse_sim_row(row: Any) -> Dict[str, Any]:
             d['photo_urls'] = [d['photo_urls']]
     else:
         d['photo_urls'] = [d.get('image_path')] if d.get('image_path') else []
+    for column, output_key in (
+        ('calculation_inputs_json', 'calculation_inputs'),
+        ('data_numerik_json', 'data_numerik'),
+    ):
+        if d.get(column):
+            try:
+                d[output_key] = json.loads(d[column])
+            except json.JSONDecodeError:
+                d[output_key] = None
     return d
 
 def get_recent_simulations(limit: int = 10, db_path: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -1570,8 +1664,9 @@ def get_recent_simulations(limit: int = 10, db_path: Optional[str] = None) -> Li
             leaf_area_index, surface_par, canopy_cover,
             biomass_t_ha, microclimate_cooling, soil_moisture_vwc,
             recharge_m3_ha, potassium_recovered_kg, economic_benefit_usd,
-            COALESCE(engine_mode, 'LIVE_GEMINI') AS engine_mode,
-            COALESCE(status_message, 'Verified via Gemini Multimodal Inference') AS status_message
+            COALESCE(engine_mode, 'LOCAL_BIOPHYSICAL_ENGINE') AS engine_mode,
+            COALESCE(status_message, 'Numeric simulation values calculated by kalkulasi.engine.') AS status_message,
+            calculation_inputs_json, data_numerik_json
         FROM compute_audit_logs
         ORDER BY id DESC
         LIMIT ?;
@@ -1597,8 +1692,9 @@ def get_simulation_log_by_id(log_id: int, db_path: Optional[str] = None) -> Opti
             leaf_area_index, surface_par, canopy_cover,
             biomass_t_ha, microclimate_cooling, soil_moisture_vwc,
             recharge_m3_ha, potassium_recovered_kg, economic_benefit_usd,
-            COALESCE(engine_mode, 'LIVE_GEMINI') AS engine_mode,
-            COALESCE(status_message, 'Verified via Gemini Multimodal Inference') AS status_message
+            COALESCE(engine_mode, 'LOCAL_BIOPHYSICAL_ENGINE') AS engine_mode,
+            COALESCE(status_message, 'Numeric simulation values calculated by kalkulasi.engine.') AS status_message,
+            calculation_inputs_json, data_numerik_json
         FROM compute_audit_logs
         WHERE id = ?;
     """, (int(log_id),))
@@ -2423,6 +2519,7 @@ def get_all_app_settings() -> dict:
         "market_mode": "IDR",
         "audit_year": "2026",
         "kurs_usd": "17920",
+        "carbon_price_usd": "12.0",
         "cpo_global": "1526.56",
         "bea_keluar": "178.0",
         "pe_bpdpks": "130.27",

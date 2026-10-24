@@ -468,7 +468,7 @@
                         </h3>
                     </div>
                     <span id="tagAiScannerStatus" class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold" data-i18n="time_ai_scanner_ready">
-                        Physical Entities Verified (7 Localized)
+                        Awaiting vision scan
                     </span>
                 </div>
 
@@ -521,7 +521,7 @@
                     <!-- Top-Left Badge: Audit Ratified by AI Agent (Image 1 Parity) -->
                     <div class="absolute top-3 left-3 bg-slate-950/85 backdrop-blur-md border border-emerald-500/60 px-3 py-1.5 rounded-xl text-xs font-mono text-emerald-400 font-bold flex items-center gap-2 shadow-lg z-30">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                        <span id="timelineScanStatusText">Audit Ratified by AI Agent</span>
+                        <span id="timelineScanStatusText">Awaiting vision scan</span>
                     </div>
 
                     <!-- Bottom-Left Filename Pill -->
@@ -641,19 +641,19 @@
                                 <span class="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
                                     <span>🤖</span> <span data-i18n="time_review_machine_title">AI Machine Review: Physical Compliance Validation (Machine Ground Truth)</span>
                                 </span>
-                                <span class="text-[9.5px] font-bold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700">
-                                    VERIFIED (100%)
+                                <span id="timelineVisionReviewStatus" class="text-[9.5px] font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+                                    Awaiting scan
                                 </span>
                             </div>
                             <div id="txtMachineGroundTruthAudit" class="text-slate-800 dark:text-slate-200 text-xs leading-relaxed space-y-1">
                                 <p>
-                                    <strong>Sterile Circle Integrity (ISPO Principle 2):</strong> Computer vision reticle HUD confirms 2.0-meter radius around the palm base is free from mechanical tillage (zero-tillage PPKS) and invasive weeds.
+                                    Vision scan has not run; field conditions are not yet image-verified.
                                 </p>
                                 <p>
-                                    <strong>Alley Corridor 3.79m:</strong> Companion crop stand is arranged strictly within the active corridor without encroaching on the oil palm root zone.
+                                    Run a scan on the selected evidence image to review detections.
                                 </p>
                                 <p>
-                                    <strong>Weather &amp; Geospatial Integrity:</strong> GPS metadata (0.824100° N, 99.561200° E) matches 100% against registered coordinates in APL and partly cloudy weather is synchronized with BMKG satellite data.
+                                    A local fallback preview, if shown, is illustrative and does not confirm compliance.
                                 </p>
                             </div>
                         </div>
@@ -667,11 +667,11 @@
                                     <span>⚠️</span> <span data-i18n="time_discrepancy_title">PEMERIKSAAN FORENSIK DISCREPANCY (AGENT AUTONOMOUS GATE)</span>
                                 </span>
                                 <span id="badgeDiscrepancyScore" class="text-[9.5px] font-bold px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-600">
-                                    DISCREPANCY: 0.85 (&gt; 0.80 TRIGGERED)
+                                    Awaiting image analysis
                                 </span>
                             </div>
                             <p class="text-[11px] text-amber-900 dark:text-amber-100 leading-relaxed font-sans" data-i18n="time_discrepancy_desc">
-                                <strong>Commodity Discrepancy Detection:</strong> Initial registration submitted <em>Corn (Zea mays)</em>, but AI optical camera &amp; drone sensor confirmed rhizome herb <em>Red Ginger (Zingiber officinale var. rubrum)</em>. Autonomous system generated a cultivation permit amendment notice and automatically redirected fertilizer balancing compensation to Potassium (<strong>+75.0 kg MOP/Ha</strong>) without manual intervention.
+                                Commodity discrepancy status is not evaluated until an image scan completes.
                             </p>
                         </div>
                     </div>
@@ -691,23 +691,23 @@
                             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
                                 <div class="p-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
                                     <span class="text-slate-500 dark:text-slate-400 block text-[8.5px]" data-i18n="time_lead_crowns">Palm Canopy Stand:</span>
-                                    <strong id="ledgerCrownCount" class="text-emerald-600 dark:text-emerald-400 text-xs font-bold block">28 Crowns Localized</strong>
-                                    <span class="text-[8px] text-slate-400 dark:text-slate-500">100% Standard Stand</span>
+                                    <strong id="ledgerCrownCount" class="text-slate-500 text-xs font-bold block">Awaiting vision scan</strong>
+                                    <span class="text-[8px] text-slate-400 dark:text-slate-500">No image result yet</span>
                                 </div>
                                 <div class="p-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
                                     <span class="text-slate-500 dark:text-slate-400 block text-[8.5px]" data-i18n="time_lead_circle">2.0m Sterile Ring:</span>
-                                    <strong id="ledgerSterileRing" class="text-emerald-600 dark:text-emerald-400 text-xs font-bold block">100% Zero-Tillage</strong>
-                                    <span class="text-[8px] text-emerald-600 dark:text-emerald-500">PPKS Compliant</span>
+                                    <strong id="ledgerSterileRing" class="text-slate-500 text-xs font-bold block">Awaiting vision scan</strong>
+                                    <span class="text-[8px] text-slate-400">Not image-verified</span>
                                 </div>
                                 <div class="p-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
                                     <span class="text-slate-500 dark:text-slate-400 block text-[8.5px]" data-i18n="time_lead_corridor">3.79m Alley Regularity:</span>
-                                    <strong id="ledgerCorridorRegularity" class="text-emerald-600 dark:text-emerald-400 text-xs font-bold block">100% Regular Corridor</strong>
-                                    <span class="text-[8px] text-slate-400 dark:text-slate-500">No Root Encroach</span>
+                                    <strong id="ledgerCorridorRegularity" class="text-slate-500 text-xs font-bold block">Awaiting vision scan</strong>
+                                    <span class="text-[8px] text-slate-400 dark:text-slate-500">Not image-verified</span>
                                 </div>
                                 <div class="p-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
                                     <span class="text-slate-500 dark:text-slate-400 block text-[8.5px]" data-i18n="time_lead_weather">Satellite Weather Anti-Fraud:</span>
-                                    <strong id="ledgerWeatherStatus" class="text-emerald-600 dark:text-emerald-400 text-xs font-bold block">100% Match (BMKG)</strong>
-                                    <span class="text-[8px] text-emerald-600 dark:text-emerald-500">Telemetry In-Situ</span>
+                                    <strong id="ledgerWeatherStatus" class="text-slate-500 text-xs font-bold block">Awaiting vision scan</strong>
+                                    <span class="text-[8px] text-slate-400">Not checked</span>
                                 </div>
                             </div>
                         </div>
@@ -1062,12 +1062,12 @@
                         </h4>
                     </div>
                     <p id="forensicCardSubtitle" class="text-[11px] text-slate-400 font-sans">
-                        Spatial Biophysical Forensic Diagnostic &bull; Verifikasi Geospasial &amp; Ground Truth
+                        Image detections only &bull; accuracy requires ground-truth review
                     </p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <span id="forensicCardBadge" class="px-3 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500 font-bold text-[10px] flex items-center gap-1 shadow-sm">
-                        <span>🔒</span> <span id="forensicCardBadgeText">SEALED • STAGE-0-ANNUAL-REG</span>
+                    <span id="forensicCardBadge" class="px-3 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600 font-bold text-[10px] flex items-center gap-1 shadow-sm">
+                        <span id="forensicCardBadgeText">SCANNED</span>
                     </span>
                     <a id="btnForensicCardDossier" href="/certificate" target="_blank" class="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold shadow transition flex items-center gap-1 cursor-pointer">
                         <span>📄</span> <span data-i18n="time_btn_pdf_doc">PDF Document</span>
@@ -1077,7 +1077,7 @@
 
             <!-- Viewport Citra Bukti dengan Retikel Laser & Bounding Box (Isolated Iframe Viewport) -->
             <div class="relative w-full h-64 sm:h-96 rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 flex items-center justify-center group shadow-inner">
-                <img id="forensicCardImage" src="/static/img/sawit_drone.jpg" alt="Forensic Evidence Photo" class="w-full h-full object-cover transition-opacity duration-300 ease-in-out">
+                <img id="forensicCardImage" alt="Evidence photo" class="w-full h-full object-cover transition-opacity duration-300 ease-in-out hidden">
                 
                 <!-- SVG Reticle Overlay -->
                 <svg id="forensicCardSvgOverlay" class="absolute inset-0 w-full h-full pointer-events-none z-10"></svg>
@@ -1085,70 +1085,70 @@
                 <!-- Bounding Box Reticle Tag Label -->
                 <div class="absolute bottom-3 left-3 bg-slate-950/90 backdrop-blur-md border border-emerald-500/50 px-3 py-1.5 rounded-xl text-emerald-400 font-mono text-xs shadow-lg flex items-center gap-2 z-20">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>Vision Reticle: <strong id="forensicCardEntityCount">20 Entities Ground-Mapped</strong></span>
+                    <span>Vision Reticle: <strong id="forensicCardEntityCount">0 detected entities</strong></span>
                 </div>
 
                 <!-- Perspective Badge Overlay -->
                 <div class="absolute top-3 right-3 bg-slate-950/90 backdrop-blur-md border border-slate-700 px-2.5 py-1 rounded-xl text-[10px] font-mono text-slate-300 flex items-center gap-1.5 shadow z-20">
                     <span id="forensicCardPerspectiveIcon">🛸</span>
-                    <span id="forensicCardPerspectiveText">UAV Nadir 45m</span>
+                    <span id="forensicCardPerspectiveText">Not recorded</span>
                 </div>
             </div>
 
-            <!-- GRID 6 INDIKATOR BIOFISIK AI (Stand Count, SPAD, Koridor, Piringan, Elevasi, Cuaca) -->
+            <!-- Evidence detections and separately recorded metadata -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
                 <!-- 1. Stand Count & Age -->
                 <div class="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1">
                     <div class="flex items-center gap-1.5 text-slate-400 text-[10px]">
-                        <span>🌴</span> <span data-i18n="time_forensic_metric_stand">Stand Count &amp; Age:</span>
+                        <span>🌴</span> <span>Palm Canopy Detections:</span>
                     </div>
-                    <div id="metricStandCount" class="text-emerald-400 font-bold text-sm">14 Palms Mapped</div>
-                    <div id="metricStandAge" class="text-[10px] text-slate-500 font-sans truncate">TM-7.5 (Early Mature Producing)</div>
+                    <div id="metricStandCount" class="text-emerald-400 font-bold text-sm">0 detected</div>
+                    <div id="metricStandAge" class="text-[10px] text-slate-500 font-sans truncate">Object detections, not field inventory</div>
                 </div>
 
                 <!-- 2. Canopy Health Index -->
                 <div class="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1">
                     <div class="flex items-center gap-1.5 text-slate-400 text-[10px]">
-                        <span>🌿</span> <span data-i18n="time_forensic_metric_canopy">Canopy Health Index:</span>
+                        <span>🌿</span> <span>Other Entity Detections:</span>
                     </div>
-                    <div id="metricCanopyHealth" class="text-emerald-400 font-bold text-sm">SPAD 82.4 &bull; Balanced</div>
-                    <div id="metricCanopyFrond" class="text-[10px] text-slate-500 font-sans truncate">Frond 17 SPAD Inferred (Optimal N-K)</div>
+                    <div id="metricCanopyHealth" class="text-emerald-400 font-bold text-sm">0 other detections</div>
+                    <div id="metricCanopyFrond" class="text-[10px] text-slate-500 font-sans truncate">Health metrics not measured from image</div>
                 </div>
 
                 <!-- 3. Intercrop Corridor -->
                 <div class="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1">
                     <div class="flex items-center gap-1.5 text-slate-400 text-[10px]">
-                        <span>🚜</span> <span data-i18n="time_forensic_metric_corridor">Intercrop Corridor:</span>
+                        <span>🚜</span> <span>Alley/Corridor Detections:</span>
                     </div>
-                    <div id="metricCorridor" class="text-cyan-400 font-bold text-sm">3.79m Net Corridor</div>
-                    <div class="text-[10px] text-slate-500 font-sans truncate">Full Tractor Clearance (Unobstructed)</div>
+                    <div id="metricCorridor" class="text-cyan-400 font-bold text-sm">0 detections</div>
+                    <div class="text-[10px] text-slate-500 font-sans truncate">Width is not measured</div>
                 </div>
 
                 <!-- 4. Root Ring 2.05m -->
                 <div class="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1">
                     <div class="flex items-center gap-1.5 text-slate-400 text-[10px]">
-                        <span>⭕</span> <span data-i18n="time_forensic_metric_root">Root Ring 2.05m:</span>
+                        <span>⭕</span> <span>Root-Area Detections:</span>
                     </div>
-                    <div id="metricRootRing" class="text-emerald-400 font-bold text-sm">2.05m Weed-Free Radius</div>
-                    <div class="text-[10px] text-emerald-500/80 font-sans truncate">Zero-Tillage Buffer PPKS (100% Compliant)</div>
+                    <div id="metricRootRing" class="text-emerald-400 font-bold text-sm">0 detections</div>
+                    <div class="text-[10px] text-slate-500 font-sans truncate">Radius and compliance are not assessed</div>
                 </div>
 
                 <!-- 5. Elevation & Slope (Map Coordinates Ground-Truth) -->
                 <div class="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1">
                     <div class="flex items-center gap-1.5 text-slate-400 text-[10px]">
-                        <span>🪨</span> <span data-i18n="time_forensic_metric_elevation">Elevation &amp; Slope:</span>
+                        <span>🪨</span> <span>Elevation &amp; Slope Metadata:</span>
                     </div>
-                    <div id="metricElevationSlope" class="text-teal-400 font-bold text-sm">142m MSL (S1 Lowland)</div>
-                    <div id="metricSlopeAngle" class="text-[10px] text-slate-500 font-sans truncate">4.5° (Gentle &bull; Safe for Furrows &amp; Terraces)</div>
+                    <div id="metricElevationSlope" class="text-teal-400 font-bold text-sm">Not recorded</div>
+                    <div id="metricSlopeAngle" class="text-[10px] text-slate-500 font-sans truncate">Not measured from image</div>
                 </div>
 
                 <!-- 6. Weather & Riparian (BMKG Radar Match) -->
                 <div class="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1">
                     <div class="flex items-center gap-1.5 text-slate-400 text-[10px]">
-                        <span>🌧️</span> <span data-i18n="time_forensic_metric_weather">Weather &amp; Riparian:</span>
+                        <span>🌧️</span> <span>Weather Metadata:</span>
                     </div>
-                    <div id="metricWeatherRiparian" class="text-amber-400 font-bold text-sm">26.6°C Clear (BMKG Match)</div>
-                    <div class="text-[10px] text-emerald-500/80 font-sans truncate">&ge; 50m HCV Buffer Zone Protected</div>
+                    <div id="metricWeatherRiparian" class="text-amber-400 font-bold text-sm">Not recorded</div>
+                    <div class="text-[10px] text-slate-500 font-sans truncate">No independent weather correlation</div>
                 </div>
             </div>
 
@@ -1156,29 +1156,27 @@
             <div class="p-4 rounded-2xl bg-slate-900/95 border border-slate-800 space-y-2 text-xs font-sans">
                 <div class="flex items-center justify-between font-mono text-[11px] text-slate-300 font-bold border-b border-slate-800 pb-1.5">
                     <span class="flex items-center gap-2">
-                        <span>📝</span> <span data-i18n="time_forensic_auditor_title">Forensic Field Auditor Diagnostic:</span>
+                        <span>📝</span> <span>Image Scan Summary:</span>
                     </span>
                     <span id="forensicAuditorStamp" class="text-emerald-400 font-mono text-[10px]">
-                        AI Ground Truth Verified
+                        Not ground-truth verified
                     </span>
                 </div>
                 <p id="forensicAuditorNarrative" class="text-slate-300 text-xs leading-relaxed">
-                    Terrestrial In-Situ Handheld Audit (Eye-Level 1.45m): Confirms 2.05m palm root ring is strictly preserved free of mechanical hoe tillage (zero-tillage). Frond mulch carpet along alley floor maintains +32% microclimatic soil moisture retention.
+                    Image detections only; field conditions and detection accuracy have not been independently verified.
                 </p>
             </div>
 
-            <!-- Footer: Segel Kriptografi FIPS 180-4 & Anti-Replay Seal -->
+            <!-- Evidence integrity metadata -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-800/80 text-[10px] text-slate-500">
                 <div class="flex items-center gap-2">
-                    <span data-i18n="time_forensic_seal_title">FIPS 180-4 Seal:</span>
-                    <span id="forensicCardSha256" class="text-cyan-400 font-mono font-bold">8F434346648F6B96DF89DDA901C5176B...</span>
+                    <span>SHA-256:</span>
+                    <span id="forensicCardSha256" class="text-cyan-400 font-mono font-bold">Not available</span>
                 </div>
                 <div class="flex items-center gap-3">
-                    <span class="text-emerald-400 font-bold flex items-center gap-1">
-                        <span>✓</span> <span data-i18n="time_forensic_antireplay">Anti-Replay Active</span>
-                    </span>
+                    <span class="text-slate-400">Evidence metadata</span>
                     <span id="forensicCardTimestamp" class="text-slate-400 font-mono">
-                        2026-10-18 WIB
+                        Not recorded
                     </span>
                 </div>
             </div>
@@ -1727,9 +1725,9 @@
             laserH.classList.remove('laser-sweep-h');
         }
         if (tagStatus) {
-            tagStatus.textContent = currentDisplayedBoxes.length > 0 
-                ? `Physical Entities Verified (${currentDisplayedBoxes.length} Localized)` 
-                : "No Target Entities Detected";
+            tagStatus.textContent = currentDisplayedBoxes.length > 0
+                ? `Image detections displayed (${currentDisplayedBoxes.length}); accuracy not validated`
+                : "No detections returned";
         }
     }
 
@@ -1823,7 +1821,7 @@
                      title="${escapeHtml(titleText)}"
                      style="top: ${top}%; left: ${left}%; width: ${width}%; height: ${height}%;">
                     <span class="absolute -top-3.5 left-1 px-1.5 py-0.2 rounded border text-[8px] font-mono font-bold shadow-xs whitespace-nowrap ${badgeCls}">
-                        ${icon} ${escapeHtml(item.label)} [${Math.round((item.confidence || 0.95) * 100)}%]
+                        ${icon} ${escapeHtml(item.label)} [${item.is_heuristic ? 'heuristic' : `${Math.round((item.confidence || 0.95) * 100)}%`}]
                     </span>
                 </div>
             `;
@@ -1862,100 +1860,71 @@
     }
 
     // HELPER: RENDER 4-PILLAR CROP & PATHOLOGY DIAGNOSTICS DALAM MACHINE AUDIT
-    function renderTimelinesPlantDiagnostics(diagnostics, perspective) {
+    function renderTimelinesPlantDiagnostics(diagnostics, perspective, isImageVerified = true) {
         const auditBox = document.getElementById('txtMachineGroundTruthAudit');
         if (!auditBox) return;
 
-        const d = diagnostics || {
-            growth_stage: "Mature Producing Palm (TM)",
-            estimated_age_years: 7.5,
-            canopy_lai_calculated: 4.25,
-            foliar_health: {
-                chlorosis_status: "NORMAL / HEALTHY",
-                foliar_chlorophyll_spad: 82.4,
-                nutrient_deficiency: "NIL (Optimal N-K Balance 1.18)",
-                fertilizer_recommendation: "Maintain compensatory +75 kg MOP/Ha in active 3.79m alleys"
-            },
-            pathology_risk: {
-                basal_stem_rot_risk: "LOW (0.0% - Clean Collar)",
-                basal_stem_rot_risk_pct: 0.0,
-                ganoderma_detected: false,
-                spear_leaf_condition: "Erect, non-stunted healthy frond bundle"
-            },
-            spatial_alley_verification: {
-                active_corridor_width_m: 3.79,
-                sterile_circle_radius_m: 2.0,
-                sterile_circle_compliant: true
+        if (!isImageVerified) {
+            auditBox.innerHTML = '<div class="p-3 rounded-xl bg-amber-950/40 border border-amber-500/50 text-amber-200">Fallback preview only. No canopy, root-buffer, nutrient, or pathology condition was verified from the image.</div>';
+            const reviewStatus = document.getElementById('timelineVisionReviewStatus');
+            if (reviewStatus) {
+                reviewStatus.textContent = 'Fallback • not image-verified';
+                reviewStatus.className = 'text-[9.5px] font-bold px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700';
             }
-        };
+            const ledgerValues = [
+                ['ledgerCrownCount', 'Not verified by vision'],
+                ['ledgerSterileRing', 'Not verified by vision'],
+                ['ledgerCorridorRegularity', 'Not verified by vision'],
+                ['ledgerWeatherStatus', 'Not verified by vision']
+            ];
+            ledgerValues.forEach(([id, value]) => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = value;
+            });
+            return;
+        }
 
+        const serializedDiagnostics = diagnostics && typeof diagnostics === 'object'
+            ? JSON.stringify(diagnostics, null, 2)
+            : '';
         auditBox.innerHTML = `
             <div class="space-y-2 pt-1 font-sans">
-                <!-- Grid 4 Pilar Diagnostik Tanaman -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
-                    <!-- Pilar 1: Stand Maturity & Age Inversion -->
-                    <div class="p-2.5 rounded-xl bg-slate-900/90 border border-emerald-500/40 space-y-1">
-                        <div class="flex items-center justify-between text-[9px]">
-                            <span class="text-emerald-400 font-bold flex items-center gap-1"><span>🌴</span> <span>Pilar 1: Stand Maturity &amp; Age</span></span>
-                            <span class="px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold">Age: ${d.estimated_age_years || 7.5} Yrs</span>
-                        </div>
-                        <div class="text-[10px] text-white font-bold">${d.growth_stage || 'Mature Producing (TM)'}</div>
-                        <div class="text-[8.5px] text-emerald-300 font-sans">Monsi-Saeki Canopy LAI: <strong>${d.canopy_lai_calculated || 4.25}</strong> &bull; Star-Crown Geometry</div>
-                    </div>
-
-                    <!-- Pilar 2: Foliar Chlorophyll & Nutrients -->
-                    <div class="p-2.5 rounded-xl bg-slate-900/90 border border-sky-500/40 space-y-1">
-                        <div class="flex items-center justify-between text-[9px]">
-                            <span class="text-sky-400 font-bold flex items-center gap-1"><span>🌿</span> <span>Pilar 2: Foliar Chlorophyll</span></span>
-                            <span class="px-1.5 py-0.2 rounded bg-sky-950 text-sky-300 border border-sky-600 font-bold">${d.foliar_health?.foliar_chlorophyll_spad || 82.4} SPAD</span>
-                        </div>
-                        <div class="text-[10px] text-white font-bold">${d.foliar_health?.chlorosis_status || 'NORMAL / HEALTHY'}</div>
-                        <div class="text-[8.5px] text-sky-300 font-sans">Nutrient Ratio: <strong>N:K 1.18</strong> &bull; ${d.foliar_health?.fertilizer_recommendation || 'Compensatory +75 kg MOP/Ha'}</div>
-                    </div>
-
-                    <!-- Pilar 3: Pathology Risk (Ganoderma) -->
-                    <div class="p-2.5 rounded-xl bg-slate-900/90 border border-teal-500/40 space-y-1">
-                        <div class="flex items-center justify-between text-[9px]">
-                            <span class="text-teal-400 font-bold flex items-center gap-1"><span>🛡️</span> <span>Pilar 3: Pathology Risk</span></span>
-                            <span class="px-1.5 py-0.2 rounded bg-teal-950 text-teal-300 border border-teal-600 font-bold">Ganoderma: 0.0%</span>
-                        </div>
-                        <div class="text-[10px] text-emerald-300 font-bold">${d.pathology_risk?.basal_stem_rot_risk || 'LOW (0.0% - Clean Collar)'}</div>
-                        <div class="text-[8.5px] text-slate-300 font-sans">Basal collar healthy, zero root wounding mechanical damage &bull; Spear leaf erect</div>
-                    </div>
-
-                    <!-- Pilar 4: Spatial Geometry & Root Buffer -->
-                    <div class="p-2.5 rounded-xl bg-slate-900/90 border border-rose-500/40 space-y-1">
-                        <div class="flex items-center justify-between text-[9px]">
-                            <span class="text-rose-400 font-bold flex items-center gap-1"><span>⭕</span> <span>Pilar 4: Spatial Alley Geometry</span></span>
-                            <span class="px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold">2.0m Sterile Maintained</span>
-                        </div>
-                        <div class="text-[10px] text-white font-bold">${d.spatial_alley_verification?.active_corridor_width_m || 3.79}m Active Alley Corridor</div>
-                        <div class="text-[8.5px] text-rose-300 font-sans">Zero-tillage buffer verified &bull; USDA SCS-CN Infiltration Runoff: -68.4%</div>
-                    </div>
-                </div>
+                <p class="text-amber-200">Gemini response details (model output, not field-verified):</p>
+                <pre class="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-slate-950 p-3 text-[10px] text-slate-200"></pre>
             </div>
         `;
+        const diagnosticsPre = auditBox.querySelector('pre');
+        if (diagnosticsPre) diagnosticsPre.textContent = serializedDiagnostics || 'No structured plant diagnostics were returned.';
 
-        // Update Quarterly Consolidated Ledger widgets
-        const crEl = document.getElementById('ledgerCrownCount');
-        if (crEl) crEl.textContent = `28 Crowns (TM • LAI ${d.canopy_lai_calculated || 4.25})`;
-        const stEl = document.getElementById('ledgerSterileRing');
-        if (stEl) stEl.textContent = "100% Zero-Tillage (2.0m Sterile)";
-        const cdEl = document.getElementById('ledgerCorridorRegularity');
-        if (cdEl) cdEl.textContent = `${d.spatial_alley_verification?.active_corridor_width_m || 3.79}m Regular Corridor`;
-        const wtEl = document.getElementById('ledgerWeatherStatus');
-        if (wtEl) wtEl.textContent = "100% Match (BMKG In-Situ Sync)";
+        [
+            ['ledgerCrownCount', 'Not independently verified'],
+            ['ledgerSterileRing', 'Not independently verified'],
+            ['ledgerCorridorRegularity', 'Not independently verified'],
+            ['ledgerWeatherStatus', 'Not independently verified']
+        ].forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) element.textContent = value;
+        });
     }
 
     // FORENSIC DISCREPANCY CARD CONTROLLER (AGENT AUTONOMOUS GATE)
-    function updateForensicDiscrepancyCard(score, observed, declared) {
+    function updateForensicDiscrepancyCard(score, observed, declared, isImageVerified = true) {
         const card = document.getElementById('forensicDiscrepancyCard');
         const badge = document.getElementById('badgeDiscrepancyScore');
         if (!card || !badge) return;
 
-        const val = typeof score === 'number' ? score : 0.85;
-        const obs = observed || 'Zingiber officinale var. rubrum';
-        const dec = declared || 'Jagung (Zea mays)';
+        if (!isImageVerified || typeof score !== 'number' || !observed || !declared) {
+            badge.textContent = 'NOT VERIFIED';
+            badge.className = "text-[9.5px] font-bold px-2 py-0.5 rounded bg-amber-900 text-amber-200 border border-amber-600";
+            card.className = "p-4 rounded-2xl bg-amber-950/70 border-2 border-amber-500 space-y-2.5 text-xs font-mono text-white shadow-lg transition-all";
+            const p = card.querySelector('p');
+            if (p) p.textContent = 'Fallback preview only. Commodity discrepancy cannot be evaluated without verified image analysis.';
+            return;
+        }
+
+        const val = score;
+        const obs = observed;
+        const dec = declared;
 
         if (val > 0.80) {
             badge.textContent = `DISCREPANCY: ${val.toFixed(2)} (> 0.80 TRIGGERED)`;
@@ -1983,6 +1952,13 @@
 
         const isMissing = !currentEvidenceUrl || !imgEl || !imgEl.src || imgEl.src.includes('undefined');
         const isFailed = imgEl && imgEl.complete && imgEl.naturalWidth === 0;
+        const activeEvidence = uploadedEvidencePhotos.find(photo =>
+            photo.file_url === currentEvidenceUrl || photo.url === currentEvidenceUrl
+        );
+        const currentEvidenceFilename = activeEvidence?.filename || activeEvidence?.name ||
+            (currentEvidenceUrl && currentEvidenceUrl.startsWith('data:')
+                ? 'field_evidence.jpg'
+                : (currentEvidenceUrl || '').split('/').pop().split('?')[0] || 'field_evidence.jpg');
 
         if (isMissing || isFailed) {
             handleEmptyEvidenceState(imgEl);
@@ -2034,13 +2010,13 @@
                 data = await window.UnifiedVisionEngine.scan({
                     imageUrl: currentEvidenceUrl,
                     fotoUrl: currentEvidenceUrl,
-                    filename: currentEvidenceUrl ? currentEvidenceUrl.split('/').pop().split('?')[0] : 'evidence_capture.jpg',
+                    filename: currentEvidenceFilename,
+                    evidenceId: activeEvidence?.evidence_id || null,
                     latitude: lat,
                     longitude: lng,
                     altAgl: altAgl,
                     pitchDeg: pitchDeg,
                     dossierId: activeEstate?.kode_kebun || 'EST-MDN-010',
-                    evidenceId: currentEvidenceUrl.split('/').pop().replace(/\.[^/.]+$/, ""),
                     perspective: isAerial ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU',
                     pageContext: 'TIMELINES',
                     containerEl: document.getElementById('monitoringEvidenceContainer') || imgEl.parentElement,
@@ -2056,6 +2032,7 @@
                         feature_name: "Canopy & Parcel Vision Scanner",
                         meta_info: `Rescan In-Situ 4D: ${activeEstate?.kode_kebun || 'EST-MDN-001'}`,
                         foto_url: currentEvidenceUrl,
+                        filename: currentEvidenceFilename,
                         latitude: lat,
                         longitude: lng,
                         altitude_agl_m: altAgl,
@@ -2069,69 +2046,132 @@
 
             await new Promise(r => setTimeout(r, pass2Duration));
 
-            const analysis = data.analysis || {};
-            let detectedBoxes = (Array.isArray(data.physical_entities) && data.physical_entities.length > 0)
+            const rawResult = data.raw || data;
+            const analysis = data.analysis || rawResult.analysis || {};
+            let detectedBoxes = Array.isArray(data.boxes)
+                ? data.boxes
+                : Array.isArray(data.physical_entities)
                 ? data.physical_entities
-                : (Array.isArray(analysis.detected_objects) && analysis.detected_objects.length > 0
+                : Array.isArray(analysis.detected_objects)
                     ? analysis.detected_objects
-                    : (window.UnifiedVisionEngine 
-                        ? window.UnifiedVisionEngine.generateHolisticFallback(currentEvidenceUrl, isAerial ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU', 'TIMELINES', typeof activeStageIndex !== 'undefined' ? activeStageIndex : 1).physical_entities 
-                        : []));
+                    : [];
 
             await runAiVisionScanAnimation(detectedBoxes);
-
-            // Persistensikan ke backend jika auto_persist_to_storage aktif
-            if (govCfg.auto_persist_to_storage !== false) {
-                try {
-                    await fetch('/api/spatial/save-inspection', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            dossier_id: activeEstate?.kode_kebun || 'EST-MDN-010',
-                            evidence_id: currentEvidenceUrl.split('/').pop().replace(/\.[^/.]+$/, ""),
-                            foto_url: currentEvidenceUrl,
-                            detected_entities: detectedBoxes,
-                            sha256_seal: data.sha256_hash || analysis.sha256_hash || 'SEALED-2026',
-                            perspective_mode: isAerial ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU'
-                        })
-                    });
-                } catch (_) {}
+            const isLiveVision = data.mode === 'LIVE_GEMINI' &&
+                (data.isLiveAI === true ||
+                    data.apiTelemetry?.is_live_gemini_called === true ||
+                    rawResult.api_telemetry?.is_live_gemini_called === true);
+            const reviewStatus = document.getElementById('timelineVisionReviewStatus');
+            if (reviewStatus) {
+                reviewStatus.textContent = isLiveVision ? 'Live Gemini result' : 'Fallback • not image-verified';
+                reviewStatus.className = isLiveVision
+                    ? 'text-[9.5px] font-bold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700'
+                    : 'text-[9.5px] font-bold px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700';
+            }
+            const timelineScanStatus = document.getElementById('timelineScanStatusText');
+            if (timelineScanStatus) {
+                timelineScanStatus.textContent = isLiveVision
+                    ? 'Live Gemini image scan complete'
+                    : 'Fallback preview — image not verified';
+            }
+            if (isLiveVision && data.persistence?.saved && activeEvidence) {
+                activeEvidence.boxes = detectedBoxes;
+                activeEvidence.is_processed = true;
+                activeEvidence.is_locked = false;
+                activeEvidence.status = 'SCANNED';
+                activeEvidence.sha256 = data.sha256Seal || data.sha256 || activeEvidence.sha256;
+                renderEvidenceThumbnails();
+                renderForensicGallery();
             }
 
             // Dynamic Update of Forensic Discrepancy Card
-            const discScore = typeof data.discrepancy_score === 'number' ? data.discrepancy_score : (isAerial ? 0.05 : 0.85);
-            const observedTaxon = data.observed_taxon || 'Zingiber officinale var. rubrum';
-            updateForensicDiscrepancyCard(discScore, observedTaxon, 'Jagung (Zea mays)');
+            const groundTruthValidation = data.ground_truth_validation || rawResult.ground_truth_validation;
+            const hasGroundTruthValidation = groundTruthValidation?.validated === true;
+            const rawDiscrepancyScore = groundTruthValidation?.discrepancy_score;
+            const discScore = hasGroundTruthValidation && typeof rawDiscrepancyScore === 'number'
+                ? rawDiscrepancyScore
+                : null;
+            const observedTaxon = groundTruthValidation?.observed_taxon || '';
+            const declaredTaxon = groundTruthValidation?.declared_taxon || '';
+            updateForensicDiscrepancyCard(discScore, observedTaxon, declaredTaxon, hasGroundTruthValidation);
 
             // Render 4-Pillar Crop & Pathology Diagnostics
-            renderTimelinesPlantDiagnostics(data.plant_diagnostics || analysis.plant_diagnostics, data.perspective_4d);
+            renderTimelinesPlantDiagnostics(
+                data.plant_diagnostics || analysis.plant_diagnostics || rawResult.plant_diagnostics,
+                data.perspective_4d || rawResult.perspective_4d,
+                isLiveVision
+            );
 
             // Update stats badge with standardized realistic match %
             const statsBadge = document.getElementById('badgeDetectionStats');
-            const matchPct = typeof data.realistic_image_match_pct === 'number'
-                ? data.realistic_image_match_pct
-                : (typeof data.composite_match_pct === 'number' ? data.composite_match_pct : 94.6);
             if (statsBadge && detectedBoxes) {
-                statsBadge.textContent = `Match: ${matchPct}% • Entities: ${detectedBoxes.length}`;
+                statsBadge.textContent = isLiveVision
+                    ? `Live Gemini • ${detectedBoxes.length} image detections`
+                    : `Fallback preview • ${detectedBoxes.length} heuristic boxes (not verified)`;
+                statsBadge.className = isLiveVision
+                    ? 'text-xs font-mono text-emerald-300'
+                    : 'text-xs font-mono text-amber-300';
             }
 
-            let responseText = data.agent_experience_summary || analysis.summary || "Canopy, foliar chlorophyll, and Ganoderma pathology diagnostics verified.";
+            let responseText = data.agent_experience_summary || rawResult.agent_experience_summary || analysis.summary ||
+                (isLiveVision
+                    ? "Gemini image analysis completed."
+                    : "Fallback preview only; no image-derived compliance findings were verified.");
 
-            logAiInteraction('RESULT', 'Gemini 3.8 Flash 4-Pillar Vision Scan Successful', {
-                model_engine: data.engine || "Google Cloud (gemini-3.8-flash)",
+            logAiInteraction(isLiveVision ? 'RESULT' : 'FALLBACK', isLiveVision
+                ? 'Gemini 3.8 Flash 4-Pillar Vision Scan Successful'
+                : 'Vision fallback preview (not image-verified)', {
+                model_engine: data.engine || (isLiveVision ? "Google Cloud (gemini-3.8-flash)" : "Autonomous Rule Engine"),
                 status: data.status || "SUCCESS",
-                match_percentage: `${matchPct}%`,
+                mode: data.mode,
+                audit_notice: data.auditNotice || rawResult.audit_notice || null,
                 response: responseText,
                 perspective: data.perspective_4d?.capture_mode || (isAerial ? 'AERIAL_DRONE_ORTHOPHOTO' : 'TERRESTRIAL_IN_SITU'),
                 diagnostics_pillars: 4,
                 objects_detected: detectedBoxes ? detectedBoxes.length : 0
             });
 
-            showNotificationToast("✓ 4-Pillar Diagnostics & 4D Telemetry verified with Gemini Flash!", "⚡");
+            if (tagStatus) {
+                tagStatus.textContent = isLiveVision
+                    ? (data.persistence?.saved
+                        ? `Live Gemini scan saved • BigQuery ${data.persistenceStatus}`
+                        : `Live Gemini scan not persisted • ${data.persistence?.message || 'database evidence missing'}`)
+                    : "Fallback active — heuristic preview only; not image-verified";
+            }
+            showNotificationToast(
+                isLiveVision
+                    ? (data.persistence?.saved
+                        ? `✓ Gemini scan saved; BigQuery ${data.persistenceStatus}.`
+                        : `Gemini scan completed but not saved: ${data.persistence?.message || 'no evidence ID'}.`)
+                    : "Fallback preview shown; detections are not verified.",
+                isLiveVision ? "⚡" : "⚠️"
+            );
         } catch (err) {
             console.warn("[Rescan AI Fallback]", err);
-            await runAiVisionScanAnimation();
-            renderTimelinesPlantDiagnostics(null, null);
+            const fallbackBoxes = window.UnifiedVisionEngine
+                ? window.UnifiedVisionEngine.generateHolisticFallback(
+                    currentEvidenceFilename,
+                    isAerial ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU',
+                    'TIMELINES',
+                    typeof activeStageIndex !== 'undefined' ? activeStageIndex : 1
+                ).physical_entities
+                : [];
+            fallbackBoxes.forEach(entity => {
+                entity.is_heuristic = true;
+                delete entity.confidence;
+            });
+            await runAiVisionScanAnimation(fallbackBoxes);
+            renderTimelinesPlantDiagnostics(null, null, false);
+            updateForensicDiscrepancyCard(null, null, null, false);
+            const reviewStatus = document.getElementById('timelineVisionReviewStatus');
+            if (reviewStatus) {
+                reviewStatus.textContent = 'Fallback • not image-verified';
+                reviewStatus.className = 'text-[9.5px] font-bold px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700';
+            }
+            const timelineScanStatus = document.getElementById('timelineScanStatusText');
+            if (timelineScanStatus) timelineScanStatus.textContent = 'Fallback preview — image not verified';
+            const statsBadge = document.getElementById('badgeDetectionStats');
+            if (statsBadge) statsBadge.textContent = `Fallback preview • ${fallbackBoxes.length} heuristic boxes (not verified)`;
             logAiInteraction('ERROR', 'AI Connection Issue', { error: String(err.message || err) });
         }
     }
@@ -2153,24 +2193,46 @@
         showNotificationToast(selectState ? "✓ All evidence photos selected" : "Deselected all photos", "☑️");
     }
 
-    async function removeSinglePhoto(idx) {
+    async function deleteTimelinePhotoRecord(photo, confirmSealedDelete) {
+        const evidenceId = photo.evidence_id || photo.id;
+        if (!evidenceId || String(evidenceId).startsWith('p_up_')) {
+            return { success: true, localOnly: true };
+        }
+        const response = await fetch('/api/spatial/delete-photo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                evidence_id: evidenceId,
+                photo_url: photo.url || photo.file_url || '',
+                confirm_sealed_delete: confirmSealedDelete
+            })
+        });
+        const result = await response.json();
+        if (!response.ok || result.status !== 'success') {
+            throw new Error(result.message || 'Delete failed');
+        }
+        return result;
+    }
+
+    async function removeSinglePhoto(idx, event) {
+        if (event) event.stopPropagation();
         const photo = uploadedEvidencePhotos[idx];
         if (!photo) return;
-        
-        const photoId = photo.id || photo.evidence_id;
-        showNotificationToast("Menghapus foto dari basis data...", "⏳");
-        
-        if (photoId && !String(photoId).startsWith('p_up_')) {
-            try {
-                await fetch(`/api/media/evidence/${encodeURIComponent(photoId)}`, {
-                    method: 'DELETE'
-                });
-            } catch (err) {
-                console.warn("Delete evidence network notice:", err);
-            }
-        }
+        const isSealed = Boolean(photo.is_locked || photo.is_sealed || photo.status === 'SEALED');
+        if (!confirm(isSealed
+            ? 'Foto SEALED. Hapus permanen beserta tautan rekaman surveilans?'
+            : 'Hapus foto ini secara permanen?')) return;
 
-        uploadedEvidencePhotos.splice(idx, 1);
+        try {
+            const result = await deleteTimelinePhotoRecord(photo, true);
+            uploadedEvidencePhotos.splice(idx, 1);
+            if (result.bigquery_sync && result.bigquery_sync !== 'SYNCED') {
+                showNotificationToast("Foto dihapus lokal; BigQuery belum tersinkron.", "⚠️");
+            }
+        } catch (error) {
+            showNotificationToast(error.message || "Gagal menghapus foto.", "⚠️");
+            return;
+        }
         if (uploadedEvidencePhotos.length === 0) {
             currentEvidenceUrl = null;
             activeEvidenceIndex = 0;
@@ -2188,6 +2250,29 @@
         showNotificationToast("Foto bukti berhasil dihapus dari database", "🗑️");
     }
 
+    async function unsealSinglePhoto(idx, event) {
+        if (event) event.stopPropagation();
+        const photo = uploadedEvidencePhotos[idx];
+        if (!photo || !photo.evidence_id) return;
+        if (!confirm('Buka segel foto? Tautan rekaman surveilans akan dilepas dan dicatat di audit log.')) return;
+        try {
+            const response = await fetch('/api/spatial/unseal-photo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ evidence_id: photo.evidence_id, reason: 'User requested rescan' })
+            });
+            const result = await response.json();
+            if (!response.ok || result.status !== 'success') throw new Error(result.message || 'Unlock failed');
+            photo.is_locked = false;
+            photo.is_sealed = false;
+            photo.status = 'SCANNED';
+            renderEvidenceThumbnails();
+            showNotificationToast("Segel dibuka; hasil scan sebelumnya tetap tersedia.", "🔓");
+        } catch (error) {
+            showNotificationToast(error.message || "Gagal membuka segel.", "⚠️");
+        }
+    }
+
     async function removeSelectedEvidencePhotos() {
         const selectedPhotos = uploadedEvidencePhotos.filter(p => p.selected);
         if (selectedPhotos.length === 0) {
@@ -2195,17 +2280,23 @@
             return;
         }
 
+        const includesSealed = selectedPhotos.some(p => p.is_locked || p.is_sealed || p.status === 'SEALED');
+        if (!confirm(includesSealed
+            ? `Hapus permanen ${selectedPhotos.length} foto terpilih, termasuk bukti SEALED dan tautan auditnya?`
+            : `Hapus permanen ${selectedPhotos.length} foto terpilih?`)) return;
+
         showNotificationToast(`Menghapus ${selectedPhotos.length} foto terpilih dari basis data...`, "⏳");
+        const failures = new Set();
         for (const photo of selectedPhotos) {
-            const photoId = photo.id || photo.evidence_id;
-            if (photoId && !String(photoId).startsWith('p_up_')) {
-                try {
-                    await fetch(`/api/media/evidence/${encodeURIComponent(photoId)}`, { method: 'DELETE' });
-                } catch (_) {}
+            try {
+                await deleteTimelinePhotoRecord(photo, true);
+            } catch (error) {
+                failures.add(photo);
+                console.error("Evidence delete failed:", error);
             }
         }
 
-        uploadedEvidencePhotos = uploadedEvidencePhotos.filter(p => !p.selected);
+        uploadedEvidencePhotos = uploadedEvidencePhotos.filter(p => !p.selected || failures.has(p));
         if (uploadedEvidencePhotos.length === 0) {
             currentEvidenceUrl = null;
             activeEvidenceIndex = 0;
@@ -2218,7 +2309,9 @@
         activeEvidenceIndex = 0;
         switchActiveEvidencePhoto(0);
         renderEvidenceThumbnails();
-        showNotificationToast("Foto terpilih berhasil dihapus dari database", "🗑️");
+        showNotificationToast(failures.size
+            ? `${selectedPhotos.length - failures.size} foto dihapus; ${failures.size} gagal dan tetap ditampilkan.`
+            : "Foto terpilih berhasil dihapus dari database", failures.size ? "⚠️" : "🗑️");
     }
 
     function switchTimelinesAuditTab(tabKey) {
@@ -2304,7 +2397,7 @@
                     <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[9px] font-mono font-medium ${item.selected ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'}">
                         <input type="checkbox" ${item.selected ? 'checked' : ''} onchange="togglePhotoSelection(${idx}, event)" class="w-3 h-3 rounded accent-emerald-500 cursor-pointer">
                         <span class="truncate max-w-[120px]">${escapeHtml(item.tag_label || item.tag || item.label || item.name)}</span>
-                        <span class="text-[8px] text-amber-500 ml-0.5" title="🔒 Sealed (Anti-Replay Lock)">🔒</span>
+                        <span class="text-[8px] ml-0.5 ${item.is_locked ? 'text-amber-500' : 'text-sky-400'}" title="${item.is_locked ? 'Sealed' : 'Scanned / editable'}">${item.is_locked ? '🔒' : (item.is_processed ? '✓' : '')}</span>
                     </span>
                 `).join('');
             }
@@ -2339,12 +2432,14 @@
                 const titleText = item.label || item.tag_label || 'Inspeksi REG • AERIAL';
                 const subText = item.tag ? `${item.tag} • ${item.name || item.id}` : (item.name || item.id || 'REG • EV-EST-MDN-010-2026-Q1');
 
+                const isLocked = Boolean(item.is_locked || item.is_sealed || item.status === 'SEALED');
+                const isScanned = Boolean(item.is_processed || (Array.isArray(item.boxes) && item.boxes.length > 0));
                 return `
                     <div onclick="switchActiveEvidencePhoto(${globalIdx})" class="relative group rounded-2xl p-2.5 border ${cardBorder} transition cursor-pointer flex items-center justify-between gap-3 shadow-xs">
                         <div class="flex items-center gap-3 min-w-0">
                             <!-- Thumbnail (Col mengecil) -->
                             <div class="w-16 h-13 rounded-xl overflow-hidden bg-slate-950 flex-shrink-0 border border-slate-800 flex items-center justify-center relative">
-                                <img src="${item.url}" class="w-full h-full object-cover group-hover:scale-105 transition-transform photo-sealed-blur" onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<span class=\\'text-slate-600 font-mono text-xs\\'>📷</span>';">
+                                <img src="${item.url}" class="w-full h-full object-cover group-hover:scale-105 transition-transform ${isLocked ? 'photo-sealed-blur' : ''}" onerror="this.onerror=null; this.classList.add('hidden');">
                             </div>
                             <!-- Metadata -->
                             <div class="min-w-0 space-y-0.5">
@@ -2355,14 +2450,16 @@
                                     ${escapeHtml(subText)}
                                 </span>
                                 <div class="pt-0.5">
-                                    <span class="px-1.5 py-0.5 rounded text-[7.5px] font-mono font-bold bg-amber-950/90 text-amber-300 border border-amber-600/60 inline-flex items-center gap-0.5" title="Bukti Tersegel Resmi (Anti-Replay Lock FIPS 180-4)">
-                                        🔒 SEALED
+                                    <span class="px-1.5 py-0.5 rounded text-[7.5px] font-mono font-bold ${isLocked ? 'bg-amber-950/90 text-amber-300 border-amber-600/60' : (isScanned ? 'bg-sky-950/90 text-sky-300 border-sky-600/60' : 'bg-emerald-950/90 text-emerald-300 border-emerald-600/60')} border inline-flex items-center gap-0.5">
+                                        ${isLocked ? '🔒 SEALED' : (isScanned ? '✓ SCANNED' : '⚡ READY')}
                                     </span>
                                 </div>
                             </div>
                         </div>
                         <!-- Checkbox -->
-                        <div class="pr-1 flex-shrink-0" onclick="event.stopPropagation()">
+                        <div class="pr-1 flex-shrink-0 flex items-center gap-1" onclick="event.stopPropagation()">
+                            ${isLocked && item.evidence_id ? `<button type="button" onclick="unsealSinglePhoto(${globalIdx}, event)" class="p-1 rounded bg-amber-950/90 text-amber-300 hover:bg-amber-600 hover:text-white border border-amber-500/60" title="Unlock for rescanning">🔓</button>` : ''}
+                            ${item.evidence_id ? `<button type="button" onclick="removeSinglePhoto(${globalIdx}, event)" class="p-1 rounded bg-rose-950/90 text-rose-300 hover:bg-rose-600 hover:text-white border border-rose-500/60" title="Delete photo">🗑️</button>` : ''}
                             <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="togglePhotoSelection(${globalIdx}, event)" 
                                 class="w-4 h-4 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 accent-indigo-600 cursor-pointer bg-slate-900 shadow" title="Select Photo">
                         </div>
@@ -2416,10 +2513,6 @@
             // HANYA RENDER KOTAK DETEKSI GEMINI 3.8 FLASH JIKA GAMBAR BINER FISIK SUDAH SELESAI DIMUAT
             imgEl.onload = function() {
                 if (!imgEl.complete || imgEl.naturalWidth === 0) {
-                    if (imgEl.src !== '/static/img/sawit_drone.jpg' && !imgEl.src.endsWith('/static/img/sawit_drone.jpg')) {
-                        imgEl.src = '/static/img/sawit_drone.jpg';
-                        return;
-                    }
                     handleEmptyEvidenceState(imgEl);
                     return;
                 }
@@ -2434,10 +2527,6 @@
                 runAiVisionScanAnimation(photo.boxes || null);
             };
             imgEl.onerror = function() {
-                if (imgEl.src !== '/static/img/sawit_drone.jpg' && !imgEl.src.endsWith('/static/img/sawit_drone.jpg')) {
-                    imgEl.src = '/static/img/sawit_drone.jpg';
-                    return;
-                }
                 handleEmptyEvidenceState(imgEl);
             };
             imgEl.style.display = 'block';
@@ -2499,13 +2588,6 @@
                 }
             }
 
-            // Baca file sebagai Data URL untuk ditampilkan di galeri
-            const dataUrl = await new Promise((resolve) => {
-                const r = new FileReader();
-                r.onload = e => resolve(e.target.result);
-                r.readAsDataURL(file);
-            });
-
             let tagLabel = 'Palm Base Circle (2.0m)';
             let tagShort = 'Piringan Pokok';
             const totalCurrent = uploadedEvidencePhotos.length + newItems.length;
@@ -2513,17 +2595,47 @@
             else if (totalCurrent === 2) { tagLabel = 'Riparian / Silt Pit Buffer'; tagShort = 'Sempadan / Rorak'; }
             else if (totalCurrent >= 3) { tagLabel = `Field Attachment #${totalCurrent + 1}`; tagShort = `Bukti #${totalCurrent + 1}`; }
 
+            const estCode = (activeEstate && (activeEstate.kode_kebun || activeEstate.kode)) || 'EST-MDN-010';
+            const formData = new FormData();
+            formData.append('foto', file);
+            formData.append('kode_kebun', estCode);
+            formData.append('id_kebun', String(activeEstate?.id_kebun || 1));
+            formData.append('title', tagLabel);
+            formData.append('tag', tagShort);
+            formData.append('quarter_cycle', currentCycle);
+            formData.append('process_stage', `STAGE-1-${currentCycle}`);
+            formData.append('perspective_mode', 'TERRESTRIAL_IN_SITU');
+            let uploadResult;
+            try {
+                const uploadResponse = await fetch('/api/spatial/upload-photo', {
+                    method: 'POST',
+                    body: formData
+                });
+                uploadResult = await uploadResponse.json();
+                if (!uploadResponse.ok || !uploadResult.success || !uploadResult.photo?.evidence_id) {
+                    throw new Error(uploadResult.error || `Upload ${file.name} failed`);
+                }
+            } catch (error) {
+                showNotificationToast(error.message || `Upload ${file.name} failed.`, "⚠️");
+                continue;
+            }
+
             newItems.push({
-                id: 'p_up_' + Date.now() + '_' + i,
-                name: file.name,
+                id: uploadResult.photo.evidence_id,
+                evidence_id: uploadResult.photo.evidence_id,
+                name: uploadResult.photo.filename || file.name,
+                filename: uploadResult.photo.filename || file.name,
                 label: tagLabel,
                 tag: tagShort,
-                url: dataUrl,
-                boxes: window.UnifiedVisionEngine 
-                    ? window.UnifiedVisionEngine.generateHolisticFallback(file.name, 'TERRESTRIAL_IN_SITU', 'TIMELINES', typeof activeStageIndex !== 'undefined' ? activeStageIndex : 1).physical_entities 
-                    : [],
+                url: uploadResult.photo.file_url,
+                file_url: uploadResult.photo.file_url,
+                boxes: [],
                 sha256: fileHash,
                 image_sha256_hash: fileHash,
+                quarter_cycle: currentCycle,
+                status: 'READY',
+                is_processed: false,
+                is_locked: false,
                 selected: true
             });
         }
@@ -2536,23 +2648,10 @@
             renderEvidenceThumbnails();
             showNotificationToast(`Berhasil menambahkan ${newItems.length} foto bukti aktual!`, "📸");
 
-            // Simpan ke localStorage & backend agar persisten
+            // Database upload route is the source of truth; localStorage is only a view cache.
             try {
                 const estCode = (activeEstate && (activeEstate.kode_kebun || activeEstate.kode)) || 'EST-MDN-010';
                 localStorage.setItem(`precision_timeline_photos_${estCode}`, JSON.stringify(uploadedEvidencePhotos));
-                newItems.forEach(item => {
-                    fetch('/api/spatial/save-inspection', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            dossier_id: estCode,
-                            evidence_id: item.id,
-                            foto_url: item.url,
-                            detected_entities: item.boxes,
-                            sha256_seal: item.sha256 || '8F43-SEALED'
-                        })
-                    }).catch(() => {});
-                });
             } catch (pErr) {
                 console.warn("[Persist Uploaded Photo Notice]:", pErr);
             }
@@ -2837,6 +2936,20 @@
         const mandor = document.getElementById('inp_nama_mandor').value;
         const block = document.getElementById('inp_block_id').value;
         const titik = parseInt(document.getElementById('inp_titik_ke').value) || 1;
+        const selectedPhotoUrls = uploadedEvidencePhotos.filter(p => p.selected).map(p => p.url);
+        const photoUrls = [...new Set([currentEvidenceUrl, ...selectedPhotoUrls].filter(Boolean))];
+        const scanPhotoUrl = currentEvidenceUrl || photoUrls[0] || null;
+
+        if (!scanPhotoUrl) {
+            if (btn) btn.disabled = false;
+            if (icon) {
+                icon.className = "";
+                icon.textContent = "💾";
+            }
+            if (lbl) lbl.textContent = typeof t === 'function' ? t('time_btn_save_scan', 'Save Report & Scan with AI Vision Reticle') : 'Save Report & Scan with AI Vision Reticle';
+            showNotificationToast("Pilih atau unggah foto bukti sebelum menyimpan laporan.", "⚠️");
+            return;
+        }
 
         // Auto-fetch & fallback dari koordinat kebun perusahaan jika kosong atau 0
         let latVal = document.getElementById('inp_gps_lat')?.value?.trim();
@@ -2866,8 +2979,6 @@
         const timestampStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }) + " WIB";
         const shaSeal = "8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4";
 
-        const photoUrls = uploadedEvidencePhotos.map(p => p.url);
-
         const newLog = {
             id_kebun: idKebun,
             kode_kebun: kodeKebun,
@@ -2879,12 +2990,12 @@
             elevasi_dpl: elev,
             block_id: block,
             mandor: mandor,
-            foto_url: currentEvidenceUrl,
+            foto_url: scanPhotoUrl,
             photos: photoUrls,
             cuaca_tercatat: weather,
             piringan_steril_meter: 2.0,
             defisit_tbs_persen: 1.2,
-            ai_scan_status: "verified",
+            ai_scan_status: "scan_pending",
             waktu_pengambilan: timestampStr,
             sha256: shaSeal
         };
@@ -2900,16 +3011,17 @@
             });
 
             // 1. Eksekusi API AI Vision agar transaksi tercatat di /ai-logs
-            let detectedBoxes = null;
+            let detectedBoxes = [];
+            let plantDiag = null;
             try {
-                const isDrone = currentEvidenceUrl.includes('drone') || currentEvidenceUrl.includes('sawit_drone') || currentEvidenceUrl.includes('uav') || currentEvidenceUrl.includes('ortho');
+                const isDrone = /drone|sawit_drone|uav|ortho/i.test(scanPhotoUrl);
                 const scanResp = await fetch('/api/ai/scan-image', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         feature_name: "Canopy & Parcel Vision Scanner",
                         meta_info: `Surveillance ${siklus} - ${kodeKebun} (${mandor})`,
-                        foto_url: currentEvidenceUrl,
+                        foto_url: scanPhotoUrl,
                         latitude: lat,
                         longitude: lng,
                         altitude_agl_m: isDrone ? 45.0 : 1.65,
@@ -2918,67 +3030,73 @@
                     })
                 });
                 const scanJson = await scanResp.json();
-                if (scanJson && scanJson.analysis && Array.isArray(scanJson.analysis.detected_objects)) {
-                    detectedBoxes = scanJson.analysis.detected_objects;
+                if (!scanResp.ok || !scanJson || scanJson.status !== 'success') {
+                    throw new Error(scanJson?.error || `Vision scan failed (${scanResp.status})`);
                 }
-                const plantDiag = scanJson.plant_diagnostics || scanJson.diagnostics || (scanJson.analysis && scanJson.analysis.plant_diagnostics);
+                const scanEntities = scanJson.analysis?.detected_objects
+                    || scanJson.bounding_boxes
+                    || scanJson.detected_objects
+                    || scanJson.physical_entities
+                    || [];
+                detectedBoxes = Array.isArray(scanEntities) ? scanEntities : [];
+                plantDiag = scanJson.plant_diagnostics || scanJson.diagnostics || scanJson.analysis?.plant_diagnostics || null;
+                newLog.ai_scan_status = scanJson.is_fallback ? 'fallback' : (scanJson.mode || 'scan_completed');
+                newLog.ai_scan_result = scanJson;
+                newLog.bounding_boxes = detectedBoxes;
+                newLog.plant_diagnostics = plantDiag;
                 const perspecObj = scanJson.perspective_4d || scanJson.perspective || (scanJson.analysis && scanJson.analysis.perspective_4d);
                 if (plantDiag) {
                     renderTimelinesPlantDiagnostics(plantDiag, perspecObj);
                 }
             } catch (aiErr) {
                 console.warn("[AI Vision API Notice]", aiErr);
+                newLog.ai_scan_status = 'scan_unavailable';
+                newLog.bounding_boxes = [];
             }
 
             await runAiVisionScanAnimation(detectedBoxes);
 
             // 2. Simpan hasil surveilans ke basis data & local JSON store
-            try {
                 const saveRes = await fetch('/api/mobile-surveys', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(newLog)
                 });
-                if (saveRes.ok) {
-                    const saveJson = await saveRes.json();
-                    if (saveJson && saveJson.data) {
-                        const savedItem = {
-                            id: saveJson.data.id_log || Date.now(),
-                            id_kebun: idKebun,
-                            kode_kebun: kodeKebun,
-                            periode_siklus: siklus,
-                            tahun_siklus: 2026,
-                            titik_ke: titik,
-                            mandor: mandor,
-                            block_id: block,
-                            waktu_pengambilan: saveJson.timestamp || timestampStr,
-                            gps_lat: lat,
-                            gps_lng: lng,
-                            elevasi_dpl: elev,
-                            cuaca_tercatat: weather,
-                            foto_url: currentEvidenceUrl || '/static/img/sawit_drone.jpg',
-                            piringan_steril_meter: 2.0,
-                            defisit_tbs_persen: 1.2,
-                            ai_scan_status: "verified",
-                            sha256: shaSeal
-                        };
-                        const existsIdx = cachedSurveillanceLogs.findIndex(l => (l.periode_siklus === siklus && parseInt(l.titik_ke) === titik));
-                        if (existsIdx >= 0) {
-                            cachedSurveillanceLogs[existsIdx] = savedItem;
-                        } else {
-                            cachedSurveillanceLogs.unshift(savedItem);
-                        }
-                    }
-                    await loadIsolatedMonitoringLogs();
-                } else {
-                    cachedSurveillanceLogs.unshift(newLog);
-                    renderIsolatedLogsTable();
+                const saveJson = await saveRes.json();
+                if (!saveRes.ok || saveJson?.success !== true || !saveJson.data) {
+                    throw new Error(saveJson?.error || `Report save failed (${saveRes.status})`);
                 }
-            } catch (fetchErr) {
-                console.warn("[Surveillance DB Notice]", fetchErr);
-                cachedSurveillanceLogs.unshift(newLog);
-                renderIsolatedLogsTable();
-            }
+                const savedItem = {
+                    id: saveJson.data.id_log || Date.now(),
+                    id_kebun: idKebun,
+                    kode_kebun: kodeKebun,
+                    periode_siklus: siklus,
+                    tahun_siklus: 2026,
+                    titik_ke: titik,
+                    mandor: mandor,
+                    block_id: block,
+                    waktu_pengambilan: saveJson.timestamp || timestampStr,
+                    gps_lat: lat,
+                    gps_lng: lng,
+                    elevasi_dpl: elev,
+                    cuaca_tercatat: weather,
+                    foto_url: saveJson.data.foto_url || scanPhotoUrl,
+                    piringan_steril_meter: 2.0,
+                    defisit_tbs_persen: 1.2,
+                    ai_scan_status: saveJson.data.ai_scan_status || newLog.ai_scan_status,
+                    sha256: shaSeal
+                };
+                const existsIdx = cachedSurveillanceLogs.findIndex(l => (
+                    l.kode_kebun === kodeKebun
+                    && l.periode_siklus === siklus
+                    && parseInt(l.titik_ke) === titik
+                ));
+                if (existsIdx >= 0) {
+                    cachedSurveillanceLogs[existsIdx] = savedItem;
+                } else {
+                    cachedSurveillanceLogs.unshift(savedItem);
+                }
+                await loadIsolatedMonitoringLogs();
 
             // 3. Update status kuartal di server & storage lokal
             try {
@@ -3011,12 +3129,12 @@
                 sha256: shaSeal
             });
 
-            showNotificationToast(`Quarter ${siklus} Report Saved, Sealed & Official PDF Ready!`, "✅");
+            showNotificationToast(`Laporan Quarter ${siklus} tersimpan dan ditampilkan pada ledger.`, "✅");
 
         } catch (err) {
             console.error("[Timelines Submit Error]", err);
             logAiInteraction('ERROR', 'Foreman Report Processing Warning', String(err));
-            showNotificationToast("Report recorded locally.", "⚠️");
+            showNotificationToast(`Laporan belum dapat dikonfirmasi tersimpan: ${err.message || err}`, "⚠️");
         } finally {
             if (btn) {
                 btn.disabled = false;
@@ -4064,6 +4182,7 @@
                         const arr = Array.isArray(parsed) ? parsed : (parsed.photos || parsed.evidence_photos || []);
                         if (Array.isArray(arr)) {
                             arr.forEach(lp => {
+                                if ((lp.url || lp.file_url || '').startsWith('data:') && !lp.evidence_id) return;
                                 const key = lp.file_url || lp.url || lp.evidence_id || lp.id;
                                 if (key && !seenKeys.has(key)) {
                                     seenKeys.add(key);
@@ -4106,8 +4225,9 @@
                         file_url: activeSyncedUrl,
                         label: 'Spatial Active Evidence (Synced)',
                         tag: 'Stage 2A',
-                        is_sealed: true,
-                        status: 'SEALED'
+                        is_sealed: false,
+                        is_locked: false,
+                        status: 'READY'
                     });
                 }
             }
@@ -4142,12 +4262,6 @@
                         }
                     }
 
-                    if (!boxes || boxes.length === 0) {
-                        boxes = window.UnifiedVisionEngine 
-                            ? (window.UnifiedVisionEngine.generateAdaptiveBiophysicalEntities(p.name || p.filename || pUrl || '', isDrone ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU', 'TIMELINES', typeof activeStageIndex !== 'undefined' ? activeStageIndex : 1).physical_entities) 
-                            : [];
-                    }
-                    
                     const isAnnualPhoto = p.process_stage === 'STAGE-0-ANNUAL-REG' || p.quarter_cycle === 'ANNUAL';
                     let tagText = p.quarter_cycle || p.tag || (isAnnualPhoto ? 'ANNUAL' : 'Q1');
                     let tagLabel = isAnnualPhoto 
@@ -4164,8 +4278,10 @@
                         url: pUrl,
                         boxes: boxes,
                         selected: true,
-                        is_sealed: Boolean(p.is_sealed || p.is_processed || p.status === 'SEALED'),
-                        status: p.status || (p.is_processed ? 'SEALED' : 'ACTIVE'),
+                        is_sealed: Boolean(p.is_sealed || p.is_locked || p.status === 'SEALED'),
+                        is_locked: Boolean(p.is_locked || p.is_sealed || p.status === 'SEALED'),
+                        is_processed: Boolean(p.is_processed || (Array.isArray(boxes) && boxes.length > 0)),
+                        status: p.status || (p.is_locked || p.is_sealed ? 'SEALED' : (p.is_processed ? 'SCANNED' : 'ACTIVE')),
                         perspective_mode: isDrone ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU'
                     };
                 });
@@ -4177,10 +4293,6 @@
                 if (imgEl) {
                     imgEl.onload = function() {
                         if (!imgEl.complete || imgEl.naturalWidth === 0) {
-                            if (imgEl.src !== '/static/img/sawit_drone.jpg' && !imgEl.src.endsWith('/static/img/sawit_drone.jpg')) {
-                                imgEl.src = '/static/img/sawit_drone.jpg';
-                                return;
-                            }
                             handleEmptyEvidenceState(imgEl);
                             return;
                         }
@@ -4192,13 +4304,9 @@
                         }
                         renderMonitoringBoundingBoxes(activeP.boxes);
                         const tagStatus = document.getElementById('tagAiScannerStatus');
-                        if (tagStatus) tagStatus.textContent = `Physical Entities Verified (${(activeP.boxes || []).length} Localized)`;
+                        if (tagStatus) tagStatus.textContent = `Image detections displayed (${(activeP.boxes || []).length}); not ground-truth validated`;
                     };
                     imgEl.onerror = function() {
-                        if (imgEl.src !== '/static/img/sawit_drone.jpg' && !imgEl.src.endsWith('/static/img/sawit_drone.jpg')) {
-                            imgEl.src = '/static/img/sawit_drone.jpg';
-                            return;
-                        }
                         handleEmptyEvidenceState(imgEl);
                     };
                     imgEl.style.display = 'block';
@@ -4272,7 +4380,7 @@
             if (!isForensicAutoSlideActive || isForensicAutoSlideHovered || !isForensicGalleryInViewport) return;
 
             const photos = (uploadedEvidencePhotos && uploadedEvidencePhotos.length > 0)
-                ? uploadedEvidencePhotos.filter(p => p.is_sealed || p.is_processed || p.status === 'SEALED' || p.quarter_cycle)
+                ? uploadedEvidencePhotos.filter(p => p.is_sealed || p.is_locked || p.status === 'SEALED' || p.quarter_cycle)
                 : [];
             const displayPhotos = photos.length > 0 ? photos : (uploadedEvidencePhotos || []);
             if (displayPhotos.length <= 1) return;
@@ -4340,7 +4448,7 @@
     function renderForensicGallery(isAuto = false) {
         const estCode = (activeEstate?.kode_kebun || new URLSearchParams(window.location.search).get('kode') || 'EST-MDN-010').trim();
         const photos = (uploadedEvidencePhotos && uploadedEvidencePhotos.length > 0)
-            ? uploadedEvidencePhotos.filter(p => p.is_sealed || p.is_processed || p.status === 'SEALED' || p.quarter_cycle)
+            ? uploadedEvidencePhotos.filter(p => p.is_sealed || p.is_locked || p.status === 'SEALED' || p.quarter_cycle)
             : [];
         
         const displayPhotos = photos.length > 0 ? photos : (uploadedEvidencePhotos || []);
@@ -4349,6 +4457,7 @@
         const thumbsContainer = document.getElementById('forensicGalleryThumbsContainer');
         const titleEl = document.getElementById('forensicCardTitle');
         const subtitleEl = document.getElementById('forensicCardSubtitle');
+        const statusBadgeEl = document.getElementById('forensicCardBadge');
         const badgeTextEl = document.getElementById('forensicCardBadgeText');
         const btnDl = document.getElementById('btnForensicCardDossier');
         const imgEl = document.getElementById('forensicCardImage');
@@ -4358,6 +4467,7 @@
         const narrativeEl = document.getElementById('forensicAuditorNarrative');
         const sha256El = document.getElementById('forensicCardSha256');
         const timestampEl = document.getElementById('forensicCardTimestamp');
+        const auditorStampEl = document.getElementById('forensicAuditorStamp');
 
         // 6 indikator biofisik AI sesuai peta
         const mStandCount = document.getElementById('metricStandCount');
@@ -4459,18 +4569,23 @@
 
         const isAnnual = (p.quarter_cycle === 'REG' || p.quarter_cycle === 'ANNUAL' || p.tag === 'REG' || p.tag === 'STAGE-0-ANNUAL-REG' || (p.label && p.label.toLowerCase().includes('annual')));
         const isDrone = p.perspective_mode === 'AERIAL_DRONE' || (p.url && p.url.includes('drone'));
-        const boxes = (p.boxes && p.boxes.length > 0) 
-            ? p.boxes 
-            : (window.UnifiedVisionEngine 
-                ? window.UnifiedVisionEngine.generateHolisticFallback(p.url || p.name || '', isDrone ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU', 'TIMELINES', typeof activeStageIndex !== 'undefined' ? activeStageIndex : 1).physical_entities 
-                : []);
-        const entityCount = boxes.length || 20;
+        const boxes = Array.isArray(p.boxes) ? p.boxes : [];
+        const entityCount = boxes.length;
+        const isSealed = Boolean(p.is_sealed || p.is_locked || p.status === 'SEALED');
+        const palmCount = boxes.filter(b => b && (b.cluster === 'palm_canopy' || (typeof b.label === 'string' && b.label.toLowerCase().includes('palm')))).length;
+        const otherCount = entityCount - palmCount;
+        const countClusters = (...clusters) => boxes.filter(b => b && clusters.includes(b.cluster)).length;
+        const notRecorded = 'Not recorded';
 
         // Update Header Kartu
         if (titleEl) titleEl.textContent = `Proof #${currentForensicSlideIndex + 1}: ${p.evidence_id || p.id || 'EV-EST-MDN-010-2026'}`;
-        if (subtitleEl) subtitleEl.textContent = `Spatial Biophysical Forensic Diagnostic • Verifikasi Geospasial & Ground Truth`;
+        if (subtitleEl) subtitleEl.textContent = 'Image detections only • accuracy requires ground-truth review';
+        if (statusBadgeEl) statusBadgeEl.className = isSealed
+            ? 'px-3 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500 font-bold text-[10px] flex items-center gap-1 shadow-sm'
+            : 'px-3 py-1 rounded-full bg-sky-950 text-sky-300 border border-sky-500 font-bold text-[10px] flex items-center gap-1 shadow-sm';
+        if (auditorStampEl) auditorStampEl.textContent = 'Not ground-truth verified';
         if (badgeTextEl) {
-            badgeTextEl.textContent = isAnnual ? "SEALED • STAGE-0-ANNUAL-REG" : `SEALED • STAGE-1-${p.quarter_cycle || 'Q1'}-SURV`;
+            badgeTextEl.textContent = `${isSealed ? 'SEALED' : 'SCANNED'} • ${p.process_stage || p.quarter_cycle || p.tag || 'Evidence'}`;
         }
         if (btnDl) {
             btnDl.href = isAnnual ? `/api/export/pdf/certificate/${encodeURIComponent(estCode)}` : `/api/export/pdf/surveillance-cycle/${encodeURIComponent(estCode)}/${encodeURIComponent(p.quarter_cycle || 'Q1')}`;
@@ -4478,8 +4593,12 @@
 
         // Update Citra & Retikel dengan Transisi Lembut
         if (imgEl) {
-            const nextSrc = p.url || '/static/img/sawit_drone.jpg';
-            if (imgEl.src !== nextSrc) {
+            const nextSrc = p.url || '';
+            if (!nextSrc) {
+                imgEl.removeAttribute('src');
+                imgEl.classList.add('hidden');
+            } else if (imgEl.src !== nextSrc) {
+                imgEl.classList.remove('hidden');
                 imgEl.style.opacity = '0.75';
                 setTimeout(() => {
                     imgEl.src = nextSrc;
@@ -4489,52 +4608,40 @@
                 imgEl.src = nextSrc;
                 imgEl.style.opacity = '1';
             }
+            imgEl.onerror = () => imgEl.classList.add('hidden');
+            imgEl.onload = () => imgEl.classList.remove('hidden');
         }
         if (entityCountEl) {
-            entityCountEl.textContent = `${entityCount} Entities Ground-Mapped`;
+            entityCountEl.textContent = `${entityCount} detected entities · not ground-truth validated`;
         }
         if (perspectiveIconEl) perspectiveIconEl.textContent = isDrone ? '🛸' : '📱';
-        if (perspectiveTextEl) perspectiveTextEl.textContent = isDrone ? 'UAV Nadir 45m' : 'Terrestrial In-Situ (1.45m Eye-Level)';
+        if (perspectiveTextEl) perspectiveTextEl.textContent = p.perspective_mode || notRecorded;
 
         // Gambarkan SVG reticle overlay
         drawForensicSvgBoxes(boxes);
 
-        // 6 Metrik Biofisik AI sesuai peta kebun
-        const palmCount = boxes.filter(b => b.cluster === 'palm_canopy' || (b.label && b.label.toLowerCase().includes('palm'))).length || 14;
-        if (mStandCount) mStandCount.textContent = `${palmCount} Palms Mapped`;
-        if (mStandAge) mStandAge.textContent = isDrone ? "TM-6 (Early Mature Producing)" : "TM-7.5 (Full Prime Production)";
-
-        const spadVal = p.chlorophyll_spad || (isDrone ? 82.4 : 81.6);
-        if (mCanopyHealth) mCanopyHealth.textContent = `SPAD ${spadVal} • Balanced Nitrogen/Potassium`;
-        if (mCanopyFrond) mCanopyFrond.textContent = "Frond 17 SPAD Inferred (Optimal N-K)";
-
-        if (mCorridor) mCorridor.textContent = "3.79m Net Corridor (Unobstructed)";
-        const rootRadius = p.root_clearance_m || 2.05;
-        if (mRootRing) mRootRing.textContent = `${rootRadius}m Weed-Free Radius (100% Compliant)`;
-
-        const estElevation = Math.round(activeEstate?.elevasi_mdpl || (activeEstate && activeEstate.elevasi) || 142);
-        const estSlope = activeEstate?.kemiringan_lereng_persen ? (activeEstate.kemiringan_lereng_persen * 0.9).toFixed(1) : '4.5';
-        if (mElevationSlope) mElevationSlope.textContent = `${estElevation}m MSL (S1 Lowland Optimal)`;
-        if (mSlopeAngle) mSlopeAngle.textContent = `${estSlope}° (Gentle • Safe for Furrows)`;
-
-        if (mWeatherRiparian) mWeatherRiparian.textContent = "26.6°C Clear (BMKG Radar Match)";
+        if (mStandCount) mStandCount.textContent = `${palmCount} detected`;
+        if (mStandAge) mStandAge.textContent = 'Object detections, not field inventory';
+        if (mCanopyHealth) mCanopyHealth.textContent = `${otherCount} other detections`;
+        if (mCanopyFrond) mCanopyFrond.textContent = 'Health metrics not measured from image';
+        if (mCorridor) mCorridor.textContent = `${countClusters('clean_alley', 'alley_corridor', 'floor_mulch')} detections`;
+        if (mRootRing) mRootRing.textContent = `${countClusters('root_circle')} detections`;
+        if (mElevationSlope) mElevationSlope.textContent = p.elevation_m != null ? `${p.elevation_m} m (metadata)` : notRecorded;
+        if (mSlopeAngle) mSlopeAngle.textContent = p.slope_deg != null ? `${p.slope_deg}° (metadata)` : notRecorded;
+        if (mWeatherRiparian) mWeatherRiparian.textContent = p.weather_condition || notRecorded;
 
         // Narasi Diagnostik Auditor Lapangan AI
         if (narrativeEl) {
-            if (isDrone) {
-                narrativeEl.textContent = `UAV Nadir 45m Aerial Forensic Diagnostic: Confirms ${palmCount} localized canopy crowns with regular hexagonal 9.2m spacing. Inter-row alley corridor 3.79m remains free of root encroachment with balanced SPAD ${spadVal} photosynthetic index. 100% compliant with spatial boundary regulations.`;
-            } else {
-                narrativeEl.textContent = `Terrestrial In-Situ Handheld Audit (Eye-Level 1.45m): Confirms ${rootRadius}m palm root ring is strictly preserved free of mechanical hoe tillage (zero-tillage). Frond mulch carpet along alley floor maintains +32% microclimatic soil moisture retention.`;
-            }
+            narrativeEl.textContent = `${entityCount} image detections are shown for this evidence. Detection accuracy and field compliance have not been independently verified.`;
         }
 
-        // Segel FIPS 180-4 dan Timestamp
+        // Evidence hash and timestamp
         if (sha256El) {
-            const hash = p.sha256 || p.image_sha256_hash || '8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4';
+            const hash = p.sha256 || p.image_sha256_hash || 'Not available';
             sha256El.textContent = hash.length > 20 ? (hash.substring(0, 16) + '...' + hash.substring(hash.length - 8)) : hash;
         }
         if (timestampEl) {
-            timestampEl.textContent = p.uploaded_at || '2026-10-18 WIB';
+            timestampEl.textContent = p.uploaded_at || p.recorded_at || p.timestamp || notRecorded;
         }
 
         // Inisialisasi timer auto-slide jika belum berjalan dan foto > 1
@@ -4558,7 +4665,8 @@
         };
 
         boxes.forEach((b) => {
-            const box = b.box_2d || [200, 200, 400, 400];
+            if (!b || !Array.isArray(b.box_2d) || b.box_2d.length !== 4 || !b.box_2d.every(Number.isFinite)) return;
+            const box = b.box_2d;
             const ymin = box[0] / 10;
             const xmin = box[1] / 10;
             const ymax = box[2] / 10;

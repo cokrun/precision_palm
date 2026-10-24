@@ -5,6 +5,7 @@ import sys
 import json
 import time
 import hashlib
+import re
 import sqlite3
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
@@ -215,121 +216,86 @@ WAJIB MENGEMBALIKAN OUTPUT SESUAI STRUKTUR JSON BAKU (MATRIKS 44 VARIABEL & ENTI
 """
 
 def compute_realistic_image_match(analysis_data, telemetry=None, is_live=True):
-    """
-    Menghitung Composite Multimodal Match Index (CMMI) secara realistis:
-    Match Index (%) = (0.30 * Spatial IoU) + (0.25 * Spectral ExG) + (0.25 * Taxonomic Botanic Match) + (0.20 * Biophysical Consistency)
-    Rentang angka realistis standar industri: 88.0% - 96.5% dengan presisi 1 desimal.
-    """
-    boxes = analysis_data.get("physical_entities") or analysis_data.get("detected_objects") or analysis_data.get("bounding_boxes") or []
-    if boxes:
-        avg_box_conf = sum(float(b.get("confidence", 0.95)) for b in boxes) / len(boxes)
-    else:
-        avg_box_conf = 0.94
-    spatial_iou_pct = round(avg_box_conf * 100.0, 1)
-
-    canopy_density = float(analysis_data.get("canopy_density_pct") or 52.4)
-    filename = str(analysis_data.get("filename") or (telemetry.get("image_name") if telemetry else "sawit") or "sawit")
-    seed = sum(ord(c) for c in filename) % 15
-    spectral_exg_pct = round(85.0 + (canopy_density * 0.08) + (seed * 0.25), 1)
-    spectral_exg_pct = min(95.0, max(82.0, spectral_exg_pct))
-
-    disc_score = float(analysis_data.get("discrepancy_score") if analysis_data.get("discrepancy_score") is not None else 0.03)
-    taxonomic_match_pct = round(max(50.0, (1.0 - disc_score) * 100.0), 1)
-    if taxonomic_match_pct > 97.5:
-        taxonomic_match_pct = 96.8
-
-    sterile_comp = analysis_data.get("sterile_circle_2m_compliant", True)
-    bio_consistency_pct = 95.5 if sterile_comp else 78.0
-
-    base_score = (0.30 * spatial_iou_pct) + (0.25 * spectral_exg_pct) + (0.25 * taxonomic_match_pct) + (0.20 * bio_consistency_pct)
-    if not is_live:
-        base_score = min(93.8, max(88.2, base_score - 1.6))
-    else:
-        base_score = min(96.2, max(89.5, base_score))
-
-    final_match_pct = round(base_score, 1)
-
+    ground_truth = analysis_data.get("ground_truth_validation")
+    score = ground_truth.get("match_pct") if isinstance(ground_truth, dict) and ground_truth.get("validated") is True else None
+    has_valid_score = isinstance(score, (int, float)) and not isinstance(score, bool) and 0 <= score <= 100
+    match_tier = (
+        ground_truth.get("match_tier") or "GROUND_TRUTH_VALIDATED"
+        if has_valid_score
+        else ("GROUND_TRUTH_REQUIRED" if is_live else "NOT_IMAGE_VERIFIED")
+    )
     return {
-        "realistic_image_match_pct": final_match_pct,
-        "composite_match_pct": final_match_pct,
-        "match_tier": "CERTIFIED_RATIFIED" if final_match_pct >= 90.0 else ("CONDITIONAL_PASS" if final_match_pct >= 75.0 else "AUDIT_FLAG"),
-        "match_breakdown": {
-            "spatial_iou_pct": spatial_iou_pct,
-            "spectral_exg_pct": spectral_exg_pct,
-            "taxonomic_match_pct": taxonomic_match_pct,
-            "biophysical_consistency_pct": bio_consistency_pct
-        }
+        "realistic_image_match_pct": score if has_valid_score else None,
+        "composite_match_pct": score if has_valid_score else None,
+        "match_tier": match_tier,
+        "match_breakdown": ground_truth.get("breakdown") if has_valid_score else None
     }
 
 
 def build_universal_vision_package(analysis_data, telemetry=None, is_live=True):
-    """
-    Menyusun paket data visi universal yang dikonsumsi secara serentak
-    oleh Spatial, Simulator, Timelines, dan Mobile.
-    """
+    """Return model outputs without inventing measurements or compliance findings."""
     match_info = compute_realistic_image_match(analysis_data, telemetry=telemetry, is_live=is_live)
     telem = telemetry or {}
+    ground_truth = analysis_data.get("ground_truth_validation")
+    status = "MODEL_OUTPUT_NOT_GROUND_TRUTH_VERIFIED" if is_live else "NOT_IMAGE_VERIFIED"
+    coordinates = {}
+    for target, keys in {
+        "lat": ("latitude", "lat"),
+        "lng": ("longitude", "lng"),
+        "elevation_m": ("elevation_m",),
+        "slope_deg": ("slope_deg",)
+    }.items():
+        value = next((source[key] for source in (analysis_data, telem) for key in keys if source.get(key) is not None), None)
+        if value is not None:
+            coordinates[target] = value
 
-    canopy_pct = float(analysis_data.get("canopy_density_pct") or 52.4)
-    try:
-        lat = float(telem.get("latitude") if telem.get("latitude") is not None else telem.get("lat", 0.824102))
-    except (ValueError, TypeError):
-        lat = 0.824102
+    spatial = {"status": status}
+    if coordinates:
+        spatial["coordinates"] = coordinates
+    for key, sources in {
+        "altitude_agl_m": ("altitude_agl_m", "altitude"),
+        "camera_pitch_deg": ("camera_pitch_deg", "pitch")
+    }.items():
+        value = next((telem[name] for name in sources if telem.get(name) is not None), None)
+        if value is not None:
+            spatial[key] = value
 
-    try:
-        lng = float(telem.get("longitude") if telem.get("longitude") is not None else telem.get("lng", 99.561214))
-    except (ValueError, TypeError):
-        lng = 99.561214
+    biophysical = {"status": status}
+    for key in (
+        "canopy_density_pct",
+        "transmitted_par_umol",
+        "transmitted_par_pct",
+        "effective_alley_width_m",
+        "recommended_intercrop",
+        "potential_ler",
+        "carbon_mitigation_tco2e"
+    ):
+        if analysis_data.get(key) is not None:
+            biophysical[key] = analysis_data[key]
 
-    try:
-        alt = float(telem.get("altitude_agl_m") if telem.get("altitude_agl_m") is not None else telem.get("altitude", 1.45))
-    except (ValueError, TypeError):
-        alt = 1.45
-
-    try:
-        pitch = float(telem.get("camera_pitch_deg") if telem.get("camera_pitch_deg") is not None else telem.get("pitch", -12.4))
-    except (ValueError, TypeError):
-        pitch = -12.4
-
-    rec_crop = "Red Ginger (Zingiber officinale var. rubrum)" if canopy_pct >= 45.0 else "Tropical Soybean (Dena-1) / Porang"
-    disc_val = float(analysis_data.get("discrepancy_score") if analysis_data.get("discrepancy_score") is not None else 0.03)
+    forensic = {
+        "status": status,
+        "declared_crop": analysis_data.get("declared_crop") or telem.get("declared_crop"),
+        "observed_taxon": analysis_data.get("observed_taxon"),
+        "discrepancy_score": ground_truth.get("discrepancy_score") if isinstance(ground_truth, dict) and ground_truth.get("validated") is True else None,
+        "ppks_root_ring_205cm": {
+            "status": "NOT_ASSESSED",
+            "radius_m": None,
+            "compliant": None
+        },
+        "image_sha256_hash": analysis_data.get("sha256_hash")
+    }
+    if isinstance(ground_truth, dict) and ground_truth.get("validated") is True:
+        if "sterile_circle_compliant" in ground_truth:
+            forensic["sterile_circle_2m_compliant"] = ground_truth["sterile_circle_compliant"]
 
     return {
         "realistic_image_match_pct": match_info["realistic_image_match_pct"],
         "match_tier": match_info["match_tier"],
         "match_breakdown": match_info["match_breakdown"],
-        "spatial_vector": {
-            "coordinates": {"lat": lat, "lng": lng, "elevation_m": 142.0, "slope_deg": 4.5},
-            "altitude_agl_m": alt,
-            "camera_pitch_deg": pitch,
-            "spacing_distance_m": 9.0,
-            "triangular_spacing_m": 9.0,
-            "planting_pattern": "SEGITIGA_SAMA_SISI",
-            "concession_compliance": "100% NON-FOREST APL CLEARED",
-            "riparian_buffer_m": 54.2
-        },
-        "biophysical_vector": {
-            "canopy_density_pct": canopy_pct,
-            "transmitted_par_umol": round(1800 * (1 - canopy_pct / 100.0)),
-            "transmitted_par_pct": round(max(5.0, 100.0 - canopy_pct), 1),
-            "effective_alley_width_m": 3.79,
-            "recommended_intercrop": rec_crop,
-            "potential_ler": 1.455,
-            "carbon_mitigation_tco2e": 7038.0
-        },
-        "forensic_vector": {
-            "discrepancy_score": disc_val,
-            "declared_crop": str(analysis_data.get("declared_crop") or telem.get("declared_crop") or "Jahe Merah"),
-            "observed_taxon": str(analysis_data.get("observed_taxon") or "Zingiber officinale var. rubrum"),
-            "sterile_circle_2m_compliant": analysis_data.get("sterile_circle_2m_compliant", True),
-            "ppks_root_ring_205cm": {
-                "status": "PROTECTED_EXCLUSION_ACTIVE",
-                "radius_m": 2.05,
-                "compliant": True
-            },
-            "fips_sha256_seal": str(analysis_data.get("sha256_hash") or "FIPS-SHA256-RATIFIED"),
-            "fips_compliance": "FIPS 180-4 SHA-256 IMMUTABLE"
-        }
+        "spatial_vector": spatial,
+        "biophysical_vector": biophysical,
+        "forensic_vector": forensic
     }
 
 
@@ -878,11 +844,12 @@ def generate_crop_agroecological_reasoning(palm_age, crops, soil_ph=5.5, slope=4
         f"1. Canopy light transmission (Beer-Lambert PAR extinction) inside the 3.79m active inter-row corridor. "
         f"2. 2.0m palm root protection boundary (ISPO Principle 2 / GAP Zero-Tillage requirement). "
         f"3. Precision nutrient balance and fertilization prescription (MOP / K2O compensation to prevent palm yield deficit). "
-        f"4. Statutory compliance statement under PPKS guidelines and EUDR Article 9. "
+        f"4. Identify regulatory considerations under PPKS guidelines and EUDR Article 9, but do not certify legal compliance. "
+        f"These inputs contain no field measurements or supporting documents, so do not claim verified, measured, or compliant status. "
         f"Language of response: {target_lang}. "
         f"Return strictly valid JSON with keys: "
         f"{{"
-        f"  \"verdict\": \"VERIFIED COMPLIANT | CONDITIONALLY COMPLIANT | NON-COMPLIANT\", "
+        f"  \"verdict\": \"POTENTIALLY_COMPATIBLE | REQUIRES_FIELD_REVIEW | POTENTIALLY_INCOMPATIBLE\", "
         f"  \"title\": string, "
         f"  \"canopy_par_evaluation\": string, "
         f"  \"root_buffer_protection\": string, "
@@ -900,18 +867,19 @@ def generate_crop_agroecological_reasoning(palm_age, crops, soil_ph=5.5, slope=4
         latency = int((time.time() - start_time) * 1000)
         res_mock = {
             "mode": "AUTONOMOUS_RULE_ENGINE",
-            "engine": "Autonomous Statutory Rule Engine (PPKS Silviculture Standards & ISPO GAP)",
-            "audit_notice": "[AUDIT NOTICE] Gemini Vision / Reasoner session unreachable (Offline / Quota Exceeded). System deterministically switched to Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9).",
-            "verdict": "VERIFIED COMPLIANT",
-            "title": f"Agroecological Intercropping Audit: {crop_str} (Palm Age {palm_age} Yrs)",
-            "canopy_par_evaluation": f"At {palm_age} years of age, Beer-Lambert canopy extinction transmits 650–850 umol/m2/s PAR to the 3.79m inter-row corridor, providing sufficient light interception without triggering canopy competition.",
-            "root_buffer_protection": "Strict 2.0-meter zero-tillage root buffer radius is maintained around palm stipes, preventing mechanical feeder root laceration in compliance with ISPO Principle 2.",
-            "nutrient_prescription": f"Soil reaction pH {soil_ph} requires targeted potassium compensation (+75 kg/ha MOP) along dead furrows to eliminate fresh fruit bunch (FFB) yield drag (<4.5%).",
-            "statutory_compliance": "Fully compliant with PPKS agronomic standards, ISPO Principle 2 GAP, and EUDR Article 9 zero-deforestation mandates.",
-            "citations": ["ISPO Perpres 44/2020", "Permentan No. 33 Tahun 2025 (ISPO Baru)", "EUDR Regulation (EU) 2023/1115 Art. 9"],
-            "sha256_seal": sha256_seal
+            "is_fallback": True,
+            "engine": "Local deterministic advisory fallback (not a compliance verifier)",
+            "audit_notice": "[AUDIT NOTICE] Gemini is not configured. This local fallback is an advisory preview, not a field audit or compliance certification.",
+            "verdict": "REQUIRES_FIELD_REVIEW",
+            "title": f"Advisory preview: {crop_str} (Palm Age {palm_age} Yrs)",
+            "canopy_par_evaluation": "Not estimated by the fallback: canopy structure and field PAR measurements are required.",
+            "root_buffer_protection": "Not verified: confirm the 2.0 m exclusion buffer with field measurements.",
+            "nutrient_prescription": "No fertilizer rate is prescribed without soil and tissue test results and agronomic review.",
+            "statutory_compliance": "Not assessed by the fallback. Compliance requires current regulatory review and supporting field evidence.",
+            "citations": [],
+            "sha256_seal": sha256_seal,
         }
-        record_ai_log(feature_name, "Autonomous Rule Engine Fallback", latency, "SUCCESS", prompt, json.dumps(res_mock))
+        record_ai_log(feature_name, "Local deterministic advisory fallback", latency, "FALLBACK", prompt, json.dumps(res_mock))
         return res_mock
 
     try:
@@ -924,40 +892,83 @@ def generate_crop_agroecological_reasoning(palm_age, crops, soil_ph=5.5, slope=4
         )
         latency = int((time.time() - start_time) * 1000)
         output_text = response.text or "{}"
-        record_ai_log(feature_name, f"Google Cloud ({model_name})", latency, "SUCCESS", prompt, output_text)
         try:
             parsed = json.loads(output_text)
             parsed["mode"] = "LIVE_GEMINI"
-            parsed["engine"] = "Google Gemini 3.8 Flash (Multimodal Sync)"
+            parsed["engine"] = "Google Gemini 3.8 Flash (text reasoning)"
             parsed["sha256_seal"] = sha256_seal
+            record_ai_log(feature_name, f"Google Cloud ({model_name})", latency, "SUCCESS", prompt, output_text)
             return parsed
         except Exception:
+            record_ai_log(
+                feature_name,
+                f"Google Cloud ({model_name})",
+                latency,
+                "FAILED",
+                prompt,
+                output_text,
+                engine_mode="AUTONOMOUS_STATUTORY_RULE_ENGINE",
+                status_message="Gemini returned an invalid structured response; advisory fallback selected.",
+            )
             return {
-                "mode": "LIVE_GEMINI",
-                "engine": "Google Gemini 3.8 Flash (Multimodal Sync)",
-                "verdict": "VERIFIED COMPLIANT",
-                "title": f"Intercrop Audit: {crop_str}",
-                "canopy_par_evaluation": output_text,
-                "root_buffer_protection": "2.0m root buffer zone verified compliant under ISPO Principle 2.",
-                "nutrient_prescription": "Balanced MOP/K2O fertilization prescribed.",
-                "statutory_compliance": "Compliant with PPKS & EUDR Art. 9 standards.",
-                "citations": ["ISPO GAP Prinsip 2", "EUDR Art. 9"],
+                "mode": "AUTONOMOUS_RULE_ENGINE",
+                "is_fallback": True,
+                "engine": "Local deterministic advisory fallback (not a compliance verifier)",
+                "audit_notice": "[AUDIT NOTICE] Gemini returned a response that could not be parsed as the required structured analysis. Review is required.",
+                "verdict": "REQUIRES_FIELD_REVIEW",
+                "title": f"Advisory preview: {crop_str}",
+                "canopy_par_evaluation": "Not available: Gemini response did not match the required structured format.",
+                "root_buffer_protection": "Not verified: confirm the 2.0 m exclusion buffer with field measurements.",
+                "nutrient_prescription": "No fertilizer rate is prescribed without soil and tissue test results and agronomic review.",
+                "statutory_compliance": "Not assessed. Compliance requires current regulatory review and supporting field evidence.",
+                "citations": [],
                 "sha256_seal": sha256_seal
             }
     except Exception as err:
         latency = int((time.time() - start_time) * 1000)
-        record_ai_log(feature_name, f"Google Cloud ({model_name})", latency, "FAILED", prompt, str(err))
-        return {
+        error_text = str(err)
+        is_quota_error = any(
+            marker in error_text.lower()
+            for marker in ("quota", "resource_exhausted", "resource exhausted", "429", "too many requests")
+        )
+        retry_match = re.search(r"retry(?:\s+in)?\s*[:=]?\s*(\d+(?:\.\d+)?)\s*s(?:ec(?:onds?)?)?", error_text, re.IGNORECASE)
+        if not retry_match:
+            retry_match = re.search(r"retry_delay\s*\{\s*seconds:\s*(\d+)", error_text, re.IGNORECASE)
+        retry_after_seconds = max(1, int(float(retry_match.group(1)))) if retry_match else None
+        if is_quota_error:
+            audit_notice = "Gemini quota is currently exhausted. No automatic retry was sent."
+            if retry_after_seconds is not None:
+                audit_notice += f" Wait at least {retry_after_seconds} seconds before retrying."
+            else:
+                audit_notice += " Check the Gemini project quota and billing before retrying."
+        else:
+            audit_notice = "Gemini reasoning failed. This local fallback is an advisory preview, not a field audit or compliance certification."
+        record_ai_log(
+            feature_name,
+            f"Google Cloud ({model_name})",
+            latency,
+            "FAILED",
+            prompt,
+            error_text,
+            engine_mode="AUTONOMOUS_STATUTORY_RULE_ENGINE",
+            status_message=audit_notice,
+        )
+        fallback = {
             "mode": "AUTONOMOUS_RULE_ENGINE",
-            "engine": "Autonomous Statutory Rule Engine (PPKS Silviculture Standards & ISPO GAP)",
-            "audit_notice": "[AUDIT NOTICE] Gemini Vision / Reasoner session unreachable (Offline / Quota Exceeded). System deterministically switched to Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9).",
-            "verdict": "VERIFIED COMPLIANT",
-            "title": f"Agroecological Intercropping Audit: {crop_str} (Palm Age {palm_age} Yrs)",
-            "canopy_par_evaluation": f"Canopy radiation transmission calculated based on stand age {palm_age} years.",
-            "root_buffer_protection": "2.0m root buffer zone verified compliant under ISPO Principle 2.",
-            "nutrient_prescription": "Apply balanced potassium compensation on inter-row alleys (+75 kg/ha MOP).",
-            "statutory_compliance": "Compliant with PPKS standards.",
-            "citations": ["ISPO GAP Prinsip 2"],
+            "is_fallback": True,
+            "engine": "Local deterministic advisory fallback (not a compliance verifier)",
+            "audit_notice": audit_notice,
+            "verdict": "REQUIRES_FIELD_REVIEW",
+            "title": f"Advisory preview: {crop_str} (Palm Age {palm_age} Yrs)",
+            "canopy_par_evaluation": "Not estimated by the fallback: canopy structure and field PAR measurements are required.",
+            "root_buffer_protection": "Not verified: confirm the 2.0 m exclusion buffer with field measurements.",
+            "nutrient_prescription": "No fertilizer rate is prescribed without soil and tissue test results and agronomic review.",
+            "statutory_compliance": "Not assessed by the fallback. Compliance requires current regulatory review and supporting field evidence.",
+            "citations": [],
             "sha256_seal": sha256_seal,
-            "error_note": str(err)
         }
+        if is_quota_error:
+            fallback["fallback_reason"] = "QUOTA_EXHAUSTED"
+        if retry_after_seconds is not None:
+            fallback["retry_after_seconds"] = retry_after_seconds
+        return fallback

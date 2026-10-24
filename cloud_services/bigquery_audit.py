@@ -229,7 +229,8 @@ def save_node_review_to_bigquery(node_id, estate_code, node_title, verdict_answe
         "success": True, 
         "sha256_hash": sha_hash, 
         "timestamp": ts, 
-        "storage": "BigQuery / Local Ledger",
+        "storage": "Local SQLite",
+        "cloud_sync": "queued",
         "local_id": local_row_id
     }
 
@@ -379,16 +380,17 @@ def ensure_bigquery_evidence_table(client):
 
 def sync_evidence_to_bigquery(evidence_record: dict) -> bool:
     """
-    Mengalirkan metadata bukti citra dan hash SHA-256 ke Google BigQuery DW.
+    Meng-upsert metadata bukti citra per evidence_id ke Google BigQuery DW.
     Sesuai directive docs/ag_enterprise_interprocess_sync_and_bigquery_audit_directive.md
     """
     client = get_bq_client()
     if not client:
-        logger.info(f"[BIGQUERY BUFFER] Evidence {evidence_record.get('evidence_id')} tercatat di SQLite WAL (BigQuery offline/buffer mode).")
-        return True
+        logger.warning(f"[BIGQUERY OFFLINE] Evidence {evidence_record.get('evidence_id')} hanya tersimpan lokal; tidak ada buffer sinkronisasi.")
+        return False
 
     table_id = f"{client.project}.{DATASET_ID}.{EVIDENCE_TABLE_ID}"
     try:
+        from google.cloud import bigquery
         ensure_bigquery_evidence_table(client)
         detected = evidence_record.get("detected_entities") or evidence_record.get("detected_entities_json") or []
         if isinstance(detected, (list, dict)):
@@ -396,30 +398,107 @@ def sync_evidence_to_bigquery(evidence_record: dict) -> bool:
         else:
             detected_json_str = str(detected or "[]")
 
-        synced_at_iso = datetime.now(timezone.utc).isoformat()
-
-        rows_to_insert = [{
-            "evidence_id": str(evidence_record["evidence_id"]),
-            "dossier_id": str(evidence_record["dossier_id"]),
-            "company_name": str(evidence_record.get("company_name", "")),
-            "audit_year": int(evidence_record.get("audit_year", 2026)),
-            "quarter_cycle": str(evidence_record.get("quarter_cycle", "Q1")),
-            "perspective_mode": str(evidence_record.get("perspective_mode", "TERRESTRIAL_IN_SITU")),
-            "image_sha256_hash": str(evidence_record["image_sha256_hash"]),
-            "detected_entities_json": detected_json_str,
-            "root_clearance_m": float(evidence_record.get("root_clearance_m") or evidence_record.get("root_clearance_verified_m") or 2.0),
-            "weather_validation": str(evidence_record.get("weather_validation") or evidence_record.get("weather_satellite_validation") or "MATCH_BMKG_RADAR_CLEAR"),
-            "synced_at": synced_at_iso
-        }]
-
-        errors = client.insert_rows_json(table_id, rows_to_insert)
-        if errors:
-            logger.error(f"[BIGQUERY SYNC ERROR] Gagal menyisipkan baris ke {table_id}: {errors}")
+        evidence_id = str(evidence_record["evidence_id"])
+        dossier_id = str(evidence_record["dossier_id"])
+        image_hash = str(evidence_record["image_sha256_hash"])
+        if not evidence_id or not dossier_id or not image_hash:
+            logger.error("[BIGQUERY SYNC ERROR] evidence_id, dossier_id, dan image_sha256_hash wajib tersedia.")
             return False
-        logger.info(f"[BIGQUERY OK] Evidence {evidence_record['evidence_id']} tersimpan di BigQuery DW ({table_id}).")
+
+        synced_at = datetime.now(timezone.utc)
+        query = f"""
+            MERGE `{table_id}` AS target
+            USING (
+                SELECT
+                    @evidence_id AS evidence_id,
+                    @dossier_id AS dossier_id,
+                    @company_name AS company_name,
+                    @audit_year AS audit_year,
+                    @quarter_cycle AS quarter_cycle,
+                    @perspective_mode AS perspective_mode,
+                    @image_sha256_hash AS image_sha256_hash,
+                    @detected_entities_json AS detected_entities_json,
+                    @root_clearance_m AS root_clearance_m,
+                    @weather_validation AS weather_validation,
+                    @synced_at AS synced_at
+            ) AS source
+            ON target.evidence_id = source.evidence_id AND target.dossier_id = source.dossier_id
+            WHEN MATCHED THEN UPDATE SET
+                company_name = source.company_name,
+                audit_year = source.audit_year,
+                quarter_cycle = source.quarter_cycle,
+                perspective_mode = source.perspective_mode,
+                image_sha256_hash = source.image_sha256_hash,
+                detected_entities_json = source.detected_entities_json,
+                root_clearance_m = source.root_clearance_m,
+                weather_validation = source.weather_validation,
+                synced_at = source.synced_at
+            WHEN NOT MATCHED THEN INSERT (
+                evidence_id, dossier_id, company_name, audit_year, quarter_cycle,
+                perspective_mode, image_sha256_hash, detected_entities_json,
+                root_clearance_m, weather_validation, synced_at
+            ) VALUES (
+                source.evidence_id, source.dossier_id, source.company_name,
+                source.audit_year, source.quarter_cycle, source.perspective_mode,
+                source.image_sha256_hash, source.detected_entities_json,
+                source.root_clearance_m, source.weather_validation, source.synced_at
+            )
+        """
+        params = [
+            bigquery.ScalarQueryParameter("evidence_id", "STRING", evidence_id),
+            bigquery.ScalarQueryParameter("dossier_id", "STRING", dossier_id),
+            bigquery.ScalarQueryParameter("company_name", "STRING", str(evidence_record.get("company_name", ""))),
+            bigquery.ScalarQueryParameter("audit_year", "INT64", int(evidence_record.get("audit_year", 2026))),
+            bigquery.ScalarQueryParameter("quarter_cycle", "STRING", str(evidence_record.get("quarter_cycle", "Q1"))),
+            bigquery.ScalarQueryParameter("perspective_mode", "STRING", str(evidence_record.get("perspective_mode", "TERRESTRIAL_IN_SITU"))),
+            bigquery.ScalarQueryParameter("image_sha256_hash", "STRING", image_hash),
+            bigquery.ScalarQueryParameter("detected_entities_json", "STRING", detected_json_str),
+            bigquery.ScalarQueryParameter(
+                "root_clearance_m",
+                "FLOAT64",
+                float(evidence_record.get("root_clearance_m") or evidence_record.get("root_clearance_verified_m"))
+                if (evidence_record.get("root_clearance_m") is not None or evidence_record.get("root_clearance_verified_m") is not None)
+                else None
+            ),
+            bigquery.ScalarQueryParameter(
+                "weather_validation",
+                "STRING",
+                str(evidence_record.get("weather_validation") or evidence_record.get("weather_satellite_validation"))
+                if (evidence_record.get("weather_validation") is not None or evidence_record.get("weather_satellite_validation") is not None)
+                else None
+            ),
+            bigquery.ScalarQueryParameter("synced_at", "TIMESTAMP", synced_at),
+        ]
+        client.query(query, job_config=bigquery.QueryJobConfig(query_parameters=params)).result()
+        logger.info(f"[BIGQUERY OK] Evidence {evidence_id} di-upsert ke BigQuery DW ({table_id}).")
         return True
     except Exception as err:
         logger.error(f"[BIGQUERY SYNC EXCEPTION]: {err}")
+        return False
+
+
+def delete_evidence_from_bigquery(evidence_id: str, dossier_id: str) -> bool:
+    client = get_bq_client()
+    if not client:
+        logger.warning(f"[BIGQUERY OFFLINE] Penghapusan {evidence_id} belum tersinkron ke BigQuery.")
+        return False
+
+    try:
+        from google.cloud import bigquery
+        table_id = f"{client.project}.{DATASET_ID}.{EVIDENCE_TABLE_ID}"
+        query = f"""
+            DELETE FROM `{table_id}`
+            WHERE evidence_id = @evidence_id AND dossier_id = @dossier_id
+        """
+        params = [
+            bigquery.ScalarQueryParameter("evidence_id", "STRING", str(evidence_id)),
+            bigquery.ScalarQueryParameter("dossier_id", "STRING", str(dossier_id)),
+        ]
+        client.query(query, job_config=bigquery.QueryJobConfig(query_parameters=params)).result()
+        logger.info(f"[BIGQUERY OK] Evidence {evidence_id} deleted from {table_id}.")
+        return True
+    except Exception as err:
+        logger.error(f"[BIGQUERY DELETE ERROR]: {err}")
         return False
 
 
@@ -427,4 +506,3 @@ def sync_evidence_to_bigquery_async(evidence_record: dict):
     """Luncurkan sinkronisasi BigQuery secara asinkron (background thread)."""
     t = threading.Thread(target=sync_evidence_to_bigquery, args=(evidence_record,), daemon=True)
     t.start()
-
