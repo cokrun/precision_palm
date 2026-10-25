@@ -455,7 +455,8 @@ def audit_image_with_gemini(
     filename: str,
     perspective_mode: str = "AERIAL_DRONE",
     telemetry: Optional[Dict[str, Any]] = None,
-    mime_type: str = "image/jpeg"
+    mime_type: str = "image/jpeg",
+    scan_context: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
     Memproses citra perkebunan kelapa sawit via Google Gemini 3.8 Flash
@@ -463,12 +464,12 @@ def audit_image_with_gemini(
     Dilengkapi instrumen pelacak transparan Live Gemini API Tracker.
     """
     start_time = time.time()
-    gemini_api_key = Config.GEMINI_API_KEY
-    model_used = Config.GEMINI_MODEL
+    gemini_api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    model_used = os.environ.get("GEMINI_MODEL", Config.GEMINI_MODEL).strip()
 
     _probe_log("\n" + "="*60)
     _probe_log("🔍 [GEMINI_PROBE] MEMULAI PEMERIKSAAN LIVE GEMINI API...")
-    _probe_log(f"🔑 API Key Status : {'TERDETEKSI (***' + gemini_api_key[-6:] + ')' if gemini_api_key else '❌ TIDAK DITEMUKAN / KOSONG'}")
+    _probe_log(f"🔑 API Key Status : {'TERDETEKSI' if gemini_api_key else '❌ TIDAK DITEMUKAN / KOSONG'}")
     _probe_log(f"📦 Citra Masukan  : {filename} ({len(image_bytes) if image_bytes else 0} bytes)")
     _probe_log(f"🤖 Model Target   : {model_used}")
     _probe_log(f"📐 Perspektif     : {perspective_mode}")
@@ -485,36 +486,53 @@ def audit_image_with_gemini(
         or any(k in fn_lower for k in ['mandor', 'situ', 'ground', 'oblique', 'eye', 'weed', 'tm_weed', 'field_tm', 'terrestrial', 'harvester', 'intercrop'])
     )
 
+    if is_terrestrial:
+        perspective_instruction = (
+            "PERSPECTIVE CONTEXT: Terrestrial In-Situ (Eye-level / horizontal ground view of oil palm stand).\n"
+            "CRITICAL INSTRUCTION: DO NOT draw palm crown boxes in the sky or clouds! Only detect visible lateral palm canopy/fronds on the trees, "
+            "the ground-level alley corridor, soft weed cover / vegetative floor mulch, and sterile root buffers at the palm bases."
+        )
+    else:
+        perspective_instruction = (
+            "PERSPECTIVE CONTEXT: Aerial Drone Nadir (Top-down view of oil palm plantation canopy).\n"
+            "Detect individual palm canopy crowns in the triangular grid, clean alley corridors, and sterile root rings."
+        )
+
+    context_instruction = ""
+    if scan_context:
+        context_instruction = (
+            "WORKFLOW CONTEXT (metadata, not proof of image contents):\n"
+            f"{json.dumps(scan_context, ensure_ascii=False, sort_keys=True)}\n"
+            "Use this context only to frame the requested scan. Report only objects visibly supported by the image; "
+            "do not assume a stage focus or metadata item is present.\n"
+        )
+    prompt = (
+        f"You are an expert Agronomist and Biophysical Vision Auditor. Analyze this oil palm plantation image.\n"
+        f"{perspective_instruction}\n"
+        f"{context_instruction}"
+        "Return a strict JSON object with:\n"
+        "- physical_entities: array of objects with keys label, box_2d [ymin, xmin, ymax, xmax] (0-1000 scale), confidence, cluster\n"
+        "- Use concise semantic labels and one tight box per visibly distinct object/region; avoid boxes spanning unrelated objects or most of the image. These labels and boxes are downstream SAM 2 prompts, so preserve one entity per array item.\n"
+        "- canopy_density_pct: float or null; use null if the image does not support a defensible estimate\n"
+        "- stand_classification: string or null; use null if maturity cannot be determined from visible evidence\n"
+        "- visual_health_score: int or null; do not infer hidden conditions\n"
+        "- auditor_summary: describe only visible observations; do not claim legal compliance, exact distances, health measurements, or hidden conditions unless directly supported by this image\n"
+        "- chlorophyll_spad: null unless a calibrated measurement is present in the image\n"
+        "- root_clearance_m: null unless a scale/calibrated measurement is present in the image\n"
+    )
+    model_error = None
+
+    def safe_error_detail(error):
+        detail = str(error).strip() or type(error).__name__
+        if gemini_api_key:
+            detail = detail.replace(gemini_api_key, "[REDACTED]")
+        return detail[:500]
+
     if gemini_api_key and image_bytes and len(image_bytes) > 0:
         try:
             from google import genai
             from google.genai import types
             client = genai.Client(api_key=gemini_api_key)
-            
-            if is_terrestrial:
-                perspective_instruction = (
-                    "PERSPECTIVE CONTEXT: Terrestrial In-Situ (Eye-level / horizontal ground view of oil palm stand).\n"
-                    "CRITICAL INSTRUCTION: DO NOT draw palm crown boxes in the sky or clouds! Only detect visible lateral palm canopy/fronds on the trees, "
-                    "the ground-level alley corridor, soft weed cover / vegetative floor mulch, and sterile root buffers at the palm bases."
-                )
-            else:
-                perspective_instruction = (
-                    "PERSPECTIVE CONTEXT: Aerial Drone Nadir (Top-down view of oil palm plantation canopy).\n"
-                    "Detect individual palm canopy crowns in the triangular grid, clean alley corridors, and sterile root rings."
-                )
-
-            prompt = (
-                f"You are an expert Agronomist and Biophysical Vision Auditor. Analyze this oil palm plantation image.\n"
-                f"{perspective_instruction}\n"
-                "Return a strict JSON object with:\n"
-                "- physical_entities: array of objects with keys label, box_2d [ymin, xmin, ymax, xmax] (0-1000 scale), confidence, cluster\n"
-                "- canopy_density_pct: float or null; use null if the image does not support a defensible estimate\n"
-                "- stand_classification: string or null; use null if maturity cannot be determined from visible evidence\n"
-                "- visual_health_score: int or null; do not infer hidden conditions\n"
-                "- auditor_summary: describe only visible observations; do not claim legal compliance, exact distances, health measurements, or hidden conditions unless directly supported by this image\n"
-                "- chlorophyll_spad: null unless a calibrated measurement is present in the image\n"
-                "- root_clearance_m: null unless a scale/calibrated measurement is present in the image\n"
-            )
             contents = [
                 types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
                 prompt
@@ -532,7 +550,13 @@ def audit_image_with_gemini(
                     if resp and resp.text:
                         box_container.append(resp.text)
                 except Exception as e_live:
-                    err_container.append(e_live)
+                    detail = safe_error_detail(e_live)
+                    err_container.append(detail)
+                    logger.error(
+                        "Gemini multimodal inference failed (%s): %s",
+                        type(e_live).__name__,
+                        detail
+                    )
 
             th = threading.Thread(target=_run, daemon=True)
             th.start()
@@ -550,22 +574,37 @@ def audit_image_with_gemini(
                     _probe_log("="*60 + "\n")
             elif err_container:
                 gemini_error = err_container[0]
+                model_error = gemini_error
                 _probe_log(f"❌ [GEMINI_PROBE] GAGAL MEMANGGIL GEMINI! Penyebab: {gemini_error}")
                 _probe_log(f"⚠️ [GEMINI_PROBE] Sistem terpaksa beralih ke Fallback Generator.")
                 _probe_log("="*60 + "\n")
             else:
                 gemini_error = "Timeout: Google Cloud Gemini tidak merespons dalam 45.0 detik."
+                model_error = str(gemini_error)
+                logger.error("Gemini multimodal inference failed: %s", gemini_error)
                 _probe_log(f"❌ [GEMINI_PROBE] GAGAL MEMANGGIL GEMINI! Penyebab: {gemini_error}")
                 _probe_log(f"⚠️ [GEMINI_PROBE] Sistem terpaksa beralih ke Fallback Generator.")
                 _probe_log("="*60 + "\n")
 
         except Exception as e:
-            gemini_error = e
+            gemini_error = safe_error_detail(e)
+            model_error = gemini_error
+            logger.error(
+                "Gemini multimodal request setup or response parsing failed (%s): %s",
+                type(e).__name__,
+                model_error
+            )
             _probe_log(f"❌ [GEMINI_PROBE] GAGAL MEMANGGIL GEMINI! Penyebab: {gemini_error}")
             _probe_log(f"⚠️ [GEMINI_PROBE] Sistem terpaksa beralih ke Fallback Generator.")
             _probe_log("="*60 + "\n")
     else:
-        gemini_error = "API Key tidak tersedia atau bytes citra kosong."
+        gemini_error = (
+            "GEMINI_API_KEY is not set in the active environment."
+            if not gemini_api_key
+            else "Image data is empty; Gemini inference was not attempted."
+        )
+        model_error = str(gemini_error)
+        logger.error("Gemini multimodal inference skipped: %s", gemini_error)
         _probe_log(f"❌ [GEMINI_PROBE] GAGAL MEMANGGIL GEMINI! Penyebab: {gemini_error}")
         _probe_log(f"⚠️ [GEMINI_PROBE] Sistem terpaksa beralih ke Fallback Generator.")
         _probe_log("="*60 + "\n")
@@ -680,6 +719,14 @@ def audit_image_with_gemini(
             "integrity_score": health_score
         }
     }
+    ret_dict["_audit_prompt"] = prompt
+    ret_dict["_raw_machine_response"] = (
+        box_container[0] if gemini_api_key and image_bytes and len(image_bytes) > 0 and 'box_container' in locals() and box_container
+        else json.dumps({
+            "status": "fallback",
+            "reason": model_error or "Gemini returned no machine response"
+        }, ensure_ascii=False)
+    )
     try:
         from ai_service import compute_realistic_image_match, build_universal_vision_package
         match_info = compute_realistic_image_match(ret_dict, telemetry=telemetry, is_live=is_real_gemini_called)

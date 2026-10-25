@@ -47,8 +47,12 @@ def record_ai_log(feature_name, model_engine, latency_ms, status, prompt_input, 
     raw_seed = f"{ts_now}|{feature_name}|{latency_ms}|{status}"
     sha_hex = hashlib.sha256(raw_seed.encode('utf-8')).hexdigest().upper()
 
-    clean_prompt = str(prompt_input or "")[:1500]
-    clean_response = str(raw_response or "")[:3500]
+    is_scan_context_log = feature_name in {
+        "Simulator In-Silico Vision Scan",
+        "Timelines Quarterly Surveillance Vision Scan",
+    }
+    clean_prompt = str(prompt_input or "")[:12000 if is_scan_context_log else 1500]
+    clean_response = str(raw_response or "")[:50000 if is_scan_context_log else 3500]
 
     if not engine_mode:
         if "fallback" in str(model_engine).lower() or "rule engine" in str(model_engine).lower() or str(status).upper() == "FALLBACK":

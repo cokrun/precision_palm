@@ -119,6 +119,10 @@ def _save_ai_log_to_sqlite(timestamp_str, feature_name, model_engine, latency_ms
             eff_engine_mode = str(engine_mode)
             eff_status_msg = str(status_message or ("Verified via Gemini Multimodal Inference" if eff_engine_mode == "LIVE_GEMINI" else "[AUDIT NOTICE] Gemini Live Session Offline / Quota Exceeded. Validated via Autonomous Statutory Rule Engine (PPKS & ISPO Principle 2 Silvicultural Standards)"))
 
+        is_workflow_scan = feature_name in {
+            "Simulator In-Silico Vision Scan",
+            "Timelines Quarterly Surveillance Vision Scan",
+        }
         cur.execute("""
             INSERT INTO ai_execution_logs 
             (timestamp, feature_name, model_engine, latency_ms, status, prompt_input, raw_response, sha256_hash, engine_mode, status_message)
@@ -129,8 +133,8 @@ def _save_ai_log_to_sqlite(timestamp_str, feature_name, model_engine, latency_ms
             str(model_engine),
             int(latency_ms or 0),
             str(status),
-            str(prompt_input or "")[:1500],
-            str(raw_response or "")[:3500],
+            str(prompt_input or "")[:12000 if is_workflow_scan else 1500],
+            str(raw_response or "")[:50000 if is_workflow_scan else 3500],
             str(sha256_hash or ""),
             eff_engine_mode,
             eff_status_msg
@@ -222,6 +226,10 @@ def send_ai_log_to_bigquery_async(feature_name, model_engine, latency_ms, status
         try:
             project_id = Config.PROJECT_ID
             table_ref = f"{project_id}.{DATASET_ID}.ai_execution_logs"
+            is_workflow_scan = feature_name in {
+                "Simulator In-Silico Vision Scan",
+                "Timelines Quarterly Surveillance Vision Scan",
+            }
             row = [{
                 "id": int(time.time() * 1000) % 2147483647,
                 "timestamp": str(timestamp_str),
@@ -229,8 +237,8 @@ def send_ai_log_to_bigquery_async(feature_name, model_engine, latency_ms, status
                 "model_engine": str(model_engine),
                 "latency_ms": int(latency_ms),
                 "status": str(status),
-                "prompt_input": str(prompt_input or "")[:1500],
-                "raw_response": str(raw_response or "")[:3500],
+                "prompt_input": str(prompt_input or "")[:12000 if is_workflow_scan else 1500],
+                "raw_response": str(raw_response or "")[:50000 if is_workflow_scan else 3500],
                 "sha256_hash": str(sha256_hash or ""),
                 "engine_mode": eff_engine_mode,
                 "status_message": eff_status_msg
@@ -711,4 +719,3 @@ def get_certificate_from_bigquery(identifier):
 
     # Identifier was not found in BigQuery, SQLite, or JSON store -> Return None to trigger HTTP 404
     return None
-

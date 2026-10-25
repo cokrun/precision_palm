@@ -353,6 +353,21 @@
                             </span>
                         </div>
 
+                        <div id="simContourProgress" class="hidden px-3 py-2 rounded-xl bg-slate-950/95 border border-cyan-700/60 text-[10px] font-mono text-slate-200 shadow-sm" role="status" aria-live="polite">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="min-w-0 flex-1">
+                                    <div id="simContourProgressLabel" class="font-bold text-cyan-300">Gemini detections → SAM2 + OpenCV</div>
+                                    <div id="simContourProgressDetail" class="mt-0.5 text-slate-300">Waiting for a saved scan…</div>
+                                </div>
+                                <button id="simContourToggle" type="button" onclick="HybridContourPreview.toggle('simulator')" disabled aria-pressed="false" class="px-2.5 py-1 rounded-lg border border-cyan-600/70 bg-cyan-950/70 text-cyan-200 font-bold disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <span id="simContourToggleLabel">SAM2 + OpenCV outline unavailable</span>
+                                </button>
+                            </div>
+                            <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-800" role="progressbar" aria-label="SAM2 and OpenCV contour generation">
+                                <div id="simContourProgressBar" class="h-full w-full rounded-full bg-emerald-500 transition-all duration-500"></div>
+                            </div>
+                        </div>
+
                         <!-- Alert Non-Agri / Tampering -->
                         <div id="plantationValidationAlert" class="hidden p-3 rounded-xl bg-rose-950/90 border border-rose-500/80 text-rose-200 text-xs font-mono flex items-center justify-between gap-3 shadow-lg transition-all duration-300">
                             <div class="flex items-center gap-2">
@@ -388,6 +403,7 @@
                             <div id="laserSweepH" class="hidden absolute inset-y-0 w-0.5 bg-gradient-to-b from-transparent via-cyan-400 to-transparent shadow-[0_0_15px_#22d3ee] z-25 pointer-events-none"></div>
                             <div id="aiScanningLaser" class="hidden absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_#34d399] z-25 pointer-events-none transition-all duration-700"></div>
                             <div id="droneBBoxesOverlay" class="absolute inset-0 pointer-events-none z-20"></div>
+                            <div id="simContourOverlay" class="absolute inset-0 pointer-events-none z-[21]"></div>
 
                             <!-- Top-Left Badge: Audit Ratified by AI Agent -->
                             <div class="absolute top-3 left-3 bg-slate-950/85 backdrop-blur-md border border-emerald-500/60 px-3 py-1.5 rounded-xl text-xs font-mono text-emerald-400 font-bold flex items-center gap-2 shadow-lg z-30">
@@ -5216,12 +5232,45 @@ This summary contains model estimates, not field measurements, certification, or
                 if (badge) badge.textContent = 'No image selected';
                 return;
             }
+            const activeKode = (window.activeEstate && window.activeEstate.kode_kebun) || 'EST-MDN-010';
+            const selectedEvidence = activeEstatePhotos.find(photo =>
+                photo.file_url === currentImgUrl || photo.image_gcs_url === currentImgUrl ||
+                photo.url === currentImgUrl || photo.filename === currentImgName
+            );
+            const contourOptions = {
+                channel: 'simulator',
+                evidenceId: selectedEvidence?.evidence_id || null,
+                layerId: 'simContourOverlay',
+                progressPanelId: 'simContourProgress',
+                progressLabelId: 'simContourProgressLabel',
+                progressDetailId: 'simContourProgressDetail',
+                progressBarId: 'simContourProgressBar',
+                toggleButtonId: 'simContourToggle',
+                toggleLabelId: 'simContourToggleLabel',
+                imageUrl: currentImgUrl,
+                boxes: [],
+                isCurrent: () => {
+                    const selectedUrl = document.getElementById('selected_image_url')?.value ||
+                        document.getElementById('mainCanopyPreview')?.getAttribute('src') || '';
+                    return selectedUrl === currentImgUrl;
+                }
+            };
+            window.HybridContourPreview?.reset('simulator', contourOptions);
+
             if (!forceRescan) {
                 const savedBoxes = getCachedVisionBoxes(currentImgName, currentImgUrl);
                 if (Array.isArray(savedBoxes)) {
                     latestDetectedObjects = savedBoxes;
                     renderDetectedBoundingBoxes(savedBoxes);
                     if (typeof drawReticles === 'function') drawReticles();
+                    if (window.HybridContourPreview) {
+                        await window.HybridContourPreview.load({
+                            ...contourOptions,
+                            boxes: savedBoxes,
+                            isLive: selectedEvidence?.is_processed === true,
+                            isPersisted: selectedEvidence?.is_processed === true
+                        });
+                    }
                     const badge = document.getElementById('aiDetectionSummaryBadge');
                     if (badge) badge.textContent = `${savedBoxes.length} saved detections`;
                     const status = document.getElementById('aiScanBadge');
@@ -5241,12 +5290,8 @@ This summary contains model estimates, not field measurements, certification, or
             }
             if (btnScan) btnScan.classList.add('animate-pulse');
 
-            const activeKode = (window.activeEstate && window.activeEstate.kode_kebun) || 'EST-MDN-010';
             const isMandor = currentImgName.toLowerCase().includes('mandor') || currentImgName.toLowerCase().includes('in-situ');
             const age = parseFloat(document.getElementById('palm_age')?.value) || 6.0;
-            const selectedEvidence = activeEstatePhotos.find(photo =>
-                photo.file_url === currentImgUrl || photo.filename === currentImgName
-            );
 
             let tailoredData = null;
 
@@ -5262,7 +5307,34 @@ This summary contains model estimates, not field measurements, certification, or
                         forceRescan: forceRescan,
                         containerEl: document.getElementById('mainCanopyContainer') || (mainImg ? mainImg.parentElement : null),
                         overlayEl: document.getElementById('droneBBoxesOverlay'),
-                        statusEl: document.getElementById('aiScanBadge') || document.getElementById('aiDetectionSummaryBadge')
+                        statusEl: document.getElementById('aiScanBadge') || document.getElementById('aiDetectionSummaryBadge'),
+                        onProgress: progress => {
+                            if (progress?.stage === 'gemini') {
+                                window.HybridContourPreview?.report(
+                                    'simulator',
+                                    contourOptions,
+                                    'running',
+                                    'Gemini vision scan',
+                                    'Sending the original evidence image to Gemini…'
+                                );
+                            } else if (progress?.stage === 'gemini_complete') {
+                                window.HybridContourPreview?.report(
+                                    'simulator',
+                                    contourOptions,
+                                    'running',
+                                    'Preparing SAM2 + OpenCV',
+                                    'Gemini response received; checking saved evidence detections.'
+                                );
+                            }
+                        },
+                        scanContext: {
+                            workflow: 'In-silico simulator',
+                            purpose: 'Identify visible entities from the selected evidence image for simulator context; do not infer simulation measurements from image alone.',
+                            estate_code: activeKode,
+                            filename: currentImgName,
+                            perspective: isMandor ? 'TERRESTRIAL_IN_SITU' : 'AERIAL_DRONE',
+                            evidence_id: selectedEvidence?.evidence_id || null
+                        }
                     });
                 } catch (error) {
                     console.warn('[Simulator vision scan] Using local fallback:', error);
@@ -5309,6 +5381,14 @@ This summary contains model estimates, not field measurements, certification, or
             }
             renderDetectedBoundingBoxes(latestDetectedObjects);
             if (typeof drawReticles === 'function') drawReticles();
+            if (window.HybridContourPreview) {
+                await window.HybridContourPreview.load({
+                    ...contourOptions,
+                    boxes: latestDetectedObjects,
+                    isLive: isLiveVision,
+                    isPersisted: tailoredData.persistence?.saved === true
+                });
+            }
 
             if (typeof applyVisionDataToSimulator === 'function') {
                 applyVisionDataToSimulator(tailoredData);
@@ -6190,6 +6270,7 @@ function handleEmptyEvidenceStateSimulator(imgEl) {
 }
 window.handleEmptyEvidenceStateSimulator = handleEmptyEvidenceStateSimulator;
     </script>
-    <script src="/static/js/unified_vision_engine.js"></script>
-    <script src="/static/js/simulator.js?v=20261025-crop-yield-reference-1"></script>
+    <script src="/static/js/hybrid_contour_preview.js?v=20261025-hybrid-contours-2"></script>
+    <script src="/static/js/unified_vision_engine.js?v=20261025-ai-scan-context-1"></script>
+    <script src="/static/js/simulator.js?v=20261025-hybrid-contours-1"></script>
     <script src="/static/js/settings_governance.js"></script>

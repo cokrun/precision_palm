@@ -58,6 +58,12 @@ let surveysDebounceTimer = null;
 let filteredSurveysCache = [];
 
 let currentSpatialBoxes = [];
+let currentSpatialContourPreview = null;
+let showSam2ContourPreview = false;
+let spatialContourRequestId = 0;
+let currentOpenCvStaticReplay = null;
+let showOpenCvStaticReplay = false;
+let openCvStaticReplayRequestId = 0;
 let activeSpatialClusterFilters = new Set([
     'palm_canopy', 'infrastructure', 'root_circle', 'empty_gap',
     'floor_mulch', 'water_riparian', 'weed_cover', 'fruit_organs', 'palm_anatomy'
@@ -1224,12 +1230,93 @@ function reviewArchivedPhoto(url, filename) {
 }
 window.reviewArchivedPhoto = reviewArchivedPhoto;
 
+function updateSpatialScanProgress(stage, message, state = 'running') {
+    const panel = document.getElementById('spatialScanProgress');
+    const label = document.getElementById('spatialScanProgressLabel');
+    const detail = document.getElementById('spatialScanProgressDetail');
+    const bar = document.getElementById('spatialScanProgressBar');
+    if (!panel || !label || !detail || !bar) return;
+
+    panel.classList.remove('hidden');
+    label.textContent = stage;
+    detail.textContent = message;
+    bar.classList.toggle('animate-pulse', state === 'running');
+    bar.classList.toggle('w-1/3', state === 'running');
+    bar.classList.toggle('w-full', state !== 'running');
+    bar.classList.toggle('bg-emerald-400', state !== 'failed');
+    bar.classList.toggle('bg-rose-400', state === 'failed');
+    panel.dataset.state = state;
+    panel.setAttribute('aria-label', message);
+}
+
+function hideSpatialScanProgress() {
+    document.getElementById('spatialScanProgress')?.classList.add('hidden');
+}
+
+async function loadStoredContourPreview(photo, photoUrl, showProgress = false) {
+    const requestId = ++spatialContourRequestId;
+    const evidenceId = photo?.evidence_id || photo?.id;
+    if (!photo?.is_processed || !Array.isArray(photo.boxes) || !photo.boxes.length || !evidenceId) {
+        currentSpatialContourPreview = null;
+        updateContourPreviewButton();
+        if (showProgress) {
+            updateSpatialScanProgress(
+                isIndonesian() ? 'Outline selesai' : 'Outline skipped',
+                isIndonesian() ? 'Tidak ada deteksi tersimpan untuk dibuatkan kontur.' : 'No saved detections are available to outline.',
+                'done'
+            );
+        }
+        return currentSpatialContourPreview;
+    }
+
+    currentSpatialContourPreview = { status: 'loading' };
+    updateContourPreviewButton();
+    if (showProgress) {
+        updateSpatialScanProgress(
+            isIndonesian() ? 'SAM2 + OpenCV' : 'SAM2 + OpenCV',
+            isIndonesian() ? 'Membentuk dan merapikan garis batas objek...' : 'Building and refining object outlines...',
+            'running'
+        );
+    }
+    try {
+        const response = await fetch('/api/spatial/contour-preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ evidence_id: evidenceId })
+        });
+        const result = await readApiJson(response, isIndonesian() ? 'Pratinjau kontur' : 'Contour preview');
+        if (requestId !== spatialContourRequestId || activePhotoUrl !== photoUrl) return;
+
+        currentSpatialContourPreview = result.contour_preview || {
+            status: result.status || 'unavailable',
+            reason: result.reason || 'contour_preview_missing'
+        };
+        showSam2ContourPreview = Boolean(
+            currentSpatialContourPreview.status === 'ready' &&
+            currentSpatialContourPreview.contours?.length
+        );
+        renderDetectedBoundingBoxes(photo.boxes);
+        updateContourPreviewButton();
+        return currentSpatialContourPreview;
+    } catch (error) {
+        if (requestId !== spatialContourRequestId || activePhotoUrl !== photoUrl) return;
+        console.error('[Spatial stored contour preview]', error);
+        currentSpatialContourPreview = {
+            status: 'unavailable',
+            reason: 'contour_preview_request_failed'
+        };
+        updateContourPreviewButton();
+        return currentSpatialContourPreview;
+    }
+}
+
 function selectGalleryPhoto(url, filename, shouldRescan = false) {
     const imgEl = document.getElementById('verifPhotoImg');
     const photoLabelEl = document.getElementById('verifPhotoLabel');
     const emptyEl = document.getElementById('emptyEvidenceStateSpatial');
     activePhotoUrl = url;
     activeFilename = filename || (url ? url.split('/').pop() : "EV-PHOTO-ACTIVE.jpg");
+    hideSpatialScanProgress();
 
     try {
         if (url) {
@@ -1265,10 +1352,19 @@ function selectGalleryPhoto(url, filename, shouldRescan = false) {
         let boxes = (photoObj.boxes && Array.isArray(photoObj.boxes)) ? photoObj.boxes : [];
         
         photoObj.boxes = boxes;
+        currentSpatialContourPreview = null;
+        showSam2ContourPreview = false;
+        openCvStaticReplayRequestId += 1;
+        currentOpenCvStaticReplay = null;
+        showOpenCvStaticReplay = false;
         renderDetectedBoundingBoxes(boxes);
+        updateContourPreviewButton();
+        updateOpenCvStaticReplayButton();
 
         if (shouldRescan) {
             triggerScanningFotoAction();
+        } else {
+            loadStoredContourPreview(photoObj, url);
         }
     };
 
@@ -1600,6 +1696,11 @@ async function triggerScanningFotoAction(forceRescan = false) {
     const scanBadge = document.getElementById('aiScanBadge');
     const btnScan = document.getElementById('btnTriggerPhotoScan');
 
+    updateSpatialScanProgress(
+        isId ? 'Gemini Vision' : 'Gemini Vision',
+        isId ? 'Mengirim gambar dan menunggu analisis Gemini...' : 'Sending image and waiting for Gemini analysis...',
+        'running'
+    );
     if (btnScan) btnScan.classList.add('animate-pulse');
     if (scanBadge) {
         scanBadge.classList.remove('hidden');
@@ -1629,11 +1730,37 @@ async function triggerScanningFotoAction(forceRescan = false) {
         pageContext: 'SPATIAL',
         containerEl: document.getElementById('telemetryScanContainer') || document.getElementById('verifPhotoContainer'),
         overlayEl: document.getElementById('droneBBoxesOverlay'),
-        statusEl: document.getElementById('scannerStatusText')
-    }).then(result => {
+        statusEl: document.getElementById('scannerStatusText'),
+        onProgress: progress => {
+            if (progress?.stage === 'gemini') {
+                updateSpatialScanProgress(
+                    isId ? 'Gemini Vision' : 'Gemini Vision',
+                    isId ? 'Gemini sedang menganalisis foto...' : 'Gemini is analyzing the image...',
+                    'running'
+                );
+            }
+        }
+    }).then(async result => {
+        if (!result) {
+            updateSpatialScanProgress(
+                isId ? 'Pemindaian tidak dimulai' : 'Scan did not start',
+                isId ? 'Pemindaian lain masih berjalan. Coba lagi setelah selesai.' : 'Another scan is already running. Try again when it finishes.',
+                'failed'
+            );
+            if (btnScan) btnScan.classList.remove('animate-pulse');
+            return;
+        }
         if (result) {
             const isFallback = result.isFallback === true || result.mode !== 'LIVE_GEMINI';
             const detectedEntities = result.boxes || [];
+            spatialContourRequestId++;
+            currentSpatialContourPreview = {
+                status: 'unavailable',
+                reason: isFallback ? 'scan_not_image_verified' : 'scan_not_persisted'
+            };
+            showSam2ContourPreview = false;
+            renderDetectedBoundingBoxes(detectedEntities);
+            updateContourPreviewButton();
             const isPersistedLiveResult = !isFallback && result.persistence?.saved === true;
             const timestampNow = new Date().toISOString().replace('T', ' ').substring(0, 19);
             const specificBlockId = "Centroid Block - " + (target.title || target.filename || `Parcel #${surveysFullList.length + 1}`);
@@ -1661,6 +1788,44 @@ async function triggerScanningFotoAction(forceRescan = false) {
                     detected_entities: detectedEntities,
                     ai_scan_status: 'LIVE_GEMINI_GROUND_TRUTH_REQUIRED'
                 };
+                if (detectedEntities.length) {
+                    const contourPreview = await loadStoredContourPreview(target, target.file_url, true);
+                    if (activePhotoUrl !== target.file_url) return;
+                    const contourReady = contourPreview?.status === 'ready' && contourPreview.contours?.length;
+                    const detectionSummary = isId
+                        ? `${detectedEntities.length} objek terdeteksi`
+                        : `${detectedEntities.length} ${detectedEntities.length === 1 ? 'object' : 'objects'} detected`;
+                    updateSpatialScanProgress(
+                        isId ? 'Pemindaian selesai' : 'Scan complete',
+                        contourReady
+                            ? (isId
+                                ? `${detectionSummary}; outline SAM2 + OpenCV siap.`
+                                : `${detectionSummary}; SAM2 + OpenCV outlines are ready.`)
+                            : (isId
+                                ? `${detectionSummary}; outline tidak tersedia (${contourPreview?.reason || 'status tidak diketahui'}).`
+                                : `${detectionSummary}; outlines unavailable (${contourPreview?.reason || 'unknown status'}).`),
+                        'done'
+                    );
+                } else {
+                    updateSpatialScanProgress(
+                        isId ? 'Pemindaian selesai' : 'Scan complete',
+                        isId ? 'Gemini tidak menemukan objek pada foto ini.' : 'Gemini did not detect objects in this image.',
+                        'done'
+                    );
+                }
+            } else {
+                const fallbackReason = result.audit_notice ||
+                    result.api_telemetry?.error_message ||
+                    (isId
+                        ? 'Hasil heuristik ditampilkan, bukan deteksi yang diverifikasi dari gambar.'
+                        : 'Heuristic preview shown; detections were not verified from the image.');
+                updateSpatialScanProgress(
+                    isFallback ? (isId ? 'Mode fallback' : 'Fallback mode') : (isId ? 'Hasil belum tersimpan' : 'Result not saved'),
+                    isFallback
+                        ? fallbackReason
+                        : (isId ? 'Deteksi Gemini tidak tersimpan sehingga outline SAM2 tidak dapat dibuat.' : 'Gemini detections were not saved, so SAM2 outlines cannot be generated.'),
+                    isFallback ? 'failed' : 'done'
+                );
             }
 
             sealedCardsCurrentPage = 1;
@@ -1711,6 +1876,11 @@ async function triggerScanningFotoAction(forceRescan = false) {
         }
     }).catch(error => {
         console.error("[Spatial vision scan]", error);
+        updateSpatialScanProgress(
+            isId ? 'Pemindaian gagal' : 'Scan failed',
+            error?.message || (isId ? 'Terjadi kesalahan saat memindai.' : 'An error occurred while scanning.'),
+            'failed'
+        );
         if (btnScan) btnScan.classList.remove('animate-pulse');
         showNotificationToast("Pemindaian gagal; periksa koneksi dan coba lagi.", "⚠️");
     });
@@ -1960,6 +2130,26 @@ function drawReticles() {
     ctx.stroke();
 }
 
+function escapeSvgText(value) {
+    return String(value).replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    })[character]);
+}
+
+function escapeHtmlText(value) {
+    return String(value).replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    })[character]);
+}
+
 function renderDetectedBoundingBoxes(boxes) {
     currentSpatialBoxes = boxes || [];
     const overlay = document.getElementById('droneBBoxesOverlay');
@@ -1970,14 +2160,83 @@ function renderDetectedBoundingBoxes(boxes) {
         return;
     }
     if (!overlay) return;
-    if (!boxes || boxes.length === 0) {
-        overlay.innerHTML = '';
-        return;
+
+    let contourSvg = '';
+    const preview = currentSpatialContourPreview;
+    if (
+        showSam2ContourPreview &&
+        preview?.status === 'ready' &&
+        Number.isFinite(preview.width) &&
+        Number.isFinite(preview.height) &&
+        preview.width > 0 &&
+        preview.height > 0 &&
+        Array.isArray(preview.contours)
+    ) {
+        const placedLabels = [];
+        const paths = preview.contours.map(contour => {
+            if (!Array.isArray(contour.points) || contour.points.length < 3) return '';
+            const points = contour.points.filter(point =>
+                Array.isArray(point) &&
+                point.length === 2 &&
+                Number.isFinite(point[0]) &&
+                Number.isFinite(point[1]) &&
+                point[0] >= 0 &&
+                point[0] <= preview.width &&
+                point[1] >= 0 &&
+                point[1] <= preview.height
+            );
+            if (points.length < 3) return '';
+            const path = points.map(point => `${point[0]},${point[1]}`).join(' L ');
+            const entity = currentSpatialBoxes[contour.entity_index];
+            const label = entity?.label_name || entity?.label || entity?.cluster;
+            const cluster = entity?.cluster || 'palm_canopy';
+            const labelText = String(label || '');
+            const isInfrastructure = cluster === 'infrastructure' || /harvest|path|road|canal|infrastructure/i.test(labelText);
+            const isFrond = /frond/i.test(labelText);
+            const stroke = isInfrastructure ? '#38bdf8'
+                : cluster === 'root_circle' ? '#fb7185'
+                    : cluster === 'water_riparian' ? '#22d3ee'
+                        : '#34d399';
+            const shortLabel = /fruit|bunch/i.test(labelText) ? 'Fruit bunch'
+                : isFrond ? 'Frond stack'
+                    : isInfrastructure ? 'Access path'
+                        : cluster === 'root_circle' ? 'Root ring'
+                            : /oil[_\s-]*palm/i.test(labelText) ? 'Oil palm'
+                                : /palm|canopy/i.test(labelText) || cluster === 'palm_canopy' ? 'Palm canopy'
+                                    : cluster === 'floor_mulch' ? 'Alley / groundcover'
+                                        : labelText.replace(/[_-]+/g, ' ');
+            const labelX = (Math.min(...points.map(point => point[0])) + Math.max(...points.map(point => point[0]))) / 2;
+            const labelY = Math.max(18, (Math.min(...points.map(point => point[1])) + Math.max(...points.map(point => point[1]))) / 2);
+            const overlapsLabel = placedLabels.some(position =>
+                Math.hypot(position.x - labelX, position.y - labelY) < 160
+            );
+            const labelSvg = shortLabel && !overlapsLabel
+                ? `<text x="${labelX}" y="${labelY}" text-anchor="middle" fill="${stroke}" font-size="15" font-weight="700" paint-order="stroke" stroke="#020617" stroke-width="4" stroke-linejoin="round"><title>${escapeSvgText(label)} · Canny edge support ${Number.isFinite(contour.edge_support) ? contour.edge_support : 'not measured'}</title>${escapeSvgText(shortLabel)}</text>`
+                : '';
+            if (shortLabel && !overlapsLabel) placedLabels.push({ x: labelX, y: labelY });
+            return `<path d="M ${path} Z" fill="none" stroke="${stroke}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>${labelSvg}`;
+        }).join('');
+        if (paths) {
+            contourSvg = `<svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 ${preview.width} ${preview.height}" preserveAspectRatio="xMidYMid slice" aria-label="Hybrid AI detection and SAM2 OpenCV contours">${paths}</svg>`;
+        }
     }
 
-    overlay.innerHTML = boxes.map(item => {
+    let openCvReplayOverlay = '';
+    const replay = currentOpenCvStaticReplay;
+    if (
+        showOpenCvStaticReplay &&
+        replay?.status === 'ready' &&
+        typeof replay.mask_overlay_base64 === 'string' &&
+        /^[A-Za-z0-9+/=]+$/.test(replay.mask_overlay_base64)
+    ) {
+        openCvReplayOverlay = `<img src="data:image/png;base64,${replay.mask_overlay_base64}" class="absolute inset-0 w-full h-full object-cover pointer-events-none" alt="OpenCV HSV static replay mask">`;
+    }
+
+    const boxesHtml = (boxes || []).map(item => {
         const cluster = item.cluster || 'palm_canopy';
         if (!activeSpatialClusterFilters.has(cluster)) return '';
+        const labelName = item.label_name || item.label || cluster;
+        const isInfrastructure = cluster === 'infrastructure' || /harvest|path|road|canal|infrastructure/i.test(String(labelName));
 
         const box = item.box_2d || [100, 100, 300, 300];
         const top = (box[0] / 10.0).toFixed(1);
@@ -1985,33 +2244,153 @@ function renderDetectedBoundingBoxes(boxes) {
         const height = ((box[2] - box[0]) / 10.0).toFixed(1);
         const width = ((box[3] - box[1]) / 10.0).toFixed(1);
 
-        let borderCls = "border-emerald-400 bg-emerald-500/15";
+        let borderCls = "border-emerald-400 bg-emerald-500/5";
         let badgeCls = "bg-emerald-950 text-emerald-300 border-emerald-400";
         let icon = "🌴";
 
-        if (cluster === 'infrastructure') {
-            borderCls = "border-sky-400 bg-sky-500/15";
+        if (isInfrastructure) {
+            borderCls = "border-sky-400 bg-sky-500/5";
             badgeCls = "bg-sky-950 text-sky-300 border-sky-400";
             icon = "🚜";
         } else if (cluster === 'root_circle') {
-            borderCls = "border-rose-400 bg-rose-500/15";
+            borderCls = "border-rose-400 bg-rose-500/5";
             badgeCls = "bg-rose-950 text-rose-300 border-rose-400";
             icon = "⭕";
         } else if (cluster === 'floor_mulch') {
-            borderCls = "border-teal-400 bg-teal-500/15";
+            borderCls = "border-teal-400 bg-teal-500/5";
             badgeCls = "bg-teal-950 text-teal-300 border-teal-400";
             icon = "🍂";
         } else if (cluster === 'water_riparian') {
-            borderCls = "border-cyan-400 bg-cyan-500/20";
+            borderCls = "border-cyan-400 bg-cyan-500/5";
             badgeCls = "bg-cyan-950 text-cyan-300 border-cyan-400";
             icon = "💧";
         }
 
         const confPct = Math.round((item.confidence || 0.95) * 100);
-        const labelName = item.label_name || item.label;
-
-        return '<div class="absolute border-2 ' + borderCls + ' rounded-lg shadow-sm pointer-events-auto transition-all box-lock-active" style="top: ' + top + '%; left: ' + left + '%; width: ' + width + '%; height: ' + height + '%;"></div>';
+        const safeLabel = escapeHtmlText(labelName || cluster);
+        return '<div class="absolute border-2 ' + borderCls + ' rounded-lg shadow-sm pointer-events-auto transition-all box-lock-active" style="top: ' + top + '%; left: ' + left + '%; width: ' + width + '%; height: ' + height + '%;" aria-label="' + safeLabel + '" title="' + safeLabel + '"><span class="absolute -top-5 left-0 max-w-40 truncate rounded bg-slate-950/85 px-1.5 py-0.5 text-[9px] font-bold text-white shadow">' + safeLabel + '</span></div>';
     }).join('');
+    overlay.innerHTML = openCvReplayOverlay + contourSvg + boxesHtml;
+}
+
+function updateContourPreviewButton() {
+    const button = document.getElementById('btnToggleContourPreview');
+    const label = document.getElementById('contourPreviewButtonLabel');
+    if (!button || !label) return;
+
+    const preview = currentSpatialContourPreview;
+    const contourCount = preview?.status === 'ready' && Array.isArray(preview.contours)
+        ? preview.contours.length
+        : 0;
+    const unavailable = preview && preview.status !== 'ready';
+    button.disabled = unavailable || contourCount === 0;
+    button.setAttribute('aria-pressed', String(showSam2ContourPreview));
+    const reasonMessages = {
+        sam2_disabled: 'Optional SAM2 outlines are not enabled in this environment; image detection and audit saving remain available.',
+        sam2_checkpoint_missing: 'Optional SAM2 outlines are unavailable without local model weights; image detection and audit saving remain available.',
+        ultralytics_not_installed: 'Optional SAM2 outlines require the local Ultralytics package; image detection and audit saving remain available.',
+        scan_not_image_verified: 'SAM2 preview is not generated from heuristic fallback detections.',
+        scan_not_persisted: 'Save the live scan to its evidence record before generating a contour.'
+    };
+    const unavailableLabels = {
+        loading: 'Preparing SAM2 segmentation...',
+        sam2_disabled: 'Optional outlines · local only',
+        sam2_checkpoint_missing: 'Optional outlines unavailable · local model',
+        ultralytics_not_installed: 'Optional outlines unavailable · local package',
+        scan_not_persisted: 'Save scan to generate SAM2 contour',
+        scan_not_image_verified: 'SAM2 unavailable for fallback'
+    };
+    button.title = unavailable
+        ? (reasonMessages[preview.reason] || 'Optional SAM2 outlines are unavailable; scanning and saving can continue.')
+        : contourCount === 0
+            ? 'SAM2 did not return a contour for this scan.'
+            : 'AI detections guide SAM2 masks; OpenCV refines the contour. Suggestions are not verified ground truth.';
+    label.textContent = unavailable
+        ? (unavailableLabels[preview.status === 'loading' ? 'loading' : preview.reason] || 'SAM2 contours unavailable')
+        : `Hybrid outlines (${contourCount})${showSam2ContourPreview ? ' · On' : ' · Off'}`;
+}
+
+function toggleContourPreview() {
+    if (!currentSpatialContourPreview || currentSpatialContourPreview.status !== 'ready') return;
+    showSam2ContourPreview = !showSam2ContourPreview;
+    renderDetectedBoundingBoxes(currentSpatialBoxes);
+    updateContourPreviewButton();
+}
+
+async function runOpenCvStaticReplay() {
+    if (currentOpenCvStaticReplay?.status === 'ready') {
+        showOpenCvStaticReplay = !showOpenCvStaticReplay;
+        renderDetectedBoundingBoxes(currentSpatialBoxes);
+        updateOpenCvStaticReplayButton();
+        return;
+    }
+
+    const photo = registeredPhotos.find(item => item.file_url === activePhotoUrl);
+    const evidenceId = photo?.evidence_id || photo?.id;
+    if (!evidenceId) {
+        showNotificationToast('Select a saved evidence image to run the OpenCV replay.', '⚠️');
+        return;
+    }
+
+    const requestId = ++openCvStaticReplayRequestId;
+    const photoUrl = activePhotoUrl;
+    const button = document.getElementById('btnOpenCvStaticReplay');
+    const status = document.getElementById('openCvStaticReplayStatus');
+    if (button) button.disabled = true;
+    if (status) status.textContent = 'Running OpenCV HSV + EMA on 30 replays of this same still image...';
+    try {
+        const response = await fetch('/api/spatial/opencv-static-replay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ evidence_id: evidenceId })
+        });
+        const result = await readApiJson(response, 'OpenCV static replay');
+        if (requestId !== openCvStaticReplayRequestId || activePhotoUrl !== photoUrl) return;
+        currentOpenCvStaticReplay = result.replay_preview || {
+            status: 'unavailable',
+            reason: result.message || 'replay_preview_missing'
+        };
+        showOpenCvStaticReplay = currentOpenCvStaticReplay.status === 'ready';
+        renderDetectedBoundingBoxes(currentSpatialBoxes);
+        updateOpenCvStaticReplayButton();
+    } catch (error) {
+        if (requestId !== openCvStaticReplayRequestId || activePhotoUrl !== photoUrl) return;
+        console.error('[Spatial OpenCV static replay]', error);
+        currentOpenCvStaticReplay = { status: 'unavailable' };
+        showOpenCvStaticReplay = false;
+        updateOpenCvStaticReplayButton();
+        if (status) status.textContent = `OpenCV replay failed: ${error.message}`;
+        showNotificationToast(error.message || 'OpenCV replay failed.', '⚠️');
+    }
+}
+
+function updateOpenCvStaticReplayButton() {
+    const button = document.getElementById('btnOpenCvStaticReplay');
+    const label = document.getElementById('openCvStaticReplayButtonLabel');
+    const status = document.getElementById('openCvStaticReplayStatus');
+    if (!button || !label || !status) return;
+
+    const hasEvidence = registeredPhotos.some(item =>
+        item.file_url === activePhotoUrl && (item.evidence_id || item.id)
+    );
+    const replay = currentOpenCvStaticReplay;
+    button.disabled = !hasEvidence || replay?.status === 'loading';
+    if (replay?.status === 'ready') {
+        label.textContent = `OpenCV replay · ${showOpenCvStaticReplay ? 'On' : 'Off'}`;
+        status.textContent = `Static diagnostic: same image ×${replay.replay_frames}; not live streaming. Mask ${replay.mask_coverage_percent}% · ${replay.contours.length} contour(s) · lock frame ${replay.first_locked_frame ?? '—'}.`;
+        button.setAttribute('aria-pressed', String(showOpenCvStaticReplay));
+        return;
+    }
+
+    label.textContent = 'OpenCV static replay';
+    button.setAttribute('aria-pressed', 'false');
+    if (!hasEvidence) {
+        status.textContent = 'Select a saved evidence image. Static replay is diagnostic only, not a live stream.';
+    } else if (replay?.status === 'unavailable') {
+        status.textContent = `OpenCV replay unavailable: ${replay.reason || 'processing_failed'}`;
+    } else {
+        status.textContent = 'Diagnostic replay repeats one still image; it is not a live stream.';
+    }
 }
 
 function toggleSpatialLayer(cluster) {
@@ -2051,7 +2430,6 @@ async function saveSpatialInspectionAndProceed() {
 
     const isId = isIndonesian();
     registeredPhotos.forEach((p, idx) => {
-        p.is_locked = true;
         if (!p.prepared_survey) {
             const realFileUrl = p.file_url;
             const specificBlockId = (isId ? "Blok Inti - " : "Centroid Block - ") + (p.title || p.filename || `Parcel #${surveysFullList.length + idx + 1}`);
@@ -2078,14 +2456,6 @@ async function saveSpatialInspectionAndProceed() {
     });
 
     const preparedProofs = registeredPhotos.filter(p => p.prepared_survey);
-    preparedProofs.forEach(p => {
-        if (!surveysFullList.some(s => s.foto_url === p.prepared_survey.foto_url)) {
-            p.prepared_survey.id = surveysFullList.length + 1;
-            surveysFullList.unshift(p.prepared_survey);
-        }
-    });
-
-    renderSurveysTable();
 
     const payload = {
         id_kebun: idKebun,
@@ -2104,6 +2474,47 @@ async function saveSpatialInspectionAndProceed() {
     };
 
     try {
+        const response = await fetch('/api/spatial/save-inspection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const result = await readApiJson(response, isId ? 'Simpan audit Spatial' : 'Save Spatial audit');
+        if (
+            result.success !== true ||
+            result.status !== 'success' ||
+            result.warning ||
+            result.records_committed !== preparedProofs.length
+        ) {
+            throw new Error(
+                result.error ||
+                result.warning ||
+                (isId
+                    ? 'Server belum mengonfirmasi seluruh catatan surveilans tersimpan.'
+                    : 'The server did not confirm that every surveillance record was saved.')
+            );
+        }
+    } catch (error) {
+        console.error('[Spatial Save Error]', error);
+        showNotificationToast(
+            error.message || (isId ? 'Audit gagal disimpan; tetap di halaman ini dan coba lagi.' : 'Audit save failed; remain on this page and retry.'),
+            '⚠️'
+        );
+        return;
+    }
+
+    registeredPhotos.forEach(photo => {
+        if (photo.prepared_survey) photo.is_locked = true;
+    });
+    preparedProofs.forEach(photo => {
+        if (!surveysFullList.some(survey => survey.foto_url === photo.prepared_survey.foto_url)) {
+            photo.prepared_survey.id = surveysFullList.length + 1;
+            surveysFullList.unshift(photo.prepared_survey);
+        }
+    });
+    renderSurveysTable();
+
+    try {
         if (activePhotoUrl) {
             localStorage.setItem('precision_active_evidence_url', activePhotoUrl);
             localStorage.setItem('precision_active_evidence_filename', activeFilename || 'active_evidence.jpg');
@@ -2111,18 +2522,12 @@ async function saveSpatialInspectionAndProceed() {
         localStorage.setItem('precision_palm_active_spatial_inspection', JSON.stringify(payload));
         localStorage.setItem('precision_palm_active_dossier', kodeKebun);
         localStorage.setItem('precision_active_dossier', kodeKebun);
-    } catch (_) {}
-
-    try {
-        await fetch('/api/spatial/save-inspection', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-    } catch (err) {
-        console.warn("[Spatial Save Notice]:", err);
+    } catch (error) {
+        console.warn('[Spatial Save] Local navigation cache could not be updated:', error);
     }
-
+    renderGalleryThumbnails();
+    renderSealedArchiveStrip();
+    renderProcessedEvidenceCardsGrid();
     window.location.href = targetUrl;
 }
 
@@ -2255,6 +2660,7 @@ function showNotificationToast(msg, icon = "ℹ️") {
 
 document.addEventListener('DOMContentLoaded', function () {
     initSpatialMapCanvas();
+    updateContourPreviewButton();
     loadRegisteredDossiersAndBind();
 });
 
@@ -2286,6 +2692,7 @@ window.handleDossierSelectionChange = handleDossierSelectionChange;
 window.handleSoilParamChange = handleSoilParamChange;
 window.saveSpatialInspectionAndProceed = saveSpatialInspectionAndProceed;
 window.selectGalleryPhoto = selectGalleryPhoto;
+window.runOpenCvStaticReplay = runOpenCvStaticReplay;
 window.deleteEvidencePhoto = deleteEvidencePhoto;
 window.unsealEvidencePhoto = unsealEvidencePhoto;
 window.handleNewPhotoUpload = handleNewPhotoUpload;

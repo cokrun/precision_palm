@@ -23,7 +23,29 @@ def get_db_connection():
     conn.execute("PRAGMA journal_mode = WAL;")
     conn.execute("PRAGMA foreign_keys = ON;")
     conn.execute("PRAGMA synchronous = NORMAL;")
+    _ensure_inspection_evidence_process_stage(conn)
     return conn
+
+def _ensure_inspection_evidence_process_stage(conn):
+    table_exists = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'inspection_evidence';"
+    ).fetchone()
+    if not table_exists:
+        return
+
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(inspection_evidence);")}
+    if "process_stage" in columns:
+        return
+
+    try:
+        conn.execute(
+            "ALTER TABLE inspection_evidence ADD COLUMN process_stage TEXT DEFAULT 'STAGE_3';"
+        )
+        conn.commit()
+    except sqlite3.OperationalError:
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(inspection_evidence);")}
+        if "process_stage" not in columns:
+            raise
 
 def initialize_pure_relational_schema():
     """
@@ -114,7 +136,12 @@ def initialize_pure_relational_schema():
             mandor_id TEXT NOT NULL,
             audit_year INTEGER NOT NULL,
             quarter_cycle TEXT NOT NULL CHECK(quarter_cycle IN ('Q1', 'Q2', 'Q3', 'Q4')),
-            process_stage TEXT DEFAULT 'STAGE-1-Q1' CHECK(process_stage IN ('STAGE-0-ANNUAL-REG', 'STAGE-1-Q1', 'STAGE-2-Q2', 'STAGE-3-Q3', 'STAGE-4-Q4')),
+            process_stage TEXT DEFAULT 'STAGE_3' CHECK(process_stage IN (
+                'STAGE_3',
+                'STAGE-0-ANNUAL-REG',
+                'STAGE-1-Q1', 'STAGE-1-Q2', 'STAGE-1-Q3', 'STAGE-1-Q4',
+                'STAGE-2-Q2', 'STAGE-3-Q3', 'STAGE-4-Q4'
+            )),
             perspective_mode TEXT NOT NULL CHECK(perspective_mode IN ('AERIAL_DRONE', 'TERRESTRIAL_IN_SITU')),
             altitude_agl_m REAL NOT NULL,
             camera_pitch_degrees REAL NOT NULL,
@@ -133,6 +160,75 @@ def initialize_pure_relational_schema():
             FOREIGN KEY (mandor_id) REFERENCES field_mandors(mandor_id)
         );
         """)
+
+        # 6. Spatial field-surveillance ledger used by the Stage 2A Save action.
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS field_surveillance_records (
+            record_id TEXT PRIMARY KEY,
+            id_log TEXT,
+            dossier_id TEXT NOT NULL,
+            kode_kebun TEXT,
+            estate_id TEXT,
+            audit_year INTEGER NOT NULL DEFAULT 2026,
+            process_stage TEXT DEFAULT 'STAGE_3',
+            periode_siklus TEXT,
+            mandor_name TEXT,
+            block_id TEXT,
+            latitude REAL,
+            longitude REAL,
+            elevation_m REAL,
+            slope_deg REAL,
+            soil_ph REAL,
+            weather_condition TEXT,
+            evidence_id TEXT,
+            foto_url TEXT,
+            detected_entities_json TEXT,
+            sha256_seal TEXT,
+            recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+        surveillance_columns = {
+            "record_id": "TEXT",
+            "id_log": "TEXT",
+            "dossier_id": "TEXT",
+            "kode_kebun": "TEXT",
+            "estate_id": "TEXT",
+            "audit_year": "INTEGER DEFAULT 2026",
+            "process_stage": "TEXT DEFAULT 'STAGE_3'",
+            "periode_siklus": "TEXT",
+            "mandor_name": "TEXT",
+            "block_id": "TEXT",
+            "latitude": "REAL",
+            "longitude": "REAL",
+            "elevation_m": "REAL",
+            "slope_deg": "REAL",
+            "soil_ph": "REAL",
+            "weather_condition": "TEXT",
+            "evidence_id": "TEXT",
+            "foto_url": "TEXT",
+            "detected_entities_json": "TEXT",
+            "sha256_seal": "TEXT",
+            "recorded_at": "TIMESTAMP",
+        }
+        cursor.execute("PRAGMA table_info(field_surveillance_records);")
+        existing_surveillance_columns = {row[1] for row in cursor.fetchall()}
+        for column_name, column_definition in surveillance_columns.items():
+            if column_name not in existing_surveillance_columns:
+                cursor.execute(
+                    "ALTER TABLE field_surveillance_records "
+                    f"ADD COLUMN {column_name} {column_definition};"
+                )
+        cursor.execute("""
+            UPDATE field_surveillance_records
+            SET record_id = COALESCE(record_id, id_log, 'SURV-LEGACY-' || rowid),
+                dossier_id = COALESCE(dossier_id, kode_kebun, estate_id, 'EST-MDN-001'),
+                recorded_at = COALESCE(recorded_at, CURRENT_TIMESTAMP)
+            WHERE record_id IS NULL OR dossier_id IS NULL OR recorded_at IS NULL;
+        """)
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_surveillance_dossier_recorded "
+            "ON field_surveillance_records(dossier_id, recorded_at DESC);"
+        )
 
         # 6. Tabel Registri Pencegahan Manipulasi Foto (used_photo_hashes)
         cursor.execute("""

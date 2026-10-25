@@ -11,9 +11,19 @@ __pycache__/
 
 # Secrets (Cloud Run / App Engine menggunakan env_variables di app.yaml)
 .env
+.env.*
+.env_example
 *.pem
 *service_account*.json
+*service-account*.json
 credentials.json
+
+# Local databases and downloaded model weights
+*.db
+*.sqlite
+*.sqlite3
+*.pt
+data/precision_store.json
 
 # Development & Documentation (Menghemat ukuran container image)
 tests/

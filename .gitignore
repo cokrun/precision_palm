@@ -1,13 +1,25 @@
 # Secrets & Credentials (JANGAN SAMPAI BOCOR KE GITHUB)
 .env
+.env.*
+!.env.example
+.env_example
 *.pem
 *.key
 service-account*.json
+service_account*.json
 credentials.json
 
-# Kecualikan file data aplikasi yang valid
+# Local databases and downloaded model weights
+*.db
+*.sqlite
+*.sqlite3
+*.pt
+
+# Local operational data must not be uploaded with source code
+data/precision_store.json
+
+# Keep static application assets and manifests
 !mobile/manifest.json
-!data/precision_store.json
 !static/data/*.json
 
 # Python Cache & Virtual Environments

@@ -124,7 +124,7 @@ $$\text{Aquifer Recharge (m}^3\text{/Ha/Yr)} = P_{\text{annual}} \times \left[ 1
 $$\text{Total Climate Asset (tCO}_2\text{e)} = \left[ \text{Spared Rainforest (Ha)} \times 450.0 \right] + \left[ \text{Land Area (Ha)} \times 1.8 \right]$$
 * **$450.0\text{ tCO}_2\text{e/Ha}$**: Benchmark tropical lowland primary rainforest biomass carbon stock under Verra VCS VM0007 REDD+.
 * **$1.8\text{ tCO}_2\text{e/Ha/year}$**: Annual Soil Organic Carbon (SOC) sequestration accrual from crop root exudates and biomass mulching.
-* Carbon asset valued at benchmark **$12 / \text{tCO}_2\text{e}$** in voluntary and statutory compliance markets.
+* Carbon asset valued at **$12 / \text{tCO}_2\text{e}$** in voluntary and compliance markets.
 
 ---
 
@@ -170,8 +170,6 @@ Precision Palm integrates 9 specialized Google Cloud services across its end-to-
 ```text
 precision_palm/
 ├── app.py                          # Flask application controller & API routing
-├── run_local.bat                   # Zero-config 1-Click Automated Runner for Windows
-├── setup_environment.ps1           # PowerShell automated setup with execution policy bypass
 ├── database.py                     # SQLite WAL persistence & dynamic 4-quarter compliance engine
 ├── sync_to_bigquery.py             # Dual-write worker streaming audit logs to BigQuery
 ├── verify_full_persistence_bigquery.py # Verification test for live BigQuery audit tables
@@ -179,7 +177,7 @@ precision_palm/
 ├── .gitignore                      # Production gitignore protecting secrets & heavy blobs
 ├── Dockerfile                      # Production container definition for Google Cloud Run
 ├── Procfile                        # Cloud Run entrypoint configuration
-├── requirements.txt                # Production Python dependencies (Flask, BigQuery, NumPy)
+├── requirements.txt                # Production Python dependencies
 ├── README.md                       # Comprehensive system architecture & documentation
 │
 ├── cloud_services/                 # Google Cloud integration microservices
@@ -256,6 +254,41 @@ precision_palm/
 | **`/validasi/<id>`** | `validasi.html` | **Public QR Portal:** Real-time certificate authenticity check against immutable SQLite ledgers. |
 | **`/certificate/<id>`**| `certificate.html` | **Statutory Passport:** Official certificate with KMS SHA-256 seal and EUDR TRACES JSON export. |
 | **`/panduan`** | `panduan.html` | **Scientific Guide:** Comprehensive manual, deterministic formulas, and role-based SOPs. |
+| **`/ai-logs`** | `ai-logs.html` | **AI Audit Trail:** Scan prompt context and raw model response for review. |
+
+### 7.1 Hybrid Image Scanner (Gemini Vision + SAM 2 + OpenCV)
+
+Spatial, In-Silico Simulator, and Quarterly Surveillance use the same staged
+image-analysis workflow:
+
+1. **Gemini Vision reads the original image.** It returns semantic object names,
+   categories, confidence, and image-relative bounding boxes. The unannotated
+   source image is sent to Gemini so that drawn overlays do not bias its
+   interpretation.
+2. **SAM 2 proposes object masks.** Where the optional SAM 2 preview is enabled
+   and its model checkpoint is available, Gemini's boxes and labels are used as
+   prompts to segment the corresponding regions. SAM 2 is a segmentation
+   proposal, not a verified ground-truth boundary.
+3. **OpenCV refines and displays the geometry.** It cleans the proposed masks,
+   extracts thin contours, and measures image-edge support. The interface
+   overlays transparent outlines and semantic labels on a separate layer, so
+   the original image remains visible. Progress is shown outside the image.
+4. **Workflow context and model output are auditable.** Simulator and Timeline
+   scans include their workflow/stage context; the AI Logs page records the
+   prompt input and raw model response for those scans.
+
+The shared contour preview is tied to saved scan evidence. It is optional and
+can report unavailable when SAM 2 is disabled, its checkpoint is missing, or
+the scan has no saved image/evidence; it does not silently present an OpenCV
+edge-only result as SAM 2 segmentation. Local SAM 2 setup is documented in
+[`docs/spatial-sam2-local.md`](./docs/spatial-sam2-local.md).
+
+The separate **OpenCV static replay** is a diagnostic of HSV color masking and
+temporal accumulation by replaying the same still image. It is not camera or
+video streaming, does not compensate for camera motion, and does not establish
+physical dimensions or area. Likewise, image-pixel contours alone must not be
+treated as calibrated measurements or compliance verification; review against
+the image and field evidence is still required.
 
 ---
 
@@ -264,7 +297,7 @@ precision_palm/
 | Pipeline Component | Underlying Cloud Engine | Operational Task | Observed Latency | Scalability Tier |
 | :--- | :--- | :--- | :--- | :--- |
 | **In-Silico Biophysics** | Cloud Run (Python 3.10) | Beer-Lambert & LER calculation | **< 12 ms** | 0–1,000 instances auto-scale |
-| **Earth Engine (GEE)** | Google Earth Engine API | Hansen 2020 loss & Sentinel-2 NDVI | **~540 ms** | Planetary compute grid |
+| **Earth Engine (GEE)** | Google Earth Engine API | Hansen 2020 loss & Sentinel-2 NDVI | **~540 ms** | Planetary planetary compute |
 | **Multimodal Reticle HUD**| Vertex AI (Gemini 2.5 Flash)| Bounding box detection on drone photos| **~420 ms** | Structured JSON contract |
 | **Title Deed Ingestion** | Document AI (Deed Parser) | HGU & tax NOP PDF entity extraction | **~850 ms** | 99.4% OCR precision |
 | **Voice-to-Report** | Cloud Speech-to-Text (Chirp 2)| Spoken Indonesian field report transcription | **~320 ms** | Streaming gRPC protocol |
@@ -278,56 +311,53 @@ precision_palm/
 ## 9. Quickstart & Local Deployment
 
 ### 9.1 Prerequisites
-* Python 3.10 or higher installed on host machine
-* Modern web browser (Chrome, Edge, Firefox, Brave)
-* Internet access for pip packages and initial map tile caching
+* Python 3.10 or higher
+* Google Chrome, Mozilla Firefox, or Microsoft Edge
+* Active Google Cloud Project with Cloud Run, BigQuery, and Earth Engine APIs enabled.
 
-### 9.2 Zero-Config Quick Start (Recommended for Testing & Judges)
+### 9.2 Step-by-Step Installation
 
-#### Option A: Windows 1-Click Automated Runner (Fastest)
-Simply **double-click** the file:
-```text
-run_local.bat
-```
-*Automatically provisions `venv`, activates it, installs dependencies via `requirements.txt`, and boots the server.*
+1. **Clone the Repository:**
+   ```bash
+   git clone https://github.com/cokrun/precision_palm.git
+   cd precision_palm
+   ```
 
-#### Option B: Windows PowerShell (Execution Policy Bypass)
-Run in PowerShell if script execution is blocked on your system:
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-.\setup_environment.ps1
-```
+2. **Set Up Python Virtual Environment:**
+   ```bash
+   # Windows (PowerShell)
+   python -m venv venv
+   .\venv\Scripts\Activate.ps1
 
-#### Option C: Standard Manual Terminal Setup (Linux, macOS, or Windows)
-```bash
-# 1. Clone repository
-git clone https://github.com/cokrun/precision_palm.git
-cd precision_palm
+   # Linux / macOS
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
 
-# 2. Create and activate virtual environment
-# Windows:
-python -m venv venv
-.\venv\Scripts\activate
+3. **Install Dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-# Linux / macOS:
-python3 -m venv venv
-source venv/bin/activate
+4. **Configure Environment Variables:**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your Google Cloud parameters:
+   # GOOGLE_CLOUD_PROJECT=palm-project-511008
+   # BIGQUERY_DATASET=precision_palm_dw
+   # GEMINI_API_KEY=your_key_here
+   ```
 
-# 3. Upgrade pip and install all requirements
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+5. **Run BigQuery & Persistence Verification Test:**
+   ```bash
+   python verify_full_persistence_bigquery.py
+   ```
 
-# 4. Optional: Setup local environment overrides
-cp .env.example .env
-
-# 5. Start the local server
-python app.py
-```
-
-Access the operational dashboard locally at:
-```text
-http://127.0.0.1:8000   (or http://127.0.0.1:5000)
-```
+6. **Start Application Server:**
+   ```bash
+   python app.py
+   ```
+   Open your browser at `http://127.0.0.1:8080` (or `http://localhost:8080`).
 
 ---
 
@@ -366,6 +396,5 @@ gcloud run deploy precision-palm `
 * **DJKI Indonesian Patent Application:**  
   *Nomor Permohonan / Judul Resmi:* **"Metode dan Sistem Komputasi In-Silico untuk Optimalisasi Koridor Agroforestri dan Verifikasi Kepatuhan Lingkungan Perkebunan Kelapa Sawit Berbasis Fusi Penginderaan Jauh Satelit dan Visi Multimodal"** (DJKI Kemenkumham RI).
 
----
 
-**Copyright © 2026 Precision Palm Team / Muhammad Rizki | +62 813 9719 1173 | cokrun@gmail.com. All Rights Reserved.**
+**Copyright © 2026 Precision Palm Team /Muhammad Rizki |+62 813 9719 1173 | cokrun@gmail.com . All Rights Reserved.**

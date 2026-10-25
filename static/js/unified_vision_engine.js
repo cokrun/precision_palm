@@ -150,7 +150,9 @@
                 latitude = null,
                 longitude = null,
                 altAgl = null,
-                pitchDeg = null
+                pitchDeg = null,
+                onProgress = null,
+                scanContext = null
             } = (options || {});
 
             imageUrl = imageUrl || fotoUrl;
@@ -184,6 +186,7 @@
 
             try {
                 try {
+                    if (typeof onProgress === 'function') onProgress({ stage: 'gemini' });
                     if (statusEl) {
                         statusEl.textContent = "[Pass 2] Autonomous Agroecological Agent Ratifying Silvicultural Geometry...";
                     }
@@ -208,7 +211,17 @@
                             timestamp_iso: new Date().toISOString(),
                             block_id: dossierId,
                             force_live_agent: true,
-                            feature_name: "Unified Multimodal Vision Scanner"
+                            feature_name: pageContext === 'SIMULATOR'
+                                ? 'Simulator In-Silico Vision Scan'
+                                : (pageContext === 'TIMELINES'
+                                    ? 'Timelines Quarterly Surveillance Vision Scan'
+                                    : 'Unified Multimodal Vision Scanner'),
+                            meta_info: pageContext === 'SIMULATOR'
+                                ? 'Simulator In-Silico Object Detection and Context Calibration'
+                                : (pageContext === 'TIMELINES'
+                                    ? 'Timelines Quarterly Surveillance Stage Scan'
+                                    : 'Spatial Multimodal Vision Scan'),
+                            scan_context: scanContext
                         })
                     });
 
@@ -217,6 +230,7 @@
                         throw new Error(responseData.message || `Vision scan failed (${response.status})`);
                     }
                     analysisData = responseData;
+                    if (typeof onProgress === 'function') onProgress({ stage: 'gemini_complete' });
                 } catch (err) {
                     scanFailureReason = String(err && err.message ? err.message : err);
                     console.warn("[UnifiedVisionEngine] Falling back to biophysical model:", err);
@@ -311,7 +325,9 @@
                         statusEl,
                         isLiveAI
                             ? "Live Gemini image analysis complete"
-                            : "Fallback active — heuristic boxes are not image-verified"
+                            : (analysisData.audit_notice ||
+                                analysisData.api_telemetry?.error_message ||
+                                "Fallback active — heuristic boxes are not image-verified")
                     );
                 }
 

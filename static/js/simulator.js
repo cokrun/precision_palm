@@ -1743,6 +1743,14 @@ async function runDetailedObjectVisionScanLegacy(forceRescan = false) {
                     evidenceId: selectedEvidence?.evidence_id || null,
                     perspective: isMandor ? 'TERRESTRIAL_IN_SITU' : 'AERIAL_DRONE',
                     pageContext: 'SIMULATOR',
+                    scanContext: {
+                        workflow: 'In-silico simulator',
+                        purpose: 'Identify visible entities from the selected evidence image for simulator context; do not infer simulation measurements from image alone.',
+                        estate_code: activeKode,
+                        filename: currentImgName,
+                        perspective: isMandor ? 'TERRESTRIAL_IN_SITU' : 'AERIAL_DRONE',
+                        evidence_id: selectedEvidence?.evidence_id || null
+                    },
                     forceRescan: forceRescan,
                     containerEl: document.getElementById('mainCanopyContainer') || (mainImg ? mainImg.parentElement : null),
                     overlayEl: document.getElementById('droneBBoxesOverlay'),

@@ -47,7 +47,29 @@ def get_db_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
         conn.execute("PRAGMA busy_timeout = 30000;")
     except Exception:
         pass
+    _ensure_inspection_evidence_process_stage(conn)
     return conn
+
+def _ensure_inspection_evidence_process_stage(conn: sqlite3.Connection) -> None:
+    table_exists = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'inspection_evidence';"
+    ).fetchone()
+    if not table_exists:
+        return
+
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(inspection_evidence);")}
+    if "process_stage" in columns:
+        return
+
+    try:
+        conn.execute(
+            "ALTER TABLE inspection_evidence ADD COLUMN process_stage TEXT DEFAULT 'STAGE_3';"
+        )
+        conn.commit()
+    except sqlite3.OperationalError:
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(inspection_evidence);")}
+        if "process_stage" not in columns:
+            raise
 
 def init_db(db_path: Optional[str] = None) -> None:
     """
@@ -373,11 +395,13 @@ def init_db(db_path: Optional[str] = None) -> None:
                 perspective_mode TEXT NOT NULL DEFAULT 'TERRESTRIAL_IN_SITU',
                 altitude_agl_m REAL DEFAULT 1.45,
                 camera_pitch_deg REAL DEFAULT -12.0,
+                camera_pitch_degrees REAL,
                 latitude REAL DEFAULT 0.824100,
                 longitude REAL DEFAULT 99.561200,
                 image_mime_type TEXT NOT NULL DEFAULT 'image/jpeg',
                 image_base64 TEXT NOT NULL,
                 sha256_hash TEXT NOT NULL,
+                process_stage TEXT DEFAULT 'STAGE_3',
                 detected_entities_json TEXT,
                 diagnostic_matrix_json TEXT,
                 synced_to_bigquery INTEGER NOT NULL DEFAULT 0,
@@ -417,6 +441,10 @@ def init_db(db_path: Optional[str] = None) -> None:
                 cursor.execute("ALTER TABLE inspection_evidence ADD COLUMN quarter_cycle TEXT DEFAULT 'Q1';")
             except Exception:
                 pass
+        if "process_stage" not in existing_ev_cols:
+            cursor.execute(
+                "ALTER TABLE inspection_evidence ADD COLUMN process_stage TEXT DEFAULT 'STAGE_3';"
+            )
         if "audit_year" not in existing_ev_cols:
             try:
                 cursor.execute("ALTER TABLE inspection_evidence ADD COLUMN audit_year INTEGER DEFAULT 2026;")
@@ -451,6 +479,56 @@ def init_db(db_path: Optional[str] = None) -> None:
                 cursor.execute("UPDATE inspection_evidence SET uploaded_at = created_at WHERE uploaded_at IS NULL;")
             except Exception:
                 pass
+
+        # Keep legacy SQLite files compatible with every inspection_evidence writer.
+        upload_columns = {
+            "id": "TEXT",
+            "block_id": "TEXT",
+            "mandor_id": "TEXT DEFAULT 'MND-001'",
+            "audit_year": "INTEGER DEFAULT 2026",
+            "quarter_cycle": "TEXT DEFAULT 'Q1'",
+            "process_stage": "TEXT DEFAULT 'STAGE_3'",
+            "perspective_mode": "TEXT DEFAULT 'TERRESTRIAL_IN_SITU'",
+            "altitude_agl_m": "REAL DEFAULT 1.45",
+            "camera_pitch_deg": "REAL DEFAULT -12.0",
+            "camera_pitch_degrees": "REAL",
+            "latitude": "REAL DEFAULT 0.824100",
+            "longitude": "REAL DEFAULT 99.561200",
+            "latitude_exif": "REAL",
+            "longitude_exif": "REAL",
+            "image_mime_type": "TEXT DEFAULT 'image/jpeg'",
+            "image_base64": "TEXT",
+            "image_raw_base64": "TEXT",
+            "sha256_hash": "TEXT",
+            "image_sha256_hash": "TEXT",
+            "file_size_bytes": "INTEGER DEFAULT 0",
+            "ai_vision_model": "TEXT",
+            "detected_entities_json": "TEXT",
+            "diagnostic_matrix_json": "TEXT",
+            "chlorophyll_spad_inferred": "REAL",
+            "root_clearance_verified_m": "REAL",
+            "weather_satellite_validation": "TEXT",
+            "is_processed": "INTEGER DEFAULT 0",
+            "is_locked": "INTEGER DEFAULT 0",
+            "status": "TEXT",
+            "uploaded_at": "TIMESTAMP",
+        }
+        cursor.execute("PRAGMA table_info(inspection_evidence);")
+        existing_ev_cols = {row[1] for row in cursor.fetchall()}
+        for column_name, column_definition in upload_columns.items():
+            if column_name not in existing_ev_cols:
+                cursor.execute(
+                    f"ALTER TABLE inspection_evidence "
+                    f"ADD COLUMN {column_name} {column_definition};"
+                )
+        cursor.execute("PRAGMA table_info(inspection_evidence);")
+        migrated_ev_cols = {row[1] for row in cursor.fetchall()}
+        missing_upload_columns = set(upload_columns) - migrated_ev_cols
+        if missing_upload_columns:
+            raise sqlite3.DatabaseError(
+                "inspection_evidence schema migration incomplete; missing columns: "
+                + ", ".join(sorted(missing_upload_columns))
+            )
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_evidence_dossier_year ON inspection_evidence(dossier_id, audit_year, created_at DESC);")
 
         # 10. Application Global & Multi-Tenant Settings (Settings Engine)

@@ -3,7 +3,8 @@ from dotenv import load_dotenv
 
 # Muat file .env secara absolut dari direktori root aplikasi
 basedir = os.path.abspath(os.path.dirname(__file__))
-load_dotenv(os.path.join(basedir, '.env'), override=True)
+load_dotenv(os.path.join(basedir, '.env'), override=False)
+load_dotenv(os.path.join(basedir, '.env.spatial.local'), override=False)
 
 class Config:
     PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "palm-project-511008")

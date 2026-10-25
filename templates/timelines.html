@@ -16,7 +16,7 @@
         })();
     </script>
     <script src="/static/js/i18n.js"></script>
-    <script src="/static/js/unified_vision_engine.js"></script>
+    <script src="/static/js/unified_vision_engine.js?v=20261025-ai-scan-context-1"></script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -488,6 +488,21 @@
                     </span>
                 </div>
 
+                <div id="timelineContourProgress" class="hidden px-3 py-2 rounded-xl bg-slate-950/95 border border-cyan-700/60 text-[10px] font-mono text-slate-200 shadow-sm" role="status" aria-live="polite">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                            <div id="timelineContourProgressLabel" class="font-bold text-cyan-300">Gemini detections → SAM2 + OpenCV</div>
+                            <div id="timelineContourProgressDetail" class="mt-0.5 text-slate-300">Waiting for a saved scan…</div>
+                        </div>
+                        <button id="timelineContourToggle" type="button" onclick="HybridContourPreview.toggle('timeline')" disabled aria-pressed="false" class="px-2.5 py-1 rounded-lg border border-cyan-600/70 bg-cyan-950/70 text-cyan-200 font-bold disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span id="timelineContourToggleLabel">SAM2 + OpenCV outline unavailable</span>
+                        </button>
+                    </div>
+                    <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-800" role="progressbar" aria-label="SAM2 and OpenCV contour generation">
+                        <div id="timelineContourProgressBar" class="h-full w-full rounded-full bg-emerald-500 transition-all duration-500"></div>
+                    </div>
+                </div>
+
                 <!-- Kanvas Foto & Retikel Laser HUD -->
                 <div id="timelinePhotoContainer" class="relative w-full min-h-[380px] sm:min-h-[460px] max-h-[520px] rounded-2xl overflow-hidden bg-slate-950 border border-slate-300 dark:border-slate-700 shadow-inner group flex items-center justify-center">
                     <img id="imgMonitoringEvidencePreview" 
@@ -517,6 +532,7 @@
                     <div id="stageBBoxesOverlay" class="absolute inset-0 pointer-events-none z-20"></div>
                     <div id="monitoringBBoxesOverlay" class="absolute inset-0 pointer-events-none z-20"></div>
                     <div id="aiReticleSvgOverlay" class="absolute inset-0 pointer-events-none z-20"></div>
+                    <div id="timelineContourOverlay" class="absolute inset-0 pointer-events-none z-[21]"></div>
 
                     <!-- Top-Left Badge: Audit Ratified by AI Agent (Image 1 Parity) -->
                     <div class="absolute top-3 left-3 bg-slate-950/85 backdrop-blur-md border border-emerald-500/60 px-3 py-1.5 rounded-xl text-xs font-mono text-emerald-400 font-bold flex items-center gap-2 shadow-lg z-30">
@@ -1588,9 +1604,6 @@
     function initDrawingMonitoringReticles() {
         drawReticles();
         window.addEventListener('resize', drawReticles);
-        if (currentEvidenceUrl) {
-            triggerAiVisionRescan();
-        }
     }
 
     function drawReticles() {
@@ -1955,6 +1968,23 @@
         const activeEvidence = uploadedEvidencePhotos.find(photo =>
             photo.file_url === currentEvidenceUrl || photo.url === currentEvidenceUrl
         );
+        const currentEvidenceUrlAtScan = currentEvidenceUrl;
+        const contourOptions = {
+            channel: 'timeline',
+            evidenceId: activeEvidence?.evidence_id || activeEvidence?.id || null,
+            layerId: 'timelineContourOverlay',
+            progressPanelId: 'timelineContourProgress',
+            progressLabelId: 'timelineContourProgressLabel',
+            progressDetailId: 'timelineContourProgressDetail',
+            progressBarId: 'timelineContourProgressBar',
+            toggleButtonId: 'timelineContourToggle',
+            toggleLabelId: 'timelineContourToggleLabel',
+            imageUrl: currentEvidenceUrl,
+            boxes: [],
+            isCurrent: () => currentEvidenceUrl === currentEvidenceUrlAtScan &&
+                document.getElementById('imgMonitoringEvidencePreview')?.getAttribute('src') === currentEvidenceUrlAtScan
+        };
+        window.HybridContourPreview?.reset('timeline', contourOptions);
         const currentEvidenceFilename = activeEvidence?.filename || activeEvidence?.name ||
             (currentEvidenceUrl && currentEvidenceUrl.startsWith('data:')
                 ? 'field_evidence.jpg'
@@ -1984,6 +2014,13 @@
         const pass2Duration = pacingMode === 'CALIBRATED_REALISTIC' ? Math.round(totalDuration * 0.5) : 350;
 
         if (tagStatus) tagStatus.textContent = "[Pass 1] Google Gemini 3.8 Flash Multimodal Vision scanning physical canopy...";
+        window.HybridContourPreview?.report(
+            'timeline',
+            contourOptions,
+            'running',
+            'Gemini vision scan',
+            'Analyzing the original evidence image…'
+        );
 
         const isAerial = (currentEvidenceUrl && (currentEvidenceUrl.includes('drone') || currentEvidenceUrl.includes('orto')));
         const altAgl = isAerial ? 45.0 : 1.6;
@@ -1997,7 +2034,7 @@
             engine: "Google Cloud Gemini 3.8 Flash",
             target: (currentEvidenceUrl || '').substring(0, 45) + '...',
             telemetry: { lat: lat, lng: lng, alt_agl_m: altAgl, pitch_deg: pitchDeg },
-            feature: "Canopy & Parcel Vision Scanner",
+            feature: "Timelines Quarterly Surveillance Vision Scan",
             rules: "4-Pillar Diagnostics & ISPO P2 Zero-Tillage"
         });
 
@@ -2011,7 +2048,7 @@
                     imageUrl: currentEvidenceUrl,
                     fotoUrl: currentEvidenceUrl,
                     filename: currentEvidenceFilename,
-                    evidenceId: activeEvidence?.evidence_id || null,
+                    evidenceId: contourOptions.evidenceId,
                     latitude: lat,
                     longitude: lng,
                     altAgl: altAgl,
@@ -2022,14 +2059,45 @@
                     containerEl: document.getElementById('monitoringEvidenceContainer') || imgEl.parentElement,
                     overlayEl: document.getElementById('monitoringBBoxesOverlay'),
                     statusEl: tagStatus,
-                    stageIndex: (typeof activeStageIndex !== 'undefined' ? activeStageIndex : 1)
+                    stageIndex: (typeof activeStageIndex !== 'undefined' ? activeStageIndex : 1),
+                    onProgress: progress => {
+                        if (progress?.stage === 'gemini') {
+                            window.HybridContourPreview?.report(
+                                'timeline',
+                                contourOptions,
+                                'running',
+                                'Gemini vision scan',
+                                'Sending the original evidence image to Gemini…'
+                            );
+                        } else if (progress?.stage === 'gemini_complete') {
+                            window.HybridContourPreview?.report(
+                                'timeline',
+                                contourOptions,
+                                'running',
+                                'Preparing SAM2 + OpenCV',
+                                'Gemini response received; checking saved evidence detections.'
+                            );
+                        }
+                    },
+                    scanContext: {
+                        workflow: 'Quarterly surveillance timeline',
+                        stage_index: Number.isInteger(window.currentTimelineStageIndex)
+                            ? window.currentTimelineStageIndex
+                            : (typeof activeStageIndex !== 'undefined' ? activeStageIndex : null),
+                        cycle: activeEvidence?.quarter_cycle || activeEvidence?.tag || null,
+                        stage_title: document.getElementById('lblActiveEvidenceFilename')?.textContent || currentEvidenceFilename,
+                        surveillance_focus: 'Identify visible entities in the selected quarterly surveillance evidence.',
+                        perspective: isAerial ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU',
+                        filename: currentEvidenceFilename,
+                        evidence_id: contourOptions.evidenceId
+                    }
                 });
             } else {
                 const res = await fetch('/api/ai/scan-image', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        feature_name: "Canopy & Parcel Vision Scanner",
+                        feature_name: "Timelines Quarterly Surveillance Vision Scan",
                         meta_info: `Rescan In-Situ 4D: ${activeEstate?.kode_kebun || 'EST-MDN-001'}`,
                         foto_url: currentEvidenceUrl,
                         filename: currentEvidenceFilename,
@@ -2038,6 +2106,19 @@
                         altitude_agl_m: altAgl,
                         camera_pitch_deg: pitchDeg,
                         perspective_mode: isAerial ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU',
+                        evidence_id: contourOptions.evidenceId,
+                        scan_context: {
+                            workflow: 'Quarterly surveillance timeline',
+                            stage_index: Number.isInteger(window.currentTimelineStageIndex)
+                                ? window.currentTimelineStageIndex
+                                : (typeof activeStageIndex !== 'undefined' ? activeStageIndex : null),
+                            cycle: activeEvidence?.quarter_cycle || activeEvidence?.tag || null,
+                            stage_title: document.getElementById('lblActiveEvidenceFilename')?.textContent || currentEvidenceFilename,
+                            surveillance_focus: 'Identify visible entities in the selected quarterly surveillance evidence.',
+                            perspective: isAerial ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU',
+                            filename: currentEvidenceFilename,
+                            evidence_id: contourOptions.evidenceId
+                        },
                         timestamp_iso: new Date().toISOString()
                     })
                 });
@@ -2082,6 +2163,14 @@
                 activeEvidence.sha256 = data.sha256Seal || data.sha256 || activeEvidence.sha256;
                 renderEvidenceThumbnails();
                 renderForensicGallery();
+            }
+            if (window.HybridContourPreview) {
+                await window.HybridContourPreview.load({
+                    ...contourOptions,
+                    boxes: detectedBoxes,
+                    isLive: isLiveVision,
+                    isPersisted: data.persistence?.saved === true
+                });
             }
 
             // Dynamic Update of Forensic Discrepancy Card
@@ -2160,6 +2249,14 @@
                 entity.is_heuristic = true;
                 delete entity.confidence;
             });
+            if (window.HybridContourPreview) {
+                await window.HybridContourPreview.load({
+                    ...contourOptions,
+                    boxes: fallbackBoxes,
+                    isLive: false,
+                    isPersisted: false
+                });
+            }
             await runAiVisionScanAnimation(fallbackBoxes);
             renderTimelinesPlantDiagnostics(null, null, false);
             updateForensicDiscrepancyCard(null, null, null, false);
@@ -2478,6 +2575,11 @@
         evidenceGalleryCurrentPage = Math.floor(idx / evidenceGalleryPageSize) + 1;
         const photo = uploadedEvidencePhotos[idx];
         currentEvidenceUrl = photo.url;
+        window.HybridContourPreview?.reset('timeline', {
+            layerId: 'timelineContourOverlay',
+            progressPanelId: 'timelineContourProgress',
+            toggleButtonId: 'timelineContourToggle'
+        });
 
         const imgEl = document.getElementById('imgMonitoringEvidencePreview');
         const emptyEl = document.getElementById('emptyEvidenceStateTimelines');
@@ -4034,6 +4136,10 @@
     window.refreshLiveWeatherCheck = refreshLiveWeatherCheck;
     window.handleFormMonitoringSubmit = handleFormMonitoringSubmit;
     window.triggerAiVisionRescan = triggerAiVisionRescan;
+    window.setTimelineEvidenceContext = (url, stageIndex) => {
+        currentEvidenceUrl = url;
+        if (Number.isInteger(stageIndex)) activeStageIndex = stageIndex;
+    };
     window.viewPhotoInScanner = viewPhotoInScanner;
     window.openMonitoringSummaryModal = openMonitoringSummaryModal;
     window.openSurveillanceSummaryModal = openMonitoringSummaryModal;
@@ -4818,8 +4924,9 @@
         }
     });    
 </script>
-<script src="/static/js/unified_vision_engine.js"></script>
-<script src="/static/js/timeline.js"></script>
+<script src="/static/js/hybrid_contour_preview.js?v=20261025-hybrid-contours-2"></script>
+<script src="/static/js/unified_vision_engine.js?v=20261025-ai-scan-context-1"></script>
+<script src="/static/js/timeline.js?v=20261025-hybrid-contours-2"></script>
 <script src="/static/js/settings_governance.js"></script>
 <script src="/static/js/global_ai_triggers.js"></script>
 {% include "partials/floating_ai_log.html" ignore missing %}

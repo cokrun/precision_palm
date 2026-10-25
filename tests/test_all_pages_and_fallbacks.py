@@ -7,6 +7,8 @@ Tests all Pages, AI APIs, Governance Config, and Autonomous Statutory Fallbacks.
 import os
 import sys
 import json
+import sqlite3
+import tempfile
 import unittest
 import uuid
 from io import BytesIO
@@ -57,11 +59,17 @@ class TestAllPagesAndFallbacks(unittest.TestCase):
         # Verify theme, zone 2 dossier, and passport button markup
         self.assertIn(b"zona_2_biophysical_dossier", res.data)
         self.assertIn(b"btnQuickPassport", res.data)
+        self.assertIn(b"simContourProgress", res.data)
+        self.assertIn(b"simContourOverlay", res.data)
+        self.assertIn(b"hybrid_contour_preview.js", res.data)
 
     def test_06_page_timelines(self):
         """Test GET /timelines (Stage 3: Surveillance Tracking)"""
         res = self.client.get('/timelines', follow_redirects=True)
         self.assertEqual(res.status_code, 200)
+        self.assertIn(b"timelineContourProgress", res.data)
+        self.assertIn(b"timelineContourOverlay", res.data)
+        self.assertIn(b"setTimelineEvidenceContext", res.data)
 
     def test_07_page_certificate(self):
         """Test GET /certificate/1 (EcoGreen Digital Passport)"""
@@ -230,6 +238,12 @@ class TestAllPagesAndFallbacks(unittest.TestCase):
             self.assertTrue(data.get("is_fallback"))
             self.assertFalse(data.get("api_telemetry", {}).get("is_live_gemini_called"))
             self.assertIn("[AUDIT NOTICE]", data.get("audit_notice", ""))
+            self.assertIn("Simulated Network Timeout", data.get("audit_notice", ""))
+            self.assertEqual(
+                data.get("api_telemetry", {}).get("error_message"),
+                "Simulated Network Timeout",
+            )
+            self.assertIn("Simulated Network Timeout", data.get("warning", ""))
             self.assertIn("Autonomous Statutory Rule Engine", data.get("engine", ""))
             entities = data.get("physical_entities", [])
             self.assertGreater(len(entities), 0)
@@ -263,7 +277,29 @@ class TestAllPagesAndFallbacks(unittest.TestCase):
         self.assertTrue(data.get("is_fallback"))
         self.assertFalse(data.get("api_telemetry", {}).get("is_live_gemini_called"))
         self.assertIn("not image-verified", data.get("audit_notice", ""))
+        self.assertIn("Gemini unavailable", data.get("audit_notice", ""))
         persist_scan.assert_not_called()
+
+    def test_spatial_save_reports_database_commit_failure(self):
+        connection = Mock()
+        connection.execute.side_effect = sqlite3.OperationalError(
+            "simulated SQLite write failure"
+        )
+        response = None
+
+        with patch("app.get_pure_db_connection", return_value=connection):
+            response = self.client.post(
+                "/api/spatial/save-inspection",
+                json={"kode_kebun": "EST-MDN-010", "surveillance_entries": []},
+            )
+
+        self.assertEqual(response.status_code, 500)
+        result = response.get_json()
+        self.assertFalse(result.get("success"))
+        self.assertEqual(result.get("status"), "error")
+        self.assertIn("simulated SQLite write failure", result.get("error", ""))
+        connection.rollback.assert_called_once()
+        connection.close.assert_called_once()
 
     def test_18_scan_image_uses_uploaded_image_mime_type(self):
         """PNG uploads must reach Gemini with their actual MIME type."""
@@ -294,6 +330,173 @@ class TestAllPagesAndFallbacks(unittest.TestCase):
         self.assertEqual(data.get("mode"), "LIVE_GEMINI")
         self.assertFalse(data.get("is_fallback"))
         self.assertEqual(audit_image.call_args.kwargs.get("mime_type"), "image/png")
+
+    def test_scan_image_logs_simulator_prompt_context_and_raw_model_response(self):
+        prompt_used = "Analyze the image.\nWORKFLOW CONTEXT: simulator calibration."
+        raw_model_response = '{"physical_entities":[{"label":"oil palm"}]}'
+        live_result = {
+            "api_telemetry": {
+                "is_live_gemini_called": True,
+                "api_call_status": "LIVE_GOOGLE_CLOUD_SUCCESS",
+                "model_invoked": "gemini-test"
+            },
+            "physical_entities": [{"label": "oil palm", "box_2d": [10, 10, 100, 100]}],
+            "detected_objects": [],
+            "_audit_prompt": prompt_used,
+            "_raw_machine_response": raw_model_response
+        }
+        payload = {
+            "image_url": "/static/img/sawit_drone.jpg",
+            "filename": "simulator-evidence.jpg",
+            "dossier_id": "EST-MDN-010",
+            "perspective_mode": "AERIAL_DRONE",
+            "page_context": "SIMULATOR",
+            "feature_name": "Incorrect generic feature",
+            "meta_info": "In-silico calibration",
+            "scan_context": {
+                "workflow": "In-silico simulator",
+                "purpose": "Calibrate visible entity context",
+                "filename": "simulator-evidence.jpg"
+            }
+        }
+        with patch(
+            "cloud_services.grounded_auditor.audit_image_with_gemini",
+            return_value=live_result
+        ) as audit_image, patch(
+            "cloud_services.agentic_vision_supervisor.FieldVisionSupervisorAgent.evaluate_and_supervise",
+            side_effect=lambda raw_analysis, **kwargs: raw_analysis
+        ), patch("app.record_unified_ai_log") as record_log:
+            response = self.client.post("/api/ai/scan-image", json=payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            audit_image.call_args.kwargs["scan_context"]["workflow"],
+            "In-silico simulator"
+        )
+        self.assertEqual(
+            record_log.call_args.kwargs["feature_name"],
+            "Simulator In-Silico Vision Scan"
+        )
+        self.assertEqual(record_log.call_args.kwargs["prompt_input"], prompt_used)
+        self.assertEqual(record_log.call_args.kwargs["raw_response"], raw_model_response)
+
+    def test_scan_image_logs_timeline_stage_context(self):
+        live_result = {
+            "api_telemetry": {
+                "is_live_gemini_called": True,
+                "api_call_status": "LIVE_GOOGLE_CLOUD_SUCCESS",
+                "model_invoked": "gemini-test"
+            },
+            "physical_entities": [],
+            "detected_objects": [],
+            "_audit_prompt": "Timeline stage Q2 prompt",
+            "_raw_machine_response": '{"physical_entities":[]}'
+        }
+        payload = {
+            "image_url": "/static/img/sawit_drone.jpg",
+            "filename": "stage-q2.jpg",
+            "dossier_id": "EST-MDN-010",
+            "perspective_mode": "TERRESTRIAL_IN_SITU",
+            "page_context": "TIMELINES",
+            "stage_index": 2,
+            "scan_context": {
+                "workflow": "Quarterly surveillance timeline",
+                "cycle": "Q2",
+                "stage_title": "Quarter 2 Intercrop Corridor & Soil Integrity",
+                "surveillance_focus": "Intercrop corridor"
+            }
+        }
+        with patch(
+            "cloud_services.grounded_auditor.audit_image_with_gemini",
+            return_value=live_result
+        ) as audit_image, patch(
+            "cloud_services.agentic_vision_supervisor.FieldVisionSupervisorAgent.evaluate_and_supervise",
+            side_effect=lambda raw_analysis, **kwargs: raw_analysis
+        ), patch("app.record_unified_ai_log") as record_log:
+            response = self.client.post("/api/ai/scan-image", json=payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            audit_image.call_args.kwargs["scan_context"]["cycle"],
+            "Q2"
+        )
+        self.assertEqual(
+            record_log.call_args.kwargs["feature_name"],
+            "Timelines Quarterly Surveillance Vision Scan"
+        )
+        self.assertEqual(
+            record_log.call_args.kwargs["prompt_input"],
+            "Timeline stage Q2 prompt"
+        )
+        self.assertEqual(
+            record_log.call_args.kwargs["raw_response"],
+            '{"physical_entities":[]}'
+        )
+
+    def test_ai_log_keeps_full_scan_prompt_and_raw_response(self):
+        import ai_service
+        from cloud_services.bigquery_logger import _save_ai_log_to_sqlite
+
+        long_prompt = "P" * 2000
+        long_response = "R" * 4000
+        with patch("ai_service.send_ai_log_to_bigquery_async") as send_log:
+            ai_service.record_ai_log(
+                "Simulator In-Silico Vision Scan",
+                "Google Cloud (gemini-test)",
+                1500,
+                "SUCCESS",
+                long_prompt,
+                long_response
+            )
+
+        self.assertEqual(send_log.call_args.args[4], long_prompt)
+        self.assertEqual(send_log.call_args.args[5], long_response)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = os.path.join(temp_dir, "scan-logs.db")
+            with patch("cloud_services.bigquery_logger.DB_PATH", db_path):
+                _save_ai_log_to_sqlite(
+                    "2026-10-25 22:00:00 WIB",
+                    "Simulator In-Silico Vision Scan",
+                    "Google Cloud (gemini-test)",
+                    1500,
+                    "SUCCESS",
+                    long_prompt,
+                    long_response,
+                    "TEST_HASH"
+                )
+            connection = sqlite3.connect(db_path)
+            try:
+                stored_prompt, stored_response = connection.execute(
+                    "SELECT prompt_input, raw_response FROM ai_execution_logs"
+                ).fetchone()
+            finally:
+                connection.close()
+            self.assertEqual(stored_prompt, long_prompt)
+            self.assertEqual(stored_response, long_response)
+
+    def test_grounded_vision_prompt_uses_scan_context_as_unverified_metadata(self):
+        from cloud_services.grounded_auditor import audit_image_with_gemini
+
+        with patch.dict(os.environ, {"GEMINI_API_KEY": ""}):
+            result = audit_image_with_gemini(
+                image_bytes=b"test image bytes",
+                filename="stage-q2.jpg",
+                perspective_mode="TERRESTRIAL_IN_SITU",
+                scan_context={
+                    "workflow": "Quarterly surveillance timeline",
+                    "cycle": "Q2",
+                    "surveillance_focus": "Intercrop corridor"
+                }
+            )
+
+        prompt = result["_audit_prompt"]
+        self.assertIn('"cycle": "Q2"', prompt)
+        self.assertIn("metadata, not proof of image contents", prompt)
+        self.assertIn("do not assume a stage focus", prompt)
+        self.assertIn(
+            '"reason": "GEMINI_API_KEY is not set in the active environment.',
+            result["_raw_machine_response"],
+        )
 
     # =========================================================================
     # 6. TEST FULL-STACK SIMULATION PERSISTENCE (ONE-CLICK AUDIT PERSISTENCE)

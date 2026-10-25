@@ -10,13 +10,19 @@ Comprehensive Local Unit & Integration Tests comparing AI Scanner Concepts acros
 import unittest
 import json
 import os
+import sqlite3
 import sys
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
 
 # Ensure root directory is on PYTHONPATH
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app import app
 from ai_service import compute_realistic_image_match, get_deterministic_ground_truth
+from database import init_db
+from database_schema_engine import initialize_pure_relational_schema
 
 
 class TestScannerConceptsComparison(unittest.TestCase):
@@ -46,7 +52,8 @@ class TestScannerConceptsComparison(unittest.TestCase):
             "longitude": 99.561214,
             "altitude_agl_m": 120.0
         }
-        res = self.client.post('/api/ai/scan-image', json=payload)
+        with patch.dict(os.environ, {"GEMINI_API_KEY": ""}):
+            res = self.client.post('/api/ai/scan-image', json=payload)
         self.assertEqual(res.status_code, 200)
         data = res.get_json()
         self.assertIn("status", data)
@@ -66,7 +73,12 @@ class TestScannerConceptsComparison(unittest.TestCase):
         self.assertIn("spatial_vector", uvp)
         self.assertIn("biophysical_vector", uvp)
         self.assertIn("forensic_vector", uvp)
-        self.assertEqual(uvp["spatial_vector"]["status"], "MODEL_OUTPUT_NOT_GROUND_TRUTH_VERIFIED")
+        expected_scan_status = (
+            "MODEL_OUTPUT_NOT_GROUND_TRUTH_VERIFIED"
+            if data["mode"] == "LIVE_GEMINI"
+            else "NOT_IMAGE_VERIFIED"
+        )
+        self.assertEqual(uvp["spatial_vector"]["status"], expected_scan_status)
         self.assertNotIn("triangular_spacing_m", uvp["spatial_vector"])
 
         # Step B: Test saving the inspection to spatial ledger
@@ -78,10 +90,74 @@ class TestScannerConceptsComparison(unittest.TestCase):
             "sha256_seal": data.get("sha256_hash", "FIPS-TEST-SEAL"),
             "perspective_mode": "AERIAL_CONCESSION_MACRO"
         }
-        res_save = self.client.post('/api/spatial/save-inspection', json=save_payload)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = Path(temp_dir) / "spatial-save-test.db"
+            with patch("database_schema_engine.DB_PATH", str(db_path)):
+                with (
+                    patch("database.seed_canonical_estates"),
+                    patch("database.seed_roadmap_milestones"),
+                    patch("database.seed_canonical_inspection_evidence"),
+                ):
+                    init_db(str(db_path))
+                initialize_pure_relational_schema()
+                connection = sqlite3.connect(db_path)
+                try:
+                    connection.execute("PRAGMA foreign_keys = OFF")
+                    connection.execute("""
+                        INSERT INTO inspection_evidence (
+                            id, evidence_id, dossier_id, mandor_id, audit_year, quarter_cycle,
+                            perspective_mode, altitude_agl_m, camera_pitch_degrees,
+                            latitude_exif, longitude_exif, image_base64, image_raw_base64,
+                            sha256_hash, image_sha256_hash, file_size_bytes, detected_entities_json,
+                            root_clearance_verified_m, weather_satellite_validation
+                        ) VALUES (?, ?, ?, ?, 2026, 'Q1', 'AERIAL_DRONE', 45, -90,
+                                  0.8241, 99.5612, 'image-data', 'image-data', ?, ?, 10, '[]', 2.05, 'NOT_CHECKED')
+                    """, (
+                        "EV-TEST-SPATIAL-001",
+                        "EV-TEST-SPATIAL-001",
+                        "EST-MDN-010",
+                        "MDR-TEST",
+                        save_payload["sha256_seal"],
+                        save_payload["sha256_seal"],
+                    ))
+                    connection.commit()
+                finally:
+                    connection.close()
+                with patch(
+                    "cloud_services.bigquery_audit.sync_evidence_to_bigquery",
+                    return_value=True,
+                ) as sync_evidence:
+                    res_save = self.client.post('/api/spatial/save-inspection', json=save_payload)
+                    sync_evidence.assert_called_once()
+
+                connection = sqlite3.connect(db_path)
+                try:
+                    saved_record = connection.execute("""
+                        SELECT record_id, id_log, dossier_id, kode_kebun,
+                               process_stage, evidence_id, foto_url
+                        FROM field_surveillance_records
+                        WHERE evidence_id = ?
+                    """, ("EV-TEST-SPATIAL-001",)).fetchone()
+                finally:
+                    connection.close()
+                self.assertIsNotNone(saved_record)
+                self.assertEqual(saved_record[0], "SURV-EV-TEST-SPATIAL-001")
+                self.assertEqual(saved_record[1], saved_record[0])
+                self.assertEqual(saved_record[2], "EST-MDN-010")
+                self.assertEqual(saved_record[3], "EST-MDN-010")
+                self.assertEqual(saved_record[5], "EV-TEST-SPATIAL-001")
+                self.assertEqual(saved_record[6], "/static/img/sawit_drone.jpg")
         self.assertIn(res_save.status_code, [200, 201])
         save_data = res_save.get_json()
         self.assertTrue(save_data.get("status") in ["success", "saved", "ok"])
+        self.assertTrue(save_data.get("success"))
+        self.assertEqual(save_data.get("records_committed"), 1)
+        self.assertEqual(
+            save_data.get("committed_entries", [{}])[0].get("evidence_id"),
+            "EV-TEST-SPATIAL-001",
+        )
+        self.assertEqual(save_data.get("bigquery_sync", {}).get("status"), "SYNCED")
+        self.assertEqual(save_data.get("bigquery_sync", {}).get("synced"), 1)
 
     # =========================================================================
     # 2. SIMULATOR SCANNER CONCEPT

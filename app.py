@@ -200,7 +200,7 @@ except Exception as _e_pure:
 DATA_DIR = os.path.join(ROOT_DIR, 'data')
 PRECISION_STORE_PATH = os.path.join(DATA_DIR, 'precision_store.json')
 os.makedirs(DATA_DIR, exist_ok=True)
-_store_lock = threading.Lock()
+_store_lock = threading.RLock()
 
 def init_local_store() -> dict:
     with _store_lock:
@@ -3423,6 +3423,36 @@ def api_ai_scan_image():
     resolved_evidence_id = None
 
     json_data = request.get_json(silent=True) or {}
+    page_context = str(json_data.get('page_context') or request.form.get('page_context') or '').strip().upper()
+    is_workflow_scan = page_context in {'SIMULATOR', 'TIMELINES'}
+    requested_context = json_data.get('scan_context')
+    allowed_context_keys = {
+        'SIMULATOR': {'workflow', 'purpose', 'estate_code', 'filename', 'perspective', 'evidence_id'},
+        'TIMELINES': {
+            'workflow', 'stage_index', 'cycle', 'stage_title', 'reporting_period',
+            'surveillance_focus', 'perspective', 'perspective_label', 'filename'
+        }
+    }.get(page_context, set())
+    if isinstance(requested_context, dict):
+        scan_context = {
+            key: value[:500] if isinstance(value, str) else value
+            for key, value in requested_context.items()
+            if key in allowed_context_keys and isinstance(value, (str, int, float, bool, type(None)))
+        }
+    else:
+        scan_context = {}
+    feature_name = {
+        'SIMULATOR': 'Simulator In-Silico Vision Scan',
+        'TIMELINES': 'Timelines Quarterly Surveillance Vision Scan',
+    }.get(page_context, str(json_data.get('feature_name') or feature_name)[:160])
+    meta_info = str(json_data.get('meta_info') or meta_info)[:300]
+    if page_context in {'SIMULATOR', 'TIMELINES'}:
+        scan_context.setdefault('workflow', 'In-silico simulator' if page_context == 'SIMULATOR' else 'Quarterly surveillance timeline')
+        scan_context.setdefault('page_context', page_context)
+        scan_context.setdefault('filename', str(json_data.get('filename') or json_data.get('image_name') or '')[:256])
+        scan_context.setdefault('perspective', str(json_data.get('perspective_mode') or json_data.get('perspective_hint') or 'AERIAL_DRONE')[:64])
+        scan_context.setdefault('dossier_id', str(json_data.get('dossier_id') or json_data.get('block_id') or '')[:100])
+        scan_context.setdefault('meta_info', meta_info)
     requested_evidence_id = json_data.get('evidence_id') or request.form.get('evidence_id')
 
     # Extract 4D Telemetry Contract (X, Y, Z-Altitude AGL, T-Timestamp, Camera Pitch)
@@ -3604,8 +3634,11 @@ def api_ai_scan_image():
             filename=target_fname,
             perspective_mode=perspective_hint,
             telemetry=telemetry_4d,
-            mime_type=mime
+            mime_type=mime,
+            scan_context=scan_context if is_workflow_scan else None
         )
+        prompt_used = raw_analysis.pop("_audit_prompt", None)
+        raw_machine_response = raw_analysis.pop("_raw_machine_response", None)
 
         # 2. Teruskan ke FieldVisionSupervisorAgent.evaluate_and_supervise untuk membedakan perspektif
         try:
@@ -3642,9 +3675,11 @@ def api_ai_scan_image():
         else:
             engine_mode = "AUTONOMOUS_RULE_ENGINE"
             engine_name = "Autonomous Statutory Rule Engine (heuristic fallback)"
+            vision_error = str(telemetry_payload.get("error_message") or "").strip()
+            error_detail = f" Gemini error: {vision_error[:500]}" if vision_error else ""
             fallback_notice = (
-                "[AUDIT NOTICE] Gemini Vision inference did not complete successfully. "
-                "Showing heuristic fallback entities only; these are not image-verified detections."
+                "[AUDIT NOTICE] Gemini Vision inference did not complete successfully."
+                f"{error_detail} Showing heuristic fallback entities only; these are not image-verified detections."
             )
             supervised_result["mode"] = engine_mode
             supervised_result["is_fallback"] = True
@@ -3694,13 +3729,28 @@ def api_ai_scan_image():
                 model_engine=engine_name,
                 latency_ms=int((telemetry_payload.get("latency_seconds") or 1.8) * 1000),
                 status="SUCCESS",
-                prompt_input=f"Scan 4D image: {target_fname} | Block: {raw_block_id} | Crop: {raw_declared_crop} | Telemetry: lat={f_lat}, lng={f_lng}, alt={f_alt}m",
-                raw_response=json.dumps({
-                    "detected_objects_count": len(supervised_result.get("detected_objects", [])),
-                    "discrepancy_score": supervised_result.get("discrepancy_score", 0.0),
-                    "observed_taxon": supervised_result.get("observed_taxon"),
-                    "summary": supervised_result.get("agent_experience_summary")
-                }),
+                prompt_input=(
+                    prompt_used or json.dumps({
+                        "workflow_context": scan_context,
+                        "meta_info": meta_info,
+                        "filename": target_fname,
+                        "perspective": perspective_hint,
+                        "block_id": raw_block_id,
+                        "prompt_status": "Gemini prompt text unavailable; request context recorded"
+                    }, ensure_ascii=False)
+                    if is_workflow_scan
+                    else f"Scan 4D image: {target_fname} | Block: {raw_block_id} | Crop: {raw_declared_crop} | Telemetry: lat={f_lat}, lng={f_lng}, alt={f_alt}m"
+                ),
+                raw_response=(
+                    raw_machine_response or json.dumps(supervised_result, ensure_ascii=False, default=str)
+                    if is_workflow_scan
+                    else json.dumps({
+                        "detected_objects_count": len(supervised_result.get("detected_objects", [])),
+                        "discrepancy_score": supervised_result.get("discrepancy_score", 0.0),
+                        "observed_taxon": supervised_result.get("observed_taxon"),
+                        "summary": supervised_result.get("agent_experience_summary")
+                    })
+                ),
                 engine_mode=engine_mode,
                 status_message=(
                     "Live Gemini image inference completed; ground-truth accuracy not certified"
@@ -3761,9 +3811,14 @@ def api_ai_scan_image():
         }), 200
 
     except Exception as e:
-        logger.error(f"[Scan Error]: {e}")
+        error_detail = str(e).strip() or type(e).__name__
+        active_api_key = os.environ.get("GEMINI_API_KEY")
+        if active_api_key:
+            error_detail = error_detail.replace(active_api_key, "[REDACTED]")
+        error_detail = error_detail[:500]
+        logger.error("[Scan Error] Gemini image scan failed (%s): %s", type(e).__name__, error_detail)
         from ai_service import get_deterministic_ground_truth
-        fallback = get_deterministic_ground_truth(error_msg=str(e), telemetry=telemetry_4d, block_id=raw_block_id, declared_crop=raw_declared_crop)
+        fallback = get_deterministic_ground_truth(error_msg=error_detail, telemetry=telemetry_4d, block_id=raw_block_id, declared_crop=raw_declared_crop)
         try:
             from cloud_services.agentic_vision_supervisor import FieldVisionSupervisorAgent
             fallback = FieldVisionSupervisorAgent.evaluate_and_supervise(
@@ -3777,7 +3832,11 @@ def api_ai_scan_image():
         fallback["mode"] = "AUTONOMOUS_RULE_ENGINE"
         fallback["is_fallback"] = True
         fallback["engine"] = "Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9)"
-        fallback["audit_notice"] = "[AUDIT NOTICE] Gemini Vision / Reasoner session unreachable (Offline / Quota Exceeded). System deterministically switched to Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9)."
+        fallback["audit_notice"] = (
+            "[AUDIT NOTICE] Gemini Vision inference failed "
+            f"({type(e).__name__}): {error_detail}. "
+            "System switched to heuristic fallback; detections are not image-verified."
+        )
         fallback["agent_experience_summary"] = fallback["audit_notice"]
         fallback["discrepancy_score"] = None
         fallback["observed_taxon"] = None
@@ -3796,10 +3855,13 @@ def api_ai_scan_image():
         fallback_telemetry = fallback.get("api_telemetry") or {
             "is_live_gemini_called": False,
             "api_call_status": "FALLBACK_ENGAGED",
-            "error_message": str(e),
+            "error_message": error_detail,
             "model_invoked": os.environ.get("VERTEX_MODEL_NAME") or "gemini-3.8-flash",
             "latency_seconds": 0.0
         }
+        fallback_telemetry["is_live_gemini_called"] = False
+        fallback_telemetry["api_call_status"] = "FALLBACK_ENGAGED"
+        fallback_telemetry["error_message"] = error_detail
         fallback_telemetry["mode"] = "AUTONOMOUS_RULE_ENGINE"
 
         # Catat telemetri fallback AI ke SQLite & BigQuery
@@ -3809,12 +3871,27 @@ def api_ai_scan_image():
                 model_engine="Google Gemini 3.8 Flash (Supervised Rule RAG)",
                 latency_ms=850,
                 status="SUCCESS",
-                prompt_input=f"Fallback Scan 4D image: {target_fname} | Block: {raw_block_id}",
-                raw_response=json.dumps({
-                    "detected_objects_count": len(fallback.get("detected_objects", [])),
-                    "discrepancy_score": fallback.get("discrepancy_score", 0.0),
-                    "observed_taxon": fallback.get("observed_taxon")
-                }),
+                prompt_input=(
+                    json.dumps({
+                        "workflow_context": scan_context,
+                        "meta_info": meta_info,
+                        "filename": target_fname,
+                        "perspective": perspective_hint,
+                        "block_id": raw_block_id,
+                        "prompt_status": "Scan failed before Gemini prompt was captured"
+                    }, ensure_ascii=False)
+                    if is_workflow_scan
+                    else f"Fallback Scan 4D image: {target_fname} | Block: {raw_block_id}"
+                ),
+                raw_response=(
+                    json.dumps({"status": "fallback", "reason": error_detail, "result": fallback}, ensure_ascii=False, default=str)
+                    if is_workflow_scan
+                    else json.dumps({
+                        "detected_objects_count": len(fallback.get("detected_objects", [])),
+                        "discrepancy_score": fallback.get("discrepancy_score", 0.0),
+                        "observed_taxon": fallback.get("observed_taxon")
+                    })
+                ),
                 engine_mode="AUTONOMOUS_RULE_ENGINE",
                 status_message=fallback["audit_notice"]
             )
@@ -3837,14 +3914,14 @@ def api_ai_scan_image():
             "mode": "AUTONOMOUS_RULE_ENGINE",
             "is_fallback": True,
             "engine": "Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9)",
-            "audit_notice": "[AUDIT NOTICE] Gemini Vision / Reasoner session unreachable (Offline / Quota Exceeded). System deterministically switched to Autonomous Statutory Rule Engine (PPKS Silviculture Standards, ISPO Principle 2, & EUDR Art. 9).",
+            "audit_notice": fallback["audit_notice"],
             "api_telemetry": fallback_telemetry,
             "realistic_image_match_pct": None,
             "composite_match_pct": None,
             "match_tier": "NOT_IMAGE_VERIFIED",
             "match_breakdown": {},
             "universal_vision_package": fb_universal_pkg,
-            "warning": str(e),
+            "warning": error_detail,
             "analysis": fallback,
             "block_id": fallback.get("block_id", raw_block_id),
             "perspective_4d": fallback.get("perspective_4d"),
@@ -4324,6 +4401,135 @@ def api_get_estate_spatial_data():
     finally:
         conn.close()
 
+@app.route('/api/spatial/contour-preview', methods=['POST', 'OPTIONS'])
+def api_spatial_contour_preview():
+    if request.method == 'OPTIONS':
+        return ('', 204)
+
+    if os.environ.get("SPATIAL_SAM2_ENABLED", "").strip().lower() not in {"1", "true", "yes"}:
+        return jsonify({
+            "status": "success",
+            "contour_preview": {
+                "status": "unavailable",
+                "reason": "sam2_disabled",
+            },
+        }), 200
+
+    data = request.get_json(silent=True) or {}
+    evidence_id = str(data.get('evidence_id') or '').strip()
+    if not evidence_id:
+        return jsonify({"status": "error", "message": "evidence_id wajib diisi"}), 400
+
+    conn = get_pure_db_connection()
+    try:
+        row = conn.execute("""
+            SELECT evidence_id, image_raw_base64, detected_entities_json, is_processed
+            FROM inspection_evidence
+            WHERE evidence_id = ? OR id = ?
+            LIMIT 1;
+        """, (evidence_id, evidence_id)).fetchone()
+        if not row:
+            return jsonify({"status": "error", "message": "Bukti foto tidak ditemukan"}), 404
+
+        record = dict(row)
+        if not record.get("is_processed"):
+            return jsonify({
+                "status": "not_run",
+                "reason": "evidence_has_no_saved_scan",
+            }), 200
+
+        raw_image = str(record.get("image_raw_base64") or "")
+        if not raw_image:
+            return jsonify({
+                "status": "error",
+                "message": "Data gambar asli tidak tersedia untuk pemrosesan kontur",
+            }), 422
+        if raw_image.startswith("data:image/") and ',' in raw_image:
+            raw_image = raw_image.split(',', 1)[1]
+        try:
+            image_bytes = base64.b64decode(raw_image, validate=True)
+        except (ValueError, base64.binascii.Error):
+            logger.warning("[Spatial contour preview] Invalid stored image encoding for evidence %s", evidence_id)
+            return jsonify({
+                "status": "error",
+                "message": "Encoding gambar bukti tidak valid",
+            }), 422
+
+        try:
+            entities = json.loads(record.get("detected_entities_json") or "[]")
+        except (TypeError, json.JSONDecodeError):
+            logger.warning("[Spatial contour preview] Invalid stored detections for evidence %s", evidence_id)
+            return jsonify({
+                "status": "error",
+                "message": "Data deteksi tersimpan tidak valid",
+            }), 422
+        if not isinstance(entities, list):
+            return jsonify({
+                "status": "error",
+                "message": "Format data deteksi tersimpan tidak valid",
+            }), 422
+
+        from cloud_services.image_contour import build_sam2_contour_preview
+
+        preview = build_sam2_contour_preview(image_bytes, entities)
+        return jsonify({"status": "success", "contour_preview": preview}), 200
+    except Exception:
+        logger.exception("[Spatial contour preview error]")
+        return jsonify({
+            "status": "error",
+            "message": "Gagal membuat kandidat kontur OpenCV",
+        }), 500
+    finally:
+        conn.close()
+
+@app.route('/api/spatial/opencv-static-replay', methods=['POST', 'OPTIONS'])
+def api_spatial_opencv_static_replay():
+    if request.method == 'OPTIONS':
+        return ('', 204)
+
+    data = request.get_json(silent=True) or {}
+    evidence_id = str(data.get('evidence_id') or '').strip()
+    if not evidence_id:
+        return jsonify({"status": "error", "message": "evidence_id wajib diisi"}), 400
+
+    conn = get_pure_db_connection()
+    try:
+        row = conn.execute("""
+            SELECT image_raw_base64
+            FROM inspection_evidence
+            WHERE evidence_id = ? OR id = ?
+            LIMIT 1;
+        """, (evidence_id, evidence_id)).fetchone()
+        if not row:
+            return jsonify({"status": "error", "message": "Bukti foto tidak ditemukan"}), 404
+
+        raw_image = str(row["image_raw_base64"] or "")
+        if not raw_image:
+            return jsonify({
+                "status": "error",
+                "message": "Data gambar asli tidak tersedia untuk replay OpenCV",
+            }), 422
+        if raw_image.startswith("data:image/") and ',' in raw_image:
+            raw_image = raw_image.split(',', 1)[1]
+        try:
+            image_bytes = base64.b64decode(raw_image, validate=True)
+        except (ValueError, base64.binascii.Error):
+            logger.warning("[Spatial OpenCV replay] Invalid stored image encoding for evidence %s", evidence_id)
+            return jsonify({"status": "error", "message": "Encoding gambar bukti tidak valid"}), 422
+
+        from cloud_services.image_contour import build_opencv_static_replay_preview
+
+        preview = build_opencv_static_replay_preview(image_bytes)
+        return jsonify({"status": "success", "replay_preview": preview}), 200
+    except Exception:
+        logger.exception("[Spatial OpenCV static replay error]")
+        return jsonify({
+            "status": "error",
+            "message": "Gagal membuat pratinjau replay OpenCV",
+        }), 500
+    finally:
+        conn.close()
+
 @app.route('/api/spatial/check-photo-hash', methods=['GET', 'POST'])
 @app.route('/api/spatial/check-photo-hash-v3', methods=['GET', 'POST'])
 def api_check_photo_hash():
@@ -4446,6 +4652,12 @@ def save_inspection_endpoint():
         assessor_verdict = data.get('assessor_verdict', 'DISETUJUI_PENUH')
         assessor_notes = data.get('assessor_notes', 'All biophysical parcel parameters compliant.')
         surv_entries = data.get('surveillance_entries', [])
+        if not isinstance(surv_entries, list):
+            return jsonify({
+                "success": False,
+                "status": "error",
+                "message": "surveillance_entries harus berupa daftar.",
+            }), 400
 
         # Jika dipanggil langsung dengan evidence_id / foto_url tunggal dari UI frontend
         if not surv_entries and (data.get('evidence_id') or data.get('foto_url')):
@@ -4493,8 +4705,15 @@ def save_inspection_endpoint():
             conn.execute("UPDATE dossiers SET status_permohonan = 'SPATIAL_CLEARED' WHERE dossier_id = ?;", (dossier_id,))
 
         # 2. Catat seluruh baris surveilans permanen ke field_surveillance_records jika ada
+        committed_entries = []
         for idx, entry in enumerate(surv_entries):
-            rec_id = entry.get('record_id') or f"SURV-{dossier_id}-{int(time.time()*1000)%100000}-{idx+1}"
+            if not isinstance(entry, dict):
+                raise ValueError(f"surveillance_entries[{idx}] harus berupa objek.")
+            ev_id = entry.get('evidence_id') or entry.get('id') or ''
+            rec_id = entry.get('record_id') or (
+                f"SURV-{ev_id}" if ev_id
+                else f"SURV-{dossier_id}-{int(time.time()*1000)%100000}-{idx+1}"
+            )
             foto_url = entry.get('foto_url') or entry.get('image_gcs_url') or ''
             block_id = entry.get('block_id') or entry.get('blok') or f"Blok Inti {dossier_id}"
             
@@ -4513,18 +4732,19 @@ def save_inspection_endpoint():
             detected_entities = entry.get('detected_entities') or entry.get('boxes') or []
             entities_json = json.dumps(detected_entities) if detected_entities else None
             
-            ev_id = entry.get('evidence_id') or entry.get('id') or ''
             sha_seal = entry.get('sha256_seal') or '8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4'
 
             conn.execute("""
                 INSERT OR REPLACE INTO field_surveillance_records (
-                    record_id, dossier_id, estate_id, audit_year, process_stage,
-                    mandor_name, block_id, latitude, longitude, elevation_m, slope_deg,
-                    soil_ph, weather_condition, evidence_id, foto_url, detected_entities_json, sha256_seal
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 5.5, ?, ?, ?, ?, ?);
+                    record_id, id_log, dossier_id, kode_kebun, estate_id, audit_year,
+                    process_stage, periode_siklus, mandor_name, block_id, latitude, longitude,
+                    elevation_m, slope_deg, soil_ph, weather_condition, evidence_id, foto_url,
+                    detected_entities_json, sha256_seal
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 5.5, ?, ?, ?, ?, ?);
             """, (
-                rec_id, dossier_id, dossier_id, audit_year,
+                rec_id, rec_id, dossier_id, dossier_id, dossier_id, audit_year,
                 entry.get('process_stage', 'STAGE-0-ANNUAL-REG'),
+                entry.get('quarter_cycle') or entry.get('process_stage', 'STAGE-0-ANNUAL-REG'),
                 assessor_name,
                 block_id,
                 lat_val,
@@ -4537,6 +4757,12 @@ def save_inspection_endpoint():
                 entities_json,
                 sha_seal
             ))
+            committed_entries.append({
+                "record_id": rec_id,
+                "evidence_id": str(ev_id),
+                "foto_url": foto_url,
+                "process_stage": entry.get('process_stage', 'STAGE-0-ANNUAL-REG'),
+            })
 
             # Kunci status foto di inspection_evidence menjadi tersegel
             if ev_id or foto_url:
@@ -4565,14 +4791,73 @@ def save_inspection_endpoint():
             pass
 
         conn.commit()
+
+        bigquery_sync = {
+            "attempted": 0,
+            "synced": 0,
+            "failed": 0,
+            "skipped": 0,
+        }
+        sync_records = {}
+        for entry in committed_entries:
+            evidence_id = entry["evidence_id"]
+            if not evidence_id:
+                bigquery_sync["skipped"] += 1
+                continue
+            evidence_row = conn.execute("""
+                SELECT evidence_id, dossier_id, audit_year, quarter_cycle, perspective_mode,
+                       image_sha256_hash, sha256_hash, detected_entities_json,
+                       root_clearance_verified_m, weather_satellite_validation, company_name
+                FROM inspection_evidence
+                WHERE evidence_id = ? OR id = ?
+                LIMIT 1;
+            """, (evidence_id, evidence_id)).fetchone()
+            if not evidence_row:
+                bigquery_sync["skipped"] += 1
+                continue
+            evidence_record = dict(evidence_row)
+            image_hash = evidence_record.get("image_sha256_hash") or evidence_record.get("sha256_hash")
+            if not image_hash:
+                bigquery_sync["skipped"] += 1
+                continue
+            evidence_record["image_sha256_hash"] = image_hash
+            sync_records[evidence_id] = evidence_record
+
+        if sync_records:
+            bigquery_sync["attempted"] = len(sync_records)
+            try:
+                from cloud_services.bigquery_audit import sync_evidence_to_bigquery
+                for evidence_id, evidence_record in sync_records.items():
+                    try:
+                        synced = sync_evidence_to_bigquery(evidence_record)
+                    except Exception:
+                        logger.exception("[Spatial BigQuery evidence sync failed] %s", evidence_id)
+                        synced = False
+                    bigquery_sync["synced" if synced else "failed"] += 1
+                    conn.execute(
+                        "UPDATE inspection_evidence SET synced_to_bigquery = ? WHERE evidence_id = ? OR id = ?;",
+                        (1 if synced else 0, evidence_id, evidence_id),
+                    )
+                conn.commit()
+            except Exception:
+                logger.exception("[Spatial BigQuery sync setup failed]")
+                bigquery_sync["failed"] = bigquery_sync["attempted"]
+                conn.rollback()
+
+        bigquery_sync["status"] = (
+            "SYNCED" if bigquery_sync["failed"] == 0 and bigquery_sync["skipped"] == 0
+            else ("PARTIAL" if bigquery_sync["synced"] else "LOCAL_ONLY")
+        )
         return jsonify({
             "success": True,
             "status": "success",
-            "message": "Inspection recorded or acknowledged",
+            "message": "Spatial inspection committed to the local transaction ledger.",
             "telemetry_id": telemetry_id,
             "slope_deg": float(slope),
             "elevation_m": float(elevation),
-            "records_committed": len(surv_entries)
+            "records_committed": len(committed_entries),
+            "committed_entries": committed_entries,
+            "bigquery_sync": bigquery_sync,
         }), 200
     except Exception as e:
         if conn:
@@ -4580,9 +4865,13 @@ def save_inspection_endpoint():
                 conn.rollback()
             except Exception:
                 pass
-        # Jangan biarkan return 500 mematikan UI frontend
-        print(f"[Warning] Save inspection skipped on ephemeral cloud: {e}")
-        return jsonify({"success": True, "warning": str(e), "message": "Inspection recorded or acknowledged"}), 200
+        logger.exception("[Spatial inspection save failed]")
+        return jsonify({
+            "success": False,
+            "status": "error",
+            "message": "Spatial inspection was not committed.",
+            "error": str(e),
+        }), 500
     finally:
         if conn:
             try:

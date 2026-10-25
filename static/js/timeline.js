@@ -103,7 +103,8 @@
                 return {
                     url: match.url,
                     filename: match.name || match.filename || meta.filename,
-                    perspective: match.perspective_mode || meta.perspective
+                    perspective: match.perspective_mode || meta.perspective,
+                    evidenceId: match.evidence_id || match.id || null
                 };
             }
         }
@@ -114,7 +115,8 @@
         return {
             url: streamUrl,
             filename: meta.filename,
-            perspective: meta.perspective
+            perspective: meta.perspective,
+            evidenceId: null
         };
     }
 
@@ -130,6 +132,7 @@
         const photoInfo = resolveStagePhoto(stageIdx);
         const stagePhotoUrl = photoInfo.url;
         const stageFilename = photoInfo.filename;
+        window.setTimelineEvidenceContext?.(stagePhotoUrl, stageIdx);
 
         // 1. Update Preview Image & HUD di Bagian Atas
         const imgEl = document.getElementById('imgMonitoringEvidencePreview');
@@ -139,6 +142,22 @@
         const container = document.getElementById('timelinePhotoContainer') || document.getElementById('stageEvidenceWrapper');
         const overlay = document.getElementById('timelineBBoxesOverlay') || document.getElementById('stageBBoxesOverlay') || document.getElementById('monitoringBBoxesOverlay');
         const statusText = document.getElementById('timelineScanStatusText');
+        const contourOptions = {
+            channel: 'timeline',
+            evidenceId: photoInfo.evidenceId,
+            layerId: 'timelineContourOverlay',
+            progressPanelId: 'timelineContourProgress',
+            progressLabelId: 'timelineContourProgressLabel',
+            progressDetailId: 'timelineContourProgressDetail',
+            progressBarId: 'timelineContourProgressBar',
+            toggleButtonId: 'timelineContourToggle',
+            toggleLabelId: 'timelineContourToggleLabel',
+            imageUrl: stagePhotoUrl,
+            boxes: [],
+            isCurrent: () => activeTimelineStage === stageIdx &&
+                document.getElementById('imgMonitoringEvidencePreview')?.getAttribute('src') === stagePhotoUrl
+        };
+        window.HybridContourPreview?.reset('timeline', contourOptions);
 
         if (lblFile) {
             lblFile.textContent = `${meta.shortTitle} (${stageFilename})`;
@@ -164,16 +183,49 @@
             if (statusText) {
                 statusText.textContent = `Scanning Stage ${stageIdx} (${meta.cycleKey}) - 20–40 Entities...`;
             }
+            window.HybridContourPreview?.report(
+                'timeline',
+                contourOptions,
+                'running',
+                'Gemini vision scan',
+                `Analyzing the original image for ${meta.shortTitle.toLowerCase()}…`
+            );
 
             window.UnifiedVisionEngine.scan({
                 imageUrl: stagePhotoUrl,
                 filename: stageFilename,
+                evidenceId: photoInfo.evidenceId,
+                dossierId: (window.activeEstate && window.activeEstate.kode_kebun) || 'EST-MDN-010',
+                perspective: meta.perspective,
                 pageContext: 'TIMELINES',
                 containerEl: container,
                 overlayEl: overlay,
                 statusEl: statusText,
-                stageIndex: stageIdx
-            }).then(payload => {
+                stageIndex: stageIdx,
+                onProgress: progress => {
+                    if (progress?.stage === 'gemini_complete') {
+                        window.HybridContourPreview?.report(
+                            'timeline',
+                            contourOptions,
+                            'running',
+                            'Preparing SAM2 + OpenCV',
+                            'Gemini response received; waiting for the saved detections to become available.'
+                        );
+                    }
+                },
+                scanContext: {
+                    workflow: 'Quarterly surveillance timeline',
+                    stage_index: stageIdx,
+                    cycle: meta.cycleKey,
+                    stage_title: meta.title,
+                    reporting_period: meta.period,
+                    surveillance_focus: meta.focus,
+                    perspective: meta.perspective,
+                    perspective_label: meta.perspectiveLabel,
+                    filename: stageFilename,
+                    evidence_id: photoInfo.evidenceId
+                }
+            }).then(async payload => {
                 if (payload) {
                     const shaEl = document.getElementById('stageShaSealBadge');
                     if (shaEl) shaEl.textContent = payload.sha256Seal;
@@ -205,8 +257,23 @@
                         showNotificationToast(`✓ Stage ${stageIdx} (${meta.cycleKey}) Terpetakan (${payload.totalEntities || 24} Entitas)`, "🎯");
                     }
                 }
+                if (window.HybridContourPreview) {
+                    await window.HybridContourPreview.load({
+                        ...contourOptions,
+                        boxes: payload?.boxes || [],
+                        isLive: payload?.isLiveAI === true,
+                        isPersisted: payload?.persistence?.saved === true
+                    });
+                }
             }).catch(err => {
                 console.warn("[Timeline.js] Scan notice:", err);
+                window.HybridContourPreview?.report(
+                    'timeline',
+                    contourOptions,
+                    'failed',
+                    'Gemini scan failed',
+                    err?.message || 'The vision scan could not be completed.'
+                );
             });
         }
     }
