@@ -969,6 +969,7 @@ function bindEvidencePhotos(photos, dossier) {
                 sha256: p.image_sha256_hash || '',
                 boxes: boxes,
                 is_processed: hasScanResult,
+                is_gemini_verified: Boolean(Array.isArray(boxes) && boxes.length > 0),
                 is_locked: isLocked
             });
         });
@@ -989,6 +990,9 @@ function bindEvidencePhotos(photos, dossier) {
     const initialPhoto = firstUnprocessed || registeredPhotos[0];
     if (initialPhoto) {
         selectGalleryPhoto(initialPhoto.file_url, initialPhoto.filename, false);
+    } else {
+        const imgEl = document.getElementById('verifPhotoImg');
+        if (imgEl) window.handleEmptyEvidenceStateSpatial?.(imgEl);
     }
 }
 
@@ -1256,14 +1260,19 @@ function hideSpatialScanProgress() {
 async function loadStoredContourPreview(photo, photoUrl, showProgress = false) {
     const requestId = ++spatialContourRequestId;
     const evidenceId = photo?.evidence_id || photo?.id;
-    if (!photo?.is_processed || !Array.isArray(photo.boxes) || !photo.boxes.length || !evidenceId) {
+    if (photo?.is_gemini_verified !== true ||
+        !Array.isArray(photo.boxes) ||
+        !photo.boxes.length ||
+        !evidenceId) {
         currentSpatialContourPreview = null;
         updateContourPreviewButton();
         if (showProgress) {
             updateSpatialScanProgress(
-                isIndonesian() ? 'Outline selesai' : 'Outline skipped',
-                isIndonesian() ? 'Tidak ada deteksi tersimpan untuk dibuatkan kontur.' : 'No saved detections are available to outline.',
-                'done'
+                isIndonesian() ? 'Kontur belum tersedia' : 'Contours unavailable',
+                isIndonesian()
+                    ? 'Kontur hanya tersedia setelah deteksi Gemini berhasil disimpan.'
+                    : 'Contours are hidden until Gemini detections are successfully saved.',
+                'failed'
             );
         }
         return currentSpatialContourPreview;
@@ -1273,7 +1282,7 @@ async function loadStoredContourPreview(photo, photoUrl, showProgress = false) {
     updateContourPreviewButton();
     if (showProgress) {
         updateSpatialScanProgress(
-            isIndonesian() ? 'SAM2 + OpenCV' : 'SAM2 + OpenCV',
+            isIndonesian() ? 'OpenCV Contours' : 'OpenCV Contours',
             isIndonesian() ? 'Membentuk dan merapikan garis batas objek...' : 'Building and refining object outlines...',
             'running'
         );
@@ -1314,9 +1323,25 @@ function selectGalleryPhoto(url, filename, shouldRescan = false) {
     const imgEl = document.getElementById('verifPhotoImg');
     const photoLabelEl = document.getElementById('verifPhotoLabel');
     const emptyEl = document.getElementById('emptyEvidenceStateSpatial');
+    const overlay = document.getElementById('droneBBoxesOverlay');
+    const canvas = document.getElementById('reticleCanvas');
     activePhotoUrl = url;
     activeFilename = filename || (url ? url.split('/').pop() : "EV-PHOTO-ACTIVE.jpg");
     hideSpatialScanProgress();
+
+    if (overlay) {
+        overlay.innerHTML = '';
+        overlay.style.display = 'none';
+    }
+    if (canvas) {
+        const context = canvas.getContext('2d');
+        if (context) context.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    if (!imgEl || !url) {
+        activePhotoUrl = null;
+        if (imgEl) window.handleEmptyEvidenceStateSpatial?.(imgEl);
+        return;
+    }
 
     try {
         if (url) {
@@ -1327,18 +1352,20 @@ function selectGalleryPhoto(url, filename, shouldRescan = false) {
         }
     } catch (_) {}
 
+    imgEl.style.display = 'none';
+    imgEl.classList.add('hidden');
     if (emptyEl) {
-        emptyEl.classList.add('hidden');
-        emptyEl.style.display = 'none';
+        emptyEl.classList.remove('hidden');
+        emptyEl.style.display = 'flex';
     }
-
-    imgEl.style.display = 'block';
-    imgEl.classList.remove('hidden');
-    imgEl.src = url;
 
     if (photoLabelEl) photoLabelEl.textContent = filename || url.split('/').pop() || "EV-PHOTO-ACTIVE.jpg";
 
     imgEl.onload = function() {
+        if (!imgEl.complete || imgEl.naturalWidth === 0 || activePhotoUrl !== url) {
+            window.handleEmptyEvidenceStateSpatial?.(imgEl);
+            return;
+        }
         if (emptyEl) {
             emptyEl.classList.add('hidden');
             emptyEl.style.display = 'none';
@@ -1348,8 +1375,15 @@ function selectGalleryPhoto(url, filename, shouldRescan = false) {
         
         drawReticles();
 
-        const photoObj = registeredPhotos.find(p => p.file_url === url) || { filename, file_url: url };
-        let boxes = (photoObj.boxes && Array.isArray(photoObj.boxes)) ? photoObj.boxes : [];
+                const photoObj = registeredPhotos.find(p => p.file_url === url || p.filename === filename) || { filename, file_url: url };
+        let boxes = Array.isArray(photoObj.boxes) && photoObj.boxes.length > 0
+            ? photoObj.boxes
+            : [];
+        if (!boxes.length && photoObj.detected_entities_json) {
+            try {
+                boxes = typeof photoObj.detected_entities_json === 'string' ? JSON.parse(photoObj.detected_entities_json) : photoObj.detected_entities_json;
+            } catch (_) {}
+        }
         
         photoObj.boxes = boxes;
         currentSpatialContourPreview = null;
@@ -1369,10 +1403,15 @@ function selectGalleryPhoto(url, filename, shouldRescan = false) {
     };
 
     imgEl.onerror = function() {
-        imgEl.classList.add('hidden');
-        if (emptyEl) emptyEl.classList.remove('hidden');
+        if (activePhotoUrl === url) {
+            activePhotoUrl = null;
+            currentSpatialBoxes = [];
+            window.handleEmptyEvidenceStateSpatial?.(imgEl);
+        }
     };
 
+    imgEl.src = url;
+    if (imgEl.complete && imgEl.naturalWidth > 0) imgEl.onload();
     renderGalleryThumbnails();
     renderSealedArchiveStrip();
 }
@@ -1676,18 +1715,7 @@ async function triggerScanningFotoAction(forceRescan = false) {
         showNotificationToast(isId ? "Pilih foto dari galeri untuk memulai pemindaian!" : "Select photo from gallery to begin scanning!", "⚠️");
         return;
     }
-    if (target.is_locked) {
-        showNotificationToast(isId
-            ? "Buka segel foto sebelum meminta pemindaian ulang."
-            : "Unlock this photo before requesting a rescan.", "⚠️");
-        return;
-    }
-    if (target.is_processed && !forceRescan) {
-        showNotificationToast(isId
-            ? "Hasil scan tersimpan. Gunakan Rescan AI jika ingin memindai ulang."
-            : "The scan result is saved. Use Rescan AI to run it again.", "ℹ️");
-        return;
-    }
+    // Foto tersegel maupun tersimpan dapat di-rescan kapan saja
 
     activePhotoUrl = target.file_url;
     activeFilename = target.filename || (target.file_url ? target.file_url.split('/').pop() : "EV-EST-MDN-010-2026.jpg");
@@ -1752,7 +1780,7 @@ async function triggerScanningFotoAction(forceRescan = false) {
         }
         if (result) {
             const isFallback = result.isFallback === true || result.mode !== 'LIVE_GEMINI';
-            const detectedEntities = result.boxes || [];
+            const detectedEntities = isFallback ? [] : (result.boxes || []);
             spatialContourRequestId++;
             currentSpatialContourPreview = {
                 status: 'unavailable',
@@ -1765,9 +1793,10 @@ async function triggerScanningFotoAction(forceRescan = false) {
             const timestampNow = new Date().toISOString().replace('T', ' ').substring(0, 19);
             const specificBlockId = "Centroid Block - " + (target.title || target.filename || `Parcel #${surveysFullList.length + 1}`);
 
-            if (isPersistedLiveResult) {
+            if (isPersistedLiveResult || (!isFallback && detectedEntities.length > 0)) {
                 target.boxes = detectedEntities;
                 target.is_processed = true;
+                target.is_gemini_verified = true;
                 target.is_fallback = false;
                 target.sha256 = result.sha256Seal || target.sha256;
                 target.prepared_survey = {
@@ -1799,8 +1828,8 @@ async function triggerScanningFotoAction(forceRescan = false) {
                         isId ? 'Pemindaian selesai' : 'Scan complete',
                         contourReady
                             ? (isId
-                                ? `${detectionSummary}; outline SAM2 + OpenCV siap.`
-                                : `${detectionSummary}; SAM2 + OpenCV outlines are ready.`)
+                                ? `${detectionSummary}; outline OpenCV siap.`
+                                : `${detectionSummary}; OpenCV outlines are ready.`)
                             : (isId
                                 ? `${detectionSummary}; outline tidak tersedia (${contourPreview?.reason || 'status tidak diketahui'}).`
                                 : `${detectionSummary}; outlines unavailable (${contourPreview?.reason || 'unknown status'}).`),
@@ -1814,16 +1843,13 @@ async function triggerScanningFotoAction(forceRescan = false) {
                     );
                 }
             } else {
-                const fallbackReason = result.audit_notice ||
-                    result.api_telemetry?.error_message ||
-                    (isId
-                        ? 'Hasil heuristik ditampilkan, bukan deteksi yang diverifikasi dari gambar.'
-                        : 'Heuristic preview shown; detections were not verified from the image.');
                 updateSpatialScanProgress(
                     isFallback ? (isId ? 'Mode fallback' : 'Fallback mode') : (isId ? 'Hasil belum tersimpan' : 'Result not saved'),
                     isFallback
-                        ? fallbackReason
-                        : (isId ? 'Deteksi Gemini tidak tersimpan sehingga outline SAM2 tidak dapat dibuat.' : 'Gemini detections were not saved, so SAM2 outlines cannot be generated.'),
+                        ? (isId
+                            ? 'Analisis Gemini tidak tersedia; tidak ada deteksi gambar terverifikasi.'
+                            : 'Gemini analysis is unavailable; no image-verified detections are displayed.')
+                        : (isId ? 'Deteksi Gemini tidak tersimpan sehingga outline OpenCV tidak dapat dibuat.' : 'Gemini detections were not saved, so OpenCV outlines cannot be generated.'),
                     isFallback ? 'failed' : 'done'
                 );
             }
@@ -1844,7 +1870,9 @@ async function triggerScanningFotoAction(forceRescan = false) {
             const textEl = document.getElementById('telemetryCurrentSentence');
             if (textEl) {
                 textEl.textContent = isFallback
-                    ? `⚠ [FALLBACK PREVIEW] ${result.totalEntities} heuristic boxes shown; image detections and compliance are not verified.`
+                    ? (isId
+                        ? 'Analisis Gemini tidak tersedia; tidak ada deteksi gambar terverifikasi.'
+                        : 'Gemini analysis is unavailable; no image-verified detections are displayed.')
                     : (isPersistedLiveResult
                         ? `✓ Live Gemini result saved for this image: ${result.totalEntities} detections. Ground-truth review is required for accuracy validation.`
                         : `Live Gemini returned ${result.totalEntities} detections, but this result was not persisted to the evidence record.`);
@@ -1858,7 +1886,7 @@ async function triggerScanningFotoAction(forceRescan = false) {
                         ? 'px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-sm'
                         : 'px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 shadow-sm');
                 scanBadge.textContent = isFallback
-                    ? `⚠ Fallback preview • ${result.totalEntities} heuristic boxes (not verified)`
+                    ? (isId ? '⚠ Gemini tidak tersedia • tidak ada deteksi terverifikasi' : '⚠ Gemini unavailable • no verified detections')
                     : (isPersistedLiveResult
                         ? `🟢 Live Gemini saved • ${result.totalEntities} detections`
                         : `⚠ Live Gemini • ${result.totalEntities} detections, not persisted`);
@@ -2107,7 +2135,8 @@ function drawReticles() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const imgEl = document.getElementById('verifPhotoImg');
-    if (!imgEl || imgEl.style.display === 'none' || imgEl.classList.contains('hidden')) return;
+    if (!imgEl || !imgEl.complete || imgEl.naturalWidth === 0 ||
+        imgEl.style.display === 'none' || imgEl.classList.contains('hidden')) return;
 
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
@@ -2155,11 +2184,22 @@ function renderDetectedBoundingBoxes(boxes) {
     const overlay = document.getElementById('droneBBoxesOverlay');
     const imgEl = document.getElementById('verifPhotoImg');
 
-    if (!imgEl || imgEl.style.display === 'none' || imgEl.classList.contains('hidden')) {
-        if (overlay) overlay.innerHTML = '';
+    const imageReady = Boolean(
+        imgEl &&
+        imgEl.complete &&
+        imgEl.naturalWidth > 0 &&
+        imgEl.style.display !== 'none' &&
+        !imgEl.classList.contains('hidden')
+    );
+    if (!imageReady) {
+        if (overlay) {
+            overlay.innerHTML = '';
+            overlay.style.display = 'none';
+        }
         return;
     }
     if (!overlay) return;
+    overlay.style.display = 'block';
 
     let contourSvg = '';
     const preview = currentSpatialContourPreview;
@@ -2217,7 +2257,7 @@ function renderDetectedBoundingBoxes(boxes) {
             return `<path d="M ${path} Z" fill="none" stroke="${stroke}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>${labelSvg}`;
         }).join('');
         if (paths) {
-            contourSvg = `<svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 ${preview.width} ${preview.height}" preserveAspectRatio="xMidYMid slice" aria-label="Hybrid AI detection and SAM2 OpenCV contours">${paths}</svg>`;
+            contourSvg = `<svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 ${preview.width} ${preview.height}" preserveAspectRatio="xMidYMid slice" aria-label="AI detection and OpenCV contours">${paths}</svg>`;
         }
     }
 
@@ -2293,7 +2333,7 @@ function updateContourPreviewButton() {
         scan_not_persisted: 'Save the live scan to its evidence record before generating a contour.'
     };
     const unavailableLabels = {
-        loading: 'Preparing SAM2 segmentation...',
+        loading: 'Memproses kontur OpenCV...',
         sam2_disabled: 'Optional outlines · local only',
         sam2_checkpoint_missing: 'Optional outlines unavailable · local model',
         ultralytics_not_installed: 'Optional outlines unavailable · local package',
@@ -2303,10 +2343,10 @@ function updateContourPreviewButton() {
     button.title = unavailable
         ? (reasonMessages[preview.reason] || 'Optional SAM2 outlines are unavailable; scanning and saving can continue.')
         : contourCount === 0
-            ? 'SAM2 did not return a contour for this scan.'
-            : 'AI detections guide SAM2 masks; OpenCV refines the contour. Suggestions are not verified ground truth.';
+            ? 'OpenCV tidak menemukan kontur pada deteksi ini.'
+            : 'AI detections guide OpenCV contours. Suggestions are not verified ground truth.';
     label.textContent = unavailable
-        ? (unavailableLabels[preview.status === 'loading' ? 'loading' : preview.reason] || 'SAM2 contours unavailable')
+        ? (unavailableLabels[preview.status === 'loading' ? 'loading' : preview.reason] || 'OpenCV contours unavailable')
         : `Hybrid outlines (${contourCount})${showSam2ContourPreview ? ' · On' : ' · Off'}`;
 }
 
@@ -2317,51 +2357,11 @@ function toggleContourPreview() {
     updateContourPreviewButton();
 }
 
-async function runOpenCvStaticReplay() {
-    if (currentOpenCvStaticReplay?.status === 'ready') {
-        showOpenCvStaticReplay = !showOpenCvStaticReplay;
-        renderDetectedBoundingBoxes(currentSpatialBoxes);
-        updateOpenCvStaticReplayButton();
-        return;
-    }
-
-    const photo = registeredPhotos.find(item => item.file_url === activePhotoUrl);
-    const evidenceId = photo?.evidence_id || photo?.id;
-    if (!evidenceId) {
-        showNotificationToast('Select a saved evidence image to run the OpenCV replay.', '⚠️');
-        return;
-    }
-
-    const requestId = ++openCvStaticReplayRequestId;
-    const photoUrl = activePhotoUrl;
-    const button = document.getElementById('btnOpenCvStaticReplay');
-    const status = document.getElementById('openCvStaticReplayStatus');
-    if (button) button.disabled = true;
-    if (status) status.textContent = 'Running OpenCV HSV + EMA on 30 replays of this same still image...';
-    try {
-        const response = await fetch('/api/spatial/opencv-static-replay', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ evidence_id: evidenceId })
-        });
-        const result = await readApiJson(response, 'OpenCV static replay');
-        if (requestId !== openCvStaticReplayRequestId || activePhotoUrl !== photoUrl) return;
-        currentOpenCvStaticReplay = result.replay_preview || {
-            status: 'unavailable',
-            reason: result.message || 'replay_preview_missing'
-        };
-        showOpenCvStaticReplay = currentOpenCvStaticReplay.status === 'ready';
-        renderDetectedBoundingBoxes(currentSpatialBoxes);
-        updateOpenCvStaticReplayButton();
-    } catch (error) {
-        if (requestId !== openCvStaticReplayRequestId || activePhotoUrl !== photoUrl) return;
-        console.error('[Spatial OpenCV static replay]', error);
-        currentOpenCvStaticReplay = { status: 'unavailable' };
-        showOpenCvStaticReplay = false;
-        updateOpenCvStaticReplayButton();
-        if (status) status.textContent = `OpenCV replay failed: ${error.message}`;
-        showNotificationToast(error.message || 'OpenCV replay failed.', '⚠️');
-    }
+function runOpenCvStaticReplay() {
+    currentOpenCvStaticReplay = { status: 'unavailable', reason: 'visual_only_preview_disabled' };
+    showOpenCvStaticReplay = false;
+    renderDetectedBoundingBoxes(currentSpatialBoxes);
+    updateOpenCvStaticReplayButton();
 }
 
 function updateOpenCvStaticReplayButton() {
@@ -2370,27 +2370,10 @@ function updateOpenCvStaticReplayButton() {
     const status = document.getElementById('openCvStaticReplayStatus');
     if (!button || !label || !status) return;
 
-    const hasEvidence = registeredPhotos.some(item =>
-        item.file_url === activePhotoUrl && (item.evidence_id || item.id)
-    );
-    const replay = currentOpenCvStaticReplay;
-    button.disabled = !hasEvidence || replay?.status === 'loading';
-    if (replay?.status === 'ready') {
-        label.textContent = `OpenCV replay · ${showOpenCvStaticReplay ? 'On' : 'Off'}`;
-        status.textContent = `Static diagnostic: same image ×${replay.replay_frames}; not live streaming. Mask ${replay.mask_coverage_percent}% · ${replay.contours.length} contour(s) · lock frame ${replay.first_locked_frame ?? '—'}.`;
-        button.setAttribute('aria-pressed', String(showOpenCvStaticReplay));
-        return;
-    }
-
-    label.textContent = 'OpenCV static replay';
+    button.disabled = true;
     button.setAttribute('aria-pressed', 'false');
-    if (!hasEvidence) {
-        status.textContent = 'Select a saved evidence image. Static replay is diagnostic only, not a live stream.';
-    } else if (replay?.status === 'unavailable') {
-        status.textContent = `OpenCV replay unavailable: ${replay.reason || 'processing_failed'}`;
-    } else {
-        status.textContent = 'Diagnostic replay repeats one still image; it is not a live stream.';
-    }
+    label.textContent = 'OpenCV-only overlay disabled';
+    status.textContent = 'Only contours refined from saved Gemini detections are displayed.';
 }
 
 function toggleSpatialLayer(cluster) {

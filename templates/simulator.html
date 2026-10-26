@@ -114,10 +114,10 @@
 
         /* ANTI-REPLAY BLURRED & DIMMED STATE FOR PROCESSED PHOTOS */
         .photo-sealed-blur {
-            filter: blur(1.8px) grayscale(65%);
-            opacity: 0.55;
-            cursor: not-allowed !important;
-        }
+    filter: none;
+    opacity: 1;
+    cursor: pointer !important;
+}
 
         .photo-card-locked {
             border-color: rgba(16, 185, 129, 0.7) !important;
@@ -385,8 +385,8 @@
                         <div id="mainCanopyContainer" class="relative inline-block w-full overflow-hidden rounded-2xl border border-slate-300 dark:border-slate-700 group min-h-[380px] sm:min-h-[460px] max-h-[520px] bg-slate-950 flex items-center justify-center shadow-inner">
                             <img id="mainCanopyPreview" 
                                                  alt="Field Telemetry Preview Dynamically Loaded from Database" 
-                                 onload="if(typeof drawReticles==='function') drawReticles(); if(typeof restoreOrDisplayVisionBoxes==='function') restoreOrDisplayVisionBoxes();" 
-                                 class="w-full h-full min-h-[380px] sm:min-h-[460px] max-h-[520px] object-cover rounded-2xl transition-transform duration-500 group-hover:scale-105" 
+                                 onload="if(typeof drawReticles==='function') drawReticles();" 
+                                 class="hidden w-full h-full min-h-[380px] sm:min-h-[460px] max-h-[520px] object-cover rounded-2xl transition-transform duration-500 group-hover:scale-105" 
                                  onerror="handleEmptyEvidenceStateSimulator(this)">
                             
                             <!-- Empty State Fallback -->
@@ -2515,27 +2515,26 @@
         var photoScanResultsCache = {};
 
         function getCachedVisionBoxes(filename, url) {
-            if (url && photoScanResultsCache[url]) {
-                return photoScanResultsCache[url];
-            }
-            if (Array.isArray(activeEstatePhotos) && activeEstatePhotos.length > 0 && url) {
-                const foundPhoto = activeEstatePhotos.find(p => p.file_url === url);
-                if (foundPhoto && foundPhoto.ai_review_json) {
-                    try {
-                        const parsed = typeof foundPhoto.ai_review_json === 'string' ? JSON.parse(foundPhoto.ai_review_json) : foundPhoto.ai_review_json;
-                        if (parsed && Array.isArray(parsed.boxes)) {
-                            return parsed.boxes;
-                        }
-                    } catch (_) {}
-                }
-                let boxes = foundPhoto?.detected_entities_json || foundPhoto?.detected_entities || foundPhoto?.boxes;
-                if (typeof boxes === 'string') {
-                    try { boxes = JSON.parse(boxes); } catch (_) { boxes = null; }
-                }
-                if (foundPhoto?.is_processed && Array.isArray(boxes)) return boxes;
-            }
-            return null;
+    if (url && photoScanResultsCache[url]) {
+        return photoScanResultsCache[url];
+    }
+    // Cari dari objek foto activeEstatePhotos (yang berasal dari database inspection_evidence)
+    const pool = typeof getActiveEstatePhotosPool === 'function' ? getActiveEstatePhotosPool() : (window.activeEstatePhotos || []);
+    const photo = pool.find(p => p.file_url === url || p.image_gcs_url === url || p.filename === filename);
+    if (photo) {
+        let b = photo.boxes;
+        if (!b && photo.detected_entities_json) {
+            try {
+                b = typeof photo.detected_entities_json === 'string' ? JSON.parse(photo.detected_entities_json) : photo.detected_entities_json;
+            } catch (_) {}
         }
+        if (Array.isArray(b) && b.length > 0) {
+            if (url) photoScanResultsCache[url] = b;
+            return b;
+        }
+    }
+    return null;
+}
 
         function setCachedVisionBoxes(filename, url, boxes) {
             if (!boxes || !Array.isArray(boxes)) return;
@@ -2545,6 +2544,13 @@
         function displayPhotoScanState(filename, url) {
             const currentName = filename || selectedCanopyFileName || '';
             const currentUrl = url || document.getElementById('selected_image_url')?.value || '';
+            const imgEl = document.getElementById('mainCanopyPreview');
+            if (!imgEl || !imgEl.complete || imgEl.naturalWidth === 0 ||
+                imgEl.style.display === 'none' || imgEl.classList.contains('hidden') ||
+                !currentUrl || imgEl.src !== new URL(currentUrl, window.location.href).href) {
+                renderDetectedBoundingBoxes([]);
+                return;
+            }
             const cached = getCachedVisionBoxes(currentName, currentUrl);
             if (Array.isArray(cached)) {
                 latestDetectedObjects = cached;
@@ -2731,7 +2737,10 @@
                 selectEstatePhoto(activeEstatePhotos[0].file_url, activeEstatePhotos[0].filename, activeEstatePhotos[0].title, false);
             } else {
                 const preview = document.getElementById('mainCanopyPreview');
-                if (preview) preview.removeAttribute('src');
+                if (preview) {
+                    preview.removeAttribute('src');
+                    handleEmptyEvidenceStateSimulator(preview);
+                }
             }
             fetchAdminHistory();
         }
@@ -2938,6 +2947,10 @@
         }
 
         function selectEstatePhoto(url, filename, title, shouldScan = false) {
+            if (!url) {
+                handleEmptyEvidenceStateSimulator(document.getElementById('mainCanopyPreview'));
+                return;
+            }
             selectedCanopyFileName = filename;
             if (!selectedPhotoUrls.has(url)) {
                 selectedPhotoUrls.add(url);
@@ -2948,9 +2961,19 @@
 
             const mainImg = document.getElementById('mainCanopyPreview');
             const emptyEl = document.getElementById('emptyEvidenceStateSimulator');
+            const overlay = document.getElementById('droneBBoxesOverlay');
+            const contourOverlay = document.getElementById('simContourOverlay');
+            if (overlay) {
+                overlay.innerHTML = '';
+                overlay.style.display = 'none';
+            }
+            if (contourOverlay) {
+                contourOverlay.innerHTML = '';
+                contourOverlay.style.display = 'none';
+            }
             if (emptyEl) {
-                emptyEl.style.display = 'none';
-                emptyEl.classList.add('hidden');
+                emptyEl.style.display = 'flex';
+                emptyEl.classList.remove('hidden');
             }
 
             const nameEl = document.getElementById('active_canopy_img_name');
@@ -2959,21 +2982,33 @@
             const selectedUrlInput = document.getElementById('selected_image_url');
 
             if (mainImg) {
+                mainImg.style.display = 'none';
+                mainImg.classList.add('hidden');
+                mainImg.onload = function() {
+                    if (!mainImg.complete || mainImg.naturalWidth === 0 ||
+                        mainImg.src !== new URL(url, window.location.href).href) {
+                        handleEmptyEvidenceStateSimulator(mainImg);
+                        return;
+                    }
+                    mainImg.style.display = 'block';
+                    mainImg.classList.remove('hidden');
+                    if (emptyEl) {
+                        emptyEl.style.display = 'none';
+                        emptyEl.classList.add('hidden');
+                    }
+                    if (typeof drawReticles === 'function') drawReticles();
+                    if (shouldScan) runDetailedObjectVisionScan(true);
+                    else displayPhotoScanState(filename, url);
+                };
                 mainImg.src = url;
-                mainImg.style.display = 'block';
             }
             if (nameEl) nameEl.textContent = filename;
             if (captionEl) captionEl.textContent = `${title || 'Field Telemetry'} • In-Situ 4D`;
             if (imgSampleInput) imgSampleInput.value = filename;
             if (selectedUrlInput) selectedUrlInput.value = url;
+            if (mainImg && mainImg.complete && mainImg.naturalWidth > 0) mainImg.onload();
 
             renderEstatePhotosGallery(pool);
-
-            if (shouldScan) {
-                runDetailedObjectVisionScan(true);
-            } else {
-                displayPhotoScanState(filename, url);
-            }
         }
         window.selectEstatePhoto = selectEstatePhoto;
         window.renderEstatePhotosGallery = renderEstatePhotosGallery;
@@ -3361,7 +3396,7 @@
                             <span class="text-base shrink-0">⚠️</span>
                             <div>
                                 <strong class="text-amber-300 block mb-0.5">[LOCAL PREVIEW] Gemini analysis is not available.</strong>
-                                <span>${escapeHtml(fallbackReason || 'Showing simulator estimates only. This is not an AI finding, field audit, or compliance certification.')}</span>
+                                <span>Showing simulator estimates only. This is not an AI finding, field audit, or compliance certification.</span>
                             </div>
                         </div>
                         <p class="font-bold text-white text-xs">
@@ -3435,6 +3470,7 @@
         function drawReticles() {
             const canvas = document.getElementById('reticleCanvas');
             if (!canvas) return;
+            const imgEl = document.getElementById('mainCanopyPreview');
             const parent = canvas.parentElement;
             const width = (parent && parent.clientWidth) ? parent.clientWidth : (canvas.clientWidth || 400);
             const height = (parent && parent.clientHeight) ? parent.clientHeight : (canvas.clientHeight || 300);
@@ -3443,6 +3479,8 @@
 
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (!imgEl || !imgEl.complete || imgEl.naturalWidth === 0 ||
+                imgEl.style.display === 'none' || imgEl.classList.contains('hidden')) return;
 
             const cx = canvas.width / 2;
             const cy = canvas.height / 2;
@@ -4137,8 +4175,18 @@
                     exchangeRateIdrPerUsd: Number.isFinite(exchangeRate) && exchangeRate > 0 ? exchangeRate : null
                 };
                 output.textContent = `Rp ${pricePerKg.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/kg • System Control scenario only`;
+                const noticeEl = document.getElementById('financialEstimatesNotice');
+                if (noticeEl) {
+                    noticeEl.className = "p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/40 text-xs text-emerald-100 flex flex-wrap items-center justify-between gap-2";
+                    noticeEl.innerHTML = `<span><strong>TBS Pricing Formula Configured:</strong> Indicative price <strong>Rp ${pricePerKg.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/kg</strong> (Ton: Rp ${Number(result.data?.harga_tbs_idr_ton || 0).toLocaleString('id-ID', { maximumFractionDigits: 0 })}). Source: <a href="/system-control" class="underline font-bold text-emerald-400">System Control (rumus_tb.py)</a> scenario parameters.</span> <a href="/system-control" class="px-2.5 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-[10px] transition shrink-0">Configure Parameters</a>`;
+                }
             } catch (error) {
                 output.textContent = `Unavailable: ${error.message}`;
+                const noticeEl = document.getElementById('financialEstimatesNotice');
+                if (noticeEl) {
+                    noticeEl.className = "p-3 rounded-xl bg-amber-950/20 border border-amber-500/40 text-xs text-amber-100";
+                    noticeEl.innerHTML = `Financial estimates are unavailable. System Control has configured TBS formula parameters, but their sources and dates are not verified and no live market feed is connected. Profitability also requires measured yields, verified local FFB/crop prices, and operating costs. <a href="/system-control" class="underline font-bold">Review pricing parameters</a>; configured values are scenarios, not verified financial results.`;
+                }
             } finally {
                 recalculateCombinedAccumulation();
                 render10YearCashflowTable();
@@ -5120,10 +5168,20 @@ This summary contains model estimates, not field measurements, certification, or
             const overlay = document.getElementById('droneBBoxesOverlay');
             if (!overlay) return;
 
-            if (!isVisionOverlayVisible || !boxes || boxes.length === 0) {
+            const imgEl = document.getElementById('mainCanopyPreview');
+            const imageReady = Boolean(
+                imgEl &&
+                imgEl.complete &&
+                imgEl.naturalWidth > 0 &&
+                imgEl.style.display !== 'none' &&
+                !imgEl.classList.contains('hidden')
+            );
+            if (!imageReady || !isVisionOverlayVisible || !boxes || boxes.length === 0) {
                 overlay.innerHTML = '';
+                overlay.style.display = 'none';
                 return;
             }
+            overlay.style.display = 'block';
 
             let html = '';
             boxes.forEach(item => {
@@ -5232,6 +5290,21 @@ This summary contains model estimates, not field measurements, certification, or
                 if (badge) badge.textContent = 'No image selected';
                 return;
             }
+            if (!mainImg || !mainImg.complete || mainImg.naturalWidth === 0 ||
+                mainImg.style.display === 'none' || mainImg.classList.contains('hidden')) {
+                renderDetectedBoundingBoxes([]);
+                const badge = document.getElementById('aiDetectionSummaryBadge');
+                if (badge) badge.textContent = 'Waiting for image to load';
+                if (mainImg) {
+                    mainImg.addEventListener('load', () => {
+                        if (document.getElementById('selected_image_url')?.value === currentImgUrl ||
+                            mainImg.getAttribute('src') === currentImgUrl) {
+                            runDetailedObjectVisionScan(forceRescan);
+                        }
+                    }, { once: true });
+                }
+                return;
+            }
             const activeKode = (window.activeEstate && window.activeEstate.kode_kebun) || 'EST-MDN-010';
             const selectedEvidence = activeEstatePhotos.find(photo =>
                 photo.file_url === currentImgUrl || photo.image_gcs_url === currentImgUrl ||
@@ -5267,8 +5340,8 @@ This summary contains model estimates, not field measurements, certification, or
                         await window.HybridContourPreview.load({
                             ...contourOptions,
                             boxes: savedBoxes,
-                            isLive: selectedEvidence?.is_processed === true,
-                            isPersisted: selectedEvidence?.is_processed === true
+                            isLive: selectedEvidence?.is_gemini_verified === true,
+                            isPersisted: selectedEvidence?.is_gemini_verified === true
                         });
                     }
                     const badge = document.getElementById('aiDetectionSummaryBadge');
@@ -5342,12 +5415,9 @@ This summary contains model estimates, not field measurements, certification, or
             }
 
             if (!tailoredData) {
-                const fallbackBoxes = (window.UnifiedVisionEngine && typeof window.UnifiedVisionEngine.generateHolisticFallback === 'function')
-                    ? window.UnifiedVisionEngine.generateHolisticFallback(currentImgName, isMandor ? 'TERRESTRIAL_IN_SITU' : 'AERIAL_DRONE', 'SIMULATOR').physical_entities
-                    : [];
                 tailoredData = {
-                    boxes: fallbackBoxes,
-                    totalEntities: fallbackBoxes.length,
+                    boxes: [],
+                    totalEntities: 0,
                     mode: 'HEURISTIC_FALLBACK',
                     isFallback: true
                 };
@@ -5359,11 +5429,14 @@ This summary contains model estimates, not field measurements, certification, or
                     delete entity.confidence;
                 });
             }
-            latestDetectedObjects = tailoredData.boxes || [];
+            latestDetectedObjects = tailoredData.isFallback || tailoredData.mode !== 'LIVE_GEMINI'
+                ? []
+                : (tailoredData.boxes || []);
             const isLiveVision = !tailoredData.isFallback && tailoredData.mode === 'LIVE_GEMINI';
             if (isLiveVision) {
-                setCachedVisionBoxes(currentImgName, currentImgUrl, latestDetectedObjects);
                 if (selectedEvidence && tailoredData.persistence?.saved) {
+                    setCachedVisionBoxes(currentImgName, currentImgUrl, latestDetectedObjects);
+                    selectedEvidence.is_gemini_verified = true;
                     selectedEvidence.boxes = latestDetectedObjects;
                     selectedEvidence.detected_entities = latestDetectedObjects;
                     selectedEvidence.is_processed = true;
@@ -5400,7 +5473,7 @@ This summary contains model estimates, not field measurements, certification, or
             if (summaryBadge) {
                 summaryBadge.textContent = isLiveVision
                     ? `${tailoredData.totalEntities} Gemini detections`
-                    : `${tailoredData.totalEntities} heuristic boxes • not image-verified`;
+                    : 'Gemini unavailable • no verified detections';
                 summaryBadge.className = isLiveVision
                     ? 'text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-600'
                     : 'text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-amber-950 text-amber-300 border border-amber-600';
@@ -5460,7 +5533,7 @@ This summary contains model estimates, not field measurements, certification, or
             if (machineDetected) {
                 machineDetected.textContent = isLiveVision
                     ? `${tailoredData.totalEntities} entities returned by Gemini image analysis.`
-                    : `${tailoredData.totalEntities} heuristic preview boxes; no image detections verified.`;
+                    : 'No image-verified detections available.';
                 machineDetected.className = isLiveVision
                     ? "text-cyan-300 font-bold font-mono"
                     : "text-amber-300 font-bold font-mono";
@@ -5470,7 +5543,7 @@ This summary contains model estimates, not field measurements, certification, or
                 showNotificationToast(
                     isLiveVision
                         ? `✓ Gemini menganalisis gambar: ${tailoredData.totalEntities} deteksi.`
-                        : `Pratinjau fallback: ${tailoredData.totalEntities} kotak heuristik; tidak terverifikasi.`,
+                        : 'Analisis Gemini tidak tersedia; tidak ada deteksi gambar terverifikasi.',
                     isLiveVision ? "🎯" : "⚠️"
                 );
             }
@@ -6264,13 +6337,36 @@ This summary contains model estimates, not field measurements, certification, or
 
 
 function handleEmptyEvidenceStateSimulator(imgEl) {
-    if (imgEl) imgEl.style.display = 'none';
+    if (imgEl) {
+        imgEl.style.display = 'none';
+        imgEl.classList.add('hidden');
+    }
+    const overlay = document.getElementById('droneBBoxesOverlay');
+    if (overlay) {
+        overlay.innerHTML = '';
+        overlay.style.display = 'none';
+    }
+    const contourOverlay = document.getElementById('simContourOverlay');
+    if (contourOverlay) {
+        contourOverlay.innerHTML = '';
+        contourOverlay.style.display = 'none';
+    }
+    const canvas = document.getElementById('reticleCanvas');
+    if (canvas) {
+        const context = canvas.getContext('2d');
+        if (context) context.clearRect(0, 0, canvas.width, canvas.height);
+    }
     const emptyEl = document.getElementById('emptyEvidenceStateSimulator');
-    if (emptyEl) emptyEl.classList.remove('hidden');
+    if (emptyEl) {
+        emptyEl.classList.remove('hidden');
+        emptyEl.style.display = 'flex';
+    }
+    const selectedUrlInput = document.getElementById('selected_image_url');
+    if (selectedUrlInput) selectedUrlInput.value = '';
 }
 window.handleEmptyEvidenceStateSimulator = handleEmptyEvidenceStateSimulator;
     </script>
-    <script src="/static/js/hybrid_contour_preview.js?v=20261025-hybrid-contours-2"></script>
-    <script src="/static/js/unified_vision_engine.js?v=20261025-ai-scan-context-1"></script>
+    <script src="/static/js/hybrid_contour_preview.js?v=20261027-contour-source-1"></script>
+    <script src="/static/js/unified_vision_engine.js?v=20261027-scanner-fallback-ui-2"></script>
     <script src="/static/js/simulator.js?v=20261025-hybrid-contours-1"></script>
     <script src="/static/js/settings_governance.js"></script>

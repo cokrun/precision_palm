@@ -179,11 +179,21 @@ class TestSam2ContourPreview(unittest.TestCase):
         self.assertEqual(connection.execute.call_count, 1)
         run_sam.assert_called_once()
 
-    def test_endpoint_is_disabled_by_default(self):
+    def test_endpoint_uses_opencv_by_default(self):
+        connection = Mock()
+        connection.execute.return_value.fetchone.return_value = {
+            "evidence_id": "EV-TEST-1",
+            "image_raw_base64": base64.b64encode(self.make_image_bytes()).decode("ascii"),
+            "detected_entities_json": json.dumps([{"box_2d": [200, 250, 800, 750]}]),
+            "is_processed": 1,
+        }
         app_module.app.config["TESTING"] = True
         client = app_module.app.test_client()
 
-        with patch.dict("os.environ", {}, clear=True):
+        with (
+            patch.object(app_module, "get_pure_db_connection", return_value=connection),
+            patch.dict("os.environ", {}, clear=True),
+        ):
             response = client.post(
                 "/api/spatial/contour-preview",
                 json={"evidence_id": "EV-TEST-1"},
@@ -191,8 +201,8 @@ class TestSam2ContourPreview(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.get_json()["contour_preview"]["reason"],
-            "sam2_disabled",
+            response.get_json()["contour_preview"]["method"],
+            "opencv_box_contour",
         )
 
     def test_endpoint_rejects_missing_evidence_id(self):

@@ -21,6 +21,16 @@
             if (!imgEl) return;
             imgEl.style.display = 'none';
             imgEl.classList.add('hidden');
+            const overlay = document.getElementById('droneBBoxesOverlay');
+            if (overlay) {
+                overlay.innerHTML = '';
+                overlay.style.display = 'none';
+            }
+            const canvas = document.getElementById('reticleCanvas');
+            if (canvas) {
+                const context = canvas.getContext('2d');
+                if (context) context.clearRect(0, 0, canvas.width, canvas.height);
+            }
             const emptyEl = document.getElementById('emptyEvidenceStateSpatial') || document.getElementById('emptyEvidenceState');
             if (emptyEl) {
                 emptyEl.classList.remove('hidden');
@@ -144,9 +154,9 @@
         }
 
         .photo-sealed-blur {
-            filter: blur(1.2px) grayscale(40%);
-            opacity: 0.75;
-        }
+    filter: none;
+    opacity: 1;
+}
 
         .photo-card-locked {
             border-color: rgba(16, 185, 129, 0.6) !important;
@@ -692,11 +702,11 @@
                                         <button type="button" id="btnToggleContourPreview" onclick="toggleContourPreview()" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-950 border border-amber-500 text-amber-300 font-bold cursor-pointer transition shadow-xs" aria-pressed="false">
                                             <span>〰️</span> <span id="contourPreviewButtonLabel">Hybrid AI + SAM2 + OpenCV</span>
                                         </button>
-                                        <button type="button" id="btnOpenCvStaticReplay" onclick="runOpenCvStaticReplay()" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-cyan-950 border border-cyan-500 text-cyan-300 font-bold cursor-pointer transition shadow-xs" disabled>
-                                            <span>▶</span> <span id="openCvStaticReplayButtonLabel">OpenCV static replay</span>
+                                        <button type="button" id="btnOpenCvStaticReplay" onclick="runOpenCvStaticReplay()" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-cyan-950 border border-cyan-500 text-cyan-300 font-bold cursor-not-allowed transition shadow-xs" disabled>
+                                            <span>▶</span> <span id="openCvStaticReplayButtonLabel">OpenCV-only overlay disabled</span>
                                         </button>
                                     </div>
-                                    <span id="openCvStaticReplayStatus" class="w-full text-[9px] text-cyan-200/80">Diagnostic replay repeats one still image; it is not a live stream.</span>
+                                    <span id="openCvStaticReplayStatus" class="w-full text-[9px] text-cyan-200/80">Only contours refined from saved Gemini detections are displayed.</span>
                                 </div>
 
                                 <!-- Segel Kriptografis FIPS 180-4 & Ringkasan Auditor Lapangan AI (Image 1 Parity) -->
@@ -1004,8 +1014,8 @@
     </div>
 
     <script src="/static/js/settings_governance.js"></script>
-    <script src="/static/js/unified_vision_engine.js"></script>
-    <script src="/static/js/spatial.js?v=20261025-hybrid-scanner-v3"></script>
+    <script src="/static/js/unified_vision_engine.js?v=20261027-scanner-fallback-ui-2"></script>
+    <script src="/static/js/spatial.js?v=20261027-contour-source-1"></script>
 </body>
 
 </html>

@@ -241,6 +241,85 @@ def _load_shared_evidence_by_id(evidence_id: str) -> Optional[Dict[str, Any]]:
     record = json.loads(raw_manifest.decode('utf-8'))
     return record if record.get('evidence_id') == evidence_id else None
 
+def _read_shared_evidence_image(
+    evidence_id: Optional[str] = None,
+    dossier_id: Optional[str] = None,
+    audit_year: Optional[int] = None,
+    perspective: Optional[str] = None
+) -> Optional[Tuple[bytes, str, Dict[str, Any]]]:
+    from cloud_services.bigquery_manager import download_file_from_gcs
+
+    record = _load_shared_evidence_by_id(evidence_id) if evidence_id else None
+    if record is None and dossier_id:
+        clean_dossier = re.sub(r'-\d{4}$', '', dossier_id)
+        candidate_ids = list(dict.fromkeys((
+            dossier_id,
+            clean_dossier,
+            f"{clean_dossier}-{audit_year}" if audit_year else clean_dossier,
+        )))
+        records = []
+        for candidate_id in candidate_ids:
+            records.extend(_load_shared_evidence(candidate_id, audit_year))
+        if perspective:
+            records = [
+                item for item in records
+                if item.get('perspective_mode') == perspective
+            ]
+        if records:
+            record = max(records, key=lambda item: str(item.get('uploaded_at') or ''))
+
+    if not record or not record.get('media_object'):
+        return None
+    downloaded = download_file_from_gcs(record['media_object'])
+    if not downloaded:
+        return None
+    image_bytes, mime_type = downloaded
+    return image_bytes, record.get('image_mime_type') or mime_type, record
+
+def _save_shared_evidence_scan(
+    evidence_id: str,
+    image_sha256: str,
+    detected_entities: List[Dict[str, Any]],
+    diagnostic_matrix: Optional[Dict[str, Any]] = None,
+) -> bool:
+    from cloud_services.bigquery_manager import upload_file_to_gcs
+
+    record = _load_shared_evidence_by_id(evidence_id)
+    if not record:
+        return False
+
+    stored_hash = str(record.get('image_sha256_hash') or '').lower()
+    if stored_hash and stored_hash != str(image_sha256).lower():
+        return False
+
+    record.update({
+        "detected_entities_json": json.dumps(detected_entities, ensure_ascii=False),
+        "diagnostic_matrix_json": json.dumps(diagnostic_matrix or {}, ensure_ascii=False),
+        "is_processed": True,
+        "is_locked": False,
+        "status": "SCANNED",
+        "sha256_hash": image_sha256,
+        "image_sha256_hash": image_sha256,
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+    })
+    evidence_key = hashlib.sha256(str(evidence_id).encode('utf-8')).hexdigest()
+    manifest_object = (
+        record.get('manifest_object')
+        or f"{_evidence_manifest_prefix(str(record['dossier_id']))}{evidence_key}.json"
+    )
+    serialized_record = json.dumps(record, ensure_ascii=False).encode('utf-8')
+    manifest_uri = upload_file_to_gcs(
+        serialized_record,
+        manifest_object,
+        content_type='application/json',
+    )
+    index_uri = upload_file_to_gcs(
+        serialized_record,
+        _evidence_index_object_name(evidence_id),
+        content_type='application/json',
+    )
+    return bool(manifest_uri and index_uri)
+
 def _delete_shared_evidence(evidence_id: str) -> bool:
     from cloud_services.bigquery_manager import delete_gcs_blob
 
@@ -2998,6 +3077,50 @@ def record_unified_ai_log(feature_name, model_engine, latency_ms, status, prompt
     except Exception as e_log:
         logger.warning(f"[Record Unified AI Log Error]: {e_log}")
 
+def _classify_ai_log_entry(log_entry: Dict[str, Any]) -> Dict[str, Any]:
+    feature = str(log_entry.get("feature_name") or "").lower()
+    prompt = str(log_entry.get("prompt_input") or "").lower()
+    model = str(log_entry.get("model_engine") or "").lower()
+    mode = str(log_entry.get("engine_mode") or "").upper()
+    status = str(log_entry.get("status") or "").upper()
+    status_message = str(log_entry.get("status_message") or "")
+    message_lower = status_message.lower()
+
+    is_vision_scan = (
+        "vision" in feature
+        or "scanner" in feature
+        or "scan-image" in prompt
+        or "image scan" in prompt
+        or "multimodal" in model
+    )
+    is_fallback = (
+        status == "FALLBACK"
+        or "FALLBACK" in mode
+        or "RULE_ENGINE" in mode
+        or "STATUTORY" in mode
+        or "fallback" in message_lower
+        or "offline" in message_lower
+    )
+    if is_vision_scan:
+        operation_type = "IMAGE_VISION_SCAN"
+        operation_label = "AI Vision · Image scan"
+    elif "reason" in feature or "reasoning" in feature or "reasoning" in model:
+        operation_type = "TEXT_REASONING"
+        operation_label = "Gemini · Text reasoning"
+    else:
+        operation_type = "AI_OPERATION"
+        operation_label = "AI · Other operation"
+
+    return {
+        **log_entry,
+        "operation_type": operation_type,
+        "operation_label": operation_label,
+        "execution_path": "FALLBACK" if is_fallback else (
+            "LIVE_GEMINI" if mode == "LIVE_GEMINI" else mode or status
+        ),
+        "fallback_reason": status_message if is_fallback else None,
+    }
+
 
 @app.route('/api/ai/terminal', methods=['POST', 'OPTIONS'])
 def api_ai_terminal_execute():
@@ -3302,6 +3425,7 @@ def api_get_ai_logs():
             pass
 
     logs = list(logs_map.values())
+    logs = [_classify_ai_log_entry(log) for log in logs]
     # Sort descending by timestamp parsed epoch, with numeric ID as secondary tie-breaker
     logs.sort(key=lambda x: (_normalize_ts_epoch(x.get('timestamp')), int(x.get('id') or 0)), reverse=True)
     logs = logs[:limit]
@@ -3746,6 +3870,14 @@ def api_ai_scan_image():
         "filename": str(raw_img_name)
     }
 
+    raw_target = (
+        json_data.get('image_url') or json_data.get('image') or
+        json_data.get('foto_url') or json_data.get('foto') or
+        json_data.get('url') or json_data.get('filename') or
+        json_data.get('image_name') or request.args.get('image_url') or
+        request.args.get('url') or request.args.get('filename') or ""
+    )
+
     if file:
         image_bytes = file.read()
         mime = file.mimetype if file.mimetype and file.mimetype.startswith("image/") else "image/jpeg"
@@ -3770,14 +3902,6 @@ def api_ai_scan_image():
             finally:
                 conn_ev.close()
 
-        raw_target = (
-            json_data.get('image_url') or json_data.get('image') or 
-            json_data.get('foto_url') or json_data.get('foto') or 
-            json_data.get('url') or json_data.get('filename') or 
-            json_data.get('image_name') or request.args.get('image_url') or 
-            request.args.get('url') or request.args.get('filename') or ""
-        )
-        
         if not image_bytes and raw_target and ',' in raw_target and 'base64' in raw_target:
             try:
                 data_uri_header = raw_target.split(',', 1)[0]
@@ -3858,6 +3982,50 @@ def api_ai_scan_image():
                             image_bytes = f.read()
                         if len(image_bytes) > 0:
                             break
+
+        if not image_bytes:
+            from urllib.parse import parse_qs, urlsplit
+
+            target_url = str(raw_target or '')
+            parsed_target = urlsplit(target_url)
+            media_match = re.search(r'/api/media/evidence/([^/]+)', parsed_target.path)
+            shared_evidence_id = str(requested_evidence_id or (
+                media_match.group(1) if media_match else ''
+            )).strip()
+            query_params = parse_qs(parsed_target.query)
+            if shared_evidence_id in ('current', 'latest'):
+                shared_evidence_id = ''
+            shared_dossier_id = (
+                (query_params.get('dossier_id') or [None])[0]
+                or json_data.get('dossier_id')
+                or json_data.get('kode_kebun')
+                or json_data.get('block_id')
+            )
+            shared_perspective = (
+                (query_params.get('perspective') or [None])[0]
+                or json_data.get('perspective_mode')
+                or json_data.get('perspective_hint')
+            )
+            try:
+                shared_image = _read_shared_evidence_image(
+                    evidence_id=shared_evidence_id or None,
+                    dossier_id=str(shared_dossier_id) if shared_dossier_id else None,
+                    audit_year=datetime.now().year,
+                    perspective=str(shared_perspective) if shared_perspective else None,
+                )
+            except Exception as exc:
+                logger.exception("Could not resolve scan image from shared evidence storage")
+                return jsonify({
+                    "status": "error",
+                    "message": "Gambar bukti tidak dapat dibaca dari penyimpanan bersama.",
+                    "error": str(exc),
+                }), 503
+
+            if shared_image:
+                image_bytes, mime, shared_record = shared_image
+                resolved_evidence_id = shared_record.get('evidence_id') or resolved_evidence_id
+                if shared_record.get('filename'):
+                    raw_img_name = shared_record['filename']
 
     if not image_bytes or len(image_bytes) == 0:
         return jsonify({"status": "error", "message": "File gambar inspeksi tidak ditemukan. Wajib mengunggah foto lapangan riil."}), 400
@@ -3979,7 +4147,7 @@ def api_ai_scan_image():
                 feature_name=feature_name or "Canopy & Parcel Vision Scanner",
                 model_engine=engine_name,
                 latency_ms=int((telemetry_payload.get("latency_seconds") or 1.8) * 1000),
-                status="SUCCESS",
+                status="SUCCESS" if is_live_gemini else "FALLBACK",
                 prompt_input=(
                     prompt_used or json.dumps({
                         "workflow_context": scan_context,
@@ -4121,7 +4289,7 @@ def api_ai_scan_image():
                 feature_name=feature_name or "Canopy & Parcel Vision Scanner",
                 model_engine="Google Gemini 3.8 Flash (Supervised Rule RAG)",
                 latency_ms=850,
-                status="SUCCESS",
+                status="FALLBACK",
                 prompt_input=(
                     json.dumps({
                         "workflow_context": scan_context,
@@ -4663,15 +4831,6 @@ def api_spatial_contour_preview():
     if request.method == 'OPTIONS':
         return ('', 204)
 
-    if os.environ.get("SPATIAL_SAM2_ENABLED", "").strip().lower() not in {"1", "true", "yes"}:
-        return jsonify({
-            "status": "success",
-            "contour_preview": {
-                "status": "unavailable",
-                "reason": "sam2_disabled",
-            },
-        }), 200
-
     data = request.get_json(silent=True) or {}
     evidence_id = str(data.get('evidence_id') or '').strip()
     if not evidence_id:
@@ -4726,9 +4885,18 @@ def api_spatial_contour_preview():
                 "message": "Format data deteksi tersimpan tidak valid",
             }), 422
 
-        from cloud_services.image_contour import build_sam2_contour_preview
+        # Gunakan OpenCV ringan secara default; jika SPATIAL_SAM2_ENABLED=1 maka SAM2 dicoba
+        if os.environ.get("SPATIAL_SAM2_ENABLED", "").strip().lower() in {"1", "true", "yes"}:
+            try:
+                from cloud_services.image_contour import build_sam2_contour_preview
+                preview = build_sam2_contour_preview(image_bytes, entities)
+                if preview.get("status") == "ready":
+                    return jsonify({"status": "success", "contour_preview": preview}), 200
+            except Exception:
+                logger.warning("[Spatial contour preview] SAM2 failed or unavailable, falling back to OpenCV")
 
-        preview = build_sam2_contour_preview(image_bytes, entities)
+        from cloud_services.image_contour import build_opencv_box_contour_preview
+        preview = build_opencv_box_contour_preview(image_bytes, entities)
         return jsonify({"status": "success", "contour_preview": preview}), 200
     except Exception:
         logger.exception("[Spatial contour preview error]")
@@ -4750,6 +4918,7 @@ def api_spatial_opencv_static_replay():
         return jsonify({"status": "error", "message": "evidence_id wajib diisi"}), 400
 
     conn = get_pure_db_connection()
+    image_bytes = None
     try:
         row = conn.execute("""
             SELECT image_raw_base64
@@ -4757,22 +4926,31 @@ def api_spatial_opencv_static_replay():
             WHERE evidence_id = ? OR id = ?
             LIMIT 1;
         """, (evidence_id, evidence_id)).fetchone()
-        if not row:
-            return jsonify({"status": "error", "message": "Bukti foto tidak ditemukan"}), 404
+        raw_image = str(row["image_raw_base64"] or "") if row else ""
+        if raw_image:
+            if raw_image.startswith("data:image/") and ',' in raw_image:
+                raw_image = raw_image.split(',', 1)[1]
+            try:
+                image_bytes = base64.b64decode(raw_image, validate=True)
+            except (ValueError, base64.binascii.Error):
+                logger.warning("[OpenCV replay] Invalid stored image encoding for evidence %s", evidence_id)
 
-        raw_image = str(row["image_raw_base64"] or "")
-        if not raw_image:
+        if not image_bytes:
+            try:
+                shared_image = _read_shared_evidence_image(evidence_id=evidence_id)
+            except Exception:
+                logger.exception("[OpenCV replay] Shared image lookup failed for evidence %s", evidence_id)
+                return jsonify({
+                    "status": "error",
+                    "message": "Gambar bukti tidak dapat dibaca dari penyimpanan bersama.",
+                }), 503
+            if shared_image:
+                image_bytes = shared_image[0]
+        if not image_bytes:
             return jsonify({
                 "status": "error",
-                "message": "Data gambar asli tidak tersedia untuk replay OpenCV",
-            }), 422
-        if raw_image.startswith("data:image/") and ',' in raw_image:
-            raw_image = raw_image.split(',', 1)[1]
-        try:
-            image_bytes = base64.b64decode(raw_image, validate=True)
-        except (ValueError, base64.binascii.Error):
-            logger.warning("[Spatial OpenCV replay] Invalid stored image encoding for evidence %s", evidence_id)
-            return jsonify({"status": "error", "message": "Encoding gambar bukti tidak valid"}), 422
+                "message": "Gambar bukti tidak tersedia di database maupun penyimpanan bersama.",
+            }), 404
 
         from cloud_services.image_contour import build_opencv_static_replay_preview
 

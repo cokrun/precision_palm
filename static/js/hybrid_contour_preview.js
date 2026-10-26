@@ -77,15 +77,18 @@
                     : '';
                 return `<g><title>${escapeXml(label + support)}</title><polyline points="${points}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><text x="${firstPoint[0]}" y="${Math.max(14, firstPoint[1] - 7)}" fill="${color}" font-size="16" font-weight="700" paint-order="stroke" stroke="#020617" stroke-width="4" stroke-linejoin="round">${escapeXml(label)}</text></g>`;
             }).join('');
-            layer.innerHTML = `<svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 ${preview.width} ${preview.height}" preserveAspectRatio="xMidYMid slice" aria-label="SAM2 segmentation refined with OpenCV">${paths}</svg>`;
+            const methodLabel = preview.method === 'opencv_hsv_ema_static_replay'
+                ? 'OpenCV HSV vegetation-region preview'
+                : 'OpenCV contour outlines';
+            layer.innerHTML = `<svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 ${preview.width} ${preview.height}" preserveAspectRatio="xMidYMid slice" aria-label="${methodLabel}">${paths}</svg>`;
         }
 
         const unavailable = !preview || preview.status !== 'ready' || drawable.length === 0;
         button.disabled = unavailable;
         button.setAttribute('aria-pressed', String(state.visible));
         buttonLabel.textContent = unavailable
-            ? 'Optional outlines · local only'
-            : `SAM2 + OpenCV outline (${drawable.length}) · ${state.visible ? 'On' : 'Off'}`;
+            ? 'OpenCV outlines unavailable'
+            : `${preview.method === 'opencv_hsv_ema_static_replay' ? 'OpenCV vegetation regions' : 'OpenCV outline'} (${drawable.length}) · ${state.visible ? 'On' : 'Off'}`;
     }
 
     function reset(channel, options) {
@@ -120,31 +123,38 @@
         const state = getState(options.channel);
         const requestId = ++state.requestId;
         state.options = options;
-        state.preview = { status: 'loading' };
-        state.visible = true;
-        render(options.channel);
-        setProgress(options, 'running', 'Gemini detections → SAM2 + OpenCV', 'Generating object outlines from the saved scan…');
-
-        const isCurrent = () => requestId === state.requestId &&
-            (typeof options.isCurrent !== 'function' || options.isCurrent());
-        if (!options.isLive || !options.isPersisted || !options.evidenceId) {
-            state.preview = {
-                status: 'unavailable',
-                reason: !options.evidenceId
-                    ? 'evidence_id_missing'
-                    : (!options.isPersisted ? 'scan_not_persisted' : 'scan_not_image_verified')
-            };
-            if (isCurrent()) {
-                render(options.channel);
-                setProgress(options, 'done', 'SAM2 + OpenCV outline skipped', !options.evidenceId
-                    ? 'This image is not linked to a saved evidence record.'
-                    : (!options.isPersisted
-                        ? 'The live Gemini scan was not saved; no stored detections are available for segmentation.'
-                        : 'Only live image detections saved to evidence can be used as SAM2 prompts.'));
-            }
+        state.visible = false;
+        const hasPersistedGeminiDetections = options.isLive === true &&
+            options.isPersisted === true &&
+            Array.isArray(options.boxes) &&
+            options.boxes.length > 0;
+        if (!hasPersistedGeminiDetections) {
+            state.preview = { status: 'unavailable', reason: 'saved_gemini_detections_required' };
+            render(options.channel);
+            setProgress(
+                options,
+                'failed',
+                'Contours unavailable',
+                'Contours are hidden until Gemini detections are successfully saved.'
+            );
             return state.preview;
         }
 
+        state.preview = { status: 'loading' };
+        state.visible = true;
+        render(options.channel);
+        setProgress(options, 'running', 'OpenCV Contours', 'Refining saved Gemini detections…');
+
+        const isCurrent = () => requestId === state.requestId &&
+            (typeof options.isCurrent !== 'function' || options.isCurrent());
+        if (!options.evidenceId) {
+            state.preview = { status: 'unavailable', reason: 'evidence_id_missing' };
+            render(options.channel);
+            setProgress(options, 'failed', 'Contours unavailable', 'This image is not linked to a saved Gemini scan.');
+            return state.preview;
+        }
+
+        let preview = null;
         try {
             const response = await fetch('/api/spatial/contour-preview', {
                 method: 'POST',
@@ -155,38 +165,30 @@
             if (!response.ok) {
                 throw new Error(result.message || `Contour preview failed (${response.status})`);
             }
-
-            const preview = result.contour_preview || {
-                status: 'unavailable',
-                reason: result.reason || (result.status === 'not_run' ? 'scan_not_persisted' : 'contour_preview_missing')
-            };
-            if (!isCurrent()) return preview;
-
-            state.preview = preview;
-            render(options.channel);
-            if (preview.status === 'ready' && Array.isArray(preview.contours) && preview.contours.length > 0) {
-                setProgress(options, 'done', 'SAM2 + OpenCV complete', `${preview.contours.length} outline(s) refined from the saved Gemini detections.`);
-            } else {
-                const reason = preview.reason || 'no_contours';
-                const messages = {
-                    sam2_disabled: 'Optional SAM2 outlines are not enabled here; scanning and certification can continue.',
-                    sam2_checkpoint_missing: 'Optional SAM2 outlines need local model weights; scanning and certification can continue.',
-                    ultralytics_not_installed: 'Optional SAM2 outlines need the local Ultralytics package; scanning and certification can continue.',
-                    scan_not_image_verified: 'The saved detections are not verified live image results.',
-                    scan_not_persisted: 'No saved image detections are available for this evidence.',
-                    no_contours: 'SAM2 did not return an outline for the detected objects.'
-                };
-                setProgress(options, 'done', 'Optional outlines skipped', messages[reason] || `No outline was returned (${reason}); scanning and certification can continue.`);
-            }
-            return preview;
+            preview = result.contour_preview || null;
         } catch (error) {
-            if (!isCurrent()) return null;
-            console.error(`[${options.channel} contour preview]`, error);
-            state.preview = { status: 'unavailable', reason: 'contour_preview_request_failed' };
-            render(options.channel);
-            setProgress(options, 'done', 'Optional outlines skipped', `${error.message || 'The contour preview request failed.'} Scanning and certification can continue.`);
+            console.error(`[${options.channel} SAM2 contour preview]`, error);
+            if (isCurrent()) {
+                state.preview = { status: 'unavailable', reason: 'contour_preview_request_failed' };
+                render(options.channel);
+                setProgress(options, 'failed', 'Contours unavailable', 'OpenCV could not extract contours for the saved Gemini detections.');
+            }
             return state.preview;
         }
+
+        if (!isCurrent()) return preview;
+        if (preview?.status !== 'ready' || !Array.isArray(preview.contours) || !preview.contours.length) {
+            state.preview = preview || { status: 'unavailable', reason: 'contour_preview_unavailable' };
+            render(options.channel);
+            setProgress(options, 'failed', 'Contours unavailable', 'OpenCV did not return contours for the saved Gemini detections.');
+            return state.preview;
+        }
+
+        state.preview = preview;
+        render(options.channel);
+        setProgress(options, 'done', 'OpenCV complete',
+            `${preview.contours.length} outline(s) refined from saved Gemini detections.`);
+        return state.preview;
     }
 
     function toggle(channel) {

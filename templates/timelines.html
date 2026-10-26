@@ -16,7 +16,7 @@
         })();
     </script>
     <script src="/static/js/i18n.js"></script>
-    <script src="/static/js/unified_vision_engine.js?v=20261025-ai-scan-context-1"></script>
+    <script src="/static/js/unified_vision_engine.js?v=20261027-scanner-fallback-ui-2"></script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -83,8 +83,9 @@
             animation: snapBoxLock 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         .photo-sealed-blur {
-            filter: contrast(1.05) saturate(1.1);
-        }
+    filter: none;
+    opacity: 1;
+}
         .photo-card-locked {
             position: relative;
         }
@@ -506,9 +507,8 @@
                 <!-- Kanvas Foto & Retikel Laser HUD -->
                 <div id="timelinePhotoContainer" class="relative w-full min-h-[380px] sm:min-h-[460px] max-h-[520px] rounded-2xl overflow-hidden bg-slate-950 border border-slate-300 dark:border-slate-700 shadow-inner group flex items-center justify-center">
                     <img id="imgMonitoringEvidencePreview" 
-                         src="/static/img/sawit_drone.jpg" 
                          alt="Field Evidence Dynamically Loaded from Database" 
-                         class="w-full h-full min-h-[380px] sm:min-h-[460px] max-h-[520px] object-cover"
+                         class="hidden w-full h-full min-h-[380px] sm:min-h-[460px] max-h-[520px] object-cover"
                          onerror="handleImgEvidenceError(this)">
 
                     <!-- Empty State Fallback -->
@@ -1675,7 +1675,8 @@
         const emptyEl = document.getElementById('emptyEvidenceStateTimelines');
         const imgEl = document.getElementById('imgMonitoringEvidencePreview');
 
-        const isMissing = !currentEvidenceUrl || !imgEl || !imgEl.src || imgEl.src.includes('undefined') || !imgEl.complete || imgEl.naturalWidth === 0;
+        const isMissing = !currentEvidenceUrl || !imgEl || !imgEl.src || imgEl.src.includes('undefined') ||
+            !imgEl.complete || imgEl.naturalWidth === 0 || imgEl.style.display === 'none' || imgEl.classList.contains('hidden');
 
         if (isMissing) {
             if (overlay) {
@@ -2137,11 +2138,12 @@
                     ? analysis.detected_objects
                     : [];
 
+            const isLiveVision = data.mode === 'LIVE_GEMINI' ||
+                data.isLiveAI === true ||
+                data.apiTelemetry?.is_live_gemini_called === true ||
+                rawResult.api_telemetry?.is_live_gemini_called === true;
+            if (!isLiveVision && !Array.isArray(detectedBoxes)) detectedBoxes = [];
             await runAiVisionScanAnimation(detectedBoxes);
-            const isLiveVision = data.mode === 'LIVE_GEMINI' &&
-                (data.isLiveAI === true ||
-                    data.apiTelemetry?.is_live_gemini_called === true ||
-                    rawResult.api_telemetry?.is_live_gemini_called === true);
             const reviewStatus = document.getElementById('timelineVisionReviewStatus');
             if (reviewStatus) {
                 reviewStatus.textContent = isLiveVision ? 'Live Gemini result' : 'Fallback • not image-verified';
@@ -2155,7 +2157,7 @@
                     ? 'Live Gemini image scan complete'
                     : 'Fallback preview — image not verified';
             }
-            if (isLiveVision && data.persistence?.saved && activeEvidence) {
+            if (isLiveVision && activeEvidence) {
                 activeEvidence.boxes = detectedBoxes;
                 activeEvidence.is_processed = true;
                 activeEvidence.is_locked = false;
@@ -2196,16 +2198,15 @@
             if (statsBadge && detectedBoxes) {
                 statsBadge.textContent = isLiveVision
                     ? `Live Gemini • ${detectedBoxes.length} image detections`
-                    : `Fallback preview • ${detectedBoxes.length} heuristic boxes (not verified)`;
+                    : 'Gemini unavailable • no verified detections';
                 statsBadge.className = isLiveVision
                     ? 'text-xs font-mono text-emerald-300'
                     : 'text-xs font-mono text-amber-300';
             }
 
-            let responseText = data.agent_experience_summary || rawResult.agent_experience_summary || analysis.summary ||
-                (isLiveVision
-                    ? "Gemini image analysis completed."
-                    : "Fallback preview only; no image-derived compliance findings were verified.");
+            let responseText = isLiveVision
+                ? (data.agent_experience_summary || rawResult.agent_experience_summary || analysis.summary || "Gemini image analysis completed.")
+                : "Gemini analysis unavailable; no image-verified detections are displayed.";
 
             logAiInteraction(isLiveVision ? 'RESULT' : 'FALLBACK', isLiveVision
                 ? 'Gemini 3.8 Flash 4-Pillar Vision Scan Successful'
@@ -2213,7 +2214,7 @@
                 model_engine: data.engine || (isLiveVision ? "Google Cloud (gemini-3.8-flash)" : "Autonomous Rule Engine"),
                 status: data.status || "SUCCESS",
                 mode: data.mode,
-                audit_notice: data.auditNotice || rawResult.audit_notice || null,
+                audit_notice: isLiveVision ? (data.auditNotice || rawResult.audit_notice || null) : 'Gemini analysis unavailable.',
                 response: responseText,
                 perspective: data.perspective_4d?.capture_mode || (isAerial ? 'AERIAL_DRONE_ORTHOPHOTO' : 'TERRESTRIAL_IN_SITU'),
                 diagnostics_pillars: 4,
@@ -2225,7 +2226,7 @@
                     ? (data.persistence?.saved
                         ? `Live Gemini scan saved • BigQuery ${data.persistenceStatus}`
                         : `Live Gemini scan not persisted • ${data.persistence?.message || 'database evidence missing'}`)
-                    : "Fallback active — heuristic preview only; not image-verified";
+                    : "Gemini unavailable — no image-verified detections.";
             }
             showNotificationToast(
                 isLiveVision
@@ -2237,27 +2238,15 @@
             );
         } catch (err) {
             console.warn("[Rescan AI Fallback]", err);
-            const fallbackBoxes = window.UnifiedVisionEngine
-                ? window.UnifiedVisionEngine.generateHolisticFallback(
-                    currentEvidenceFilename,
-                    isAerial ? 'AERIAL_DRONE' : 'TERRESTRIAL_IN_SITU',
-                    'TIMELINES',
-                    typeof activeStageIndex !== 'undefined' ? activeStageIndex : 1
-                ).physical_entities
-                : [];
-            fallbackBoxes.forEach(entity => {
-                entity.is_heuristic = true;
-                delete entity.confidence;
-            });
             if (window.HybridContourPreview) {
                 await window.HybridContourPreview.load({
                     ...contourOptions,
-                    boxes: fallbackBoxes,
+                    boxes: [],
                     isLive: false,
                     isPersisted: false
                 });
             }
-            await runAiVisionScanAnimation(fallbackBoxes);
+            await runAiVisionScanAnimation([]);
             renderTimelinesPlantDiagnostics(null, null, false);
             updateForensicDiscrepancyCard(null, null, null, false);
             const reviewStatus = document.getElementById('timelineVisionReviewStatus');
@@ -2268,7 +2257,7 @@
             const timelineScanStatus = document.getElementById('timelineScanStatusText');
             if (timelineScanStatus) timelineScanStatus.textContent = 'Fallback preview — image not verified';
             const statsBadge = document.getElementById('badgeDetectionStats');
-            if (statsBadge) statsBadge.textContent = `Fallback preview • ${fallbackBoxes.length} heuristic boxes (not verified)`;
+            if (statsBadge) statsBadge.textContent = 'Gemini unavailable • no verified detections';
             logAiInteraction('ERROR', 'AI Connection Issue', { error: String(err.message || err) });
         }
     }
@@ -2600,6 +2589,10 @@
             const ctx = canvas.getContext('2d');
             if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
+        if (emptyEl) {
+            emptyEl.classList.remove('hidden');
+            emptyEl.style.display = 'flex';
+        }
 
         const lblFile = document.getElementById('lblActiveEvidenceFilename');
         if (lblFile) lblFile.textContent = photo.name || photo.filename || `evidence_photo_${idx+1}.jpg`;
@@ -2612,9 +2605,11 @@
         renderTimelinesPlantDiagnostics(null, (photo.url && photo.url.includes('drone')) || photo.perspective_mode === 'AERIAL_DRONE');
 
         if (imgEl) {
+            imgEl.style.display = 'none';
+            imgEl.classList.add('hidden');
             // HANYA RENDER KOTAK DETEKSI GEMINI 3.8 FLASH JIKA GAMBAR BINER FISIK SUDAH SELESAI DIMUAT
             imgEl.onload = function() {
-                if (!imgEl.complete || imgEl.naturalWidth === 0) {
+                if (!imgEl.complete || imgEl.naturalWidth === 0 || currentEvidenceUrl !== photo.url) {
                     handleEmptyEvidenceState(imgEl);
                     return;
                 }
@@ -2629,10 +2624,8 @@
                 runAiVisionScanAnimation(photo.boxes || null);
             };
             imgEl.onerror = function() {
-                handleEmptyEvidenceState(imgEl);
+                if (currentEvidenceUrl === photo.url) handleEmptyEvidenceState(imgEl);
             };
-            imgEl.style.display = 'block';
-            imgEl.classList.remove('hidden');
             imgEl.src = photo.url;
             if (imgEl.complete && imgEl.naturalWidth > 0 && imgEl.src.includes(photo.url)) {
                 imgEl.onload();
@@ -3575,7 +3568,13 @@
             const blockText = l.block_id || l.blok || 'Blok A';
             const stakeText = l.titik_ke ? `Titik #${l.titik_ke}` : 'Titik #1';
             const timeText = l.waktu_pengambilan || l.waktu || '2026-10-15 WIB';
-            const photoUrl = l.foto_url || '/static/img/sawit_drone.jpg';
+            const referencedPhotoUrl = l.foto_url || '';
+            const linkedPhoto = uploadedEvidencePhotos.find(photo =>
+                photo.url === referencedPhotoUrl ||
+                photo.file_url === referencedPhotoUrl ||
+                ((photo.evidence_id || photo.id) && referencedPhotoUrl.endsWith(`/api/media/evidence/${photo.evidence_id || photo.id}`))
+            );
+            const photoUrl = linkedPhoto?.url || (referencedPhotoUrl.startsWith('data:image/') ? referencedPhotoUrl : '');
             const docNum = `DOC-SURV-${estateCode}-${cycleText}-${String(actualNo).padStart(3, '0')}`;
 
             return `
@@ -3601,7 +3600,9 @@
                     <span class="text-[9.5px] text-slate-500 dark:text-slate-400 block truncate leading-tight">${weather} &bull; ${Math.round(l.elevasi_dpl || 142)}m MSL</span>
                 </td>
                 <td class="px-2 py-2 text-center">
-                    <img src="${photoUrl}" alt="Foto Bukti" class="w-9 h-7 object-cover rounded-lg border border-slate-300 dark:border-slate-700 mx-auto cursor-pointer hover:scale-105 transition shadow-2xs" onclick="viewPhotoInScanner('${photoUrl}')" title="Klik untuk pratinjau citra">
+                    ${photoUrl
+                        ? `<img src="${photoUrl}" alt="Foto Bukti" class="w-9 h-7 object-cover rounded-lg border border-slate-300 dark:border-slate-700 mx-auto cursor-pointer hover:scale-105 transition shadow-2xs" onclick="viewPhotoInScanner('${photoUrl}')" title="Klik untuk pratinjau citra">`
+                        : '<span class="text-[9px] text-slate-400" title="Tidak ada bukti citra tersimpan untuk rekaman ini">—</span>'}
                 </td>
                 <td class="px-3 py-2 text-center">
                     <div class="flex items-center justify-center gap-1.5">
@@ -4148,11 +4149,6 @@
     window.closeTerminalWindow = closeTerminalWindow;
     window.toggleTerminalWindow = toggleTerminalWindow;
     function handleImgEvidenceError(imgEl) {
-        if (!imgEl) return;
-        if (imgEl.src !== '/static/img/sawit_drone.jpg' && !imgEl.src.endsWith('/static/img/sawit_drone.jpg')) {
-            imgEl.src = '/static/img/sawit_drone.jpg';
-            return;
-        }
         handleEmptyEvidenceState(imgEl);
     }
     window.handleImgEvidenceError = handleImgEvidenceError;
@@ -4173,10 +4169,23 @@
 
         // PASTIKAN JANGAN GAMBAR BOUNDING BOX MENUMPUK DI ATAS KOTAK KOSONG!
         const overlay = document.getElementById('monitoringBBoxesOverlay');
-        if (overlay) overlay.innerHTML = '';
+        if (overlay) {
+            overlay.innerHTML = '';
+            overlay.style.display = 'none';
+        }
 
         const svgOverlay = document.getElementById('aiReticleSvgOverlay');
-        if (svgOverlay) svgOverlay.innerHTML = '';
+        if (svgOverlay) {
+            svgOverlay.innerHTML = '';
+            svgOverlay.style.display = 'none';
+        }
+        ['timelineBBoxesOverlay', 'stageBBoxesOverlay'].forEach(id => {
+            const otherOverlay = document.getElementById(id);
+            if (otherOverlay) {
+                otherOverlay.innerHTML = '';
+                otherOverlay.style.display = 'none';
+            }
+        });
 
         const canvas = document.getElementById('reticleMonitoringCanvas');
         if (canvas) {
@@ -4415,8 +4424,8 @@
                     imgEl.onerror = function() {
                         handleEmptyEvidenceState(imgEl);
                     };
-                    imgEl.style.display = 'block';
-                    imgEl.classList.remove('hidden');
+                    imgEl.style.display = 'none';
+                    imgEl.classList.add('hidden');
                     imgEl.src = activeP.url;
                     if (imgEl.complete && imgEl.naturalWidth > 0 && imgEl.src.includes(activeP.url)) {
                         imgEl.onload();
@@ -4431,6 +4440,7 @@
                 renderEvidenceThumbnails();
                 updateTimelines4DTelemetryHud(activeP.url);
                 renderForensicGallery();
+                if (typeof renderIsolatedLogsTable === 'function') renderIsolatedLogsTable();
                 return;
             }
         } catch (e) {
@@ -4443,6 +4453,7 @@
         currentEvidenceUrl = null;
         renderEvidenceThumbnails();
         renderForensicGallery();
+        if (typeof renderIsolatedLogsTable === 'function') renderIsolatedLogsTable();
         handleEmptyEvidenceState(imgEl);
     }
     window.loadActiveDossierEvidence = loadActiveDossierEvidence;
@@ -4924,8 +4935,8 @@
         }
     });    
 </script>
-<script src="/static/js/hybrid_contour_preview.js?v=20261025-hybrid-contours-2"></script>
-<script src="/static/js/unified_vision_engine.js?v=20261025-ai-scan-context-1"></script>
+<script src="/static/js/hybrid_contour_preview.js?v=20261027-contour-source-1"></script>
+<script src="/static/js/unified_vision_engine.js?v=20261027-scanner-fallback-ui-2"></script>
 <script src="/static/js/timeline.js?v=20261025-hybrid-contours-2"></script>
 <script src="/static/js/settings_governance.js"></script>
 <script src="/static/js/global_ai_triggers.js"></script>

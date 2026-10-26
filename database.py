@@ -2606,6 +2606,7 @@ def get_all_app_settings() -> dict:
         "rendemen_cpo": "21.0",
         "indeks_k": "91.0",
         "biaya_olah": "300",
+        "rendemen_kernel": "5.0",
         "is_published": "0",
         "antifraud_active": "1",
         "active_dossier": "EST-MDN-001"
