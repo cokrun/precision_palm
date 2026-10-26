@@ -65,16 +65,16 @@ def get_gcs_bucket():
         logger.warning(f"[GCS] Gagal inisialisasi GCS bucket '{GCS_BUCKET_NAME}': {e}")
         return None
 
-def upload_file_to_gcs(file_obj_or_path: Union[str, bytes, io.BytesIO, Any], destination_blob_name: str, content_type: str = "image/jpeg") -> str:
+def upload_file_to_gcs(file_obj_or_path: Union[str, bytes, io.BytesIO, Any], destination_blob_name: str, content_type: str = "image/jpeg") -> Optional[str]:
     """
     Mengunggah file biner (foto drone, berkas legal, ortofoto) langsung ke Google Cloud Storage (GCS).
-    Mengembalikan URI gs:// atau URL fallback jika GCS offline.
+    Mengembalikan URI gs:// hanya setelah upload berhasil; None jika GCS tidak tersedia.
     """
     destination_blob_name = destination_blob_name.lstrip('/')
     bucket = get_gcs_bucket()
     if not bucket:
-        logger.warning(f"[GCS] Bucket offline/tidak ditemukan, menggunakan URL fallback lokal untuk {destination_blob_name}")
-        return f"https://storage.googleapis.com/{GCS_BUCKET_NAME}/{destination_blob_name}"
+        logger.warning(f"[GCS] Bucket offline/tidak ditemukan untuk {destination_blob_name}")
+        return None
 
     try:
         blob = bucket.blob(destination_blob_name)
@@ -97,7 +97,40 @@ def upload_file_to_gcs(file_obj_or_path: Union[str, bytes, io.BytesIO, Any], des
         return gcs_uri
     except Exception as e:
         logger.error(f"[GCS Upload Error] Gagal mengunggah ke GCS {destination_blob_name}: {e}")
-        return f"https://storage.googleapis.com/{GCS_BUCKET_NAME}/{destination_blob_name}"
+        return None
+
+
+def download_file_from_gcs(blob_name: str) -> Optional[tuple[bytes, str]]:
+    """Downloads a private GCS object and returns its bytes and content type."""
+    bucket = get_gcs_bucket()
+    if not bucket:
+        raise RuntimeError(f"GCS bucket '{GCS_BUCKET_NAME}' is unavailable")
+
+    blob = bucket.blob(blob_name.lstrip('/'))
+    if not blob.exists():
+        return None
+    blob.reload()
+    return blob.download_as_bytes(), blob.content_type or "application/octet-stream"
+
+
+def list_gcs_blob_names(prefix: str) -> List[str]:
+    """Lists object names under a GCS prefix."""
+    bucket = get_gcs_bucket()
+    if not bucket:
+        raise RuntimeError(f"GCS bucket '{GCS_BUCKET_NAME}' is unavailable")
+    return [blob.name for blob in bucket.list_blobs(prefix=prefix.lstrip('/'))]
+
+
+def delete_gcs_blob(blob_name: str) -> bool:
+    """Deletes a GCS object, treating an already-missing object as success."""
+    bucket = get_gcs_bucket()
+    if not bucket:
+        raise RuntimeError(f"GCS bucket '{GCS_BUCKET_NAME}' is unavailable")
+    blob = bucket.blob(blob_name.lstrip('/'))
+    if not blob.exists():
+        return True
+    blob.delete()
+    return True
 
 def get_table_ref(table_name: str = TABLE_NAME) -> str:
     return f"{PROJECT_ID}.{DATASET_ID}.{table_name}"

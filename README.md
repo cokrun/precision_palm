@@ -377,6 +377,17 @@ gcloud run deploy precision-palm `
     --set-env-vars GOOGLE_CLOUD_PROJECT=palm-project-511008,BIGQUERY_DATASET=precision_palm_dw
 ```
 
+### Persistent evidence images
+
+Evidence uploaded from Spatial, Simulator, and Timelines is stored in the configured
+private Cloud Storage bucket together with dossier-scoped metadata manifests. The
+application streams images through `/api/media/evidence/<evidence_id>`; pages do not
+depend on browser cache or public bucket URLs. Cloud Run's runtime service account
+needs permission to create, read, list, and delete objects in this bucket. An upload
+that cannot be persisted to GCS is rejected instead of being reported as successful.
+SQLite remains useful for local development, but its container-local data is not the
+shared source of evidence for Cloud Run.
+
 ---
 
 ## 11. Regulatory Compliance Standards Matrix

@@ -145,6 +145,179 @@ DB_PATH = DEFAULT_DB_PATH
 def get_db() -> sqlite3.Connection:
     return get_db_connection(DB_PATH)
 
+def _running_on_managed_cloud() -> bool:
+    return bool(os.environ.get('K_SERVICE') or os.environ.get('GAE_SERVICE'))
+
+def _evidence_media_object_name(evidence_id: str) -> str:
+    object_id = hashlib.sha256(str(evidence_id).encode('utf-8')).hexdigest()
+    return f"inspection_evidence/media/{object_id}"
+
+def _evidence_manifest_prefix(dossier_id: str) -> str:
+    dossier_key = hashlib.sha256(str(dossier_id).encode('utf-8')).hexdigest()
+    return f"inspection_evidence/metadata/{dossier_key}/"
+
+def _evidence_index_object_name(evidence_id: str) -> str:
+    evidence_key = hashlib.sha256(str(evidence_id).encode('utf-8')).hexdigest()
+    return f"inspection_evidence/index/{evidence_key}.json"
+
+def _store_evidence_in_gcs(
+    evidence_id: str,
+    dossier_id: str,
+    raw_bytes: bytes,
+    mime_type: str,
+    metadata: Dict[str, Any]
+) -> Optional[Dict[str, str]]:
+    from cloud_services.bigquery_manager import (
+        delete_gcs_blob,
+        upload_file_to_gcs,
+    )
+
+    media_object = _evidence_media_object_name(evidence_id)
+    manifest_object = f"{_evidence_manifest_prefix(dossier_id)}{hashlib.sha256(str(evidence_id).encode('utf-8')).hexdigest()}.json"
+    media_uri = upload_file_to_gcs(raw_bytes, media_object, content_type=mime_type)
+    if not media_uri:
+        if _running_on_managed_cloud():
+            raise RuntimeError("GCS image upload failed; evidence was not accepted.")
+        return None
+
+    manifest = {
+        **metadata,
+        "evidence_id": str(evidence_id),
+        "dossier_id": str(dossier_id),
+        "media_object": media_object,
+        "image_mime_type": mime_type,
+        "file_size_bytes": len(raw_bytes),
+    }
+    manifest_uri = upload_file_to_gcs(
+        json.dumps(manifest, ensure_ascii=False).encode('utf-8'),
+        manifest_object,
+        content_type='application/json'
+    )
+    if not manifest_uri:
+        try:
+            delete_gcs_blob(media_object)
+        except Exception:
+            logger.exception("Failed to clean up GCS image after manifest upload failure")
+        if _running_on_managed_cloud():
+            raise RuntimeError("GCS evidence metadata upload failed; evidence was not accepted.")
+        return None
+
+    index_object = _evidence_index_object_name(evidence_id)
+    index_uri = upload_file_to_gcs(
+        json.dumps(manifest, ensure_ascii=False).encode('utf-8'),
+        index_object,
+        content_type='application/json'
+    )
+    if not index_uri:
+        for object_name in (media_object, manifest_object):
+            try:
+                delete_gcs_blob(object_name)
+            except Exception:
+                logger.exception("Failed to clean up GCS object %s after index upload failure", object_name)
+        if _running_on_managed_cloud():
+            raise RuntimeError("GCS evidence index upload failed; evidence was not accepted.")
+        return None
+
+    return {
+        "media_object": media_object,
+        "manifest_object": manifest_object,
+        "index_object": index_object,
+        "gcs_uri": media_uri,
+    }
+
+def _load_shared_evidence_by_id(evidence_id: str) -> Optional[Dict[str, Any]]:
+    from cloud_services.bigquery_manager import download_file_from_gcs
+
+    try:
+        downloaded = download_file_from_gcs(_evidence_index_object_name(evidence_id))
+    except Exception:
+        if _running_on_managed_cloud():
+            raise
+        logger.warning("Could not read shared evidence index for %s", evidence_id, exc_info=True)
+        return None
+    if not downloaded:
+        return None
+    raw_manifest, _ = downloaded
+    record = json.loads(raw_manifest.decode('utf-8'))
+    return record if record.get('evidence_id') == evidence_id else None
+
+def _delete_shared_evidence(evidence_id: str) -> bool:
+    from cloud_services.bigquery_manager import delete_gcs_blob
+
+    record = _load_shared_evidence_by_id(evidence_id)
+    if not record:
+        return False
+    for object_name in (
+        record.get('media_object'),
+        record.get('manifest_object'),
+        _evidence_index_object_name(evidence_id),
+    ):
+        if object_name:
+            delete_gcs_blob(object_name)
+    return True
+
+def _load_shared_evidence(dossier_id: str, audit_year: Optional[int] = None) -> List[Dict[str, Any]]:
+    from cloud_services.bigquery_manager import download_file_from_gcs, list_gcs_blob_names
+
+    prefix = _evidence_manifest_prefix(dossier_id)
+    try:
+        manifest_names = list_gcs_blob_names(prefix)
+        records = []
+        for object_name in manifest_names:
+            downloaded = download_file_from_gcs(object_name)
+            if not downloaded:
+                continue
+            raw_manifest, _ = downloaded
+            record = json.loads(raw_manifest.decode('utf-8'))
+            if record.get('dossier_id') != dossier_id:
+                continue
+            record_year = record.get('audit_year')
+            if audit_year is not None and record_year not in (None, audit_year):
+                continue
+            records.append(record)
+        return records
+    except Exception:
+        if _running_on_managed_cloud():
+            raise
+        logger.warning("Could not load shared evidence from GCS for dossier %s", dossier_id, exc_info=True)
+        return []
+
+def _append_shared_evidence(photos: List[Dict[str, Any]], dossier_id: str, audit_year: int) -> None:
+    existing_ids = {
+        str(photo.get('evidence_id') or photo.get('id') or '')
+        for photo in photos
+    }
+    clean_dossier = re.sub(r'-\d{4}$', '', dossier_id)
+    candidate_ids = list(dict.fromkeys((dossier_id, clean_dossier, f"{clean_dossier}-{audit_year}")))
+    for candidate_id in candidate_ids:
+        for record in _load_shared_evidence(candidate_id, audit_year):
+            evidence_id = str(record.get('evidence_id') or '')
+            if not evidence_id or evidence_id in existing_ids:
+                continue
+            media_url = f"/api/media/evidence/{evidence_id}"
+            try:
+                entities = json.loads(record.get('detected_entities_json') or '[]')
+            except (TypeError, ValueError):
+                entities = []
+            photos.append({
+                **record,
+                "id": evidence_id,
+                "evidence_id": evidence_id,
+                "url": media_url,
+                "file_url": media_url,
+                "stream_url": media_url,
+                "media_stream_url": media_url,
+                "filename": record.get('filename') or f"{evidence_id}.jpg",
+                "name": record.get('filename') or f"{evidence_id}.jpg",
+                "detected_entities": entities,
+                "boxes": entities,
+                "is_processed": bool(record.get('is_processed')),
+                "is_locked": bool(record.get('is_locked')),
+                "is_sealed": bool(record.get('is_locked') or record.get('status') == 'SEALED'),
+                "selected": True,
+            })
+            existing_ids.add(evidence_id)
+
 UPLOAD_CANOPY_DIR = os.path.join(ROOT_DIR, 'static', 'uploads', 'canopy')
 UPLOAD_LEGAL_DIR = os.path.join(ROOT_DIR, 'static', 'uploads', 'legal_docs')
 os.makedirs(UPLOAD_CANOPY_DIR, exist_ok=True)
@@ -537,8 +710,6 @@ def get_evidence_media_stream(evidence_id):
                 query,
                 tuple(params)
             ).fetchone()
-            if not row:
-                return jsonify({"status": "error", "message": "Bukti citra tidak ditemukan"}), 404
         else:
             where_conditions = []
             params = []
@@ -565,6 +736,45 @@ def get_evidence_media_stream(evidence_id):
             raw_b64 = row['image_raw_base64'] if ('image_raw_base64' in row.keys() and row['image_raw_base64']) else (row['image_base64'] if 'image_base64' in row.keys() else None)
 
         if not raw_b64 or len(str(raw_b64).strip()) < 10:
+            from cloud_services.bigquery_manager import download_file_from_gcs
+
+            media_object = _evidence_media_object_name(clean_id)
+            if evidence_id.lower() in ('current', 'latest'):
+                clean_dossier = re.sub(r'-\d{4}$', '', dossier_id)
+                candidate_ids = list(dict.fromkeys((dossier_id, clean_dossier, f"{clean_dossier}-{audit_year}")))
+                shared_records = []
+                for candidate_id in candidate_ids:
+                    shared_records.extend(_load_shared_evidence(candidate_id, audit_year))
+                matching_records = [
+                    record for record in shared_records
+                    if not perspective or record.get('perspective_mode') == perspective
+                ]
+                if matching_records:
+                    selected_record = max(
+                        matching_records,
+                        key=lambda record: str(record.get('uploaded_at') or '')
+                    )
+                    media_object = selected_record.get('media_object') or media_object
+                else:
+                    media_object = ""
+
+            if media_object:
+                try:
+                    shared_media = download_file_from_gcs(media_object)
+                except Exception as storage_error:
+                    if _running_on_managed_cloud():
+                        logger.exception("GCS evidence stream failed for %s", evidence_id)
+                        return jsonify({"status": "error", "message": "Shared evidence storage is unavailable."}), 503
+                    logger.warning("GCS evidence stream unavailable for %s: %s", evidence_id, storage_error)
+                    shared_media = None
+                if shared_media:
+                    image_bytes, shared_mime_type = shared_media
+                    return send_file(
+                        io.BytesIO(image_bytes),
+                        mimetype=shared_mime_type,
+                        as_attachment=False,
+                        download_name=f"{evidence_id}.jpg"
+                    )
             return jsonify({"status": "error", "message": "Bukti citra tidak ditemukan"}), 404
 
         mime_type = row['image_mime_type'] if row and 'image_mime_type' in row.keys() and row['image_mime_type'] else 'image/jpeg'
@@ -614,6 +824,12 @@ def list_media_evidence():
             }
             for r in rows
         ]
+        if dossier_id:
+            try:
+                _append_shared_evidence(evidence_list, dossier_id, audit_year or 2026)
+            except Exception as storage_error:
+                logger.exception("Failed to load shared evidence gallery for %s", dossier_id)
+                return jsonify({"status": "error", "message": str(storage_error)}), 503
         return jsonify({
             "status": "success",
             "dossier_id": dossier_id,
@@ -781,6 +997,12 @@ def get_dossier_evidence_gallery(dossier_id):
                 "selected": True
             })
 
+        try:
+            _append_shared_evidence(photos, dossier_id, audit_year)
+        except Exception as storage_error:
+            logger.exception("Failed to load shared evidence gallery for %s", dossier_id)
+            return jsonify({"status": "error", "message": str(storage_error)}), 503
+
         return jsonify({
             "status": "success",
             "success": True,
@@ -924,6 +1146,13 @@ def delete_evidence_media(evidence_id=None):
             WHERE evidence_id = ? OR id = ?
             LIMIT 1;
         """, (evidence_id, evidence_id)).fetchone()
+
+        if not row:
+            try:
+                row = _load_shared_evidence_by_id(str(evidence_id))
+            except Exception as storage_error:
+                logger.exception("Failed to resolve shared evidence %s for deletion", evidence_id)
+                return jsonify({"status": "error", "message": str(storage_error)}), 503
         
         # Check in field_surveillance_records if not found in inspection_evidence
         if not row:
@@ -979,6 +1208,7 @@ def delete_evidence_media(evidence_id=None):
             conn.execute("DELETE FROM used_photo_hashes WHERE sha256_hash = ? OR evidence_id = ?;", (sha_hash, evidence_id))
 
         conn.commit()
+        _delete_shared_evidence(str(evidence_id))
         from cloud_services.bigquery_audit import delete_evidence_from_bigquery
         bq_synced = delete_evidence_from_bigquery(str(evidence_id), str(dossier_id))
         return jsonify({
@@ -1267,6 +1497,12 @@ def get_dossier_evidence_chain(kode_kebun):
                 "recorded_at": sr['recorded_at']
             })
 
+        try:
+            _append_shared_evidence(photos, kode_kebun, year)
+        except Exception as storage_error:
+            logger.exception("Failed to load shared evidence chain for %s", kode_kebun)
+            return jsonify({"status": "error", "message": str(storage_error)}), 503
+
         return jsonify({
             "status": "success",
             "dossier_id": kode_kebun,
@@ -1494,6 +1730,29 @@ def upload_inspection_evidence_pure():
     conn = get_pure_db_connection()
     try:
         evidence_id = f"EV-{dossier_id}-{audit_year}-{quarter}-{int(time.time()*1000)%100000}"
+        process_stage = json_data.get('process_stage') or request.form.get('process_stage') or f"STAGE-3-{quarter}"
+        try:
+            shared_storage = _store_evidence_in_gcs(
+                evidence_id,
+                dossier_id,
+                raw_bytes,
+                "image/jpeg",
+                {
+                    "audit_year": audit_year,
+                    "quarter_cycle": quarter,
+                    "process_stage": process_stage,
+                    "perspective_mode": "TERRESTRIAL_IN_SITU",
+                    "image_sha256_hash": photo_hash,
+                    "detected_entities_json": json.dumps(entities_detected, ensure_ascii=False),
+                    "is_processed": True,
+                    "is_locked": False,
+                    "status": "READY",
+                    "uploaded_at": datetime.now(timezone.utc).isoformat(),
+                }
+            )
+        except RuntimeError as storage_error:
+            conn.rollback()
+            return jsonify({"status": "error", "message": str(storage_error)}), 503
         
         # Simpan ke inspection_evidence
         conn.execute("""
@@ -1515,15 +1774,7 @@ def upload_inspection_evidence_pure():
         conn.commit()
 
         # Direct Upload citra bukti fisik ke GCS Bucket
-        gcs_evidence_uri = None
-        try:
-            from cloud_services.bigquery_manager import upload_file_to_gcs
-            blob_name = f"inspection_evidence/{evidence_id}_{photo_hash[:12]}.jpg"
-            gcs_evidence_uri = upload_file_to_gcs(io.BytesIO(raw_bytes), blob_name, content_type="image/jpeg")
-            if gcs_evidence_uri:
-                print(f"[GCS Evidence Upload Success]: {gcs_evidence_uri}")
-        except Exception as e_gcs_ev:
-            print(f"[GCS Evidence Upload Notice]: {e_gcs_ev}")
+        gcs_evidence_uri = (shared_storage or {}).get("gcs_uri")
 
         # Alirkan rekaman bukti ke BigQuery ESG DW
         try:
@@ -4388,6 +4639,12 @@ def api_get_estate_spatial_data():
             except Exception:
                 pass
 
+        try:
+            _append_shared_evidence(photos, kode, year)
+        except Exception as storage_error:
+            logger.exception("Failed to load shared spatial evidence for %s", kode)
+            return jsonify({"success": False, "error": str(storage_error)}), 503
+
         return jsonify({
             "success": True,
             "estate": estate_dict,
@@ -4928,6 +5185,33 @@ def api_upload_spatial_photo():
         is_aerial = 'AERIAL' in perspective_mode.upper()
         altitude_agl_m = 45.0 if is_aerial else 1.45
         camera_pitch_degrees = -90.0 if is_aerial else -12.4
+        ev_id = f"EV-{target_kode}-{audit_year}-{quarter_cycle}-{int(time.time()*1000)%100000}"
+        drone_entities = []
+        try:
+            shared_storage = _store_evidence_in_gcs(
+                ev_id,
+                target_kode,
+                raw_bytes,
+                file.mimetype or 'image/jpeg',
+                {
+                    "audit_year": audit_year,
+                    "quarter_cycle": quarter_cycle,
+                    "process_stage": process_stage,
+                    "perspective_mode": perspective_mode,
+                    "image_sha256_hash": photo_hash,
+                    "detected_entities_json": json.dumps(drone_entities),
+                    "is_processed": False,
+                    "is_locked": False,
+                    "status": "READY",
+                    "uploaded_at": datetime.now(timezone.utc).isoformat(),
+                    "filename": orig_name,
+                    "title": title,
+                    "tag": tag,
+                    "block_id": block_id,
+                }
+            )
+        except RuntimeError as storage_error:
+            return jsonify({"success": False, "error": str(storage_error)}), 503
 
         new_photo_id = add_estate_canopy_upload(
             id_kebun=id_kebun,
@@ -4943,9 +5227,6 @@ def api_upload_spatial_photo():
         )
 
         # Cross-Process Linkage: Simpan bukti drone ke tabel inspection_evidence murni
-        ev_id = f"EV-{target_kode}-{audit_year}-{quarter_cycle}-{int(time.time()*1000)%100000}"
-        drone_entities = []
-
         conn_ev = get_pure_db_connection()
         try:
             comp_id_std = target_kode.replace('EST-', 'COMP-')
@@ -4975,14 +5256,7 @@ def api_upload_spatial_photo():
         finally:
             conn_ev.close()
 
-        # Direct Upload to Google Cloud Storage (GCS)
-        gcs_uri = None
-        try:
-            from cloud_services.bigquery_manager import upload_file_to_gcs
-            gcs_uri = upload_file_to_gcs(save_path, f"canopy/{unique_name}", content_type=file.mimetype or 'image/jpeg')
-        except Exception as e_gcs:
-            print(f"[GCS Upload Notice]: {e_gcs}")
-            gcs_uri = None
+        gcs_uri = (shared_storage or {}).get("gcs_uri")
 
         # Stream metadata & hash ke BigQuery DW and surface the actual outcome.
         bigquery_synced = False
@@ -7546,6 +7820,28 @@ def api_spatial_upload_photo_direct():
 
         evidence_id = f"EV-{dossier_id}-{int(time.time()*1000)%100000}"
         quarter = "Q1" if "Q1" in stage else ("Q2" if "Q2" in stage else ("Q3" if "Q3" in stage else ("Q4" if "Q4" in stage else "REG")))
+        try:
+            shared_storage = _store_evidence_in_gcs(
+                evidence_id,
+                dossier_id,
+                raw_bytes,
+                mime_type,
+                {
+                    "audit_year": 2026,
+                    "quarter_cycle": quarter,
+                    "process_stage": stage,
+                    "perspective_mode": "AERIAL_DRONE",
+                    "image_sha256_hash": photo_hash,
+                    "detected_entities_json": "[]",
+                    "is_processed": False,
+                    "is_locked": False,
+                    "status": "READY",
+                    "uploaded_at": datetime.now(timezone.utc).isoformat(),
+                    "filename": secure_filename(filename) or "drone_photo.jpg",
+                }
+            )
+        except RuntimeError as storage_error:
+            return jsonify({"status": "error", "message": str(storage_error)}), 503
 
         conn = get_pure_db_connection()
         conn.execute("""
@@ -7593,7 +7889,8 @@ def api_spatial_upload_photo_direct():
                 "image_sha256_hash": photo_hash,
                 "detected_entities": [],
                 "root_clearance_m": None,
-                "weather_validation": None
+                "weather_validation": None,
+                "gcs_uri": (shared_storage or {}).get("gcs_uri")
             })
             conn_sync = get_pure_db_connection()
             conn_sync.execute(
@@ -7610,7 +7907,8 @@ def api_spatial_upload_photo_direct():
             "message": "Foto berhasil disimpan ke database.",
             "evidence_id": evidence_id,
             "file_url": f"/api/media/evidence/{evidence_id}",
-            "bigquery_sync": "SYNCED" if bigquery_synced else "LOCAL_ONLY"
+            "bigquery_sync": "SYNCED" if bigquery_synced else "LOCAL_ONLY",
+            "gcs_uri": (shared_storage or {}).get("gcs_uri")
         }), 201
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
