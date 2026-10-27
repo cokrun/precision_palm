@@ -2294,12 +2294,12 @@ function renderDetectedBoundingBoxes(boxes) {
 
     const boxesHtml = (boxes || []).map(item => {
         const cluster = item.cluster || 'palm_canopy';
+        const labelName = item.label_name || item.label || cluster;
         // Jika filter aktif, periksa kecocokan cluster string maupun numerik/label; jika tidak cocok maka default tetap tampil agar deteksi tidak tersembunyi
         if (typeof cluster === 'string' && activeSpatialClusterFilters.size > 0 && !activeSpatialClusterFilters.has(cluster)) {
             const hasMatch = Array.from(activeSpatialClusterFilters).some(f => String(labelName).toLowerCase().includes(f));
             if (!hasMatch && !activeSpatialClusterFilters.has('palm_canopy')) return '';
         }
-        const labelName = item.label_name || item.label || cluster;
         const isInfrastructure = cluster === 'infrastructure' || /harvest|path|road|canal|infrastructure/i.test(String(labelName));
 
         const box = item.box_2d || [100, 100, 300, 300];
