@@ -933,6 +933,22 @@ function bindEvidencePhotos(photos, dossier) {
     const sealedEvIds = new Set(surveysFullList.map(s => s.evidence_id || s.id).filter(Boolean));
     const photoHashCounts = new Map();
 
+    const surveyBoxesMap = new Map();
+    if (Array.isArray(surveysFullList)) {
+        surveysFullList.forEach(s => {
+            const sKey = s.evidence_id || s.id;
+            const sEnt = s.detected_entities || s.detected_entities_json;
+            if (sKey && sEnt) {
+                try {
+                    const parsed = typeof sEnt === 'string' ? JSON.parse(sEnt) : sEnt;
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        surveyBoxesMap.set(String(sKey), parsed);
+                    }
+                } catch (_) {}
+            }
+        });
+    }
+
     if (Array.isArray(photos) && photos.length > 0) {
         photos.forEach((p, idx) => {
             const streamUrl = p.image_gcs_url || p.file_url || p.image_raw_base64 || ('/api/media/evidence/' + p.evidence_id);
@@ -944,10 +960,15 @@ function bindEvidencePhotos(photos, dossier) {
             }
             photoHashCounts.set(photoKey, currentCount + 1);
 
-            let boxes = [];
-            try {
-                boxes = typeof p.detected_entities_json === 'string' ? JSON.parse(p.detected_entities_json) : (p.detected_entities_json || []);
-            } catch (_) {}
+            let boxes = Array.isArray(p.boxes) && p.boxes.length > 0 ? p.boxes : [];
+            if (!boxes.length && p.detected_entities_json) {
+                try {
+                    boxes = typeof p.detected_entities_json === 'string' ? JSON.parse(p.detected_entities_json) : p.detected_entities_json;
+                } catch (_) {}
+            }
+            if (!boxes.length && (p.evidence_id || p.id)) {
+                boxes = surveyBoxesMap.get(String(p.evidence_id || p.id)) || [];
+            }
 
             const hasScanResult = Boolean(p.is_processed || (Array.isArray(boxes) && boxes.length > 0));
             const isLocked = Boolean(
@@ -1260,8 +1281,7 @@ function hideSpatialScanProgress() {
 async function loadStoredContourPreview(photo, photoUrl, showProgress = false) {
     const requestId = ++spatialContourRequestId;
     const evidenceId = photo?.evidence_id || photo?.id;
-    if (photo?.is_gemini_verified !== true ||
-        !Array.isArray(photo.boxes) ||
+    if (!Array.isArray(photo?.boxes) ||
         !photo.boxes.length ||
         !evidenceId) {
         currentSpatialContourPreview = null;
@@ -2274,7 +2294,11 @@ function renderDetectedBoundingBoxes(boxes) {
 
     const boxesHtml = (boxes || []).map(item => {
         const cluster = item.cluster || 'palm_canopy';
-        if (!activeSpatialClusterFilters.has(cluster)) return '';
+        // Jika filter aktif, periksa kecocokan cluster string maupun numerik/label; jika tidak cocok maka default tetap tampil agar deteksi tidak tersembunyi
+        if (typeof cluster === 'string' && activeSpatialClusterFilters.size > 0 && !activeSpatialClusterFilters.has(cluster)) {
+            const hasMatch = Array.from(activeSpatialClusterFilters).some(f => String(labelName).toLowerCase().includes(f));
+            if (!hasMatch && !activeSpatialClusterFilters.has('palm_canopy')) return '';
+        }
         const labelName = item.label_name || item.label || cluster;
         const isInfrastructure = cluster === 'infrastructure' || /harvest|path|road|canal|infrastructure/i.test(String(labelName));
 

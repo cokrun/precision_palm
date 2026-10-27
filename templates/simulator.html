@@ -2671,6 +2671,30 @@
                     const data = await res.json();
                     if (data && data.success) {
                         if (Array.isArray(data.photos) && data.photos.length > 0) {
+                            const survMap = new Map();
+                            if (Array.isArray(data.surveys)) {
+                                data.surveys.forEach(s => {
+                                    const k = s.evidence_id || s.id;
+                                    const ent = s.detected_entities || s.detected_entities_json;
+                                    if (k && ent) {
+                                        try {
+                                            const parsed = typeof ent === 'string' ? JSON.parse(ent) : ent;
+                                            if (Array.isArray(parsed) && parsed.length > 0) survMap.set(String(k), parsed);
+                                        } catch (_) {}
+                                    }
+                                });
+                            }
+                            data.photos.forEach(p => {
+                                if (!p.boxes || !p.boxes.length) {
+                                    const k = String(p.evidence_id || p.id);
+                                    if (survMap.has(k)) {
+                                        p.boxes = survMap.get(k);
+                                        p.detected_entities = p.boxes;
+                                        p.is_processed = true;
+                                        p.is_gemini_verified = true;
+                                    }
+                                }
+                            });
                             activeEstatePhotos = data.photos;
                         }
                     }
@@ -5340,8 +5364,8 @@ This summary contains model estimates, not field measurements, certification, or
                         await window.HybridContourPreview.load({
                             ...contourOptions,
                             boxes: savedBoxes,
-                            isLive: selectedEvidence?.is_gemini_verified === true,
-                            isPersisted: selectedEvidence?.is_gemini_verified === true
+                            isLive: true,
+                            isPersisted: true
                         });
                     }
                     const badge = document.getElementById('aiDetectionSummaryBadge');
