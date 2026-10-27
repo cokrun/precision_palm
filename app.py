@@ -3633,14 +3633,26 @@ def update_server_with_latest_scan(scan_res, filename, dossier_id="EST-MDN-010",
             LIMIT 1;
         """, (str(evidence_id), str(evidence_id))).fetchone()
         if not row:
+            # Fallback ke penyimpanan shared evidence GCS jika tidak ada di SQLite lokal
+            saved_shared = _save_shared_evidence_scan(
+                evidence_id=str(evidence_id),
+                image_sha256=str(image_sha256),
+                detected_entities=scan_res.get("physical_entities", []),
+                diagnostic_matrix=scan_res.get("diagnostic_matrix_44", {})
+            )
+            if saved_shared:
+                return {
+                    "saved": True,
+                    "evidence_id": str(evidence_id),
+                    "sync_status": "SYNCED_SHARED",
+                    "message": "Hasil scan tersimpan di penyimpanan bukti bersama (GCS)"
+                }
             return {"saved": False, "sync_status": "NOT_FOUND", "message": "Bukti target tidak ditemukan"}
 
         record = dict(row)
         stored_hash = str(record.get("image_sha256_hash") or "").lower()
         if stored_hash and stored_hash != str(image_sha256).lower():
             return {"saved": False, "sync_status": "IMAGE_MISMATCH", "message": "Hash citra tidak cocok dengan bukti target"}
-        if not record.get("image_raw_base64"):
-            return {"saved": False, "sync_status": "IMAGE_MISSING", "message": "Bukti target tidak memiliki citra asli"}
 
         entities_json = json.dumps(scan_res.get("physical_entities", []), ensure_ascii=False)
         matrix_json = json.dumps(scan_res.get("diagnostic_matrix_44", {}))
@@ -4748,6 +4760,11 @@ def api_get_estate_spatial_data():
                 f_url in sealed_foto_urls
             )
 
+            try:
+                entities_list = json.loads(r["detected_entities_json"]) if r["detected_entities_json"] else []
+            except Exception:
+                entities_list = []
+
             photos.append({
                 "id": ev_id,
                 "evidence_id": ev_id,
@@ -4755,9 +4772,11 @@ def api_get_estate_spatial_data():
                 "file_url": f_url,
                 "stream_url": f_url,
                 "url": f_url,
-                "title": f"{q_cycle} • {p_mode}",
+                "title": f"{q_cycle} — {p_mode}",
                 "tag": p_stage,
                 "sha256": h_sha,
+                "detected_entities": entities_list,
+                "boxes": entities_list,
                 "detected_entities_json": r["detected_entities_json"] if "detected_entities_json" in r.keys() else None,
                 "uploaded_at": up_at,
                 "is_processed": has_scan,
