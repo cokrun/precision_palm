@@ -46,7 +46,7 @@ var DEFINITIVE_CROP_STORAGE_KEY = typeof DEFINITIVE_CROP_STORAGE_KEY !== 'undefi
 window.isUserSimulating = false;
 window.calibratedCanopyCoverPct = null;
 
-const YIELD_SCENARIO_DATABASE = {
+var YIELD_SCENARIO_DATABASE = typeof window !== 'undefined' && window.YIELD_SCENARIO_DATABASE ? window.YIELD_SCENARIO_DATABASE : {
     red_ginger: { yci: 2.82, ycm: 18.00, penalty_pct: 1.2, name: 'Red Ginger', aliases: ['ginger', 'jahe merah'] },
     cacao: { yci: 0.85, ycm: 1.50, penalty_pct: 2.1, name: 'Shade Cacao', aliases: ['cocoa', 'kakao', 'theobroma cacao'] },
     coffee: { yci: 0.72, ycm: 1.20, penalty_pct: 1.8, name: 'Shade Robusta Coffee', aliases: ['kopi', 'coffea canephora'] },
@@ -64,8 +64,14 @@ const YIELD_SCENARIO_DATABASE = {
     sweet_potato: { yci: 2.50, ycm: 10.00, penalty_pct: 1.5, name: 'Sweet Potato', aliases: ['ubi jalar', 'ipomoea batatas'] },
     serai_wangi: { yci: 2.50, ycm: 10.00, penalty_pct: 1.5, name: 'Citronella Grass', aliases: ['serai wangi', 'citronella', 'cymbopogon nardus'] }
 };
+if (typeof window !== 'undefined') {
+    window.YIELD_SCENARIO_DATABASE = YIELD_SCENARIO_DATABASE;
+}
 
-const DEFAULT_YIELD_SCENARIO = { yci: 2.50, ycm: 10.00, penalty_pct: 1.5, name: 'Generic fallback crop' };
+var DEFAULT_YIELD_SCENARIO = typeof window !== 'undefined' && window.DEFAULT_YIELD_SCENARIO ? window.DEFAULT_YIELD_SCENARIO : { yci: 2.50, ycm: 10.00, penalty_pct: 1.5, name: 'Generic fallback crop' };
+if (typeof window !== 'undefined') {
+    window.DEFAULT_YIELD_SCENARIO = DEFAULT_YIELD_SCENARIO;
+}
 
 function normalizeCropName(rawCropName) {
     return String(rawCropName || '')
@@ -82,8 +88,10 @@ function resolveCropYieldBenchmark(rawCropName) {
         .replace(/[^a-z0-9]+/g, ' ')
         .trim();
     const searchNames = [normalizedName, rawNormalizedName];
-    const matches = Object.entries(YIELD_SCENARIO_DATABASE)
-        .flatMap(([cropKey, benchmark]) => [cropKey, ...benchmark.aliases].map(alias => ({
+    const db = (typeof YIELD_SCENARIO_DATABASE !== 'undefined' && YIELD_SCENARIO_DATABASE) ? YIELD_SCENARIO_DATABASE : ((typeof window !== 'undefined' && window.YIELD_SCENARIO_DATABASE) ? window.YIELD_SCENARIO_DATABASE : {});
+    const fallbackDefault = (typeof DEFAULT_YIELD_SCENARIO !== 'undefined' && DEFAULT_YIELD_SCENARIO) ? DEFAULT_YIELD_SCENARIO : ((typeof window !== 'undefined' && window.DEFAULT_YIELD_SCENARIO) ? window.DEFAULT_YIELD_SCENARIO : { yci: 2.50, ycm: 10.00, penalty_pct: 1.5, name: 'Generic fallback crop' });
+    const matches = Object.entries(db)
+        .flatMap(([cropKey, benchmark]) => [cropKey, ...(benchmark.aliases || [])].map(alias => ({
             cropKey,
             benchmark,
             alias: normalizeCropName(alias)
@@ -91,7 +99,7 @@ function resolveCropYieldBenchmark(rawCropName) {
         .sort((left, right) => right.alias.length - left.alias.length);
     const match = matches.find(item => item.alias && searchNames.some(name => name.includes(item.alias)));
     if (!match) {
-        return { cropKey: 'default', ...DEFAULT_YIELD_SCENARIO, methodologyNote: 'Generic fallback scenario benchmark; not a crop-specific measured or validated yield.' };
+        return { cropKey: 'default', ...fallbackDefault, methodologyNote: 'Generic fallback scenario benchmark; not a crop-specific measured or validated yield.' };
     }
     return {
         cropKey: match.cropKey,
