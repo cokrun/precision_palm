@@ -1,6 +1,9 @@
 import unittest
 from unittest.mock import patch
 
+import cv2
+import numpy as np
+
 import app as app_module
 
 
@@ -123,6 +126,101 @@ class TestGcsEvidencePersistence(unittest.TestCase):
         self.assertEqual(response.data, b"shared-image-bytes")
         self.assertEqual(response.mimetype, "image/jpeg")
         download.assert_called_once()
+
+    def test_shared_image_reader_resolves_index_and_media_objects(self):
+        evidence_id = "EV-SCAN-1"
+        manifest = {
+            "evidence_id": evidence_id,
+            "filename": "scan.png",
+            "media_object": "inspection_evidence/media/scan",
+            "image_mime_type": "image/png",
+        }
+
+        def download(object_name):
+            if object_name == app_module._evidence_index_object_name(evidence_id):
+                import json
+                return json.dumps(manifest).encode("utf-8"), "application/json"
+            if object_name == manifest["media_object"]:
+                return b"shared-image-bytes", "image/jpeg"
+            return None
+
+        with patch(
+            "cloud_services.bigquery_manager.download_file_from_gcs",
+            side_effect=download,
+        ):
+            result = app_module._read_shared_evidence_image(evidence_id=evidence_id)
+
+        self.assertEqual(result, (b"shared-image-bytes", "image/png", manifest))
+
+    def test_scan_image_uses_shared_gcs_image_when_instance_database_is_empty(self):
+        evidence_id = "EV-SCAN-2"
+        shared_record = {
+            "evidence_id": evidence_id,
+            "filename": "field-scan.png",
+        }
+        live_result = {
+            "api_telemetry": {
+                "is_live_gemini_called": True,
+                "api_call_status": "LIVE_GOOGLE_CLOUD_SUCCESS",
+                "model_invoked": "gemini-test",
+            },
+            "physical_entities": [],
+            "detected_objects": [],
+        }
+
+        with patch.object(
+            app_module, "get_pure_db_connection", return_value=FakeMediaConnection()
+        ), patch.object(
+            app_module,
+            "_read_shared_evidence_image",
+            return_value=(b"shared-image-bytes", "image/png", shared_record),
+        ), patch(
+            "cloud_services.grounded_auditor.audit_image_with_gemini",
+            return_value=live_result,
+        ) as audit_image, patch(
+            "cloud_services.agentic_vision_supervisor.FieldVisionSupervisorAgent.evaluate_and_supervise",
+            side_effect=lambda raw_analysis, **kwargs: raw_analysis,
+        ), patch.object(
+            app_module, "update_server_with_latest_scan", return_value={"saved": True}
+        ):
+            response = self.client.post(
+                "/api/ai/scan-image",
+                json={
+                    "evidence_id": evidence_id,
+                    "image_url": f"/api/media/evidence/{evidence_id}",
+                    "dossier_id": "EST-SCAN-2026",
+                    "filename": "field-scan.png",
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["mode"], "LIVE_GEMINI")
+        self.assertEqual(audit_image.call_args.kwargs["image_bytes"], b"shared-image-bytes")
+        self.assertEqual(audit_image.call_args.kwargs["mime_type"], "image/png")
+
+    def test_opencv_replay_uses_shared_gcs_image_when_instance_database_is_empty(self):
+        image = np.zeros((160, 200, 3), dtype=np.uint8)
+        cv2.rectangle(image, (20, 20), (180, 140), (0, 180, 0), thickness=-1)
+        encoded, image_png = cv2.imencode(".png", image)
+        self.assertTrue(encoded)
+
+        with patch.object(
+            app_module, "get_pure_db_connection", return_value=FakeMediaConnection()
+        ), patch.object(
+            app_module,
+            "_read_shared_evidence_image",
+            return_value=(image_png.tobytes(), "image/png", {"evidence_id": "EV-CV-1"}),
+        ):
+            response = self.client.post(
+                "/api/spatial/opencv-static-replay",
+                json={"evidence_id": "EV-CV-1"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        preview = response.get_json()["replay_preview"]
+        self.assertEqual(preview["status"], "ready")
+        self.assertEqual(preview["method"], "opencv_hsv_ema_static_replay")
+        self.assertGreater(len(preview["contours"]), 0)
 
 
 if __name__ == "__main__":

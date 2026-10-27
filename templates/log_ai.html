@@ -378,6 +378,7 @@
                                             <th class="px-3.5 py-3 text-center">ID</th>
                                             <th class="px-4 py-3">Timestamp (WIB)</th>
                                             <th class="px-4 py-3">Feature Name</th>
+                                            <th class="px-4 py-3">Request Type</th>
                                             <th class="px-4 py-3">Engine Used</th>
                                             <th class="px-4 py-3 text-center">Latency</th>
                                             <th class="px-4 py-3">Audit Attestation</th>
@@ -386,7 +387,7 @@
                                     </thead>
                                     <tbody id="fallbackLogsTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/80 text-[11px] text-slate-700 dark:text-slate-300">
                                         <tr>
-                                            <td colspan="7" class="py-8 text-center text-slate-500 font-mono">
+                                            <td colspan="8" class="py-8 text-center text-slate-500 font-mono">
                                                 Scanning ledger for fallback incidents...
                                             </td>
                                         </tr>
@@ -528,7 +529,9 @@
             const mode = String(log.engine_mode || '').toUpperCase();
             const msg = String(log.status_message || '').toLowerCase();
             const engine = String(log.model_engine || '').toLowerCase();
-            return mode.includes('STATUTORY') || mode.includes('FALLBACK') || mode.includes('RULE_ENGINE') ||
+            const status = String(log.status || '').toUpperCase();
+            return status === 'FALLBACK' ||
+                   mode.includes('STATUTORY') || mode.includes('FALLBACK') || mode.includes('RULE_ENGINE') ||
                    msg.includes('offline') || msg.includes('fallback') || engine.includes('rule engine');
         }
 
@@ -674,8 +677,8 @@
             if (fallbackList.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="py-10 text-center text-slate-500 font-mono">
-                            ✓ No fallback degradation incidents recorded. Primary Google Gemini 3.8 Flash live inference is operating at 100% availability.
+                        <td colspan="8" class="py-10 text-center text-slate-500 font-mono">
+                            ✓ No fallback degradation incidents are present in the loaded AI execution records.
                         </td>
                     </tr>
                 `;
@@ -687,15 +690,20 @@
                     <tr class="hover:bg-amber-50/40 dark:hover:bg-amber-950/20 transition border-b border-slate-100 dark:border-slate-800/60 font-mono">
                         <td class="px-3.5 py-3 text-center text-slate-500 font-bold">#${l.id}</td>
                         <td class="px-4 py-3 text-slate-700 dark:text-slate-300 text-xs">${l.timestamp}</td>
-                        <td class="px-4 py-3 font-sans font-bold text-slate-900 dark:text-white">${l.feature_name}</td>
+                        <td class="px-4 py-3 font-sans font-bold text-slate-900 dark:text-white">${escapeHtml(l.feature_name || 'Unknown feature')}</td>
+                        <td class="px-4 py-3 text-xs">
+                            <span class="px-2 py-0.5 rounded text-[9.5px] font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700">
+                                ${escapeHtml(l.operation_label || 'AI · Other operation')}
+                            </span>
+                        </td>
                         <td class="px-4 py-3 text-xs">
                             <span class="px-2 py-0.5 rounded text-[9.5px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-400 border border-amber-300 dark:border-amber-700 font-mono">
-                                ⚡ ${l.engine_mode || 'AUTONOMOUS_STATUTORY_RULE_ENGINE'}
+                                ⚡ ${escapeHtml(l.engine_mode || 'AUTONOMOUS_STATUTORY_RULE_ENGINE')}
                             </span>
                         </td>
                         <td class="px-4 py-3 text-center text-amber-600 dark:text-amber-400 font-bold">${l.latency_ms} ms</td>
-                        <td class="px-4 py-3 text-xs max-w-xs truncate text-slate-600 dark:text-slate-300 font-sans" title="${escapeHtml(l.status_message || '')}">
-                            ${escapeHtml(l.status_message || 'Validated via Autonomous Statutory Rule Engine')}
+                        <td class="px-4 py-3 text-xs max-w-xs truncate text-slate-600 dark:text-slate-300 font-sans" title="${escapeHtml(l.fallback_reason || l.status_message || '')}">
+                            ${escapeHtml(l.fallback_reason || l.status_message || 'Fallback was selected; inspect the raw response for details.')}
                         </td>
                         <td class="px-4 py-3 text-center">
                             <button type="button" onclick="openRawModal(${l.id})" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 dark:bg-amber-950 dark:hover:bg-amber-900 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 text-[10px] font-bold transition cursor-pointer">

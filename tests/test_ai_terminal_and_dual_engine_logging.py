@@ -186,6 +186,9 @@ class TestAiTerminalAndDualEngineLogging(unittest.TestCase):
             first = data['logs'][0]
             self.assertIn('engine_mode', first)
             self.assertIn('status_message', first)
+            self.assertIn('operation_type', first)
+            self.assertIn('operation_label', first)
+            self.assertIn('execution_path', first)
 
 if __name__ == '__main__':
     unittest.main()

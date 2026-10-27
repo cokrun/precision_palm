@@ -18,6 +18,7 @@ from unittest.mock import Mock, patch
 os.environ["FLASK_ENV"] = "testing"
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+import app as app_module
 from app import app, get_pure_db_connection
 
 class TestAllPagesAndFallbacks(unittest.TestCase):
@@ -229,7 +230,9 @@ class TestAllPagesAndFallbacks(unittest.TestCase):
             "dossier_id": "EST-MDN-010",
             "perspective_mode": "AERIAL_DRONE"
         }
-        with patch('cloud_services.grounded_auditor.audit_image_with_gemini', side_effect=Exception("Simulated Network Timeout")):
+        with patch('cloud_services.grounded_auditor.audit_image_with_gemini', side_effect=Exception("Simulated Network Timeout")), patch(
+            'app.record_unified_ai_log'
+        ) as record_log:
             res = self.client.post('/api/ai/scan-image', json=payload)
             self.assertEqual(res.status_code, 200)
             data = res.get_json()
@@ -249,6 +252,27 @@ class TestAllPagesAndFallbacks(unittest.TestCase):
             self.assertGreater(len(entities), 0)
             self.assertTrue(all(entity.get("is_heuristic") for entity in entities))
             self.assertTrue(all("confidence" not in entity for entity in entities))
+            self.assertEqual(record_log.call_args.kwargs["status"], "FALLBACK")
+            self.assertEqual(
+                record_log.call_args.kwargs["feature_name"],
+                "Canopy & Parcel Vision Scanner",
+            )
+
+    def test_ai_log_classifier_identifies_vision_fallback_separately(self):
+        log_entry = {
+            "feature_name": "Simulator In-Silico Vision Scan",
+            "model_engine": "Autonomous Statutory Rule Engine (heuristic fallback)",
+            "status": "SUCCESS",
+            "engine_mode": "AUTONOMOUS_RULE_ENGINE",
+            "status_message": "Gemini Vision inference did not complete successfully.",
+        }
+
+        classified = app_module._classify_ai_log_entry(log_entry)
+
+        self.assertEqual(classified["operation_type"], "IMAGE_VISION_SCAN")
+        self.assertEqual(classified["operation_label"], "AI Vision · Image scan")
+        self.assertEqual(classified["execution_path"], "FALLBACK")
+        self.assertEqual(classified["fallback_reason"], log_entry["status_message"])
 
     def test_17_scan_image_marks_non_live_auditor_result_as_fallback(self):
         """A successful function return is not proof that Gemini inference succeeded."""

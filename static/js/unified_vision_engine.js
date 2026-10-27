@@ -319,20 +319,24 @@
 
                 const isLiveAI = analysisData.mode === 'LIVE_GEMINI' &&
                     analysisData.api_telemetry?.is_live_gemini_called === true;
+                const pageScannerContext = ['SPATIAL', 'SIMULATOR', 'TIMELINES']
+                    .includes(String(pageContext).toUpperCase());
                 if (containerEl) {
                     this.stopHUDAnimation(
                         containerEl,
                         statusEl,
                         isLiveAI
                             ? "Live Gemini image analysis complete"
-                            : (analysisData.audit_notice ||
-                                analysisData.api_telemetry?.error_message ||
-                                "Fallback active — heuristic boxes are not image-verified")
+                            : (pageScannerContext
+                                ? "Gemini analysis unavailable — no image-verified detections."
+                                : "Fallback active — heuristic boxes are not image-verified")
                     );
                 }
 
                 if (overlayEl) {
-                    const boxes = analysisData.physical_entities || analysisData.detected_objects || [];
+                    const boxes = !isLiveAI && pageScannerContext
+                        ? []
+                        : (analysisData.physical_entities || analysisData.detected_objects || []);
                     this.renderBoundingBoxes(overlayEl, boxes);
                 }
 
@@ -344,12 +348,15 @@
         }
 
         adaptForPageContext(data, pageContext) {
-            const boxes = data.physical_entities || data.detected_objects || [];
-
-            const crowns = boxes.filter(b => b.cluster === 'palm_canopy');
             const isLiveAI = !!(data && data.mode === 'LIVE_GEMINI' &&
                 data.api_telemetry && data.api_telemetry.is_live_gemini_called === true &&
                 data.api_telemetry.api_call_status === 'LIVE_GOOGLE_CLOUD_SUCCESS');
+            const pageScannerContext = ['SPATIAL', 'SIMULATOR', 'TIMELINES']
+                .includes(String(pageContext).toUpperCase());
+            const boxes = !isLiveAI && pageScannerContext
+                ? []
+                : (data.physical_entities || data.detected_objects || []);
+            const crowns = boxes.filter(b => b.cluster === 'palm_canopy');
 
             const analysis = data.analysis || {};
             const readNumeric = (...values) => values.find(value =>
@@ -372,7 +379,11 @@
             const mode = isLiveAI ? 'LIVE_GEMINI' : 'AUTONOMOUS_RULE_ENGINE';
             const isFallback = !isLiveAI;
             const engine = isLiveAI ? 'Google Gemini image analysis' : 'Local heuristic preview (not image-verified)';
-            const auditNotice = isFallback ? (data.audit_notice || '[AUDIT NOTICE] Live Gemini image inference did not complete. Showing illustrative fallback only; it is not image-verified.') : null;
+            const auditNotice = isFallback
+                ? (pageScannerContext
+                    ? 'Gemini analysis unavailable. No image-verified detections are available.'
+                    : (data.audit_notice || '[AUDIT NOTICE] Live Gemini image inference did not complete. Showing illustrative fallback only; it is not image-verified.'))
+                : null;
 
             const realisticMatchPct = isLiveAI && typeof data.realistic_image_match_pct === 'number'
                 ? data.realistic_image_match_pct
@@ -418,7 +429,11 @@
                 apiTelemetry: data.api_telemetry || null,
                 persistence: data.persistence || null,
                 persistenceStatus: data.persistence?.sync_status || 'NOT_REQUESTED',
-                fallbackReason: isFallback ? (data.audit_notice || data.api_telemetry?.error_message || null) : null,
+                fallbackReason: isFallback
+                    ? (pageScannerContext
+                        ? 'Gemini analysis unavailable. No image-verified detections are available.'
+                        : (data.audit_notice || data.api_telemetry?.error_message || null))
+                    : null,
                 sha256Seal: data.sha256_hash || data.sha256_seal || null,
                 auditorCritique: data.auditor_summary || (isFallback
                     ? 'Heuristic preview only; image conditions were not verified.'

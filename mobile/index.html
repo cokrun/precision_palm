@@ -1837,7 +1837,20 @@
                         videoEl.srcObject = liveVideoStream;
                         videoEl.classList.remove('hidden');
                     }
-                    if (imgEl) imgEl.classList.add('hidden');
+                    if (imgEl) {
+                        imgEl.classList.add('hidden');
+                        imgEl.style.display = 'none';
+                    }
+                    const overlay = document.getElementById('viewfinderBBoxesOverlay');
+                    if (overlay) {
+                        overlay.innerHTML = '';
+                        overlay.style.display = 'none';
+                    }
+                    const emptyState = document.getElementById('emptyEvidenceStateMobile');
+                    if (emptyState) {
+                        emptyState.classList.add('hidden');
+                        emptyState.style.display = 'none';
+                    }
                     if (hudBanner) hudBanner.classList.remove('hidden');
                     if (captureWrap) captureWrap.classList.remove('hidden');
                     if (lblBtn) lblBtn.textContent = activeLanguage === 'en' ? 'Close Live' : 'Tutup Live';
@@ -1868,7 +1881,29 @@
                     videoEl.srcObject = null;
                     videoEl.classList.add('hidden');
                 }
-                if (imgEl) imgEl.classList.remove('hidden');
+                const emptyState = document.getElementById('emptyEvidenceStateMobile');
+                if (imgEl && activePhotoDataUrl && imgEl.complete && imgEl.naturalWidth > 0) {
+                    imgEl.classList.remove('hidden');
+                    imgEl.style.display = 'block';
+                    if (emptyState) {
+                        emptyState.classList.add('hidden');
+                        emptyState.style.display = 'none';
+                    }
+                } else {
+                    if (imgEl) {
+                        imgEl.classList.add('hidden');
+                        imgEl.style.display = 'none';
+                    }
+                    if (emptyState) {
+                        emptyState.classList.remove('hidden');
+                        emptyState.style.display = 'flex';
+                    }
+                    const overlay = document.getElementById('viewfinderBBoxesOverlay');
+                    if (overlay) {
+                        overlay.innerHTML = '';
+                        overlay.style.display = 'none';
+                    }
+                }
                 if (hudBanner) hudBanner.classList.add('hidden');
                 if (captureWrap) captureWrap.classList.add('hidden');
                 if (lblBtn) lblBtn.textContent = activeLanguage === 'en' ? 'Live Camera' : 'Kamera Live';
@@ -2475,10 +2510,28 @@
                 const overlay = document.getElementById('viewfinderBBoxesOverlay');
                 if (!overlay) return;
 
-                if (!boxes || boxes.length === 0) {
+                const imgEl = document.getElementById('viewfinderPhotoImg');
+                const videoEl = document.getElementById('liveCameraVideoEl');
+                const photoReady = Boolean(
+                    imgEl &&
+                    imgEl.complete &&
+                    imgEl.naturalWidth > 0 &&
+                    imgEl.style.display !== 'none' &&
+                    !imgEl.classList.contains('hidden')
+                );
+                const liveVideoReady = Boolean(
+                    liveVideoStream &&
+                    videoEl &&
+                    !videoEl.classList.contains('hidden') &&
+                    videoEl.videoWidth > 0 &&
+                    videoEl.videoHeight > 0
+                );
+                if ((!photoReady && !liveVideoReady) || !boxes || boxes.length === 0) {
                     overlay.innerHTML = '';
+                    overlay.style.display = 'none';
                     return;
                 }
+                overlay.style.display = 'block';
 
                 overlay.innerHTML = boxes.map(item => {
                     const cluster = inferClusterForEntity(item);
@@ -2486,7 +2539,9 @@
                         return '';
                     }
 
-                    const box = item.box_2d || [0, 0, 1000, 1000];
+                    if (!Array.isArray(item.box_2d) || item.box_2d.length !== 4 || !item.box_2d.every(Number.isFinite)) return '';
+                    const box = item.box_2d;
+                    if (box[2] <= box[0] || box[3] <= box[1]) return '';
                     const top = (box[0] / 10.0).toFixed(1);
                     const left = (box[1] / 10.0).toFixed(1);
                     const height = ((box[2] - box[0]) / 10.0).toFixed(1);
@@ -2535,7 +2590,10 @@
 
                 if (!activeGeotaggedBlob && !activePhotoDataUrl) {
                     cachedDetectedBoxes = [];
-                    if (overlay) overlay.innerHTML = '';
+                    if (overlay) {
+                        overlay.innerHTML = '';
+                        overlay.style.display = 'none';
+                    }
                     if (laserV) { laserV.classList.remove('laser-sweep-v'); laserV.classList.add('hidden'); }
                     if (laserH) { laserH.classList.remove('laser-sweep-h'); laserH.classList.add('hidden'); }
                     if (badge) {
@@ -2545,6 +2603,18 @@
                     update4DTelemetryCards(null);
                     updateLiveHudTopStrip(null);
                     updateLayerCounters([]);
+                    return;
+                }
+                const photoImg = document.getElementById('viewfinderPhotoImg');
+                if (!liveVideoStream && photoImg && (!photoImg.complete || photoImg.naturalWidth === 0)) {
+                    await new Promise(resolve => {
+                        photoImg.addEventListener('load', resolve, { once: true });
+                        photoImg.addEventListener('error', resolve, { once: true });
+                    });
+                }
+                if (!liveVideoStream && (!photoImg || !photoImg.complete || photoImg.naturalWidth === 0)) {
+                    cachedDetectedBoxes = [];
+                    renderDetectedBoxes([]);
                     return;
                 }
                 isAiScanInProgress = true;
@@ -3143,16 +3213,20 @@
             });
 
             function handleEmptyEvidenceStateMobile(imgEl) {
-                if (!imgEl || !imgEl.src || imgEl.src === window.location.href || imgEl.src.endsWith('/')) {
-                    if (imgEl) {
-                        imgEl.style.display = 'none';
-                        imgEl.classList.add('hidden');
-                    }
-                    const emptyEl = document.getElementById('emptyEvidenceStateMobile');
-                    if (emptyEl) {
-                        emptyEl.classList.remove('hidden');
-                        emptyEl.style.display = 'flex';
-                    }
+                if (imgEl) {
+                    imgEl.style.display = 'none';
+                    imgEl.classList.add('hidden');
+                }
+                cachedDetectedBoxes = [];
+                const overlay = document.getElementById('viewfinderBBoxesOverlay');
+                if (overlay) {
+                    overlay.innerHTML = '';
+                    overlay.style.display = 'none';
+                }
+                const emptyEl = document.getElementById('emptyEvidenceStateMobile');
+                if (emptyEl) {
+                    emptyEl.classList.remove('hidden');
+                    emptyEl.style.display = 'flex';
                 }
             }
             window.handleEmptyEvidenceStateMobile = handleEmptyEvidenceStateMobile;
